@@ -440,48 +440,35 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
 </style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
-  <script src="https://accounts.google.com/gsi/client"></script> <script>
-  // Force Google button to render when DOM is ready
-  document.addEventListener('DOMContentLoaded', function() {
-    if (typeof google !== 'undefined' && google.accounts) {
-      console.log('Google API ready, rendering button...');
-      try {
-        google.accounts.id.initialize({
-          client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
-          callback: function(response) {
-            console.log('Google login response received');
-            const payload = JSON.parse(atob(response.credential.split('.')[1]));
-            const userEmail = payload.email;
-            const userName = payload.name;
-            localStorage.setItem('userEmail', userEmail);
-            localStorage.setItem('userName', userName);
-            localStorage.setItem('isLoggedIn', 'true');
-            // Trigger checkProStatus function if it exists
-            if (typeof checkProStatus === 'function') {
-              checkProStatus(userEmail).then(isPro => {
-                if (isPro) {
-                  document.getElementById('tierPill').textContent = 'PRO';
-                  document.getElementById('tierPill').className = 'tier-pill pro';
-                  document.querySelectorAll('.upgrade, .price-cta, .unlock-btn').forEach(btn => btn.style.display = 'none');
-                }
-              });
-            }
-            toast(`Welcome, ${userName}!`);
-            location.reload();
-          }
-        });
-        google.accounts.id.renderButton(
-          document.getElementById('googleSignInButton'),
-          { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' }
-        );
-        google.accounts.id.prompt();
-      } catch(e) {
-        console.error('Google init error:', e);
-      }
+  <script src="https://accounts.google.com/gsi/client"></script>
+<script>
+  window.onload = function() {
+    console.log('Page loaded, checking for Google button container...');
+    var buttonDiv = document.getElementById('googleSignInButton');
+    if (buttonDiv) {
+      console.log('Button container found! Rendering Google button...');
+      google.accounts.id.initialize({
+        client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
+        callback: function(response) {
+          console.log('Signed in!');
+          var payload = JSON.parse(atob(response.credential.split('.')[1]));
+          localStorage.setItem('userEmail', payload.email);
+          localStorage.setItem('userName', payload.name);
+          localStorage.setItem('isLoggedIn', 'true');
+          alert('Welcome ' + payload.name + '!');
+          location.reload();
+        }
+      });
+      google.accounts.id.renderButton(buttonDiv, {
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'pill'
+      });
     } else {
-      console.log('Google API not loaded yet');
+      console.log('Button container NOT found! Check your HTML for id="googleSignInButton"');
     }
-  });
+  };
 </script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
@@ -510,6 +497,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
   <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
   <button class="hbtn upgrade" onclick="openModal()">⚡ Upgrade</button>
+</div>
 </div>
 </header>
 <div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
