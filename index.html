@@ -388,7 +388,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ps:last-of-type{margin-bottom:12px}
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
-</style>
+</style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
 <body>
 <div class="app">
@@ -711,6 +711,6 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
-</script>
+</script> 
 </body>
 </html>
