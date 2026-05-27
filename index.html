@@ -159,6 +159,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .empty-ring2{position:absolute;inset:6px;border:1px dashed rgba(0,200,255,.07);border-radius:50%;animation:spin-slow 18s linear infinite reverse}
 @keyframes spin-slow{to{transform:rotate(360deg)}}
 .empty-globe{font-size:32px;opacity:.5;animation:float 3s ease-in-out infinite}
+  .site-footer {
+  text-align: center;
+  padding: 16px 14px;
+  border-top: 1px solid var(--b1);
+  font-family: var(--fm);
+  font-size: 6px;
+  color: var(--tm);
+  margin-top: 20px;
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: var(--ts);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+}
+.footer-links a:hover {
+  color: var(--cyan);
+}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .empty-title{font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--ts)}
 .empty-sub{font-family:var(--fm);font-size:6px;color:var(--td);line-height:1.7}
@@ -391,12 +415,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
-<div id="landingPage">
-  <h1>GCIS Fusion</h1>
-  <p>Real-time humanitarian crisis intelligence aggregated from global data sources</p>
-  <button onclick="startTrial()">Start Free Trial</button>
-  <p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
-</div>
+
 <div class="app">
 <header class="header">
   <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">40+ API Endpoints · Full Integration</div></div></div>
