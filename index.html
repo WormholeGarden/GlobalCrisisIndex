@@ -41,58 +41,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   animation:ticker 110s linear infinite}
 @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .tick-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-family:var(--fm);font-size:6.5px;color:var(--ts);
-  border-right:1px solid var(--b1);height:100%}/* Google Sign-In Button Container */
-#googleSignInButton {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 5px;
-}
-
-/* Style the Google button that appears inside */
-#googleSignInButton iframe {
-  opacity: 0.85;
-  transition: opacity 0.2s ease;
-  border-radius: 20px !important;
-}
-
-#googleSignInButton iframe:hover {
-  opacity: 1;
-}
-
-/* User indicator (shows after login) */
-.user-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0, 200, 255, 0.08);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--b2);
-}
-
-.user-indicator span {
-  font-family: var(--fm);
-  font-size: 6px;
-  color: var(--cyan);
-  letter-spacing: 0.05em;
-}
-
-.user-indicator button {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-family: var(--fm);
-  font-size: 5px;
-  color: var(--ts);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.user-indicator button:hover {
-  background: rgba(255, 55, 95, 0.2);
-  color: var(--rose);
-}
+  border-right:1px solid var(--b1);height:100%}
 .tick-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:248px;flex-shrink:0;background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
@@ -439,39 +388,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ps:last-of-type{margin-bottom:12px}
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
-</style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
-  <script src="https://accounts.google.com/gsi/client"></script>
-<script>
-  // Safely initialize Google Sign-In without breaking the rest of the site
-  <script src="https://accounts.google.com/gsi/client"></script>
-<script>
-  window.onload = function() {
-    var buttonDiv = document.getElementById('googleSignInButton');
-    if (buttonDiv) {
-      google.accounts.id.initialize({
-        client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
-        callback: function(response) {
-          var payload = JSON.parse(atob(response.credential.split('.')[1]));
-          localStorage.setItem('userEmail', payload.email);
-          localStorage.setItem('userName', payload.name);
-          localStorage.setItem('isLoggedIn', 'true');
-          // Reload to show Pro status
-          location.reload();
-        }
-      });
-      google.accounts.id.renderButton(buttonDiv, {
-        theme: 'outline',
-        size: 'large',
-        text: 'signin_with',
-        shape: 'pill'
-      });
-      google.accounts.id.prompt();
-    }
-  };
-</script>
+</style>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
-<body> <!-- Landing page for non-logged-in users -->
-
+<body>
 
 <div class="app">
 <header class="header">
@@ -487,17 +407,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
   </div>
   <div class="header-right">
-  <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
-  <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
-  <div class="live-pill"><div class="live-dot"></div>LIVE</div>
-  <div id="googleSignInButton"></div>
-  <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
-  <button class="hbtn" id="shareBtn">🔗 Share</button>
-  <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
-  <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
-  <button class="hbtn upgrade" onclick="openModal()">⚡ Upgrade</button>
-</div>
-</div>
+    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
+    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div id="emailSignIn" style="display:flex; align-items:center; gap:6px;">
+      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03); border:1px solid var(--b2); border-radius:var(--r1); padding:4px 8px; font-size:8px; color:var(--ts); width:120px;">
+      <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
+      <button id="logoutBtn" class="hbtn" style="font-size:6px; display:none;">Logout</button>
+    </div>
+    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
+    <button class="hbtn" id="shareBtn">🔗 Share</button>
+    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
+    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
+    <button class="hbtn upgrade" onclick="openModal()">⚡ Upgrade</button>
+  </div>
 </header>
 <div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
@@ -522,7 +445,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
 
-  <footer class="site-footer">
+<footer class="site-footer">
   <div class="footer-links">
     <a href="privacy.html">PRIVACY POLICY</a>
     <a href="terms.html">TERMS OF SERVICE</a>
@@ -532,30 +455,59 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <div style="opacity: 0.6; margin-top: 6px;">Live APIs · Real-time crisis intelligence · © 2026</div>
 </footer>
 
-<script>// Check if user is Pro by looking up email in Airtable
-// Check if user is Pro by looking up email in Airtable
-async function checkProStatus(email) {
+<script>
+// ============================================================================
+// SIMPLE EMAIL LOGIN (No Google OAuth)
+// ============================================================================
+function toast(msg) {
+  let t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function openModal() { document.getElementById('modalBg').classList.add('open'); }
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
+function doUpgrade() { tier = 'pro'; document.getElementById('tierPill').textContent = 'PRO'; document.getElementById('tierPill').className = 'tier-pill pro'; closeModal(); toast('🎉 Pro unlocked!'); if (selectedIso && store[selectedIso]) renderPanel(selectedIso); renderRanking(); }
+
+function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    toast('Please enter a valid email');
+    return;
+  }
+  localStorage.setItem('userEmail', email);
+  localStorage.setItem('isLoggedIn', 'true');
+  checkProStatusAndUpdateUI(email);
+  updateUILoggedIn(email);
+  toast(`Logged in as ${email}`);
+}
+
+function logout() {
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('isLoggedIn');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginBtn').style.display = '';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('tierPill').textContent = 'FREE';
+  document.getElementById('tierPill').className = 'tier-pill free';
+  document.querySelectorAll('.upgrade, .price-cta, .unlock-btn').forEach(btn => btn.style.display = '');
+  toast('Logged out');
+}
+
+async function checkProStatusAndUpdateUI(email) {
   try {
-    console.log('🔍 Checking Pro status for:', email);
-    
     const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`, {
-      headers: { 
-        'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8'
-      }
+      headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' }
     });
-    
     const data = await response.json();
-    console.log('Airtable response:', data);
-    
-    if (data.records && data.records.length > 0) {
-      const tier = data.records[0].fields.Tier;
-      if (tier === 'pro') {
-        console.log('✅ User is PRO!');
-        return true;
-      }
+    if (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro') {
+      document.getElementById('tierPill').textContent = 'PRO';
+      document.getElementById('tierPill').className = 'tier-pill pro';
+      document.querySelectorAll('.upgrade, .price-cta, .unlock-btn').forEach(btn => btn.style.display = 'none');
+      return true;
     }
-    
-    console.log('❌ User is FREE tier');
     return false;
   } catch (err) {
     console.error('Error checking Pro status:', err);
@@ -563,141 +515,30 @@ async function checkProStatus(email) {
   }
 }
 
-// Update UI based on Pro status
-function updateUIForProStatus(isPro, email) {
-  const tierPill = document.getElementById('tierPill');
-  const upgradeButtons = document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, [onclick="openModal()"]');
-  
-  if (isPro) {
-    // User is Pro - show PRO badge, hide upgrade buttons
-    if (tierPill) {
-      tierPill.textContent = 'PRO';
-      tierPill.className = 'tier-pill pro';
-      tierPill.onclick = null; // Remove upgrade click
-    }
-    
-    // Hide upgrade buttons
-    upgradeButtons.forEach(btn => {
-      btn.style.display = 'none';
-    });
-    
-    // Show Pro features (unlock all countries, etc.)
-    document.body.classList.add('pro-user');
-    
-    toast(`🎉 Welcome back, Pro member! Full access unlocked.`);
-  } else {
-    // User is Free - show FREE badge, keep upgrade buttons
-    if (tierPill) {
-      tierPill.textContent = 'FREE';
-      tierPill.className = 'tier-pill free';
-      tierPill.onclick = () => openModal();
-    }
-    
-    // Show upgrade prompts
-    upgradeButtons.forEach(btn => {
-      btn.style.display = '';
-    });
-  }
-}
-
-// Handle Google login response
-async function handleCredentialResponse(response) {
-  console.log('Google login response received');
-  
-  // Decode the JWT token to get user info
-  const payload = parseJwt(response.credential);
-  const userEmail = payload.email;
-  const userName = payload.name;
-  
-  console.log('User email:', userEmail);
-  
-  // Store user info in localStorage
-  localStorage.setItem('userEmail', userEmail);
-  localStorage.setItem('userName', userName);
-  localStorage.setItem('isLoggedIn', 'true');
-  
-  // Check if user is Pro
-  const isPro = await onUserLogin(userEmail);
-  
-  // Update UI to show logged-in state
-  updateUILoggedIn(userName, isPro);
-  
-  toast(`Welcome, ${userName}!${isPro ? ' Pro features unlocked.' : ' Upgrade to Pro for full access.'}`);
-}
-
-// Helper: Parse JWT token
-function parseJwt(token) {
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  return JSON.parse(jsonPayload);
-}
-
-// Update UI for logged-in user
-function updateUILoggedIn(userName, isPro) {
-  // Add a user menu or welcome text to your header
+function updateUILoggedIn(email) {
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = '';
+  document.getElementById('loginEmail').style.display = 'none';
   const headerRight = document.querySelector('.header-right');
-  
-  // Remove any existing user indicator
-  const existingUser = document.querySelector('.user-indicator');
-  if (existingUser) existingUser.remove();
-  
-  // Create user indicator
-  const userDiv = document.createElement('div');
-  userDiv.className = 'user-indicator';
-  userDiv.style.cssText = 'display:flex;align-items:center;gap:8px;margin-right:8px;';
-  userDiv.innerHTML = `
-    <span style="font-family:var(--fm);font-size:6px;color:var(--ts);">${userName}</span>
-    <button onclick="logout()" class="hbtn" style="font-size:5px;">Logout</button>
-  `;
-  
-  headerRight.insertBefore(userDiv, headerRight.firstChild);
+  let userSpan = document.getElementById('userSpan');
+  if (!userSpan) {
+    userSpan = document.createElement('span');
+    userSpan.id = 'userSpan';
+    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
+    headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
+  }
+  userSpan.textContent = email;
 }
 
-// Logout function
-function logout() {
-  localStorage.removeItem('userEmail');
-  localStorage.removeItem('userName');
-  localStorage.removeItem('isLoggedIn');
-  
-  // Reset UI to free tier
-  document.getElementById('tierPill').textContent = 'FREE';
-  document.getElementById('tierPill').className = 'tier-pill free';
-  document.getElementById('tierPill').onclick = () => openModal();
-  
-  // Reload page to reset state
-  location.reload();
-}
-
-// Check if user was previously logged in (on page load)
-async function checkExistingLogin() {
-  const isLoggedIn = localStorage.getItem('isLoggedIn');
-  const userEmail = localStorage.getItem('userEmail');
-  const userName = localStorage.getItem('userName');
-  
-  if (isLoggedIn === 'true' && userEmail) {
-    console.log('Restoring login for:', userEmail);
-    const isPro = await onUserLogin(userEmail);
-    updateUILoggedIn(userName, isPro);
+function checkExistingLogin() {
+  const email = localStorage.getItem('userEmail');
+  if (email) {
+    document.getElementById('loginEmail').value = email;
+    checkProStatusAndUpdateUI(email);
+    updateUILoggedIn(email);
   }
 }
 
-// Call this when page loads
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Google Sign-In (add a button somewhere in your header)
-  // You'll need to add a <div id="googleSignInButton"></div> to your HTML
-  initializeGoogleSignIn();
-  checkExistingLogin();
-});
-// Check Pro status after login (call this when user logs in)
-async function onUserLogin(email) {
-  console.log('User logged in:', email);
-  const isPro = await checkProStatus(email);
-  updateUIForProStatus(isPro, email);
-  return isPro;
-}
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
 // ============================================================================
@@ -707,48 +548,40 @@ const safe = (p, ms=8000) => Promise.race([p, new Promise((_, r) => setTimeout((
 // ALL API ENDPOINTS (40+ total - FULLY INTEGRATED)
 // ============================================================================
 const API_ENDPOINTS = {
-  // Seismic (3)
   usgs_weekly: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
   usgs_significant: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
   emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
-  // Natural Events (5)
   nasa: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50',
   reliefweb_disasters: 'https://api.reliefweb.int/v1/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status',
   reliefweb_reports: 'https://api.reliefweb.int/v1/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format',
   gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
   firms: 'https://firms.modaps.eosdis.nasa.gov/api/country/csv/7d/ALL/1',
   gfw: 'https://data-api.globalforestwatch.org/v1/forest-change/status',
-  // Weather & Climate (4 - NEW OpenWeatherMap)
   noaa: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&severity=Extreme,Severe&limit=20',
   openmeteo: null,
-  openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608', // Free tier demo key
-  // Conflict (2 - NEW ACLED)
+  openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
   acled: 'https://api.acleddata.com/acled/read?terms=accept&limit=50&event_date=2024-01-01&event_date_where=>',
   gdelt: 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+crisis+humanitarian+emergency+disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d',
-  // Health (3)
   who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
   who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
   opendisease: 'https://api.opendiseasedata.org/v1/outbreaks?limit=50',
-  // Food Security (6)
   ipc_current: 'https://api.ipcinfo.org/v1/classifications/latest',
   ipc_population: 'https://api.ipcinfo.org/v1/populations/latest',
   fewsnet: 'https://fews.net/api/alert.json',
   wfp_vam: 'https://api.vam.wfp.org/v1/food-security/indicators/latest',
   fao_giews: 'https://api.fao.org/giews/country-alerts/latest',
-  // Economic (6)
   wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
   wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
   wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
   wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
   imf_gdp: 'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH',
   imf_inflation: 'https://www.imf.org/external/datamapper/api/v1/PCPIPCH',
-  // Humanitarian (3)
   unhcr: 'https://api.unhcr.org/population/v1/displacement-situations/?limit=50',
   openaq: 'https://api.openaq.org/v2/countries?limit=200&page=1'
 };
 
 // ============================================================================
-// DATA DEFINITIONS (abbreviated)
+// DATA DEFINITIONS (abbreviated - same as original)
 // ============================================================================
 const ARC={CE:{l:"Complex Emergency",i:"⚔️",n:["shelter","food","health","protection"]},EQ:{l:"Earthquake",i:"🌍",n:["shelter","health","water"]},FL:{l:"Flood",i:"🌊",n:["shelter","water","food"]},TC:{l:"Cyclone",i:"🌀",n:["shelter","water"]},DR:{l:"Drought",i:"🏜️",n:["food","water","nutrition"]},WF:{l:"Wildfire",i:"🔥",n:["shelter","health"]},ST:{l:"Storm",i:"⛈️",n:["shelter","water"]},CW:{l:"Civil War",i:"⚔️",n:["shelter","protection","health","food"]},EP:{l:"Epidemic",i:"🦠",n:["health","water","nutrition"]},VLC:{l:"Volcano",i:"🌋",n:["shelter","health","water"]},LS:{l:"Landslide",i:"⛰️",n:["shelter","health"]},TSU:{l:"Tsunami",i:"🌊",n:["shelter","health","water"]},REF:{l:"Refugee Crisis",i:"🚶",n:["shelter","protection","water"]},FN:{l:"Famine",i:"🍚",n:["food","nutrition","health"]},HEAT:{l:"Heatwave",i:"🥵",n:["health","water"]}};
 const CTYPES={PSE:["CE","CW","REF","HEAT"],SOM:["CE","CW","DR","FN","REF","HEAT"],SYR:["CE","CW","REF","EP","HEAT"],YEM:["CE","CW","FN","DR","REF"],AFG:["CE","CW","DR","FN","REF"],UKR:["CE","CW","REF","HEAT"],SSD:["CE","CW","FL","FN","REF"],SDN:["CE","CW","DR","FL","REF"],COD:["CE","CW","EP","FL","REF"],HTI:["CE","EQ","EP","ST","REF"],ETH:["CE","CW","DR","FN","REF"],MMR:["CE","CW","FL","REF","EP"],LBN:["CE","REF","EP","HEAT"],NGA:["CE","CW","FL","EP","REF"],PAK:["FL","EQ","DR","REF","HEAT","LS"],IRQ:["CE","CW","REF","HEAT"],IRN:["EQ","DR","REF","HEAT","LS"],VEN:["CE","REF","DR","HEAT"],COL:["CE","CW","FL","REF","LS"],BGD:["FL","TC","REF","EP","LS","HEAT"],IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"],JPN:["EQ","TSU","TC","VLC","FL","HEAT"],CHL:["EQ","VLC","TSU","WF","HEAT"],PER:["EQ","FL","LS","VLC","TSU","HEAT"],MEX:["EQ","ST","VLC","FL","TSU","HEAT"],USA:["WF","ST","EQ","TC","TSU","HEAT"],NZL:["EQ","TSU","VLC","FL","HEAT"],ITA:["EQ","VLC","WF","FL","TSU","HEAT"],GRC:["EQ","VLC","WF","FL","HEAT","REF"],ISL:["VLC","FL","ST","HEAT"],ECU:["EQ","VLC","FL","TSU","HEAT"],PNG:["EQ","TSU","VLC","FL","HEAT"],FJI:["TC","TSU","FL","HEAT"],SLB:["EQ","TSU","TC","HEAT"],NPL:["EQ","LS","FL","HEAT"],TUR:["EQ","FL","REF","CW","LS","HEAT"],IND:["FL","TC","DR","EQ","HEAT","LS"],CHN:["FL","EQ","TC","LS","TSU","HEAT"],RUS:["WF","FL","CW","ST","HEAT"],BRA:["FL","WF","DR","EP","LS","HEAT"],ZAF:["DR","FL","EP","HEAT"],EGY:["DR","REF","HEAT"],JOR:["REF","DR","HEAT"],SAU:["DR","ST","HEAT","REF"],KAZ:["FL","DR","WF","HEAT"],ARG:["FL","DR","ST","HEAT"],CAN:["WF","FL","ST","HEAT"],AUS:["WF","FL","TC","DR","HEAT"],FRA:["WF","ST","HEAT"],DEU:["FL","ST","HEAT"],GBR:["ST","FL","HEAT"],ESP:["WF","DR","ST","HEAT"],PRT:["WF","FL","HEAT"],SWE:["FL","ST","WF","HEAT"],NOR:["FL","ST","WF","HEAT"],FIN:["FL","ST","WF","HEAT"],DNK:["ST","FL","HEAT"],NLD:["FL","ST","HEAT"],BEL:["FL","ST","HEAT"],CHE:["FL","LS","ST","HEAT"],AUT:["FL","LS","ST","HEAT"],POL:["FL","ST","WF","HEAT"],CZE:["FL","ST","WF","HEAT"],HUN:["FL","ST","HEAT","WF"],IRL:["ST","FL","HEAT"],KOR:["ST","FL","HEAT","EQ"],MOZ:["TC","FL","HEAT"]};
@@ -764,16 +597,10 @@ const CENTROIDS={AFG:[67.7,33.9],PSE:[35.3,31.9],SOM:[45.3,5.2],SYR:[38.3,34.8],
 const CHARITIES=[{n:"World Food Programme",i:"🌾",f:["food","nutrition"],url:"https://www.wfp.org/donate",d:"Largest global food aid agency",e:94},{n:"UNHCR",i:"🏕️",f:["shelter","protection"],url:"https://donate.unhcr.org",d:"Refugee protection worldwide",e:90},{n:"Médecins Sans Frontières",i:"🏥",f:["health","water"],url:"https://www.msf.org/donate",d:"Medical care in conflict zones",e:96},{n:"IRC",i:"🤝",f:["health","shelter","protection"],url:"https://help.rescue.org/donate",d:"Rapid crisis response globally",e:92},{n:"Save the Children",i:"👶",f:["health","nutrition","protection"],url:"https://www.savethechildren.org",d:"Children in crisis worldwide",e:89},{n:"ShelterBox",i:"📦",f:["shelter"],url:"https://www.shelterbox.org",d:"Emergency shelter & equipment",e:88},{n:"WaterAid",i:"💧",f:["water"],url:"https://www.wateraid.org",d:"Clean water & sanitation",e:87},{n:"Action Against Hunger",i:"🍚",f:["food","nutrition","water"],url:"https://www.actionagainsthunger.org",d:"Combating hunger globally",e:91},{n:"Palestine Red Crescent",i:"🇵🇸",f:["health","shelter"],url:"https://www.palestinercs.org",d:"Local emergency response",e:85},{n:"Ukrainian Red Cross",i:"🇺🇦",f:["health","shelter"],url:"https://redcross.org.ua",d:"War-affected civilians in Ukraine",e:84},{n:"Direct Relief",i:"💊",f:["health"],url:"https://www.directrelief.org",d:"Medical supplies globally",e:93},{n:"CARE International",i:"❤️",f:["food","water","shelter"],url:"https://www.care.org",d:"Poverty & crisis relief",e:88},{n:"Oxfam",i:"💧",f:["water","food"],url:"https://www.oxfam.org",d:"Emergency water & food",e:87},{n:"Norwegian Refugee Council",i:"🏕️",f:["shelter","protection","food"],url:"https://www.nrc.no",d:"Displacement & shelter aid",e:89},{n:"Mercy Corps",i:"🤝",f:["food","water","shelter"],url:"https://www.mercycorps.org",d:"Crisis relief & recovery",e:90},{n:"World Vision",i:"👶",f:["food","health","protection"],url:"https://www.worldvision.org",d:"Child-focused emergency aid",e:87},{n:"Afghan Red Crescent",i:"🇦🇫",f:["health","shelter"],url:"https://www.arcs.af",d:"Local Afghanistan response",e:82},{n:"Syrian American Medical Soc.",i:"🇸🇾",f:["health","water"],url:"https://www.sams-usa.net",d:"Medical aid for Syrians",e:86},{n:"International Medical Corps",i:"🏥",f:["health","water"],url:"https://internationalmedicalcorps.org",d:"Emergency medical teams",e:92},{n:"HelpAge International",i:"👴",f:["health","protection"],url:"https://www.helpage.org",d:"Elderly & vulnerable in crises",e:85},{n:"Project HOPE",i:"💊",f:["health"],url:"https://www.projecthope.org",d:"Health workers & supplies",e:89},{n:"Catholic Relief Services",i:"⛪",f:["food","shelter","health"],url:"https://www.crs.org",d:"Global emergency relief",e:88},{n:"All Hands and Hearts",i:"🛠️",f:["shelter"],url:"https://www.allhandsandhearts.org",d:"Disaster rebuilding teams",e:84},{n:"Team Rubicon",i:"🔥",f:["shelter","health"],url:"https://teamrubiconusa.org",d:"Veteran-led disaster response",e:86},{n:"Danish Refugee Council",i:"🏕️",f:["shelter","protection"],url:"https://drc.ngo",d:"Refugee & IDP support",e:88},{n:"Somali Red Crescent",i:"🇸🇴",f:["health","shelter"],url:"https://somalirc.org",d:"Local Somalia response",e:80},{n:"Yemen Aid",i:"🇾🇪",f:["food","health"],url:"https://www.yemenaid.org",d:"Yemen humanitarian response",e:83},{n:"GlobalGiving",i:"🌐",f:["food","shelter","health","water","protection"],url:"https://www.globalgiving.org",d:"Vetted global crisis funds",e:86}];
 
 // ============================================================================
-// CORE HELPERS
+// CORE HELPERS (abbreviated - same as working version)
 // ============================================================================
 let tier='free',store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:Object.keys(ARC)};
-let apiResults = {};
-let heatStressData = [];
-let foodSecurityAlerts = [];
-let ipcClassifications = [];
-let conflictEvents = [];
-let weatherAlerts = [];
-let diseaseOutbreaks = [];
+let apiResults = {}, heatStressData = [], foodSecurityAlerts = [], ipcClassifications = [], conflictEvents = [], weatherAlerts = [], diseaseOutbreaks = [];
 let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
 function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff"}
 function composite(d){return DIMS.reduce((s,dim)=>s+dim.w*(d[dim.k]||0),0)}
@@ -781,11 +608,6 @@ function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)
 function entropy(arr){if(arr.length<4)return '—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2)}
 function cusum(arr,th=3.5){if(arr.length<4)return{det:false,z:.5};let mu=arr.slice(0,-3).reduce((a,b)=>a+b,0)/(arr.length-3)||arr[0],sP=0,sN=0;arr.forEach(x=>{sP=Math.max(0,sP+(x-mu)-1.2);sN=Math.max(0,sN-(x-mu)-1.2)});let std=Math.sqrt(arr.reduce((s,v)=>s+Math.pow(v-mu,2),0)/arr.length)||1;return{det:sP>th||sN>th,z:Math.abs((arr[arr.length-1]-mu)/std)}}
 function forecast(hist,cur){if(hist.length<4)return{fc:cur,dir:"→ Stable",dc:"ok",esc:false};let d=hist.slice(-12),tr=hist.length>=5?(d[d.length-1]-d[Math.max(0,d.length-5)])/5:0,fc=Math.round(Math.min(99,Math.max(5,d[d.length-1]+tr*2)));return{fc,dir:tr>1.2?"↑ Escalating":tr<-.8?"↓ Improving":"→ Stable",dc:tr>.6?"up":"ok",esc:fc>cur+5}}
-function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function openModal(){document.getElementById('modalBg').classList.add('open')}
-function closeModal(){document.getElementById('modalBg').classList.remove('open')}
-function pickPlan(el,p){document.querySelectorAll('.mplan').forEach(m=>m.classList.remove('sp'));el.classList.add('sp')}
-function doUpgrade(){tier='pro';document.getElementById('tierPill').textContent='PRO';document.getElementById('tierPill').className='tier-pill pro';closeModal();toast('🎉 Pro unlocked!');if(selectedIso&&store[selectedIso])renderPanel(selectedIso);renderRanking()}
 function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
 function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
 function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
@@ -794,155 +616,32 @@ function seedHistory(iso,currentScore){const N=28;const seed=iso.split('').reduc
 function spilloverScore(newStore){let res={};for(let iso in newStore){let nb=(ADJ[iso]||[]).filter(n=>newStore[n]);let excess=nb.length?Math.max(0,nb.reduce((s,n)=>s+newStore[n].score,0)/nb.length-50):0;res[iso]=Math.round(excess*.13*10)/10;}return res;}
 
 // ============================================================================
-// API FETCHERS
+// API FETCHERS (condensed but functional)
 // ============================================================================
-async function fetchOpenMeteoHeatStress(){
-  const heatProneIsos = ['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','TCD','ERI','DJI','KHM','LAO','MMR','THA','VNM','PHL','MYS','IDN'];
-  const results = [];
-  for(const iso of heatProneIsos.slice(0,25)){
-    const coord = CENTROIDS[iso];
-    if(!coord) continue;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,apparent_temperature_max&timezone=auto&forecast_days=1`;
-    const res = await safe(fetch(url).then(r=>r.json()));
-    if(res?.daily?.temperature_2m_max?.[0]){
-      results.push({ iso, temp: res.daily.temperature_2m_max[0], feelsLike: res.daily.apparent_temperature_max?.[0] || res.daily.temperature_2m_max[0] });
-    }
-  }
-  return results;
-}
-async function fetchFewsNetAlerts(){
-  try{
-    const res = await safe(fetch(API_ENDPOINTS.fewsnet).then(r=>r.json()));
-    if(res && Array.isArray(res)) return res.slice(0,20);
-    return [{country:"Yemen",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Somalia",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Sudan",phase:"Crisis",title:"IPC Phase 3",ipc:3},{country:"Afghanistan",phase:"Crisis",title:"IPC Phase 3",ipc:3},{country:"Ethiopia",phase:"Stress",title:"IPC Phase 2",ipc:2}];
-  }catch(e){ return []; }
-}
-async function fetchIpcClassifications(){
-  try{
-    const res = await safe(fetch(API_ENDPOINTS.ipc_current).then(r=>r.json()));
-    if(res && Array.isArray(res)) return res;
-    return [{country:"Yemen",phase:4,phase_name:"Emergency",population:17000000},{country:"Somalia",phase:4,phase_name:"Emergency",population:6500000},{country:"South Sudan",phase:4,phase_name:"Emergency",population:7200000},{country:"Sudan",phase:3,phase_name:"Crisis",population:11800000},{country:"Afghanistan",phase:3,phase_name:"Crisis",population:15000000},{country:"Ethiopia",phase:3,phase_name:"Crisis",population:9800000},{country:"Nigeria",phase:3,phase_name:"Crisis",population:4500000},{country:"DR Congo",phase:3,phase_name:"Crisis",population:7300000},{country:"Haiti",phase:3,phase_name:"Crisis",population:4800000}];
-  }catch(e){ return []; }
-}
-async function fetchConflictEvents(){
-  try{
-    const res = await safe(fetch(API_ENDPOINTS.acled).then(r=>r.json()));
-    if(res?.data) return res.data.slice(0,15);
-    return [{country:"Ukraine",event_type:"Battles",fatalities:120,date:"2024-01-15"},{country:"Palestine",event_type:"Protests",fatalities:45,date:"2024-01-14"},{country:"Sudan",event_type:"Battles",fatalities:89,date:"2024-01-13"},{country:"Myanmar",event_type:"Armed clashes",fatalities:23,date:"2024-01-12"},{country:"Ethiopia",event_type:"Violence against civilians",fatalities:34,date:"2024-01-11"}];
-  }catch(e){ return []; }
-}
-async function fetchWeatherAlerts(){
-  try{
-    const res = await safe(fetch(API_ENDPOINTS.openweathermap).then(r=>r.json()));
-    if(res?.main) return [{city:"London",temp:res.main.temp,condition:res.weather?.[0]?.description}];
-    return [];
-  }catch(e){ return []; }
-}
-async function fetchDiseaseOutbreaks(){
-  try{
-    const res = await safe(fetch(API_ENDPOINTS.opendisease).then(r=>r.json()));
-    if(res?.results) return res.results.slice(0,15);
-    return [{disease:"Cholera",country:"Yemen",cases:25000},{disease:"Dengue",country:"Bangladesh",cases:15000},{disease:"Measles",country:"DR Congo",cases:8000}];
-  }catch(e){ return []; }
-}
+async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','TCD','ERI','DJI','KHM','LAO','MMR','THA','VNM','PHL','MYS','IDN'];const results=[];for(const iso of heatProneIsos.slice(0,25)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,apparent_temperature_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+async function fetchFewsNetAlerts(){try{const res=await safe(fetch(API_ENDPOINTS.fewsnet).then(r=>r.json()));if(res&&Array.isArray(res))return res.slice(0,20);return[{country:"Yemen",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Somalia",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Sudan",phase:"Crisis",title:"IPC Phase 3",ipc:3}];}catch(e){return[];}}
+async function fetchIpcClassifications(){try{const res=await safe(fetch(API_ENDPOINTS.ipc_current).then(r=>r.json()));if(res&&Array.isArray(res))return res;return[{country:"Yemen",phase:4,phase_name:"Emergency",population:17000000},{country:"Somalia",phase:4,phase_name:"Emergency",population:6500000},{country:"South Sudan",phase:4,phase_name:"Emergency",population:7200000},{country:"Sudan",phase:3,phase_name:"Crisis",population:11800000},{country:"Afghanistan",phase:3,phase_name:"Crisis",population:15000000}];}catch(e){return[];}}
+async function fetchConflictEvents(){try{const res=await safe(fetch(API_ENDPOINTS.acled).then(r=>r.json()));if(res?.data)return res.data.slice(0,15);return[{country:"Ukraine",event_type:"Battles",fatalities:120},{country:"Palestine",event_type:"Protests",fatalities:45},{country:"Sudan",event_type:"Battles",fatalities:89}];}catch(e){return[];}}
+async function fetchWeatherAlerts(){try{const res=await safe(fetch(API_ENDPOINTS.openweathermap).then(r=>r.json()));if(res?.main)return[{city:"London",temp:res.main.temp}];return[];}catch(e){return[];}}
+async function fetchDiseaseOutbreaks(){try{const res=await safe(fetch(API_ENDPOINTS.opendisease).then(r=>r.json()));if(res?.results)return res.results.slice(0,15);return[{disease:"Cholera",country:"Yemen",cases:25000},{disease:"Dengue",country:"Bangladesh",cases:15000}];}catch(e){return[];}}
 
 // ============================================================================
 // BUILD TICKER
 // ============================================================================
-function buildTickerFromResults(){
-  const items = [];
-  const now = Date.now();
-  if(apiResults.usgs_weekly?.features) apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c="#3ec5ff",l="LOW";if(mag>=7){c="#ff375f";l="CRITICAL";}else if(mag>=6){c="#ff8c42";l="HIGH";}else if(mag>=5){c="#ffb020";l="MODERATE";}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});});
-  if(apiResults.nasa?.events) apiResults.nasa.events.slice(0,3).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c="#ffb020",l="MODERATE",icon="⚠️";if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});});
-  if(apiResults.noaa?.features) apiResults.noaa.features.slice(0,3).forEach(alert=>{const props=alert.properties;items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});});
-  heatStressData.forEach(h=>{if(h.temp>40)items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});});
-  foodSecurityAlerts.forEach(a=>{let c="#ffb020",l="MODERATE";if(a.ipc>=4){c="#ff375f";l="CRITICAL";}else if(a.ipc>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});});
-  ipcClassifications.forEach(i=>{let c="#ffb020",l="MODERATE";if(i.phase>=4){c="#ff375f";l="CRITICAL";}else if(i.phase>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});});
-  conflictEvents.forEach(c=>{items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});});
-  diseaseOutbreaks.forEach(d=>{items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});});
-  items.sort((a,b)=>a.age-b.age);
-  const seen=new Set();
-  const uniq=items.filter(r=>{const k=r.t.slice(0,45).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,55);
-  if(uniq.length===0)return;
-  const doubled=[...uniq,...uniq];
-  const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
-  const inner=document.getElementById('tickerInner');
-  inner.innerHTML=html;
-  inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';
-}
+function buildTickerFromResults(){const items=[];const now=Date.now();if(apiResults.usgs_weekly?.features)apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c="#3ec5ff",l="LOW";if(mag>=7){c="#ff375f";l="CRITICAL";}else if(mag>=6){c="#ff8c42";l="HIGH";}else if(mag>=5){c="#ffb020";l="MODERATE";}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});});if(apiResults.nasa?.events)apiResults.nasa.events.slice(0,3).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c="#ffb020",l="MODERATE",icon="⚠️";if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});});if(apiResults.noaa?.features)apiResults.noaa.features.slice(0,3).forEach(alert=>{const props=alert.properties;items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});});heatStressData.forEach(h=>{if(h.temp>40)items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});});foodSecurityAlerts.forEach(a=>{let c="#ffb020",l="MODERATE";if(a.ipc>=4){c="#ff375f";l="CRITICAL";}else if(a.ipc>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});});ipcClassifications.forEach(i=>{let c="#ffb020",l="MODERATE";if(i.phase>=4){c="#ff375f";l="CRITICAL";}else if(i.phase>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});});conflictEvents.forEach(c=>{items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});});diseaseOutbreaks.forEach(d=>{items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});});items.sort((a,b)=>a.age-b.age);const seen=new Set();const uniq=items.filter(r=>{const k=r.t.slice(0,45).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,55);if(uniq.length===0)return;const doubled=[...uniq,...uniq];const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');const inner=document.getElementById('tickerInner');inner.innerHTML=html;inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';}
 
 // ============================================================================
 // FETCH ALL APIs
 // ============================================================================
-async function fetchAllAPIs(){
-  const promises = {};
-  for(const [key, url] of Object.entries(API_ENDPOINTS)){
-    if(url) promises[key] = safe(fetch(url).then(r=>r.json()).catch(()=>null));
-  }
-  const results = await Promise.allSettled(Object.values(promises));
-  const keys = Object.keys(promises);
-  results.forEach((res, idx) => { apiResults[keys[idx]] = res.status === 'fulfilled' ? res.value : null; });
-  heatStressData = await fetchOpenMeteoHeatStress();
-  foodSecurityAlerts = await fetchFewsNetAlerts();
-  ipcClassifications = await fetchIpcClassifications();
-  conflictEvents = await fetchConflictEvents();
-  weatherAlerts = await fetchWeatherAlerts();
-  diseaseOutbreaks = await fetchDiseaseOutbreaks();
-  buildTickerFromResults();
-  const liveCount = Object.keys(apiResults).filter(k=>apiResults[k]).length;
-  console.log(`APIs live: ${liveCount}/40+ (ACLED, OpenWeatherMap, GFW, FAO, WHO RSS integrated)`);
-}
+async function fetchAllAPIs(){const promises={};for(const[key,url]of Object.entries(API_ENDPOINTS)){if(url)promises[key]=safe(fetch(url).then(r=>r.json()).catch(()=>null));}const results=await Promise.allSettled(Object.values(promises));const keys=Object.keys(promises);results.forEach((res,idx)=>{apiResults[keys[idx]]=res.status==='fulfilled'?res.value:null;});heatStressData=await fetchOpenMeteoHeatStress();foodSecurityAlerts=await fetchFewsNetAlerts();ipcClassifications=await fetchIpcClassifications();conflictEvents=await fetchConflictEvents();weatherAlerts=await fetchWeatherAlerts();diseaseOutbreaks=await fetchDiseaseOutbreaks();buildTickerFromResults();}
 
 // ============================================================================
 // REFRESH
 // ============================================================================
-async function refresh(){
-  const loader=document.getElementById('loader');const fill=document.getElementById('lFill');
-  loader.style.display='flex';const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
-  function adv(n,pct){steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''))});fill.style.width=pct+'%'}
-  adv(0,5);await fetchAllAPIs();adv(1,20);
-  const refreshSeed=Math.floor(Date.now()/60000);let newStore={};
-  for(let iso of Object.keys(ISO_NUM)){
-    const name=NAMES[iso]||iso;const flag=FLAGS[iso]||'🌍';const types=CTYPES[iso]||DEFAULT_T;
-    const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];let base=BASE_SCORES[iso]||42;
-    const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
-    const rawBase=Math.min(99,Math.max(5,base+variation));
-    const mult={PSE:1.0,SOM:1.0,SYR:1.0,HTI:1.0,YEM:1.0,UKR:1.0,IDN:1.25,PHL:1.2,JPN:1.15}[iso]||1.0;
-    const events=Math.min(60,Math.max(4,Math.floor(10*mult)+Math.floor(rawBase/14)));
-    const dims=buildDims(rawBase,types);
-    let score=Math.min(99,Math.max(1,Math.round(composite(dims))));
-    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};
-  }
-  adv(2,40);const spill=spilloverScore(newStore);
-  for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
-  adv(3,60);store=newStore;ranked=Object.keys(store).sort((a,b)=>store[b].score-store[a].score);
-  if(!historyInitialized){for(let iso in store)history[iso]=seedHistory(iso,store[iso].score);historyInitialized=true;}
-  else{for(let iso in store){if(!history[iso])history[iso]=seedHistory(iso,store[iso].score);history[iso].push({t:Date.now(),s:store[iso].score});if(history[iso].length>60)history[iso].shift();}}
-  const gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);
-  const delta=prevGCIS!=null?gcis-prevGCIS:0;prevGCIS=gcis;
-  document.getElementById('gcisNum').textContent=gcis;
-  const dEl=document.getElementById('gcisDelta');dEl.textContent=(delta>=0?'+':'')+delta;
-  dEl.style.cssText=`background:${delta>0?'rgba(255,55,95,.15)':'rgba(0,229,160,.1)'};color:${delta>0?'#ff375f':'#00e5a0'}`;
-  const crit=ranked.filter(i=>store[i].score>=80).length;
-  const anoms=ranked.filter(i=>cusum((history[i]||[]).map(h=>h.s)).det).length;
-  const tevt=Object.values(store).reduce((s,c)=>s+c.events,0);
-  document.getElementById('sCrit').textContent=crit;
-  document.getElementById('sAff').textContent='≈'+Math.round(crit*4.8)+'M';
-  document.getElementById('sAnom').textContent=anoms;
-  document.getElementById('sEvt').textContent=tevt.toLocaleString();
-  const now=new Date();
-  const freshEl=document.getElementById('freshness');const freshTime=document.getElementById('freshTime');
-  if(freshEl&&freshTime){freshEl.style.display='block';freshTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
-  adv(4,85);paintMap();addPulseMarkers();renderRanking();
-  loader.style.display='none';
-  const liveCount = Object.keys(apiResults).filter(k=>apiResults[k]).length;
-  toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live · ACLED+Weather+GFW+FAO+WHO RSS active`);
-  refreshTimerSecs=300;
-  if(selectedIso&&store[selectedIso])renderPanel(selectedIso);else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
-}
+async function refresh(){const loader=document.getElementById('loader');const fill=document.getElementById('lFill');loader.style.display='flex';const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));function adv(n,pct){steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''))});fill.style.width=pct+'%'}adv(0,5);await fetchAllAPIs();adv(1,20);const refreshSeed=Math.floor(Date.now()/60000);let newStore={};for(let iso of Object.keys(ISO_NUM)){const name=NAMES[iso]||iso;const flag=FLAGS[iso]||'🌍';const types=CTYPES[iso]||DEFAULT_T;const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];let base=BASE_SCORES[iso]||42;const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);const rawBase=Math.min(99,Math.max(5,base+variation));const mult={PSE:1.0,SOM:1.0,SYR:1.0,HTI:1.0,YEM:1.0,UKR:1.0,IDN:1.25,PHL:1.2,JPN:1.15}[iso]||1.0;const events=Math.min(60,Math.max(4,Math.floor(10*mult)+Math.floor(rawBase/14)));const dims=buildDims(rawBase,types);let score=Math.min(99,Math.max(1,Math.round(composite(dims))));newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};}adv(2,40);const spill=spilloverScore(newStore);for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}adv(3,60);store=newStore;ranked=Object.keys(store).sort((a,b)=>store[b].score-store[a].score);if(!historyInitialized){for(let iso in store)history[iso]=seedHistory(iso,store[iso].score);historyInitialized=true;}else{for(let iso in store){if(!history[iso])history[iso]=seedHistory(iso,store[iso].score);history[iso].push({t:Date.now(),s:store[iso].score});if(history[iso].length>60)history[iso].shift();}}const gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);const delta=prevGCIS!=null?gcis-prevGCIS:0;prevGCIS=gcis;document.getElementById('gcisNum').textContent=gcis;const dEl=document.getElementById('gcisDelta');dEl.textContent=(delta>=0?'+':'')+delta;dEl.style.cssText=`background:${delta>0?'rgba(255,55,95,.15)':'rgba(0,229,160,.1)'};color:${delta>0?'#ff375f':'#00e5a0'}`;const crit=ranked.filter(i=>store[i].score>=80).length;const anoms=ranked.filter(i=>cusum((history[i]||[]).map(h=>h.s)).det).length;const tevt=Object.values(store).reduce((s,c)=>s+c.events,0);document.getElementById('sCrit').textContent=crit;document.getElementById('sAff').textContent='≈'+Math.round(crit*4.8)+'M';document.getElementById('sAnom').textContent=anoms;document.getElementById('sEvt').textContent=tevt.toLocaleString();const now=new Date();const freshEl=document.getElementById('freshness');const freshTime=document.getElementById('freshTime');if(freshEl&&freshTime){freshEl.style.display='block';freshTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}adv(4,85);paintMap();addPulseMarkers();renderRanking();loader.style.display='none';const liveCount=Object.keys(apiResults).filter(k=>apiResults[k]).length;toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live`);refreshTimerSecs=300;if(selectedIso&&store[selectedIso])renderPanel(selectedIso);else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}}
 
 // ============================================================================
-// MAP FUNCTIONS (condensed)
+// MAP FUNCTIONS (condensed but functional)
 // ============================================================================
 function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path').data(countries.features).enter().append('path').attr('class','country-path').attr('d',pathGen).attr('fill','#0c1c30').on('mousemove',(ev,d)=>{const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');if(iso&&store[iso]){const c=store[iso],col=sc(c.score);document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;tt.style.left=Math.min(x+16,W-210)+'px';tt.style.top=Math.max(8,y-85)+'px';tt.classList.add('vis');}else tt.classList.remove('vis');}).on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis')).on('click',(ev,d)=>{const iso=NUM_ISO[String(d.id)];if(iso&&store[iso])selCountry(iso);});zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));svgEl.call(zoom);document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);window.addEventListener('resize',()=>{const W2=stage.clientWidth,H2=stage.clientHeight;svgEl.attr('width',W2).attr('height',H2);proj.scale(W2/4.3).translate([W2/2,H2/2]);pathGen=d3.geoPath().projection(proj);mapGroup.selectAll('path').attr('d',pathGen);addPulseMarkers();});}
 function paintMap(){if(!mapGroup)return;mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{const iso=NUM_ISO[String(d.id)];if(!iso||!store[iso])return '#0c1c30';return sc(store[iso].score)+'99';});}
@@ -952,12 +651,7 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 function renderRanking(filter=''){const active=new Set(prefs.filters);const all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t))).filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));const shown=all.slice(0,10),hidden=all.length-shown.length;document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];const spkMx=Math.max(...spk),spkMn=Math.min(...spk,spkMx-8);const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;}).join('');if(tier==='free'&&hidden>0){document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);}}
 function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf(iso);if(idx>=0)rankIdx=idx;renderPanel(iso);zoomToCountry(iso);}}
 async function fetchAIBrief(iso){if(tier!=='pro')return null;const c=store[iso];const prompt=`You are a UN Situation Report analyst. Write exactly 2 concise sentences about the humanitarian crisis in ${c.name} (urgency score ${c.score}/100). Focus on: ${c.types.slice(0,3).map(t=>ARC[t]?.l||t).join(', ')}. Key needs: ${[...new Set(c.needs)].slice(0,4).join(', ')}.`;try{const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':'YOUR_ANTHROPIC_API_KEY_HERE','anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});const data=await res.json();return data.content?.[0]?.text||null;}catch(e){return null}}
-async function renderPanel(iso){const c=store[iso];if(!c)return;const hist=(history[iso]||[]).map(h=>h.s);const fc=forecast(hist,c.score),anom=cusum(hist),vol=volatility(hist),ent=entropy(hist);const col=sc(c.score);const cir=175.9;document.getElementById('emptyState').style.display='none';document.getElementById('panelContent').style.display='block';const restrictedMap={"Palestine Red Crescent":["palestine"],"Ukrainian Red Cross":["ukraine"],"Afghan Red Crescent":["afghanistan"],"Somali Red Crescent":["somalia"],"Syrian American Medical Soc.":["syria"],"Yemen Aid":["yemen"]};const chs=CHARITIES.filter(ch=>{for(const[charity,allowed]of Object.entries(restrictedMap)){if(ch.n.includes(charity)){return allowed.some(country=>c.name.toLowerCase().includes(country));}}return true;}).slice(0,8);const nb=(ADJ[iso]||[]).filter(n=>store[n]);const spillPct=Math.min(100,(c.spillover||0)/15*100);const nbHtml=nb.length?nb.map(n=>`<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join(''):`<span>No tracked neighbours</span>`;const fcHist=[...hist.slice(-8),fc.fc];const fcChartSvg=miniLineChart(fcHist,320,36,col);const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
-document.getElementById('panelContent').innerHTML=`<div class="p-block"><div class="p-score-row"><div><div class="p-flag-row"><div class="p-flag">${c.flag}</div><div><div class="p-name">${c.name}</div><div class="p-iso">${iso}</div></div></div><div class="p-types">${c.types.slice(0,5).map(t=>`<span class="type-tag">${ARC[t]?.i||'⚠️'} ${ARC[t]?.l||t}</span>`).join('')}</div></div><div class="ring-wrap"><svg width="68" height="68"><circle class="ring-bg" cx="34" cy="34" r="28"/><circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/></svg><div class="ring-val" style="color:${col}">${c.score}</div><div class="ring-lbl">/100</div></div></div><div class="vol-strip"><div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div><div class="vol-chip">∫ Ent ${ent}</div><div class="vol-chip">🌐 +${(c.spillover||0).toFixed(1)}</div><div class="vol-chip">📅 ${c.events}</div></div><div class="urgency-bar-wrap"><div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div><div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div></div><div class="needs-strip">${[...new Set(c.needs)].slice(0,7).map(n=>`<span class="need ${n}">${n}</span>`).join('')}</div>${ipcInfo ? `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population/1e6)}M people</span></div>` : ''}</div><div class="ai-brief" id="aiBrief"><div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div>${tier==='pro'?`<div class="ai-loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Generating...</span></div>`:`<div class="ai-brief-locked"><div class="ai-lock-icon">🔒</div><div class="ai-lock-title">AI Report</div><div class="ai-lock-desc">Claude AI SITREP — exclusive to Pro.</div><button class="ai-lock-btn" onclick="openModal()">⚡ Upgrade</button></div>`}</div><div class="hist-block"><div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div><div>${hist.length>1?miniLineChart(hist,340,46,col):''}</div></div><div class="ps"><div class="spill-box"><div class="spill-head"><div class="spill-title">🌐 Regional Spillover</div><div class="spill-score">+${(c.spillover||0).toFixed(1)}</div></div><div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div><div class="nbr-wrap">${nbHtml}</div></div></div><div class="ps"><div class="dims-box"><div class="dims-head"><span>📊 8-Dimension Analysis</span></div><div class="dims-body"><div class="dims-bars">${DIMS.map(d=>{const v=c.dims[d.k]||0;return`<div class="dim-row"><div class="dim-icon">${d.i}</div><div class="dim-lbl">${d.l}</div><div class="dim-track"><div class="dim-fill" id="df_${d.k}" style="background:${sc(v)};width:0"></div></div><div class="dim-val">${v}</div></div>`}).join('')}</div><div class="radar-wrap">${buildRadar(c.dims)}</div></div></div></div><div class="ps"><div class="fc-box"><div class="fc-head"><div class="fc-title">🔮 7-Day Forecast</div><div class="fc-dir ${fc.dc}">${fc.dir}</div></div><div class="fc-body"><div class="fc-big">${fc.fc}</div><div class="fc-meta"><div class="fc-row"><span>Current</span><span>${c.score}</span></div><div class="fc-row"><span>Delta</span><span style="color:${fc.fc>c.score?'#f87171':'#00e5a0'}">${fc.fc>c.score?'+':''}${fc.fc-c.score}</span></div></div></div><div>${fcChartSvg}</div><div class="fc-status ${fc.esc?'esc':'stab'}">${fc.esc?'⚠ Escalation projected':'✓ Stable trajectory'}</div></div></div><div class="charity-section"><div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS</div><div class="ch-cards">${chs.map(ch=>`<div class="ch-card"><div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${Math.floor(70+Math.random()*25)}%</span></div><div class="ch-eff-row"><div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div><span>${ch.e}%</span></div><div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div></div>`).join('')}</div></div><div class="impact-calc"><div class="impact-head"><div class="impact-title">💚 Donation Impact</div></div><div class="impact-body"><span>$</span><input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')"><div class="impact-result" id="impactResult"></div></div></div><div class="pricing-box"><div class="price-tiers"><div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div><div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div></div><button class="price-cta" onclick="openModal()">⚡ Upgrade</button></div><div class="alert-box"><div class="alert-head"><span class="alert-title">✉️ Crisis Alerts</span></div><div class="alert-email-row"><input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput"></div><button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">${tier==='pro'?'✉️ Enable Alerts':'🔒 Upgrade'}</button></div></div>`;
-setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);
-if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}
-setTimeout(()=>calcImpact(iso),100);
-if(tier==='pro'){fetchAIBrief(iso).then(text=>{const el=document.getElementById('aiBrief');if(el&&text)el.innerHTML=`<div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div><div class="ai-brief-text">${text}</div>`;});}}
+async function renderPanel(iso){const c=store[iso];if(!c)return;const hist=(history[iso]||[]).map(h=>h.s);const fc=forecast(hist,c.score),anom=cusum(hist),vol=volatility(hist),ent=entropy(hist);const col=sc(c.score);const cir=175.9;document.getElementById('emptyState').style.display='none';document.getElementById('panelContent').style.display='block';const restrictedMap={"Palestine Red Crescent":["palestine"],"Ukrainian Red Cross":["ukraine"],"Afghan Red Crescent":["afghanistan"],"Somali Red Crescent":["somalia"],"Syrian American Medical Soc.":["syria"],"Yemen Aid":["yemen"]};const chs=CHARITIES.filter(ch=>{for(const[charity,allowed]of Object.entries(restrictedMap)){if(ch.n.includes(charity)){return allowed.some(country=>c.name.toLowerCase().includes(country));}}return true;}).slice(0,8);const nb=(ADJ[iso]||[]).filter(n=>store[n]);const spillPct=Math.min(100,(c.spillover||0)/15*100);const nbHtml=nb.length?nb.map(n=>`<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join(''):`<span>No tracked neighbours</span>`;const fcHist=[...hist.slice(-8),fc.fc];const fcChartSvg=miniLineChart(fcHist,320,36,col);const ipcInfo=ipcClassifications.find(i=>i.country===c.name)||null;document.getElementById('panelContent').innerHTML=`<div class="p-block"><div class="p-score-row"><div><div class="p-flag-row"><div class="p-flag">${c.flag}</div><div><div class="p-name">${c.name}</div><div class="p-iso">${iso}</div></div></div><div class="p-types">${c.types.slice(0,5).map(t=>`<span class="type-tag">${ARC[t]?.i||'⚠️'} ${ARC[t]?.l||t}</span>`).join('')}</div></div><div class="ring-wrap"><svg width="68" height="68"><circle class="ring-bg" cx="34" cy="34" r="28"/><circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/></svg><div class="ring-val" style="color:${col}">${c.score}</div><div class="ring-lbl">/100</div></div></div><div class="vol-strip"><div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div><div class="vol-chip">∫ Ent ${ent}</div><div class="vol-chip">🌐 +${(c.spillover||0).toFixed(1)}</div><div class="vol-chip">📅 ${c.events}</div></div><div class="urgency-bar-wrap"><div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div><div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div></div><div class="needs-strip">${[...new Set(c.needs)].slice(0,7).map(n=>`<span class="need ${n}">${n}</span>`).join('')}</div>${ipcInfo?`<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population/1e6)}M people</span></div>`:''}</div><div class="ai-brief" id="aiBrief"><div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div>${tier==='pro'?`<div class="ai-loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Generating...</span></div>`:`<div class="ai-brief-locked"><div class="ai-lock-icon">🔒</div><div class="ai-lock-title">AI Report</div><div class="ai-lock-desc">Claude AI SITREP — exclusive to Pro.</div><button class="ai-lock-btn" onclick="openModal()">⚡ Upgrade</button></div>`}</div><div class="hist-block"><div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div><div>${hist.length>1?miniLineChart(hist,340,46,col):''}</div></div><div class="ps"><div class="spill-box"><div class="spill-head"><div class="spill-title">🌐 Regional Spillover</div><div class="spill-score">+${(c.spillover||0).toFixed(1)}</div></div><div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div><div class="nbr-wrap">${nbHtml}</div></div></div><div class="ps"><div class="dims-box"><div class="dims-head"><span>📊 8-Dimension Analysis</span></div><div class="dims-body"><div class="dims-bars">${DIMS.map(d=>{const v=c.dims[d.k]||0;return`<div class="dim-row"><div class="dim-icon">${d.i}</div><div class="dim-lbl">${d.l}</div><div class="dim-track"><div class="dim-fill" id="df_${d.k}" style="background:${sc(v)};width:0"></div></div><div class="dim-val">${v}</div></div>`}).join('')}</div><div class="radar-wrap">${buildRadar(c.dims)}</div></div></div></div><div class="ps"><div class="fc-box"><div class="fc-head"><div class="fc-title">🔮 7-Day Forecast</div><div class="fc-dir ${fc.dc}">${fc.dir}</div></div><div class="fc-body"><div class="fc-big">${fc.fc}</div><div class="fc-meta"><div class="fc-row"><span>Current</span><span>${c.score}</span></div><div class="fc-row"><span>Delta</span><span style="color:${fc.fc>c.score?'#f87171':'#00e5a0'}">${fc.fc>c.score?'+':''}${fc.fc-c.score}</span></div></div></div><div>${fcChartSvg}</div><div class="fc-status ${fc.esc?'esc':'stab'}">${fc.esc?'⚠ Escalation projected':'✓ Stable trajectory'}</div></div></div><div class="charity-section"><div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS</div><div class="ch-cards">${chs.map(ch=>`<div class="ch-card"><div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${Math.floor(70+Math.random()*25)}%</span></div><div class="ch-eff-row"><div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div><span>${ch.e}%</span></div><div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div></div>`).join('')}</div></div><div class="impact-calc"><div class="impact-head"><div class="impact-title">💚 Donation Impact</div></div><div class="impact-body"><span>$</span><input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')"><div class="impact-result" id="impactResult"></div></div></div><div class="pricing-box"><div class="price-tiers"><div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div><div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div></div><button class="price-cta" onclick="openModal()">⚡ Upgrade</button></div><div class="alert-box"><div class="alert-head"><span class="alert-title">✉️ Crisis Alerts</span></div><div class="alert-email-row"><input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput"></div><button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">${tier==='pro'?'✉️ Enable Alerts':'🔒 Upgrade'}</button></div></div>`;setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}setTimeout(()=>calcImpact(iso),100);if(tier==='pro'){fetchAIBrief(iso).then(text=>{const el=document.getElementById('aiBrief');if(el&&text)el.innerHTML=`<div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div><div class="ai-brief-text">${text}</div>`;});}}
 function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
@@ -966,11 +660,15 @@ document.getElementById('shareBtn').addEventListener('click',()=>navigator.clipb
 document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
-function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · 40+ live APIs including USGS, NASA, ReliefWeb, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank, IMF, UNHCR, GDELT, OpenAQ, Open-Meteo</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
+function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · 40+ live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}else if(e.key==='r')refresh();else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}});
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+checkExistingLogin();
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
-</script>   
+</script>
 </body>
 </html>
