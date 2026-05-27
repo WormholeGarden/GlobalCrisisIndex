@@ -443,39 +443,31 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <script src="https://accounts.google.com/gsi/client"></script>
 <script>
   // Safely initialize Google Sign-In without breaking the rest of the site
-  window.addEventListener('load', function() {
-    var googleButtonDiv = document.getElementById('googleSignInButton');
-    if (googleButtonDiv && typeof google !== 'undefined' && google.accounts) {
-      try {
-        google.accounts.id.initialize({
-          client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
-          callback: function(response) {
-            try {
-              var payload = JSON.parse(atob(response.credential.split('.')[1]));
-              localStorage.setItem('userEmail', payload.email);
-              localStorage.setItem('userName', payload.name);
-              localStorage.setItem('isLoggedIn', 'true');
-              location.reload();
-            } catch(e) { console.error('Google callback error:', e); }
-          }
-        });
-        google.accounts.id.renderButton(googleButtonDiv, {
-          theme: 'outline',
-          size: 'large',
-          text: 'signin_with',
-          shape: 'pill'
-        });
-        google.accounts.id.prompt();
-      } catch(e) {
-        console.error('Google initialization error:', e);
-        // Hide the broken button div to prevent white space
-        googleButtonDiv.style.display = 'none';
-      }
-    } else if (googleButtonDiv) {
-      // If Google fails to load, hide the button container
-      googleButtonDiv.style.display = 'none';
+  <script src="https://accounts.google.com/gsi/client"></script>
+<script>
+  window.onload = function() {
+    var buttonDiv = document.getElementById('googleSignInButton');
+    if (buttonDiv) {
+      google.accounts.id.initialize({
+        client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
+        callback: function(response) {
+          var payload = JSON.parse(atob(response.credential.split('.')[1]));
+          localStorage.setItem('userEmail', payload.email);
+          localStorage.setItem('userName', payload.name);
+          localStorage.setItem('isLoggedIn', 'true');
+          // Reload to show Pro status
+          location.reload();
+        }
+      });
+      google.accounts.id.renderButton(buttonDiv, {
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'pill'
+      });
+      google.accounts.id.prompt();
     }
-  });
+  };
 </script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
