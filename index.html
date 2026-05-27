@@ -440,7 +440,49 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
 </style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client"></script> <script>
+  // Force Google button to render when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof google !== 'undefined' && google.accounts) {
+      console.log('Google API ready, rendering button...');
+      try {
+        google.accounts.id.initialize({
+          client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
+          callback: function(response) {
+            console.log('Google login response received');
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            const userEmail = payload.email;
+            const userName = payload.name;
+            localStorage.setItem('userEmail', userEmail);
+            localStorage.setItem('userName', userName);
+            localStorage.setItem('isLoggedIn', 'true');
+            // Trigger checkProStatus function if it exists
+            if (typeof checkProStatus === 'function') {
+              checkProStatus(userEmail).then(isPro => {
+                if (isPro) {
+                  document.getElementById('tierPill').textContent = 'PRO';
+                  document.getElementById('tierPill').className = 'tier-pill pro';
+                  document.querySelectorAll('.upgrade, .price-cta, .unlock-btn').forEach(btn => btn.style.display = 'none');
+                }
+              });
+            }
+            toast(`Welcome, ${userName}!`);
+            location.reload();
+          }
+        });
+        google.accounts.id.renderButton(
+          document.getElementById('googleSignInButton'),
+          { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' }
+        );
+        google.accounts.id.prompt();
+      } catch(e) {
+        console.error('Google init error:', e);
+      }
+    } else {
+      console.log('Google API not loaded yet');
+    }
+  });
+</script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
 
@@ -568,25 +610,6 @@ function updateUIForProStatus(isPro, email) {
     upgradeButtons.forEach(btn => {
       btn.style.display = '';
     });
-  }
-}
-// Google Sign-In configuration
-// Google Sign-In configuration
-function initializeGoogleSignIn() {
-  console.log('Initializing Google Sign-In...');
-  try {
-    google.accounts.id.initialize({
-      client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
-      callback: handleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('googleSignInButton'),
-      { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' }
-    );
-    google.accounts.id.prompt();
-    console.log('Google Sign-In initialized successfully');
-  } catch (err) {
-    console.error('Google Sign-In error:', err);
   }
 }
 
