@@ -443,9 +443,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
-<div id="landingPage">
-  <button class="modal-cta" onclick="window.open('https://buy.stripe.com/test_cNi14p1Oh4MOaQw7nt1B600', '_blank')">⚡ Start 14-Day Free Trial</button>
-  ><p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
+
 
 <div class="app">
 <header class="header">
@@ -573,16 +571,23 @@ function updateUIForProStatus(isPro, email) {
   }
 }
 // Google Sign-In configuration
+// Google Sign-In configuration
 function initializeGoogleSignIn() {
-  google.accounts.id.initialize({
-    client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
-    callback: handleCredentialResponse
-  });
-  google.accounts.id.renderButton(
-    document.getElementById('googleSignInButton'),
-    { theme: 'dark', size: 'large' }
-  );
-  google.accounts.id.prompt();
+  console.log('Initializing Google Sign-In...');
+  try {
+    google.accounts.id.initialize({
+      client_id: '44349900581-46as9cu6d6pcc3hmon1hedu2n9g4hr4j.apps.googleusercontent.com',
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('googleSignInButton'),
+      { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' }
+    );
+    google.accounts.id.prompt();
+    console.log('Google Sign-In initialized successfully');
+  } catch (err) {
+    console.error('Google Sign-In error:', err);
+  }
 }
 
 // Handle Google login response
