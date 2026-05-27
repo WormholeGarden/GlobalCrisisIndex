@@ -42,7 +42,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .tick-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-family:var(--fm);font-size:6.5px;color:var(--ts);
   border-right:1px solid var(--b1);height:100%}
-.tick-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.site-footer {
+  text-align: center;
+  padding: 16px 14px;
+  border-top: 1px solid var(--b1);
+  font-family: var(--fm);
+  font-size: 6px;
+  color: var(--tm);
+  margin-top: 20px;
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: var(--ts);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+}
+.footer-links a:hover {
+  color: var(--cyan);
+}.tick-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:248px;flex-shrink:0;background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
 .map-stage{flex:1;position:relative;background:radial-gradient(ellipse 120% 100% at 40% 30%,#06182e 0%,var(--void) 100%);overflow:hidden;cursor:crosshair}
@@ -159,30 +182,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .empty-ring2{position:absolute;inset:6px;border:1px dashed rgba(0,200,255,.07);border-radius:50%;animation:spin-slow 18s linear infinite reverse}
 @keyframes spin-slow{to{transform:rotate(360deg)}}
 .empty-globe{font-size:32px;opacity:.5;animation:float 3s ease-in-out infinite}
-  .site-footer {
-  text-align: center;
-  padding: 16px 14px;
-  border-top: 1px solid var(--b1);
-  font-family: var(--fm);
-  font-size: 6px;
-  color: var(--tm);
-  margin-top: 20px;
-}
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.footer-links a {
-  color: var(--ts);
-  text-decoration: none;
-  letter-spacing: 0.1em;
-}
-.footer-links a:hover {
-  color: var(--cyan);
-}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .empty-title{font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--ts)}
 .empty-sub{font-family:var(--fm);font-size:6px;color:var(--td);line-height:1.7}
@@ -415,7 +414,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
-<!-- Landing page for non-logged-in users -->
 <div id="landingPage">
   <h1>GCIS Fusion</h1>
   <p>Real-time humanitarian crisis intelligence aggregated from global data sources</p>
@@ -444,7 +442,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd" style="opacity:.5;font-size:5px;margin-left:2px">—</span></button>
     <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
     <button class="hbtn upgrade" onclick="openModal()">⚡ Upgrade</button>
-  </div><
+  </div>
 </header>
 <div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
@@ -465,8 +463,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 </div>
 <div class="modal-bg" id="modalBg"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-badge">GCIS Fusion Premium</div><div class="modal-h">Unlock Full Intelligence</div><div class="modal-sub">Access all 60+ countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div><div class="modal-plans"><div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')"><div class="mplan-name">Pro</div><div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div><div class="mfeat">All 60+ countries</div><div class="mfeat">40+ live API endpoints</div><div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div><div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div></div><div class="mplan" data-p="enterprise" onclick="pickPlan(this,'enterprise')"><div class="mplan-name">Enterprise</div><div class="mplan-price" style="color:#00c8ff">Custom</div><div class="mfeat">Everything in Pro</div><div class="mfeat">White-label API</div><div class="mfeat">SLA guarantee</div><div class="mfeat">Dedicated support</div></div></div><button class="modal-cta" onclick="doUpgrade()">⚡ Start 14-Day Free Trial</button><p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p><div class="modal-proof">🏛️🏥🌍📊 <span></span></div></div></div>
-<button class="modal-cta" onclick="doUpgrade()">⚡ Start 14-Day Free Trial</button><p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p><div class="modal-proof">🏛️🏥🌍📊 <span></span></div></div></div>
-<div class="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
+<div class="loader" id="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
 
@@ -479,7 +476,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <div>GCIS Fusion — The Global Crisis Index</div>
   <div style="opacity: 0.6; margin-top: 6px;">Live APIs · Real-time crisis intelligence · © 2026</div>
 </footer>
-<button class="modal-cta" onclick="window.location.href='https://buy.stripe.com/test_cNi14p1Oh4MOaQw7nt1B600'">⚡ Start 14-Day Free Trial</button>
+
 <script>
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
