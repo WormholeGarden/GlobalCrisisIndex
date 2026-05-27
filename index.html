@@ -717,6 +717,14 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
-</script> 
+</script>   <footer style="border-top: 1px solid var(--b1); padding: 16px 14px; margin-top: 20px; font-family: var(--fm); font-size: 6px; color: var(--tm); text-align: center;">
+    <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap;">
+      <a href="privacy.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">PRIVACY POLICY</a>
+      <a href="terms.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">TERMS OF SERVICE</a>
+      <a href="#" onclick="openModal(); return false;" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">UPGRADE TO PRO</a>
+    </div>
+    <div>GCIS Fusion — The Global Crisis Index</div>
+    <div style="opacity: 0.6; margin-top: 6px;">40+ live APIs · Real-time crisis intelligence · © 2024</div>
+  </footer>
 </body>
 </html>
