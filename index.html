@@ -443,6 +443,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="loader" id="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
+
+  <footer style="border-top: 1px solid var(--b1); padding: 16px 14px; margin-top: 20px; font-family: var(--fm); font-size: 6px; color: var(--tm); text-align: center;">
+    <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap;">
+      <a href="privacy.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">PRIVACY POLICY</a>
+      <a href="terms.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">TERMS OF SERVICE</a>
+      <a href="#" onclick="openModal(); return false;" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">UPGRADE TO PRO</a>
+    </div>
+    <div>GCIS Fusion — The Global Crisis Index</div>
+    <div style="opacity: 0.6; margin-top: 6px;">40+ live APIs · Real-time crisis intelligence · © 2024</div>
+  </footer>
+
 <script>
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
@@ -717,14 +728,6 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
-</script>   <footer style="border-top: 1px solid var(--b1); padding: 16px 14px; margin-top: 20px; font-family: var(--fm); font-size: 6px; color: var(--tm); text-align: center;">
-    <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap;">
-      <a href="privacy.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">PRIVACY POLICY</a>
-      <a href="terms.html" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">TERMS OF SERVICE</a>
-      <a href="#" onclick="openModal(); return false;" style="color: var(--ts); text-decoration: none; letter-spacing: 0.1em;">UPGRADE TO PRO</a>
-    </div>
-    <div>GCIS Fusion — The Global Crisis Index</div>
-    <div style="opacity: 0.6; margin-top: 6px;">40+ live APIs · Real-time crisis intelligence · © 2024</div>
-  </footer>
+</script>   
 </body>
 </html>
