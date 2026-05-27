@@ -41,7 +41,58 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   animation:ticker 110s linear infinite}
 @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .tick-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-family:var(--fm);font-size:6.5px;color:var(--ts);
-  border-right:1px solid var(--b1);height:100%}
+  border-right:1px solid var(--b1);height:100%}/* Google Sign-In Button Container */
+#googleSignInButton {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 5px;
+}
+
+/* Style the Google button that appears inside */
+#googleSignInButton iframe {
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+  border-radius: 20px !important;
+}
+
+#googleSignInButton iframe:hover {
+  opacity: 1;
+}
+
+/* User indicator (shows after login) */
+.user-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 200, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--b2);
+}
+
+.user-indicator span {
+  font-family: var(--fm);
+  font-size: 6px;
+  color: var(--cyan);
+  letter-spacing: 0.05em;
+}
+
+.user-indicator button {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: var(--fm);
+  font-size: 5px;
+  color: var(--ts);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.user-indicator button:hover {
+  background: rgba(255, 55, 95, 0.2);
+  color: var(--rose);
+}
 .tick-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:248px;flex-shrink:0;background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
@@ -394,7 +445,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <body> <!-- Landing page for non-logged-in users -->
 <div id="landingPage">
   <button class="modal-cta" onclick="window.open('https://buy.stripe.com/test_cNi14p1Oh4MOaQw7nt1B600', '_blank')">⚡ Start 14-Day Free Trial</button>
-  </div><div id="googleSignInButton"></div><p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
+  ><p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
 
 <div class="app">
 <header class="header">
@@ -410,15 +461,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
   </div>
   <div class="header-right">
-    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
-    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
-    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
-    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
-    <button class="hbtn" id="shareBtn">🔗 Share</button>
-    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd" style="opacity:.5;font-size:5px;margin-left:2px">—</span></button>
-    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
-    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/test_cNi14p1Oh4MOaQw7nt1B600', '_blank')">⚡ Upgrade</button>
-  </div>
+  <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
+  <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
+  <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+  <div id="googleSignInButton"></div>
+  <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
+  <button class="hbtn" id="shareBtn">🔗 Share</button>
+  <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
+  <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
+  <button class="hbtn upgrade" onclick="openModal()">⚡ Upgrade</button>
+</div>
 </header>
 <div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
