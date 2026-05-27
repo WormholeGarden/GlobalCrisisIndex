@@ -415,7 +415,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </style> <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
 <body> <!-- Landing page for non-logged-in users -->
-
+<!-- Landing page for non-logged-in users -->
+<div id="landingPage">
+  <h1>GCIS Fusion</h1>
+  <p>Real-time humanitarian crisis intelligence aggregated from global data sources</p>
+  <button onclick="startTrial()">Start Free Trial</button>
+  <p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
+</div>
 <div class="app">
 <header class="header">
   <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">40+ API Endpoints · Full Integration</div></div></div>
@@ -463,13 +469,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
-!-- Landing page for non-logged-in users -->
-<div id="landingPage">
-  <h1>GCIS Fusion</h1>
-  <p>Real-time humanitarian crisis intelligence aggregated from global data sources</p>
-  <button onclick="startTrial()">Start Free Trial</button>
-  <p>Pro: $29/month · Cancel anytime · 14-day free trial</p>
-</div>
+
   <footer class="site-footer">
   <div class="footer-links">
     <a href="privacy.html">PRIVACY POLICY</a>
