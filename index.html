@@ -1,10 +1,11 @@
-
+V1 edit
+TOUCH
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Crisis Index - Join Pro Today</title>
+<title>GCIS Fusion · 40+ Live APIs · Full Integration</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
@@ -785,8 +786,13 @@ document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (
 checkExistingLogin();
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
+
+
 </script>
+
+ <div style="position:fixed; bottom:20px; right:20px; background:var(--glass); border:1px solid var(--cyan); border-radius:12px; padding:12px; z-index:1000;">
+  <input type="email" id="waitlistEmail" placeholder="Email for updates" style="background:rgba(0,0,0,0.5); border:1px solid var(--cyan); padding:6px 10px; border-radius:6px; color:white;">
+  <button onclick="fetch('https://api.airtable.com/v0/app5RcMj4TSLHraH9/Waitlist', {method:'POST', headers:{'Authorization':'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8','Content-Type':'application/json'}, body:JSON.stringify({records:[{fields:{Email:document.getElementById('waitlistEmail').value}}]})}).then(()=>alert('Subscribed!'))">Subscribe</button>
+</div>
 </body>
 </html>
-
-
