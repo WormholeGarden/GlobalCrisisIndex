@@ -720,7 +720,6 @@ function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf
 // FETCH AI BRIEF - FALLBACK VERSION (NO API KEY NEEDED)
 // ============================================================================
 async function fetchAIBrief(iso){
-  if(tier !== ‘free’) return null;
   const c = store[iso];
   if(!c) return null;
   
