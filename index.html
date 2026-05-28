@@ -1,3 +1,4 @@
+V1 edit
 TOUCH
 <!DOCTYPE html>
 <html lang="en">
@@ -720,7 +721,18 @@ function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf
 // ============================================================================
 // FETCH AI BRIEF - FALLBACK VERSION (NO API KEY NEEDED)
 // ============================================================================
-async function fetchAIBrief(iso){const c=store[iso];const fallbackBrief=c.score>=80?`${c.name} faces a critical humanitarian crisis with ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(' and ')} affecting millions. Immediate needs include ${[...new Set(c.needs)].slice(0,3).join(', ')}. International response required.`:c.score>=60?`${c.name} is experiencing significant crisis conditions driven by ${c.types[0]?ARC[c.types[0]]?.l:''}. Key priorities are ${[...new Set(c.needs)].slice(0,3).join(', ')}. Monitoring recommended.`:`${c.name} has elevated risk factors requiring attention. ${c.types[0]?ARC[c.types[0]]?.l:''} and ${[...new Set(c.needs)].slice(0,2).join(', ')} needs should be addressed preventively.`;return fallbackBrief;}
+async function fetchAIBrief(iso){
+  const c = store[iso];
+  if(!c) return null;
+  
+  const fallbackBrief = c.score >= 80 
+    ? `${c.name} faces a critical humanitarian crisis with ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(' and ')} affecting millions. Immediate needs include ${[...new Set(c.needs)].slice(0,3).join(', ')}. International response required.`
+    : c.score >= 60 
+    ? `${c.name} is experiencing significant crisis conditions driven by ${c.types[0]?ARC[c.types[0]]?.l:''}. Key priorities are ${[...new Set(c.needs)].slice(0,3).join(', ')}. Monitoring recommended.`
+    : `${c.name} has elevated risk factors requiring attention. ${c.types[0]?ARC[c.types[0]]?.l:''} and ${[...new Set(c.needs)].slice(0,2).join(', ')} needs should be addressed preventively.`;
+  
+  return fallbackBrief;
+}
 // ============================================================================
 // RENDER PANEL
 // ============================================================================
@@ -743,7 +755,13 @@ async function renderPanel(iso){
 setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);
 if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}
 setTimeout(()=>calcImpact(iso),100);
-fetchAIBrief(iso).then(text=>{const el=document.getElementById('aiBriefContent');if(el&&text)el.innerHTML=`<div class="ai-brief-text">${text}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;});
+setTimeout(() => {
+  const briefText = fetchAIBrief(iso);
+  const el = document.getElementById('aiBriefContent');
+  if (el && briefText) {
+    el.innerHTML = `<div class="ai-brief-text">${briefText}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;
+  }
+}, 100);
 }
 function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
