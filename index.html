@@ -754,14 +754,13 @@ async function renderPanel(iso){
 setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);
 if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}
 setTimeout(()=>calcImpact(iso),100);
-setTimeout(() => {
-  const briefText = fetchAIBrief(iso);
+setTimeout(async () => {
+  const briefText = await fetchAIBrief(iso);
   const el = document.getElementById('aiBriefContent');
   if (el && briefText) {
     el.innerHTML = `<div class="ai-brief-text">${briefText}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;
   }
-}, 100);
-}function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
+}, 100);function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
