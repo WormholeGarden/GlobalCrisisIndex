@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script type="application/ld+json">
+<head>
+<!-- PRO BANNER - Converts viral traffic -->
+<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 8px 16px; text-align: center; font-family: var(--fm); font-size: 7px; letter-spacing: 0.1em; backdrop-filter: blur(8px); z-index: 98; position: relative;">
+  <span style="color: var(--cyan);">🔥 LIVE APIs</span>
+  <span style="color: var(--tm); margin: 0 8px;">|</span>
+  <span style="color: var(--ts);">Real-time earthquakes, conflicts, food security & disease outbreaks</span>
+  <span style="color: var(--tm); margin: 0 8px;">|</span>
+  <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
+</div>
+<script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -562,12 +571,18 @@ async function checkProStatusAndUpdateUI(email) {
     const data = await response.json();
     const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
     const tierPill = document.getElementById('tierPill');
+    const proBanner = document.getElementById('proBanner');
+    
     if (isPro) {
       tier = 'pro';
       if (tierPill) {
         tierPill.textContent = 'PRO';
         tierPill.className = 'tier-pill pro';
         tierPill.onclick = null;
+      }
+      // Hide pro banner for Pro users
+      if (proBanner) {
+        proBanner.style.display = 'none';
       }
       unlockProFeatures(true);
       toast(`🎉 Pro member! Full access unlocked.`);
@@ -578,6 +593,10 @@ async function checkProStatusAndUpdateUI(email) {
         tierPill.className = 'tier-pill free';
         tierPill.onclick = () => openModal();
       }
+      // Show pro banner for Free users
+      if (proBanner) {
+        proBanner.style.display = 'flex';
+      }
       unlockProFeatures(false);
     }
     renderRanking(document.getElementById('search').value);
@@ -587,7 +606,6 @@ async function checkProStatusAndUpdateUI(email) {
     return false;
   }
 }
-
 function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
@@ -928,7 +946,22 @@ async function renderPanel(iso){
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
-document.getElementById('shareBtn').addEventListener('click',()=>navigator.clipboard.writeText(location.href).then(()=>toast('🔗 Copied')));
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  try {
+    const url = window.location.href;
+    await navigator.clipboard.writeText(url);
+    toast('🔗 Link copied to clipboard!');
+  } catch (err) {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = window.location.href;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    toast('🔗 Link copied (fallback)');
+  }
+});
 document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
