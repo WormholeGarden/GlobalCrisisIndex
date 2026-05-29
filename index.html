@@ -463,6 +463,43 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')">⚡ Upgrade</button>
   </div>
 </header>
+<!-- Breaking News Flash Banner -->
+<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98;">
+  <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
+</div>
+
+<script>
+  async function fetchBreakingNews() {
+    try {
+      // Use RSS2JSON API to convert RSS feed to JSON (no API key needed)
+      const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
+      const data = await response.json();
+      
+      if (data && data.items && data.items.length > 0) {
+        // Get the 3 most recent headlines
+        const headlines = data.items.slice(0, 3).map(item => item.title);
+        // Rotate through headlines
+        let index = 0;
+        const breakingBar = document.getElementById('breakingText');
+        
+        const rotateHeadlines = () => {
+          breakingBar.innerHTML = `⚡ BREAKING: ${headlines[index]}`;
+          index = (index + 1) % headlines.length;
+        };
+        
+        rotateHeadlines();
+        setInterval(rotateHeadlines, 8000); // Change headline every 8 seconds
+      } else {
+        document.getElementById('breakingText').innerHTML = '⚡ BREAKING: Real-time global crisis intelligence from 40+ APIs';
+      }
+    } catch (error) {
+      console.error('Error fetching breaking news:', error);
+      document.getElementById('breakingText').innerHTML = '⚡ BREAKING: Track earthquakes, conflicts & outbreaks live';
+    }
+  }
+  
+  fetchBreakingNews();
+</script>
 <div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
   <aside class="sidebar">
