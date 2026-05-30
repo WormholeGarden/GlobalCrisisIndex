@@ -474,6 +474,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   .brand-sub { display: none; }
   .brand-mark { width: 24px; height: 24px; font-size: 11px; }
 }
+
+/* Add a small hint on mobile */
+@media(max-width:900px){
+  .sb-heading:first-child::after {
+    content: " 💡 Use desktop for filters";
+    font-size: 4px;
+    color: var(--td);
+    margin-left: 6px;
+  }
+}
 @media(max-width:600px){
   .p-name { font-size: 16px !important; }
   .p-flag { font-size: 20px !important; }
@@ -581,7 +591,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="map-legend"><div class="leg-item"><div class="leg-dot" style="background:#ff375f"></div>Critical ≥80</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#ff8c42"></div>High ≥60</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#ffb020"></div>Moderate ≥40</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#3ec5ff"></div>Low &lt;40</div></div>
     <div class="map-tt" id="mapTT"><div class="tt-name" id="ttName">—</div><div class="tt-row"><div class="tt-lbl">URGENCY SCORE</div><div class="tt-val" id="ttScore">—</div></div><div class="tt-track"><div class="tt-fill" id="ttFill"></div></div><div class="tt-tags" id="ttTags"></div></div>
   </div>
-  <div class="right-panel" id="rightPanel">
+    <div class="right-panel" id="rightPanel">
+    <!-- Mobile filter button -->
+    <button id="mobileFilterBtn" style="display:none; position:fixed; bottom:20px; right:20px; z-index:200; background:linear-gradient(135deg,#bf7fff,#00c8ff); border:none; border-radius:40px; padding:12px 18px; color:#030b18; font-family:var(--fm); font-size:9px; font-weight:800; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+      🔍 Filters
+    </button>
     <div class="empty-state" id="emptyState"><div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div><div class="empty-title">Select a Country</div><div class="empty-sub">Click the map · J/K to navigate<br>40+ live APIs · ACLED Conflict · Weather · Food Security · Health</div></div>
     <div id="panelContent" style="display:none"></div>
   </div>
@@ -1316,7 +1330,50 @@ checkExistingLogin();
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
-
+// Mobile filter button functionality
+if (window.innerWidth <= 900) {
+  const filterBtn = document.getElementById('mobileFilterBtn');
+  if (filterBtn) {
+    filterBtn.style.display = 'flex';
+    let filtersVisible = false;
+    const filterSection = document.querySelector('.sb-block:first-child');
+    const originalDisplay = filterSection.style.display;
+    
+    filterBtn.onclick = () => {
+      if (!filtersVisible) {
+        filterSection.style.position = 'fixed';
+        filterSection.style.bottom = '80px';
+        filterSection.style.right = '10px';
+        filterSection.style.left = 'auto';
+        filterSection.style.width = '260px';
+        filterSection.style.zIndex = '200';
+        filterSection.style.background = 'var(--glass)';
+        filterSection.style.backdropFilter = 'blur(20px)';
+        filterSection.style.border = '1px solid var(--cyan)';
+        filterSection.style.borderRadius = '12px';
+        filterSection.style.padding = '15px';
+        filterSection.style.display = 'block';
+        filterBtn.innerHTML = '✕ Close';
+        filtersVisible = true;
+      } else {
+        filterSection.style.position = '';
+        filterSection.style.bottom = '';
+        filterSection.style.right = '';
+        filterSection.style.left = '';
+        filterSection.style.width = '';
+        filterSection.style.zIndex = '';
+        filterSection.style.background = '';
+        filterSection.style.backdropFilter = '';
+        filterSection.style.border = '';
+        filterSection.style.borderRadius = '';
+        filterSection.style.padding = '';
+        filterSection.style.display = originalDisplay || '';
+        filterBtn.innerHTML = '🔍 Filters';
+        filtersVisible = false;
+      }
+    };
+  }
+}
 </script>
 
  <div style="position:fixed; bottom:20px; right:20px; background:var(--glass); border:1px solid var(--cyan); border-radius:12px; padding:12px; z-index:1000;">
@@ -1325,3 +1382,4 @@ d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(w
 </div>
 </body>
 </html>
+
