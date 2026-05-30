@@ -495,7 +495,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
     </div>
   </div>
-  <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+  <div class="header-right"> <button class="mobile-menu-btn" id="mobileMenuBtn" style="display:none;">☰</button>
     <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
     <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
     <div class="live-pill"><div class="live-dot"></div>LIVE</div>
@@ -716,23 +716,7 @@ function checkExistingLogin() {
     updateUILoggedIn(email);
   }
 }
-// Mobile menu toggle - opens sidebar on phones
-const menuBtn = document.getElementById('mobileMenuBtn');
-const sidebar = document.querySelector('.sidebar');
 
-if (menuBtn && sidebar) {
-  menuBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sidebar.classList.toggle('open');
-  });
-  
-  // Close sidebar when tapping outside
-  document.addEventListener('click', (e) => {
-    if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuBtn) {
-      sidebar.classList.remove('open');
-    }
-  });
-}
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
 // ============================================================================
@@ -1322,4 +1306,3 @@ d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(w
 </div>
 </body>
 </html>
-
