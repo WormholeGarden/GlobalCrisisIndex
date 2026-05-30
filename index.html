@@ -465,14 +465,37 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   .p-name { font-size: 18px; }
 }
 @media(max-width:550px){
-  .hbtn#pdfBtn, .hbtn#shareBtn, #emailSignIn, .live-pill { display: none !important; }
-  .search-box { width: 80px !important; }
-  .search-box:focus { width: 100px !important; }
-  .hbtn { padding: 4px 6px !important; font-size: 4px !important; }
-  .tier-pill { padding: 2px 5px !important; font-size: 4px !important; }
-  .brand-name { font-size: 10px !important; }
+  /* Hide more header buttons */
+  .hbtn#pdfBtn, .hbtn#shareBtn, .hbtn#refreshBtn, #emailSignIn, .live-pill { display: none !important; }
+  
+  /* Make remaining buttons smaller */
+  .hbtn { padding: 3px 5px !important; font-size: 3.5px !important; min-height: auto !important; }
+  .hbtn.primary { padding: 3px 5px !important; }
+  .hbtn.upgrade { padding: 3px 5px !important; }
+  
+  /* Tier pill smaller */
+  .tier-pill { padding: 2px 4px !important; font-size: 3.5px !important; }
+  
+  /* Search box narrower */
+  .search-box { width: 65px !important; font-size: 8px !important; padding: 3px 8px 3px 22px !important; }
+  .search-box:focus { width: 85px !important; }
+  .search-ico { font-size: 8px !important; left: 6px !important; }
+  
+  /* Brand area */
+  .brand-name { font-size: 9px !important; }
   .brand-sub { display: none; }
-  .brand-mark { width: 24px; height: 24px; font-size: 11px; }
+  .brand-mark { width: 22px; height: 22px; font-size: 10px; }
+  
+  /* Header spacing */
+  .header { gap: 5px !important; padding: 0 8px !important; height: 48px !important; }
+  .header-mid { gap: 6px !important; }
+  
+  /* GCIS chip smaller */
+  .gcis-chip { padding: 2px 6px !important; gap: 4px !important; }
+  .gcis-num { font-size: 18px !important; }
+  .gcis-label { font-size: 3px !important; }
+  .gcis-delta { font-size: 4px !important; padding: 0px 3px !important; }
+}
 }
 
 /* Add a small hint on mobile */
