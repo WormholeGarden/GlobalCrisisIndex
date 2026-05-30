@@ -983,22 +983,193 @@ async function renderPanel(iso){
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
-document.getElementById('shareBtn').addEventListener('click', async () => {
-  try {
-    const url = window.location.href;
-    await navigator.clipboard.writeText(url);
-    toast('🔗 Link copied to clipboard!');
-  } catch (err) {
-    // Fallback for older browsers
-    const textarea = document.createElement('textarea');
-    textarea.value = window.location.href;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    toast('🔗 Link copied (fallback)');
+document.getElementById('shareBtn').addEventListener('click', () => {
+  if (!selectedIso) {
+    // No country selected — share general site
+    showShareModal(null);
+  } else {
+    showShareModal(selectedIso);
   }
 });
+
+function showShareModal(iso) {
+  const existing = document.getElementById('shareModalBg');
+  if (existing) existing.remove();
+
+  const c = iso ? store[iso] : null;
+  const col = c ? sc(c.score) : '#00c8ff';
+  const score = c ? c.score : null;
+  const name = c ? c.name : 'Global Crisis Index';
+  const flag = c ? c.flag : '🌍';
+  const crisisTypes = c ? c.types.slice(0, 3).map(t => ARC[t]?.l || t).join(' · ') : 'Earthquakes · Conflicts · Famines';
+  const severity = c ? (score >= 80 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 40 ? 'MODERATE' : 'LOW') : '';
+  const severityColor = c ? col : '#00c8ff';
+
+  const modal = document.createElement('div');
+  modal.id = 'shareModalBg';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(3,11,24,.96);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
+
+  // Build the canvas card
+  const cardId = 'shareCard';
+  modal.innerHTML = `
+    <div style="font-family:var(--fm);font-size:6px;letter-spacing:.2em;color:var(--tm);margin-bottom:-8px;">SHARE THIS CRISIS REPORT</div>
+
+    <div id="${cardId}" style="
+      width:520px;
+      background:linear-gradient(135deg,#030b18 0%,#050f22 60%,#081829 100%);
+      border:1px solid ${col}44;
+      border-radius:16px;
+      padding:28px 28px 22px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 0 60px ${col}22;
+    ">
+      <!-- Grid background -->
+      <div style="position:absolute;inset:0;background-image:linear-gradient(${col}08 1px,transparent 1px),linear-gradient(90deg,${col}08 1px,transparent 1px);background-size:40px 40px;pointer-events:none;"></div>
+
+      <!-- Top bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(191,127,255,.15));border:1px solid rgba(0,200,255,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;">🌍</div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;">GCIS Fusion</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#2e5878;letter-spacing:.2em;">GLOBAL CRISIS INTELLIGENCE</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.18);border-radius:99px;padding:3px 9px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#00c8ff;animation:pulse 2s ease-in-out infinite;"></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#00c8ff;letter-spacing:.1em;">LIVE DATA</span>
+        </div>
+      </div>
+
+      ${c ? `
+      <!-- Country hero -->
+      <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;position:relative;">
+        <div style="font-size:48px;line-height:1;filter:drop-shadow(0 4px 12px ${col}44);">${flag}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 20%,${col});-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;">${name}</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:6px;background:${col}22;border:1px solid ${col}44;border-radius:4px;padding:2px 7px;color:${col};font-weight:700;letter-spacing:.08em;">${severity}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:5.5px;color:#6a9ec0;">${crisisTypes}</span>
+          </div>
+        </div>
+        <!-- Big score -->
+        <div style="text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;color:${col};line-height:1;letter-spacing:-.03em;text-shadow:0 0 30px ${col}66;">${score}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#2e5878;letter-spacing:.15em;">/100 URGENCY</div>
+        </div>
+      </div>
+
+      <!-- Score bar -->
+      <div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;margin-bottom:16px;overflow:hidden;position:relative;">
+        <div style="height:100%;width:${score}%;background:linear-gradient(90deg,${col}88,${col});border-radius:99px;box-shadow:0 0 8px ${col}66;"></div>
+      </div>
+
+      <!-- Dimension pills -->
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;position:relative;">
+        ${c.needs.slice(0, 6).map(n => `<span style="font-family:'JetBrains Mono',monospace;font-size:5px;padding:2px 7px;border-radius:99px;border:1px solid;font-weight:600;text-transform:uppercase;
+          ${n==='food'||n==='nutrition'?'background:rgba(255,176,32,.07);border-color:rgba(255,176,32,.22);color:#ffb020;':n==='health'?'background:rgba(255,55,95,.06);border-color:rgba(255,55,95,.2);color:#ff375f;':n==='water'?'background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.2);color:#00c8ff;':n==='shelter'?'background:rgba(191,127,255,.07);border-color:rgba(191,127,255,.22);color:#bf7fff;':'background:rgba(255,140,66,.06);border-color:rgba(255,140,66,.2);color:#ff8c42;'}
+        ">${n}</span>`).join('')}
+      </div>
+
+      <!-- Mini dimension bars -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:16px;position:relative;">
+        ${Object.entries(c.dims).slice(0,6).map(([k,v]) => {
+          const dim = DIMS.find(d=>d.k===k);
+          return `<div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:7px;width:10px;">${dim?.i||'📊'}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#6a9ec0;width:52px;flex-shrink:0;">${dim?.l||k}</span>
+            <div style="flex:1;height:2px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:${v}%;background:${sc(v)};border-radius:99px;"></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:5px;color:${sc(v)};width:18px;text-align:right;">${v}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ` : `
+      <!-- Generic global card -->
+      <div style="text-align:center;padding:20px 0;position:relative;">
+        <div style="font-size:48px;margin-bottom:8px;">🌐</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;">Global Crisis Index</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:6px;color:#6a9ec0;">Real-time intelligence from 40+ live APIs</div>
+      </div>
+      `}
+
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,200,255,.08);position:relative;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#2e5878;">globalcrisisindex.com · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}</div>
+        <div style="display:flex;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.12);border-radius:3px;padding:1px 5px;color:#3ec5ff;">40+ APIS</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(191,127,255,.06);border:1px solid rgba(191,127,255,.12);border-radius:3px;padding:1px 5px;color:#bf7fff;">GCIS FUSION</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button onclick="shareToTwitter('${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 16px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
+        𝕏 Share on X/Twitter
+      </button>
+      <button onclick="copyShareLink('${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:8px;padding:8px 16px;color:#00c8ff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(0,200,255,.15)'" onmouseout="this.style.background='rgba(0,200,255,.08)'">
+        🔗 Copy Link
+      </button>
+      <button onclick="downloadCard()" style="display:flex;align-items:center;gap:6px;background:rgba(191,127,255,.08);border:1px solid rgba(191,127,255,.25);border-radius:8px;padding:8px 16px;color:#bf7fff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(191,127,255,.15)'" onmouseout="this.style.background='rgba(191,127,255,.08)'">
+        📸 Download Image
+      </button>
+      <button onclick="document.getElementById('shareModalBg').remove()" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px;color:#6a9ec0;font-family:var(--fm);font-size:7px;cursor:pointer;">
+        ✕ Close
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function shareToTwitter(iso) {
+  const c = iso ? store[iso] : null;
+  let text;
+  if (c) {
+    const severity = c.score >= 80 ? '🔴 CRITICAL' : c.score >= 60 ? '🟠 HIGH' : c.score >= 40 ? '🟡 MODERATE' : '🔵 LOW';
+    const types = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(' + ');
+    text = `${c.flag} ${c.name} — Crisis Score: ${c.score}/100 ${severity}\n\n${types} · Live data from 40+ APIs\n\nTrack in real-time 👇\nglobalcrisisindex.com\n\n#GlobalCrisis #HumanitarianAid #${c.name.replace(/\s+/g,'')}`;
+  } else {
+    text = `🌍 Tracking global crises in real-time — earthquakes, conflicts, famines & outbreaks\n\nglobalcrisisindex.com\n\n#GlobalCrisis #HumanitarianAid`;
+  }
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function copyShareLink(iso) {
+  const url = iso
+    ? `${window.location.origin}${window.location.pathname}?country=${iso}`
+    : window.location.href;
+  navigator.clipboard.writeText(url).then(() => toast('🔗 Link copied!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('🔗 Link copied!');
+  });
+}
+
+function downloadCard() {
+  // html2canvas-free approach: open card in new tab for screenshot
+  const card = document.getElementById('shareCard');
+  if (!card) return;
+
+  // Clone and open in printable page
+  const win = window.open('', '_blank', 'width=600,height=500');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>body{margin:0;background:#030b18;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box;}</style>
+  </head><body>${card.outerHTML}
+  <div style="text-align:center;margin-top:12px;font-family:monospace;font-size:10px;color:#2e5878;">Right-click → Save image as · or use your screenshot tool</div>
+  </body></html>`);
+  win.document.close();
+  toast('📸 Card opened — right-click to save!');
+}
 document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
@@ -1021,3 +1192,7 @@ d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(w
 </div>
 </body>
 </html>
+
+
+
+
