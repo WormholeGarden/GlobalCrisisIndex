@@ -983,9 +983,12 @@ async function renderPanel(iso){
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
+// ============================================================================
+// ENHANCED SHARE MODAL — All Major Social Networks
+// ============================================================================
+
 document.getElementById('shareBtn').addEventListener('click', () => {
   if (!selectedIso) {
-    // No country selected — share general site
     showShareModal(null);
   } else {
     showShareModal(selectedIso);
@@ -1004,12 +1007,16 @@ function showShareModal(iso) {
   const crisisTypes = c ? c.types.slice(0, 3).map(t => ARC[t]?.l || t).join(' · ') : 'Earthquakes · Conflicts · Famines';
   const severity = c ? (score >= 80 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 40 ? 'MODERATE' : 'LOW') : '';
   const severityColor = c ? col : '#00c8ff';
+  const shareUrl = encodeURIComponent(window.location.href);
+  const shareTitle = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
+  const shareText = encodeURIComponent(c 
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100 (${severity}). Live tracking via 40+ APIs.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
 
   const modal = document.createElement('div');
   modal.id = 'shareModalBg';
   modal.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(3,11,24,.96);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
 
-  // Build the canvas card
   const cardId = 'shareCard';
   modal.innerHTML = `
     <div style="font-family:var(--fm);font-size:6px;letter-spacing:.2em;color:var(--tm);margin-bottom:-8px;">SHARE THIS CRISIS REPORT</div>
@@ -1024,10 +1031,8 @@ function showShareModal(iso) {
       overflow:hidden;
       box-shadow:0 0 60px ${col}22;
     ">
-      <!-- Grid background -->
       <div style="position:absolute;inset:0;background-image:linear-gradient(${col}08 1px,transparent 1px),linear-gradient(90deg,${col}08 1px,transparent 1px);background-size:40px 40px;pointer-events:none;"></div>
 
-      <!-- Top bar -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative;">
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:28px;height:28px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(191,127,255,.15));border:1px solid rgba(0,200,255,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;">🌍</div>
@@ -1043,7 +1048,6 @@ function showShareModal(iso) {
       </div>
 
       ${c ? `
-      <!-- Country hero -->
       <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;position:relative;">
         <div style="font-size:48px;line-height:1;filter:drop-shadow(0 4px 12px ${col}44);">${flag}</div>
         <div style="flex:1;">
@@ -1053,26 +1057,22 @@ function showShareModal(iso) {
             <span style="font-family:'JetBrains Mono',monospace;font-size:5.5px;color:#6a9ec0;">${crisisTypes}</span>
           </div>
         </div>
-        <!-- Big score -->
         <div style="text-align:center;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;color:${col};line-height:1;letter-spacing:-.03em;text-shadow:0 0 30px ${col}66;">${score}</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#2e5878;letter-spacing:.15em;">/100 URGENCY</div>
         </div>
       </div>
 
-      <!-- Score bar -->
       <div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;margin-bottom:16px;overflow:hidden;position:relative;">
         <div style="height:100%;width:${score}%;background:linear-gradient(90deg,${col}88,${col});border-radius:99px;box-shadow:0 0 8px ${col}66;"></div>
       </div>
 
-      <!-- Dimension pills -->
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;position:relative;">
         ${c.needs.slice(0, 6).map(n => `<span style="font-family:'JetBrains Mono',monospace;font-size:5px;padding:2px 7px;border-radius:99px;border:1px solid;font-weight:600;text-transform:uppercase;
           ${n==='food'||n==='nutrition'?'background:rgba(255,176,32,.07);border-color:rgba(255,176,32,.22);color:#ffb020;':n==='health'?'background:rgba(255,55,95,.06);border-color:rgba(255,55,95,.2);color:#ff375f;':n==='water'?'background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.2);color:#00c8ff;':n==='shelter'?'background:rgba(191,127,255,.07);border-color:rgba(191,127,255,.22);color:#bf7fff;':'background:rgba(255,140,66,.06);border-color:rgba(255,140,66,.2);color:#ff8c42;'}
         ">${n}</span>`).join('')}
       </div>
 
-      <!-- Mini dimension bars -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:16px;position:relative;">
         ${Object.entries(c.dims).slice(0,6).map(([k,v]) => {
           const dim = DIMS.find(d=>d.k===k);
@@ -1087,7 +1087,6 @@ function showShareModal(iso) {
         }).join('')}
       </div>
       ` : `
-      <!-- Generic global card -->
       <div style="text-align:center;padding:20px 0;position:relative;">
         <div style="font-size:48px;margin-bottom:8px;">🌐</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;">Global Crisis Index</div>
@@ -1095,7 +1094,6 @@ function showShareModal(iso) {
       </div>
       `}
 
-      <!-- Footer -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,200,255,.08);position:relative;">
         <div style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#2e5878;">globalcrisisindex.com · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}</div>
         <div style="display:flex;gap:4px;">
@@ -1105,15 +1103,44 @@ function showShareModal(iso) {
       </div>
     </div>
 
-    <!-- Action buttons -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      <button onclick="shareToTwitter('${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 16px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
-        𝕏 Share on X/Twitter
+    <!-- SOCIAL SHARE BUTTONS — ALL MAJOR PLATFORMS -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:560px;">
+      <!-- Twitter/X -->
+      <button onclick="shareToPlatform('twitter', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
+        <span style="font-size:10px;">𝕏</span> X/Twitter
       </button>
-      <button onclick="copyShareLink('${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:8px;padding:8px 16px;color:#00c8ff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(0,200,255,.15)'" onmouseout="this.style.background='rgba(0,200,255,.08)'">
+      <!-- LinkedIn -->
+      <button onclick="shareToPlatform('linkedin', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#0A66C2;border:1px solid #0A66C2;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#004182'" onmouseout="this.style.background='#0A66C2'">
+        <span style="font-size:10px;">in</span> LinkedIn
+      </button>
+      <!-- Facebook -->
+      <button onclick="shareToPlatform('facebook', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#1877F2;border:1px solid #1877F2;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#0C63D4'" onmouseout="this.style.background='#1877F2'">
+        <span style="font-size:10px;">f</span> Facebook
+      </button>
+      <!-- WhatsApp -->
+      <button onclick="shareToPlatform('whatsapp', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#25D366;border:1px solid #25D366;border-radius:8px;padding:8px 14px;color:#fff;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#20BD5A'" onmouseout="this.style.background='#25D366'">
+        <span style="font-size:10px;">📱</span> WhatsApp
+      </button>
+      <!-- Reddit -->
+      <button onclick="shareToPlatform('reddit', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#FF4500;border:1px solid #FF4500;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#E03E00'" onmouseout="this.style.background='#FF4500'">
+        <span style="font-size:10px;">🤖</span> Reddit
+      </button>
+      <!-- Threads -->
+      <button onclick="shareToPlatform('threads', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
+        <span style="font-size:10px;">🪡</span> Threads
+      </button>
+      <!-- Email -->
+      <button onclick="shareToPlatform('email', '${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(100,120,160,.2);border:1px solid rgba(100,120,160,.3);border-radius:8px;padding:8px 14px;color:#6a9ec0;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(100,120,160,.3)'" onmouseout="this.style.background='rgba(100,120,160,.2)'">
+        ✉️ Email
+      </button>
+    </div>
+
+    <!-- Secondary actions -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button onclick="copyShareLink('${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:8px;padding:8px 14px;color:#00c8ff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(0,200,255,.15)'" onmouseout="this.style.background='rgba(0,200,255,.08)'">
         🔗 Copy Link
       </button>
-      <button onclick="downloadCard()" style="display:flex;align-items:center;gap:6px;background:rgba(191,127,255,.08);border:1px solid rgba(191,127,255,.25);border-radius:8px;padding:8px 16px;color:#bf7fff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(191,127,255,.15)'" onmouseout="this.style.background='rgba(191,127,255,.08)'">
+      <button onclick="downloadCard()" style="display:flex;align-items:center;gap:6px;background:rgba(191,127,255,.08);border:1px solid rgba(191,127,255,.25);border-radius:8px;padding:8px 14px;color:#bf7fff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(191,127,255,.15)'" onmouseout="this.style.background='rgba(191,127,255,.08)'">
         📸 Download Image
       </button>
       <button onclick="document.getElementById('shareModalBg').remove()" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px;color:#6a9ec0;font-family:var(--fm);font-size:7px;cursor:pointer;">
@@ -1126,19 +1153,57 @@ function showShareModal(iso) {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
-function shareToTwitter(iso) {
+// ============================================================================
+// SHARE TO SPECIFIC PLATFORM
+// ============================================================================
+function shareToPlatform(platform, iso) {
   const c = iso ? store[iso] : null;
-  let text;
-  if (c) {
-    const severity = c.score >= 80 ? '🔴 CRITICAL' : c.score >= 60 ? '🟠 HIGH' : c.score >= 40 ? '🟡 MODERATE' : '🔵 LOW';
-    const types = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(' + ');
-    text = `${c.flag} ${c.name} — Crisis Score: ${c.score}/100 ${severity}\n\n${types} · Live data from 40+ APIs\n\nTrack in real-time 👇\nglobalcrisisindex.com\n\n#GlobalCrisis #HumanitarianAid #${c.name.replace(/\s+/g,'')}`;
-  } else {
-    text = `🌍 Tracking global crises in real-time — earthquakes, conflicts, famines & outbreaks\n\nglobalcrisisindex.com\n\n#GlobalCrisis #HumanitarianAid`;
+  const url = encodeURIComponent(window.location.href);
+  const title = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
+  const text = encodeURIComponent(c 
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100. Live crisis tracking from 40+ data sources.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
+  const hashtags = encodeURIComponent('GlobalCrisis,HumanitarianAid,CrisisMap');
+  
+  let shareUrl = '';
+  
+  switch (platform) {
+    case 'twitter':
+      shareUrl = `https://twitter.com/intent/tweet?text=${text}%20-%20&url=${url}&hashtags=${hashtags}`;
+      break;
+    case 'linkedin':
+      shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+      break;
+    case 'facebook':
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+      break;
+    case 'whatsapp':
+      shareUrl = `https://wa.me/?text=${text}%20${url}`;
+      break;
+    case 'reddit':
+      shareUrl = `https://reddit.com/submit?url=${url}&title=${title}`;
+      break;
+    case 'threads':
+      // Threads doesn't have a direct share API — copy text instead
+      const threadsText = c ? `${c.flag} ${c.name} — Crisis Score: ${c.score}/100\n\nLive crisis tracking from 40+ APIs\n\n${window.location.href}` : `Global Crisis Index — Real-time crisis intelligence\n\n${window.location.href}`;
+      navigator.clipboard.writeText(threadsText);
+      toast('📋 Text copied! Paste into Threads app.');
+      return;
+    case 'email':
+      shareUrl = `mailto:?subject=${title}&body=${text}%0A%0A${url}`;
+      break;
+    default:
+      return;
   }
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+  
+  if (shareUrl) {
+    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
+  }
 }
 
+// ============================================================================
+// COPY SHARE LINK
+// ============================================================================
 function copyShareLink(iso) {
   const url = iso
     ? `${window.location.origin}${window.location.pathname}?country=${iso}`
@@ -1154,23 +1219,22 @@ function copyShareLink(iso) {
   });
 }
 
+// ============================================================================
+// DOWNLOAD CARD AS IMAGE (opens in new tab for screenshot)
+// ============================================================================
 function downloadCard() {
-  // html2canvas-free approach: open card in new tab for screenshot
   const card = document.getElementById('shareCard');
   if (!card) return;
-
-  // Clone and open in printable page
   const win = window.open('', '_blank', 'width=600,height=500');
   win.document.write(`<!DOCTYPE html><html><head>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>body{margin:0;background:#030b18;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box;}</style>
   </head><body>${card.outerHTML}
-  <div style="text-align:center;margin-top:12px;font-family:monospace;font-size:10px;color:#2e5878;">Right-click → Save image as · or use your screenshot tool</div>
+  <div style="text-align:center;margin-top:12px;font-family:monospace;font-size:10px;color:#2e5878;">📸 Right-click → Save image as | or use your screenshot tool</div>
   </body></html>`);
   win.document.close();
   toast('📸 Card opened — right-click to save!');
-}
-document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
+}document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
 function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · 40+ live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
