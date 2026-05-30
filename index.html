@@ -464,10 +464,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
 </header>
 <!-- Breaking News Flash Banner -->
-<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98;">
+<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98; cursor: pointer;" onclick="window.open('https://www.bbc.com/news', '_blank')">
   <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
 </div>
-
 <script>
   async function fetchBreakingNews() {
     try {
