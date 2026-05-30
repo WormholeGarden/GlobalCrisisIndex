@@ -597,7 +597,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn" id="shareBtn">🔗 Share</button>
     <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
     <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
-    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')">⚡ Upgrade</button>
+    <button class="hbtn upgrade" id="upgradeBtn" style="background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;font-weight:800;border:none;">⚡ Upgrade to Pro — $29/mo</button>
   </div>
 </header>
 <!-- Breaking News Flash Banner -->
@@ -606,6 +606,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <script>
+
+document.getElementById('upgradeBtn').addEventListener('click', () => {
+  const email = localStorage.getItem('userEmail');
+  const url = email 
+    ? `https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01?prefilled_email=${encodeURIComponent(email)}`
+    : 'https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01';
+  window.open(url, '_blank');
+});
+
   async function fetchBreakingNews() {
     try {
       // Use RSS2JSON API to convert RSS feed to JSON (no API key needed)
@@ -1531,5 +1540,3 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
-
-
