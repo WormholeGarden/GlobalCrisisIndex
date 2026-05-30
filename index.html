@@ -428,55 +428,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ps{margin:6px 13px 0;animation:fi .2s ease both}
 .ps:last-of-type{margin-bottom:12px}
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:900px){
-  .sidebar{position:fixed;left:-280px;transition:left 0.3s ease;z-index:200;height:100%;width:280px;background:var(--glass);backdrop-filter:blur(20px);}
-  .sidebar.open{left:0;}
-  .right-panel{width:100%;}
-  .stat-strip{display:none;}
-  .vdiv{display:none;}
-  .kb-hint{display:none;}
-  .freshness{display:none;}
-  .header .brand .brand-name{font-size:12px;}
-  .header .brand .brand-sub{font-size:3.5px;}
-  .search-box{width:100px;}
-  .search-box:focus{width:130px;}
-  #emailSignIn input{width:80px;font-size:6px;}
-  #emailSignIn button{font-size:5px;padding:3px 6px;}
-  .hbtn{font-size:5px;padding:4px 6px;}
-  #proBanner{font-size:6px;padding:6px 10px;white-space:normal;height:auto;line-height:1.4;}
-  #proBanner span{display:inline-block;}
-  .ticker-label{font-size:5px;padding:0 6px;}
-  .tick-item{font-size:5px;padding:0 12px;}
-  .map-controls{bottom:80px;right:5px;}
-  .map-controls .map-btn{width:32px;height:32px;font-size:16px;}
-  .right-panel{width:100%;}
-  .ring-wrap{width:50px;height:50px;}
-  .ring-wrap svg{width:50px;height:50px;}
-  .ring-val{font-size:14px;}
-  .p-name{font-size:18px;}
-  .vol-chip{font-size:4.5px;}
-  .ai-brief-text{font-size:9px;}
-  .charity-section .ch-name{font-size:8px;}
-  .site-footer{font-size:5px;}
-  .impact-calc .impact-input{width:60px;}
-  .modal{width:95%;padding:16px;}
-  .modal-h{font-size:20px;}
-}
-
-/* Mobile menu button - add to header-right */
-.mobile-menu-btn{
-  display:none;
-  background:rgba(0,200,255,.1);
-  border:1px solid var(--cyan);
-  border-radius:6px;
-  padding:6px 10px;
-  color:var(--cyan);
-  font-size:12px;
-  cursor:pointer;
-}
-@media(max-width:900px){
-  .mobile-menu-btn{display:block;}
-}
+@media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
@@ -495,7 +447,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
     </div>
   </div>
-  <div class="header-right"> <button class="mobile-menu-btn" id="mobileMenuBtn" style="display:none;">☰</button>
+  <div class="header-right">
     <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
     <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
     <div class="live-pill"><div class="live-dot"></div>LIVE</div>
@@ -517,8 +469,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <script>
-
-
   async function fetchBreakingNews() {
     try {
       // Use RSS2JSON API to convert RSS feed to JSON (no API key needed)
