@@ -50,6 +50,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <style>
+
+/* Filter panel animations */
+.filter-panel {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: bottom right;
+}
+
+.filter-panel-closing {
+  animation: filterFadeOut 0.2s ease forwards;
+}
+
+@keyframes filterFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+    visibility: hidden;
+  }
+}
+
+@keyframes filterFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
@@ -1353,32 +1387,37 @@ checkExistingLogin();
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
-// Mobile filter button functionality
+// Mobile filter button functionality with animations
 if (window.innerWidth <= 900) {
   const filterBtn = document.getElementById('mobileFilterBtn');
   if (filterBtn) {
     filterBtn.style.display = 'flex';
     let filtersVisible = false;
+    let overlay = null;
     const filterSection = document.querySelector('.sb-block:first-child');
     const originalDisplay = filterSection.style.display;
     
-    filterBtn.onclick = () => {
-      if (!filtersVisible) {
-        filterSection.style.position = 'fixed';
-        filterSection.style.bottom = '80px';
-        filterSection.style.right = '10px';
-        filterSection.style.left = 'auto';
-        filterSection.style.width = '260px';
-        filterSection.style.zIndex = '200';
-        filterSection.style.background = 'var(--glass)';
-        filterSection.style.backdropFilter = 'blur(20px)';
-        filterSection.style.border = '1px solid var(--cyan)';
-        filterSection.style.borderRadius = '12px';
-        filterSection.style.padding = '15px';
-        filterSection.style.display = 'block';
-        filterBtn.innerHTML = '✕ Close';
-        filtersVisible = true;
-      } else {
+    // Add class for animation
+    filterSection.classList.add('filter-panel');
+    
+    function closeFilterPanel() {
+      if (!filtersVisible) return;
+      
+      // Add closing animation class
+      filterSection.classList.add('filter-panel-closing');
+      
+      // Remove overlay with fade
+      if (overlay) {
+        overlay.style.transition = 'opacity 0.2s ease';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          if (overlay) overlay.remove();
+          overlay = null;
+        }, 200);
+      }
+      
+      // Reset styles after animation
+      setTimeout(() => {
         filterSection.style.position = '';
         filterSection.style.bottom = '';
         filterSection.style.right = '';
@@ -1391,10 +1430,72 @@ if (window.innerWidth <= 900) {
         filterSection.style.borderRadius = '';
         filterSection.style.padding = '';
         filterSection.style.display = originalDisplay || '';
+        filterSection.classList.remove('filter-panel-closing');
         filterBtn.innerHTML = '🔍 Filters';
         filtersVisible = false;
+        
+        // Re-enable body scroll
+        document.body.style.overflow = '';
+      }, 200);
+    }
+    
+    function openFilterPanel() {
+      // Apply styles first
+      filterSection.style.position = 'fixed';
+      filterSection.style.bottom = '80px';
+      filterSection.style.right = '10px';
+      filterSection.style.left = 'auto';
+      filterSection.style.width = '260px';
+      filterSection.style.zIndex = '200';
+      filterSection.style.background = 'var(--glass)';
+      filterSection.style.backdropFilter = 'blur(20px)';
+      filterSection.style.border = '1px solid var(--cyan)';
+      filterSection.style.borderRadius = '12px';
+      filterSection.style.padding = '15px';
+      filterSection.style.display = 'block';
+      filterSection.style.opacity = '0';
+      filterSection.style.transform = 'scale(0.95)';
+      
+      // Force reflow then animate in
+      filterSection.offsetHeight;
+      filterSection.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+      filterSection.style.opacity = '1';
+      filterSection.style.transform = 'scale(1)';
+      
+      // Create backdrop overlay
+      overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:199;transition:opacity 0.2s ease;opacity:0;';
+      overlay.onclick = () => closeFilterPanel();
+      document.body.appendChild(overlay);
+      overlay.offsetHeight;
+      overlay.style.opacity = '1';
+      
+      // Disable body scroll
+      document.body.style.overflow = 'hidden';
+      
+      filterBtn.innerHTML = '✕ Close';
+      filtersVisible = true;
+      
+      // Remove transition after animation for future resets
+      setTimeout(() => {
+        if (filterSection) filterSection.style.transition = '';
+      }, 200);
+    }
+    
+    filterBtn.onclick = () => {
+      if (filtersVisible) {
+        closeFilterPanel();
+      } else {
+        openFilterPanel();
       }
     };
+    
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && filtersVisible) {
+        closeFilterPanel();
+      }
+    });
   }
 }
 </script>
