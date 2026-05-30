@@ -428,14 +428,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ps{margin:6px 13px 0;animation:fi .2s ease both}
 .ps:last-of-type{margin-bottom:12px}
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}.hamburger{display:flex;position:fixed;top:10px;left:10px;z-index:1001;background:var(--glass);border:1px solid var(--cyan);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;}.sidebar-mobile{position:fixed;top:0;left:-280px;width:260px;height:100%;background:var(--void);border-right:1px solid var(--cyan);z-index:1002;transition:left 0.3s ease;padding:20px 10px;overflow-y:auto;}.sidebar-mobile.open{left:0;}.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1001;display:none;}.overlay.show{display:block;}}
+@media(max-width:900px){.sidebar{display:none}.right-panel{width:100%}.stat-strip{display:none}.vdiv{display:none}.kb-hint{display:none}.freshness{display:none}}
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
 <body>
-<div class="hamburger" onclick="toggleMobileSidebar()">☰</div>
-<div id="mobileSidebar" class="sidebar-mobile"><div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" onclick="closeMobileSidebar()">✕ close</span></div><div id="mobileFilterGrid"></div></div><div class="sb-block"><div class="sb-heading">Urgency Ranking</div><div id="mobileRankList"></div></div></div>
-<div id="overlay" class="overlay" onclick="closeMobileSidebar()"></div>
+
 <div class="app">
 <header class="header">
   <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">40+ API Endpoints · Full Integration</div></div></div>
@@ -466,9 +464,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
 </header>
 <!-- Breaking News Flash Banner -->
-<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98; cursor: pointer;" onclick="window.open('https://www.bbc.com/news', '_blank')">
+<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98;">
   <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
 </div>
+
 <script>
   async function fetchBreakingNews() {
     try {
@@ -1247,7 +1246,7 @@ document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (
 checkExistingLogin();
 buildFilters();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
-function toggleMobileSidebar(){const sidebar=document.getElementById('mobileSidebar');const overlay=document.getElementById('overlay');sidebar.classList.toggle('open');overlay.classList.toggle('show');if(sidebar.classList.contains('open')){document.getElementById('mobileFilterGrid').innerHTML=document.getElementById('filterGrid').innerHTML;document.getElementById('mobileRankList').innerHTML=document.getElementById('rankList').innerHTML;}}function closeMobileSidebar(){document.getElementById('mobileSidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+
 
 </script>
 
@@ -1257,7 +1256,3 @@ function toggleMobileSidebar(){const sidebar=document.getElementById('mobileSide
 </div>
 </body>
 </html>
-
-
-
-
