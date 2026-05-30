@@ -48,6 +48,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <style>
 
@@ -1365,15 +1366,39 @@ function copyShareLink(iso) {
 function downloadCard() {
   const card = document.getElementById('shareCard');
   if (!card) return;
-  const win = window.open('', '_blank', 'width=600,height=500');
-  win.document.write(`<!DOCTYPE html><html><head>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>body{margin:0;background:#030b18;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box;}</style>
-  </head><body>${card.outerHTML}
-  <div style="text-align:center;margin-top:12px;font-family:monospace;font-size:10px;color:#2e5878;">📸 Right-click → Save image as | or use your screenshot tool</div>
-  </body></html>`);
-  win.document.close();
-  toast('📸 Card opened — right-click to save!');
+  
+  toast('📸 Generating image...');
+  
+  // Create a clone of the card to avoid modifying the original
+  const cloneCard = card.cloneNode(true);
+  cloneCard.style.position = 'absolute';
+  cloneCard.style.top = '-9999px';
+  cloneCard.style.left = '-9999px';
+  cloneCard.style.width = '520px';
+  cloneCard.style.margin = '0';
+  document.body.appendChild(cloneCard);
+  
+  // Use html2canvas to render the card
+  html2canvas(cloneCard, {
+    scale: 2,
+    backgroundColor: '#030b18',
+    logging: false,
+    useCORS: true
+  }).then(canvas => {
+    // Create download link
+    const link = document.createElement('a');
+    const iso = selectedIso || 'global';
+    const name = iso && store[iso] ? store[iso].name.replace(/\s+/g, '_') : 'crisis_index';
+    link.download = `GCIS_${name}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    toast('📸 Image saved!');
+  }).catch(err => {
+    console.error('html2canvas error:', err);
+    toast('⚠️ Screenshot failed. Try the copy link method.');
+  }).finally(() => {
+    document.body.removeChild(cloneCard);
+  });
 }document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
@@ -1506,4 +1531,5 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
+
 
