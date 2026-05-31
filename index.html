@@ -1,4 +1,4 @@
-how is the mobile <!DOCTYPE html>
+how is this <!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- PRO BANNER - Converts viral traffic -->
@@ -665,145 +665,746 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* ============================================================================
    MOBILE — FIX THE 47% OF YOUR TRAFFIC
    ============================================================================ */
+/* ============================================================================
+   MOBILE — 10/10 IMPLEMENTATION
+   ============================================================================ */
+
+/* BREAKPOINT: TABLET & BELOW */
 @media (max-width: 900px) {
-  .sidebar{display:none}
-  .right-panel{width:100%}
-  .stat-strip{display:none}
-  .vdiv{display:none}
-  .kb-hint{display:none}
-  .freshness{display:none}
+  /* === LAYOUT RESET === */
+  .app {
+    height: 100vh;
+    overflow: hidden;
+  }
   
-  /* Touch targets — 44px minimum (Apple HIG) */
-  .rank-card, .chip, .hbtn, .map-btn, .nbr, .price-cta, .unlock-btn { min-height: 44px; }
-  .rank-card { padding: 10px 9px; }
-  .chip { padding: 6px 10px; font-size: 7px; }
-  .map-btn { width: 44px; height: 44px; font-size: 20px; background: rgba(3,11,24,.96); }
-  .nbr { padding: 6px 10px; }
-  .price-cta, .unlock-btn { padding: 12px 14px; font-size: 9px; }
-  
-  /* Map controls bottom safe area */
-  .map-controls { bottom: 100px; right: 8px; }
-  .map-legend { bottom: 80px; left: 8px; padding: 4px 6px; }
-  .leg-item { font-size: 4px; }
-  .leg-dot { width: 5px; height: 5px; }
-  
-  /* Pro banner responsive */
-  #proBanner { font-size: 5px; padding: 4px 8px; white-space: normal; height: auto; line-height: 1.3; }
-  #proBanner span:not(:first-child):not(:last-child) { display: none; }
-  #proBanner a { padding: 1px 6px; font-size: 4px; margin-left: 4px; }
-  
-  /* Ticker */
-  .ticker-item { font-size: 4.5px; padding: 0 8px; }
-  .ticker-label { font-size: 4px; padding: 0 6px; }
-  
-  /* Ring and scores */
-  .ring-wrap { transform: scale(0.85); }
-  .p-name { font-size: 18px; }
-  
-  /* MAIN LAYOUT FIX — force proper stacking on landscape */
-  .main { 
+  .main {
     display: block !important;
     overflow-y: auto;
     overflow-x: hidden;
+    height: calc(100vh - 54px - 26px - 26px); /* subtract header, breaking bar, ticker */
   }
   
-  /* Sidebar hidden completely */
-  .sidebar { display: none !important; }
-  
-  /* Right panel takes full width, no left margin/padding issues */
-  .right-panel { 
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow-x: hidden;
+  /* Hide desktop-only elements */
+  .sidebar,
+  .stat-strip,
+  .vdiv,
+  .kb-hint,
+  .freshness,
+  .gcis-chip .gcis-delta,
+  .brand-sub {
+    display: none !important;
   }
   
-  /* Map stage takes full width and proper height */
+  /* === HEADER OPTIMIZATION === */
+  .header {
+    height: 54px;
+    padding: 0 10px !important;
+    gap: 6px !important;
+    background: rgba(3, 11, 24, 0.98);
+    backdrop-filter: blur(40px);
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+  }
+  
+  .brand {
+    gap: 6px;
+  }
+  
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .brand-name {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .header-mid {
+    flex: 1;
+    justify-content: flex-start;
+    gap: 8px !important;
+  }
+  
+  /* GCIS Chip — compact but readable */
+  .gcis-chip {
+    padding: 4px 10px !important;
+    gap: 6px !important;
+    background: rgba(191, 127, 255, 0.08);
+    border: 1px solid rgba(191, 127, 255, 0.2);
+  }
+  
+  .gcis-label {
+    font-size: 5px !important;
+    letter-spacing: 0.12em;
+  }
+  
+  .gcis-num {
+    font-size: 20px !important;
+  }
+  
+  /* Search — visible and usable */
+  .search-box {
+    width: 100px !important;
+    padding: 6px 10px 6px 26px !important;
+    font-size: 10px !important;
+  }
+  
+  .search-box:focus {
+    width: 140px !important;
+  }
+  
+  .search-ico {
+    left: 7px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Header buttons — compact but tappable */
+  .hbtn {
+    padding: 6px 8px !important;
+    font-size: 8px !important;
+    min-height: 34px !important;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  
+  .live-pill {
+    padding: 4px 8px !important;
+    font-size: 6px !important;
+    min-height: 30px !important;
+  }
+  
+  .tier-pill {
+    padding: 4px 8px !important;
+    font-size: 7px !important;
+    min-height: 30px !important;
+  }
+  
+  /* Hide non-essential header buttons on tablet */
+  .hbtn#pdfBtn,
+  .hbtn#shareBtn {
+    display: none !important;
+  }
+  
+  /* === MAP STAGE === */
   .map-stage {
     width: 100% !important;
-    height: 50vh !important;
-    min-height: 300px;
+    height: 55vh !important;
+    min-height: 320px;
+    max-height: 55vh;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
   }
   
-  /* Ensure map SVG fills the stage */
   #map-svg {
     width: 100%;
     height: 100%;
   }
-}
-
-@media (max-width: 550px) {
-  /* Tight phones: hide secondary header elements */
-  .hbtn#pdfBtn, .hbtn#shareBtn, .hbtn#refreshBtn, #emailSignIn, .live-pill { display: none !important; }
   
-  /* Make remaining buttons smaller */
-  .hbtn { padding: 3px 5px !important; font-size: 3.5px !important; min-height: auto !important; }
-  .hbtn.primary { padding: 3px 5px !important; }
-  .hbtn.upgrade { padding: 3px 5px !important; }
+  /* Map controls — larger, positioned for thumbs */
+  .map-controls {
+    bottom: 12px;
+    right: 12px;
+    gap: 8px;
+  }
   
-  /* Tier pill smaller */
-  .tier-pill { padding: 2px 4px !important; font-size: 3.5px !important; }
+  .map-btn {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 22px !important;
+    background: rgba(3, 11, 24, 0.95);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
   
-  /* Search box narrower */
-  .search-box { width: 65px !important; font-size: 8px !important; padding: 3px 8px 3px 22px !important; }
-  .search-box:focus { width: 85px !important; }
-  .search-ico { font-size: 8px !important; left: 6px !important; }
+  .map-legend {
+    bottom: 12px;
+    left: 12px;
+    padding: 8px 12px;
+    background: rgba(3, 11, 24, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 40px;
+    gap: 10px;
+  }
   
-  /* Brand area */
-  .brand-name { font-size: 9px !important; }
-  .brand-sub { display: none; }
-  .brand-mark { width: 22px; height: 22px; font-size: 10px; }
+  .leg-item {
+    font-size: 8px;
+    gap: 5px;
+  }
   
-  /* Header spacing */
-  .header { gap: 5px !important; padding: 0 8px !important; height: 48px !important; }
-  .header-mid { gap: 6px !important; }
+  .leg-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
   
-  /* GCIS chip smaller */
-  .gcis-chip { padding: 2px 6px !important; gap: 4px !important; }
-  .gcis-num { font-size: 18px !important; }
-  .gcis-label { font-size: 3px !important; }
-  .gcis-delta { font-size: 4px !important; padding: 0px 3px !important; }
+  /* === RIGHT PANEL (full width) === */
+  .right-panel {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--glass);
+    border-left: none;
+  }
   
-  /* Map stage on small phones */
-  .map-stage { height: 45vh !important; min-height: 250px; }
-}
-
-/* Landscape orientation fix for tablets and phones */
-@media (max-width: 900px) and (orientation: landscape) {
-  .main { display: flex !important; flex-direction: column !important; }
-  .map-stage { height: 55vh !important; min-height: 280px; }
-  .right-panel { max-height: 45vh; overflow-y: auto; }
-  .sb-heading:first-child::after {
-    content: " 💡 Use desktop for full filters";
-    font-size: 4px;
-    color: var(--td);
+  /* Panel sections — comfortable spacing */
+  .panel-section,
+  .p-block,
+  .ps,
+  .hist-block,
+  .charity-section,
+  .ai-brief,
+  .alert-box,
+  .pricing-box {
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+  
+  /* Country header — prominent */
+  .p-flag {
+    font-size: 28px !important;
+  }
+  
+  .p-name {
+    font-size: 24px !important;
+    letter-spacing: -0.02em;
+  }
+  
+  .p-score-row {
+    flex-wrap: wrap;
+    gap: 16px !important;
+  }
+  
+  /* Ring score — visible */
+  .ring-wrap {
+    transform: scale(0.9);
+    margin-left: auto;
+  }
+  
+  .ring-val {
+    font-size: 22px !important;
+  }
+  
+  /* Types & needs — scrollable horizontally */
+  .p-types,
+  .needs-strip {
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .type-tag,
+  .need {
+    display: inline-flex;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* === TOUCH TARGETS (44px minimum) === */
+  .rank-card,
+  .chip,
+  .hbtn,
+  .map-btn,
+  .nbr,
+  .price-cta,
+  .unlock-btn,
+  .donate-link,
+  .alert-cat,
+  .modal-cta {
+    min-height: 48px !important;
+  }
+  
+  .rank-card {
+    padding: 12px !important;
+    margin-bottom: 6px;
+  }
+  
+  .rank-name {
+    font-size: 14px !important;
+  }
+  
+  .rank-score {
+    font-size: 20px !important;
+  }
+  
+  .chip {
+    padding: 8px 12px !important;
+    font-size: 9px !important;
+  }
+  
+  .nbr {
+    padding: 10px 12px !important;
+    font-size: 9px !important;
+  }
+  
+  /* === FORMS & INPUTS === */
+  input, 
+  .search-box,
+  .alert-email-input,
+  .impact-input {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 12px !important;
+  }
+  
+  .alert-email-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* === AI BRIEF === */
+  .ai-brief-text {
+    font-size: 13px !important;
+    line-height: 1.5;
+  }
+  
+  /* === CHARITIES === */
+  .ch-cards {
+    gap: 10px;
+    max-height: none;
+  }
+  
+  .ch-card {
+    padding: 14px !important;
+  }
+  
+  .ch-name {
+    font-size: 12px !important;
+  }
+  
+  .donate-link {
+    padding: 8px 12px !important;
+    font-size: 8px !important;
+  }
+  
+  /* === PRICING SECTION === */
+  .price-tiers {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .price-tier {
+    padding: 12px !important;
+  }
+  
+  .tier-p {
+    font-size: 20px !important;
+  }
+  
+  /* === BREAKING BAR & TICKER === */
+  #breakingBar {
+    font-size: 9px !important;
+    padding: 8px 12px !important;
+    white-space: normal !important;
+    line-height: 1.4;
+    height: auto;
+    min-height: 42px;
+  }
+  
+  #proBanner {
+    font-size: 7px !important;
+    padding: 8px 12px !important;
+    height: auto;
+    line-height: 1.3;
+    white-space: normal;
+  }
+  
+  #proBanner a {
+    padding: 6px 12px !important;
+    font-size: 7px !important;
     margin-left: 6px;
+  }
+  
+  .ticker-bar {
+    height: 32px;
+  }
+  
+  .ticker-label {
+    font-size: 7px !important;
+    padding: 0 12px !important;
+  }
+  
+  .tick-item {
+    font-size: 8px !important;
+    padding: 0 16px !important;
+  }
+  
+  /* === MODAL === */
+  .modal {
+    width: 95% !important;
+    max-width: 95%;
+    padding: 20px !important;
+    margin: 16px;
+  }
+  
+  .modal-h {
+    font-size: 20px !important;
+  }
+  
+  .modal-plans {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .modal-cta {
+    padding: 14px !important;
+    font-size: 12px !important;
+  }
+  
+  /* === MOBILE FILTER BUTTON === */
+  #mobileFilterBtn {
+    display: flex !important;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    background: linear-gradient(135deg, #bf7fff, #00c8ff);
+    border: none;
+    border-radius: 48px;
+    padding: 14px 20px;
+    color: #030b18;
+    font-family: var(--fm);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+  }
+  
+  /* Filter panel animation */
+  .filter-panel {
+    transition: opacity 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1), transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  }
+  
+  .filter-panel-closing {
+    opacity: 0 !important;
+    transform: scale(0.95) !important;
+    pointer-events: none;
   }
 }
 
-@media (max-width: 600px) {
-  .p-name { font-size: 16px !important; }
-  .p-flag { font-size: 20px !important; }
-  .ring-wrap { transform: scale(0.75); margin-left: -10px; }
-  .vol-chip { font-size: 4px !important; padding: 2px 4px !important; }
-  .vol-chip:nth-child(n+3) { display: none; }
-  .ai-brief-text { font-size: 8px !important; }
-  .fc-big { font-size: 28px !important; }
-  .fc-dir { font-size: 4px !important; padding: 1px 4px !important; }
-  .dims-bars { padding: 5px !important; }
-  .dim-lbl { width: 45px !important; font-size: 4px !important; }
-  .dim-val { font-size: 5px !important; width: 16px !important; }
-  .radar-wrap { width: 60px !important; }
-  .radar-wrap svg { width: 50px !important; height: 50px !important; }
-  .ch-name { font-size: 8px !important; }
-  .ch-match { font-size: 4px !important; padding: 1px 4px !important; }
-  .donate-link { font-size: 4px !important; padding: 3px 6px !important; }
-  .impact-calc .impact-input { width: 50px !important; font-size: 7px !important; }
-  .impact-result { font-size: 5px !important; }
-  .loader-steps { width: 280px !important; }
-  .lstep { font-size: 5px !important; }
-  .loader-h { font-size: 14px !important; }
-  .loader-ring { width: 30px; height: 30px; }
+/* BREAKPOINT: SMALL PHONES (≤550px) */
+@media (max-width: 550px) {
+  /* Hide even more elements */
+  .hbtn#refreshBtn,
+  .hbtn#pdfBtn,
+  .hbtn#shareBtn,
+  #emailSignIn,
+  .live-pill .live-dot + span,
+  .gcis-chip .gcis-label {
+    display: none !important;
+  }
+  
+  /* Show just the icon for live pill */
+  .live-pill {
+    padding: 6px 10px !important;
+    min-width: 36px;
+    justify-content: center;
+  }
+  
+  /* Header ultra-compact */
+  .header {
+    height: 48px !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+  }
+  
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .brand-name {
+    font-size: 11px;
+  }
+  
+  .gcis-num {
+    font-size: 16px !important;
+  }
+  
+  .search-box {
+    width: 70px !important;
+    font-size: 9px !important;
+    padding: 5px 6px 5px 24px !important;
+  }
+  
+  .search-box:focus {
+    width: 100px !important;
+  }
+  
+  .search-ico {
+    font-size: 9px !important;
+    left: 6px !important;
+  }
+  
+  .tier-pill {
+    padding: 4px 6px !important;
+    font-size: 6px !important;
+  }
+  
+  .hbtn {
+    padding: 4px 6px !important;
+    font-size: 6px !important;
+  }
+  
+  /* Map taller on small phones */
+  .map-stage {
+    height: 48vh !important;
+    min-height: 280px;
+  }
+  
+  /* Country panel adjustments */
+  .p-name {
+    font-size: 20px !important;
+  }
+  
+  .p-flag {
+    font-size: 24px !important;
+  }
+  
+  .type-tag {
+    font-size: 7px !important;
+    padding: 4px 8px !important;
+  }
+  
+  .need {
+    font-size: 7px !important;
+    padding: 4px 8px !important;
+  }
+  
+  /* Dimension bars — more compact */
+  .dim-lbl {
+    width: 40px !important;
+    font-size: 6px !important;
+  }
+  
+  .dim-val {
+    font-size: 7px !important;
+    width: 18px !important;
+  }
+  
+  .radar-wrap {
+    width: 55px !important;
+  }
+  
+  /* Forecast section */
+  .fc-big {
+    font-size: 28px !important;
+  }
+  
+  .fc-body {
+    gap: 8px !important;
+  }
+  
+  /* Charity cards */
+  .ch-name {
+    font-size: 10px !important;
+  }
+  
+  .ch-match {
+    font-size: 7px !important;
+    padding: 2px 6px !important;
+  }
+  
+  .ch-desc {
+    font-size: 8px !important;
+  }
+  
+  /* Volatility chips — limit visible */
+  .vol-chip:nth-child(n+3) {
+    display: none;
+  }
+  
+  /* Impact calculator */
+  .impact-input {
+    width: 70px !important;
+    font-size: 12px !important;
+  }
+  
+  .impact-result {
+    font-size: 8px !important;
+  }
+  
+  /* Pricing */
+  .tier-p {
+    font-size: 16px !important;
+  }
+  
+  .tier-feats {
+    font-size: 6px !important;
+  }
+  
+  /* Breaking bar */
+  #breakingBar {
+    font-size: 8px !important;
+    padding: 8px 10px !important;
+    min-height: 38px;
+  }
+  
+  #proBanner {
+    font-size: 6px !important;
+    padding: 6px 10px !important;
+  }
+  
+  #proBanner a {
+    padding: 4px 8px !important;
+    font-size: 6px !important;
+  }
+  
+  /* Mobile filter button smaller */
+  #mobileFilterBtn {
+    padding: 10px 16px !important;
+    font-size: 9px !important;
+    min-height: 44px;
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* LANDSCAPE ORIENTATION (tablets & phones) */
+@media (max-width: 900px) and (orientation: landscape) {
+  .main {
+    height: calc(100vh - 54px - 26px - 26px);
+  }
+  
+  .map-stage {
+    height: 60vh !important;
+    min-height: 260px;
+  }
+  
+  .right-panel {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  
+  /* Split view hint */
+  .sb-heading:first-child::after {
+    content: " 💡 Swipe for filters";
+    font-size: 7px;
+    color: var(--td);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+  
+  /* Keep rankings visible */
+  .rank-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  
+  /* Compact panel in landscape */
+  .p-score-row {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .dims-body {
+    flex-direction: row !important;
+  }
+}
+
+/* TOUCH HOVER STATES (no hover on mobile, just active) */
+@media (max-width: 900px) {
+  .rank-card:active,
+  .chip:active,
+  .hbtn:active,
+  .nbr:active,
+  .price-cta:active,
+  .unlock-btn:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+    transition: transform 0.05s ease;
+  }
+  
+  /* Remove hover effects that cause issues */
+  .rank-card:hover,
+  .chip:hover,
+  .country-path:hover {
+    transform: none;
+    filter: none;
+  }
+  
+  /* Better scrollbars */
+  .right-panel::-webkit-scrollbar,
+  .ch-cards::-webkit-scrollbar {
+    width: 3px;
+  }
+  
+  .right-panel::-webkit-scrollbar-track,
+  .ch-cards::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .right-panel::-webkit-scrollbar-thumb,
+  .ch-cards::-webkit-scrollbar-thumb {
+    background: rgba(0, 200, 255, 0.3);
+    border-radius: 99px;
+  }
+}
+
+/* SAFE AREA INSETS (notch/dynamic island) */
+@supports (padding: max(0px)) {
+  @media (max-width: 900px) {
+    .header {
+      padding-left: max(10px, env(safe-area-inset-left)) !important;
+      padding-right: max(10px, env(safe-area-inset-right)) !important;
+    }
+    
+    .map-stage {
+      height: calc(55vh - env(safe-area-inset-top)) !important;
+    }
+    
+    #mobileFilterBtn {
+      bottom: max(20px, env(safe-area-inset-bottom));
+      right: max(20px, env(safe-area-inset-right));
+    }
+    
+    .map-controls {
+      bottom: max(12px, env(safe-area-inset-bottom));
+      right: max(12px, env(safe-area-inset-right));
+    }
+    
+    .map-legend {
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: max(12px, env(safe-area-inset-left));
+    }
+  }
+}
+
+/* DARK MODE AWARENESS (follows system) */
+@media (prefers-color-scheme: dark) {
+  @media (max-width: 900px) {
+    .map-stage {
+      background: radial-gradient(ellipse 120% 100% at 40% 30%, #06182e 0%, #020a15 100%);
+    }
+  }
+}
+
+/* REDUCED MOTION RESPECT */
+@media (prefers-reduced-motion: reduce) {
+  @media (max-width: 900px) {
+    .rank-card,
+    .chip,
+    .hbtn,
+    .filter-panel,
+    .map-btn {
+      transition: none !important;
+      animation: none !important;
+    }
+    
+    .ticker-inner {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
 }
 }</style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
