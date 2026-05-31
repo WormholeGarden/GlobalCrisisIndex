@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+how is the mobile <!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- PRO BANNER - Converts viral traffic -->
@@ -699,6 +699,37 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   /* Ring and scores */
   .ring-wrap { transform: scale(0.85); }
   .p-name { font-size: 18px; }
+  
+  /* MAIN LAYOUT FIX — force proper stacking on landscape */
+  .main { 
+    display: block !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  /* Sidebar hidden completely */
+  .sidebar { display: none !important; }
+  
+  /* Right panel takes full width, no left margin/padding issues */
+  .right-panel { 
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+  
+  /* Map stage takes full width and proper height */
+  .map-stage {
+    width: 100% !important;
+    height: 50vh !important;
+    min-height: 300px;
+  }
+  
+  /* Ensure map SVG fills the stage */
+  #map-svg {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 @media (max-width: 550px) {
@@ -733,12 +764,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   .gcis-label { font-size: 3px !important; }
   .gcis-delta { font-size: 4px !important; padding: 0px 3px !important; }
   
-  /* Never hide the GCIS score number — it's your credibility signal */
+  /* Map stage on small phones */
+  .map-stage { height: 45vh !important; min-height: 250px; }
 }
 
-@media (max-width: 900px) {
+/* Landscape orientation fix for tablets and phones */
+@media (max-width: 900px) and (orientation: landscape) {
+  .main { display: flex !important; flex-direction: column !important; }
+  .map-stage { height: 55vh !important; min-height: 280px; }
+  .right-panel { max-height: 45vh; overflow-y: auto; }
   .sb-heading:first-child::after {
-    content: " 💡 Use desktop for filters";
+    content: " 💡 Use desktop for full filters";
     font-size: 4px;
     color: var(--td);
     margin-left: 6px;
@@ -768,6 +804,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   .lstep { font-size: 5px !important; }
   .loader-h { font-size: 14px !important; }
   .loader-ring { width: 30px; height: 30px; }
+}
 }</style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
 </head>
@@ -1873,5 +1910,3 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
-
-
