@@ -2079,7 +2079,18 @@ function renderRanking(filter=''){
   }
 }
 
-function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf(iso);if(idx>=0)rankIdx=idx;renderPanel(iso);zoomToCountry(iso);}}
+function selCountry(iso){
+  if(store[iso]){
+    selectedIso=iso;
+    const idx=ranked.indexOf(iso);
+    if(idx>=0)rankIdx=idx;
+    renderPanel(iso);
+    zoomToCountry(iso);
+    // Update URL without reloading the page
+    const newUrl = `${window.location.pathname}?country=${iso}`;
+    window.history.pushState({country:iso}, '', newUrl);
+  }
+}
 
 // ============================================================================
 // FETCH AI BRIEF - FALLBACK VERSION (NO API KEY NEEDED)
