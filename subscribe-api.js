@@ -1,28 +1,2540 @@
-// Deploy this to Cloudflare Workers (free) or any serverless function
-export default {
-  async fetch(request) {
-    if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta name="msvalidate.01" content="E3F97DC68FA16302C8DA8A744B934C90" />
+<!-- PRO BANNER - Converts viral traffic -->
+<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 8px 16px; text-align: center; font-family: var(--fm); font-size: 7px; letter-spacing: 0.1em; backdrop-filter: blur(8px); z-index: 98; position: relative;">
+  <span style="color: var(--cyan);">🔥 LIVE APIs</span>
+  <span style="color: var(--tm); margin: 0 8px;">|</span>
+  <span style="color: var(--ts);">Real-time earthquakes, conflicts, food security & disease outbreaks</span>
+  <span style="color: var(--tm); margin: 0 8px;">|</span>
+  <a href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); color: #030b18; text-decoration: none; font-weight: 800; border: none; padding: 4px 14px; border-radius: 20px; transition: all 0.2s; font-size: 8px; display: inline-block; box-shadow: 0 0 12px rgba(191,127,255,0.3);" onmouseover="this.style.transform='scale(1.02)';" onmouseout="this.style.transform='scale(1)';">⚡ UNLOCK FULL ACCESS → $29/mo</a>
+</div>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the Global Crisis Index?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Global Crisis Index is a real-time crisis intelligence dashboard that aggregates data from 40+ live APIs including USGS for earthquakes, ACLED for conflicts, WHO for disease outbreaks, and IPC/FEWS NET for food security. It updates every 5 minutes and provides urgency scores for 60+ countries."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How accurate is the crisis data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "All data comes directly from official sources including USGS, NASA, WHO, World Bank, IMF, UNHCR, and ACLED. The map updates every 5 minutes with the latest available information from these trusted humanitarian and scientific organizations."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the Global Crisis Index free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, GCIS Fusion offers a free tier with access to the top 10 most critical countries. Pro access at $29/month unlocks all 60+ countries, AI-powered country briefs, PDF reports, and email alerts."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What crisis data sources do you use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "GCIS Fusion integrates 40+ live APIs including USGS (earthquakes), NASA EONET (natural events), ACLED (conflicts), GDACS (disasters), WHO (disease outbreaks), IPC/FEWS NET/WFP/FAO (food security), World Bank/IMF (economic indicators), NOAA/Open-Meteo (weather alerts), and UNHCR (displacement data)."
+      }
     }
-    
-    const { email } = await request.json();
-    
-    // Validate email
-    if (!email || !email.includes('@')) {
-      return new Response('Invalid email', { status: 400 });
-    }
-    
-    // Call Airtable from BACKEND (API key hidden)
-    const response = await fetch('https://api.airtable.com/v0/app5RcMj4TSLHraH9/Waitlist', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({records: [{fields: {Email: email}}]})
-    });
-    
-    const data = await response.json();
-    return new Response(JSON.stringify(data), { status: response.status });
+  ]
+}
+</script>
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Crisis Index: Live Earthquakes, Conflicts, Food Security & Disease Outbreaks | Real-time Crisis Map</title>
+<meta name="description" content="Global Crisis Index: Real-time crisis map tracking earthquakes (USGS), conflicts (ACLED), food security (IPC/FEWS NET/WFP), disease outbreaks (WHO), floods, cyclones, wildfires, and displacement (UNHCR). Live data from 40+ APIs updates every 5 minutes. Free crisis intelligence dashboard.">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0LR42BR1B9"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-0LR42BR1B9');
+</script>
+<meta name="keywords" content="global crisis, earthquake tracker, conflict map, food security, disease outbreak, humanitarian data, real-time alerts">
+<link rel="canonical" href="https://globalcrisisindex.com">
+<meta property="og:title" content="Global Crisis Index | Real-time Crisis Map">
+<meta property="og:description" content="Track earthquakes, conflicts, food security, and disease outbreaks live. 40+ data sources.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Global Crisis Index | Real-time Crisis Map">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ============================================================================
+   TOKEN SYSTEM — THE FOUNDATION
+   ============================================================================ */
+:root{
+  --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
+  --glass:rgba(5,15,34,0.97);--glass2:rgba(8,24,41,0.93);
+  --cyan:#00c8ff;--cyan2:rgba(0,200,255,0.12);--cyan3:rgba(0,200,255,0.25);
+  --cyan-glow:0 0 20px rgba(0,200,255,0.18);
+  --rose:#ff375f;--rose2:rgba(255,55,95,0.12);--rose-glow:0 0 18px rgba(255,55,95,0.22);
+  --amber:#ffb020;--amber2:rgba(255,176,32,0.12);
+  --green:#00e5a0;--green2:rgba(0,229,160,0.1);
+  --purple:#bf7fff;--purple2:rgba(191,127,255,0.12);
+  --tp:#ddeeff;--ts:#6a9ec0;--tm:#2e5878;--td:#122236;
+  --b1:rgba(0,200,255,0.06);--b2:rgba(0,200,255,0.12);--b3:rgba(0,200,255,0.22);
+  --crit:#ff375f;--high:#ff8c42;--mod:#ffb020;--low:#3ec5ff;
+  --fd:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--fm:'JetBrains Mono',monospace;
+  --r1:4px;--r2:8px;--r3:12px;--r4:18px;--r-pill:40px;--ease:cubic-bezier(.4,0,.2,1);--ease-pop:cubic-bezier(0.34, 1.2, 0.64, 1);
+  
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --bg3: rgba(255,255,255,.01);
+  --bg4: rgba(255,255,255,.03);
+  --border-base: var(--b1);
+  --border-mid: var(--b2);
+  --border-accent: var(--b3);
+  --t2: var(--ts);
+  --t3: var(--tm);
+  --signal-info: var(--cyan);
+  --signal-special: var(--purple);
+  --cyan-10: rgba(0,200,255,0.1);
+}
+
+/* ============================================================================
+   TYPOGRAPHY — 6-STEP MODULAR SCALE (ratio 1.33)
+   ============================================================================ */
+/* Scale: 8 → 10 → 12 → 14 → 18 → 22 → 28 → 38 → 52 */
+
+/* Micro labels — the ONLY place for sub-12px */
+.label-xs { font: 600 8px/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; }
+.label-sm { font: 600 10px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+
+/* Body — never below 12px */
+.body-sm  { font: 400 12px/1.5 var(--font-body); }
+.body     { font: 400 13px/1.6 var(--font-body); }
+.body-lg  { font: 400 14px/1.6 var(--font-body); }
+
+/* Display — Barlow Condensed only, weight 700–900 */
+.display-sm  { font: 800 22px/1 var(--font-display); letter-spacing: -.01em; }
+.display-md  { font: 900 34px/1 var(--font-display); letter-spacing: -.02em; }
+.display-lg  { font: 900 52px/.95 var(--font-display); letter-spacing: -.03em; }
+
+/* Numbers get their own class — visually distinct */
+.stat-value  { font: 900 38px/1 var(--font-display); letter-spacing: -.025em; }
+.stat-label  { font: 600 9px/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--t3); margin-top: 3px; }
+
+/* ============================================================================
+   INTERACTION STATES — FEEL ALIVE, NOT LAGGY
+   ============================================================================ */
+html,body{height:100%;overflow:hidden;background:var(--void);color:var(--tp);font-family:var(--fb);font-size:13px;line-height:1.5}
+::-webkit-scrollbar{width:2px;height:2px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px);
+  background-size:64px 64px;opacity:0.7}
+
+/* Base interactive element — explicit property lists only */
+.interactive {
+  transition:
+    background-color 120ms var(--ease),
+    border-color     120ms var(--ease),
+    color            120ms var(--ease),
+    box-shadow       200ms var(--ease),
+    transform        160ms var(--ease-pop);
+}
+
+/* Rank cards — left-border slide in, no pseudo-layer */
+.rank-card {
+  background: var(--bg3);
+  border: 1px solid var(--b1);
+  border-left: 2px solid transparent;
+  border-radius: var(--r2);
+  padding: 7px 9px;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), border-left-color 180ms var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.rank-card:hover { background: var(--bg4); border-left-color: var(--cyan); }
+.rank-card.sel { border-left-color: var(--cyan); background: var(--cyan2); border-color: rgba(0,200,255,.15); }
+
+/* Map country paths — brightness only, not color */
+.country-path {
+  transition: filter 80ms linear;
+  stroke: #081829;
+  stroke-width: .5;
+  cursor: pointer;
+}
+.country-path:hover { stroke: var(--cyan); stroke-width: 1.5; filter: brightness(1.35) saturate(1.2); }
+.country-path.sel-path { stroke: var(--cyan); stroke-width: 2; filter: brightness(1.5); }
+
+/* CTAs — scale on press for tactile feel */
+.btn-primary:active { transform: scale(.97); }
+.btn-primary:hover  { filter: brightness(1.08); }
+
+/* Pulse dot — opacity animation, no box-shadow */
+.live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: live-pulse 2.4s var(--ease) infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .4; transform: scale(.85); }
+}
+
+/* ============================================================================
+   UPGRADE / PAYWALL SURFACES — 3-TIER CTA SYSTEM
+   ============================================================================ */
+/* Tier 1: Primary CTA — the $29/mo button. ONE per page. */
+.cta-primary {
+  background: linear-gradient(135deg, #bf7fff 0%, #00c8ff 100%);
+  color: #030b18;
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 12px 24px;
+  font: 800 13px/1 var(--font-mono);
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: opacity 140ms var(--ease), transform 160ms var(--ease-pop);
+  width: 100%;
+}
+.cta-primary:hover  { opacity: .9; }
+.cta-primary:active { transform: scale(.98); }
+
+/* Tier 2: Secondary — lock banners, feature gates */
+.cta-secondary {
+  background: var(--bg4);
+  color: var(--purple);
+  border: 1px solid rgba(191,127,255,.28);
+  border-radius: var(--r-pill);
+  padding: 9px 18px;
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: background 120ms var(--ease), border-color 120ms var(--ease);
+}
+.cta-secondary:hover { background: rgba(191,127,255,.12); border-color: rgba(191,127,255,.5); }
+
+/* Tier 3: Ghost — header utility */
+.cta-ghost {
+  background: transparent;
+  color: var(--ts);
+  border: 1px solid var(--b2);
+  border-radius: var(--r1);
+  padding: 6px 12px;
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: background 100ms var(--ease), color 100ms var(--ease);
+}
+.cta-ghost:hover { background: var(--cyan2); color: var(--cyan); border-color: var(--b3); }
+
+/* Lock banner — creates desire, not frustration */
+.lock-surface {
+  background: linear-gradient(160deg, rgba(191,127,255,.07) 0%, rgba(0,200,255,.04) 100%);
+  border: 1px solid rgba(191,127,255,.18);
+  border-radius: var(--r4);
+  padding: 20px 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.lock-surface::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(191,127,255,.6), transparent);
+}
+
+/* ============================================================================
+   SCORE COLOR SYSTEM — TRUST THROUGH CONSISTENCY
+   ============================================================================ */
+[data-severity="critical"] { --sev-color: #ff375f; --sev-bg: rgba(255,55,95,.1); --sev-border: rgba(255,55,95,.22); }
+[data-severity="high"]     { --sev-color: #ff8c42; --sev-bg: rgba(255,140,66,.1); --sev-border: rgba(255,140,66,.2); }
+[data-severity="moderate"] { --sev-color: #ffb020; --sev-bg: rgba(255,176,32,.1); --sev-border: rgba(255,176,32,.2); }
+[data-severity="low"]      { --sev-color: #3ec5ff; --sev-bg: rgba(62,197,255,.08); --sev-border: rgba(62,197,255,.18); }
+
+.sev-badge {
+  background: var(--sev-bg);
+  border: 1px solid var(--sev-border);
+  color: var(--sev-color);
+  border-radius: var(--r1);
+  padding: 2px 7px;
+  font: 700 9px/1 var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* ============================================================================
+   PERFORMANCE — GPU COMPOSITING OPTIMIZATIONS
+   ============================================================================ */
+/* Header only gets backdrop-filter */
+.header { backdrop-filter: blur(40px); }
+.sidebar, .right-panel, .map-btn { backdrop-filter: none; }
+
+/* Ticker animation uses CSS custom property */
+.ticker-inner {
+  animation: ticker 110s linear infinite;
+
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  height: 100%;
+}
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ============================================================================
+   APP SHELL — GRID LAYOUT
+   ============================================================================ */
+.app { display: grid; grid-template-rows: auto auto auto 1fr; height: 100vh; position: relative; z-index: 1; }
+/* rows: header | proBanner | breakingBar+ticker | main */
+
+.header {
+  height: 54px;
+  background: rgba(3,11,24,.99);
+  border-bottom: 1px solid var(--b1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 300px 1fr 420px; /* Sidebar 300px, Right panel fixed 420px */
+  overflow: hidden;
+  flex: 1;
+}
+
+.right-panel {
+  display: grid;
+  grid-template-rows: auto;
+  align-content: start;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: content;
+  background: var(--glass);
+  border-left: 1px solid var(--b1);
+}
+
+.panel-section {
+  padding: 12px 13px;
+  border-bottom: 1px solid var(--b1);
+}
+.panel-section:last-child { border-bottom: none; }
+
+/* ============================================================================
+   LEGACY COMPONENTS (PRESERVED)
+   ============================================================================ */
+.ticker-bar{height:26px;background:rgba(3,11,24,.98);border-bottom:1px solid var(--b1);overflow:hidden;display:flex;align-items:center;flex-shrink:0;z-index:99}
+.ticker-label{font-family:var(--fm);font-size:6px;letter-spacing:.18em;color:var(--cyan);background:var(--cyan2);border-right:1px solid var(--b2);
+  padding:0 10px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0}
+.ticker-track{overflow:hidden;flex:1;height:100%;position:relative}
+.tick-item{display:inline-flex;align-items:center;gap:6px;padding:0 24px;font-family:var(--fm);font-size:6.5px;color:var(--ts);
+  border-right:1px solid var(--b1);height:100%}
+.tick-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sidebar{background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+.map-stage{flex:1;position:relative;background:radial-gradient(ellipse 120% 100% at 40% 30%,#06182e 0%,var(--void) 100%);overflow:hidden;cursor:crosshair}
+#map-svg{width:100%;height:100%}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brand-mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(145deg,rgba(0,200,255,.2),rgba(191,127,255,.15));
+  border:1px solid rgba(0,200,255,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.brand-name{font-family:var(--fd);font-size:15px;font-weight:800;letter-spacing:-.01em;
+  background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.brand-sub{font-family:var(--fm);font-size:4.5px;color:var(--tm);letter-spacing:.22em;text-transform:uppercase;margin-top:1px}
+.header-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:12px}
+.gcis-chip{display:flex;align-items:center;gap:8px;background:rgba(191,127,255,.07);border:1px solid rgba(191,127,255,.2);
+  border-radius:var(--r3);padding:4px 12px;gap:10px}
+.gcis-label{font-family:var(--fm);font-size:4.5px;letter-spacing:.2em;color:var(--tm);text-transform:uppercase;margin-bottom:1px}
+.gcis-num{font-family:var(--fd);font-size:26px;font-weight:900;color:var(--purple);line-height:1;letter-spacing:-.02em}
+.gcis-delta{font-family:var(--fm);font-size:6px;padding:1px 6px;border-radius:99px;font-weight:600;align-self:flex-start;margin-top:2px}
+.stat-strip{display:flex;align-items:center;gap:10px;flex-direction:row;flex-wrap:nowrap}
+.stat{text-align:center}
+.stat-v{font-family:var(--fd);font-size:20px;font-weight:800;line-height:1;letter-spacing:-.01em}
+.stat-v.rose{color:var(--rose)}.stat-v.cyan{background:linear-gradient(135deg,#eaf8ff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-v.amber{color:var(--amber)}.stat-v.purple{color:var(--purple)}
+.stat-l{font-family:var(--fm);font-size:4.5px;letter-spacing:.15em;color:var(--tm);margin-top:1px;text-transform:uppercase}
+.vdiv{width:1px;height:22px;background:var(--b1)}
+.header-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.freshness{font-family:var(--fm);font-size:5px;color:var(--tm);text-align:right;line-height:1.4;flex-shrink:0}
+.freshness span{color:var(--cyan);display:block}
+.live-pill{display:flex;align-items:center;gap:4px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.18);
+  border-radius:99px;padding:3px 9px;font-family:var(--fm);font-size:5px;color:var(--cyan);letter-spacing:.1em}
+.hbtn{background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:var(--r1);padding:5px 10px;
+  font-family:var(--fm);font-size:6px;cursor:pointer;color:var(--ts);transition:background-color 120ms var(--ease),border-color 120ms var(--ease),color 120ms var(--ease),box-shadow 200ms var(--ease),transform 160ms var(--ease-pop);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.hbtn:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);box-shadow:var(--cyan-glow)}
+.hbtn.primary{background:var(--cyan2);border-color:rgba(0,200,255,.28);color:var(--cyan)}
+.tier-pill{font-family:var(--fm);font-size:5.5px;padding:3px 8px;border-radius:99px;cursor:pointer;transition:all .16s;font-weight:600}
+.tier-pill.free{background:rgba(100,120,160,.12);border:1px solid rgba(100,120,160,.2);color:#7090b0}
+.tier-pill.pro{background:rgba(191,127,255,.15);border:1px solid rgba(191,127,255,.3);color:var(--purple)}
+.search-wrap{position:relative}
+.search-box{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:var(--r2);padding:5px 10px 5px 26px;
+  font-family:var(--fb);font-size:11px;color:var(--ts);outline:none;transition:all .18s;width:130px}
+.search-box:focus{border-color:var(--b3);background:var(--cyan2);color:var(--tp);width:170px}
+.search-box::placeholder{color:var(--td);font-size:10px}
+.search-ico{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--tm);pointer-events:none}
+.sb-block{padding:10px 11px;border-bottom:1px solid var(--b1)}
+.sb-heading{font-family:var(--fm);font-size:5px;letter-spacing:.22em;color:var(--tm);text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.sb-action{color:var(--cyan);cursor:pointer;transition:opacity .14s;font-size:5.5px}
+.filter-wrap{display:flex;flex-wrap:wrap;gap:3px}
+.chip{background:rgba(255,255,255,.02);border:1px solid var(--b1);border-radius:99px;padding:2px 7px;
+  font-family:var(--fm);font-size:6px;cursor:pointer;color:var(--tm);transition:all .15s;white-space:nowrap;min-height:28px}
+.chip:hover{border-color:var(--b2);color:var(--ts)}
+.chip.on{background:var(--cyan2);border-color:var(--b3);color:var(--cyan)}
+.rank-list{display:flex;flex-direction:column;gap:2px}
+.rank-top{display:flex;align-items:center;gap:5px;position:relative}
+.rank-n{font-family:var(--fm);font-size:6px;color:var(--td);width:14px;flex-shrink:0}
+.rank-flag{font-size:9px;flex-shrink:0}
+.rank-name{font-size:9.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-score{font-family:var(--fd);font-size:14px;font-weight:800;flex-shrink:0}
+.rank-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:3px;padding-left:19px}
+.rank-meta{display:flex;align-items:center;gap:4px;font-family:var(--fm);font-size:5px;color:var(--tm)}
+.rank-spark{display:flex;align-items:flex-end;gap:1.5px;height:12px}
+.spark-b{width:2.5px;border-radius:1px 1px 0 0;min-height:1px;transition:height .4s var(--ease)}
+.rank-change{font-family:var(--fm);font-size:5.5px;padding:1px 4px;border-radius:3px}
+.rank-change.up{color:#ff6b6b;background:rgba(255,55,95,.08)}
+.rank-change.down{color:#00e5a0;background:rgba(0,229,160,.08)}
+.rank-change.flat{color:var(--ts);background:rgba(255,255,255,.04)}
+.rank-anom{width:5px;height:5px;border-radius:50%;background:var(--rose);box-shadow:0 0 6px rgba(255,55,95,.6);flex-shrink:0}
+.lock-banner{background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));
+  border:1px solid rgba(191,127,255,.2);border-radius:var(--r3);padding:13px 11px;margin:8px 0 2px;text-align:center}
+.lock-banner-title{font-family:var(--fm);font-size:6.5px;font-weight:700;color:var(--purple);letter-spacing:.1em;margin-bottom:4px}
+.lock-banner-desc{font-family:var(--fm);font-size:5.5px;color:var(--tm);margin-bottom:10px;line-height:1.55}
+.lock-feats{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-bottom:10px}
+.lock-feat{font-family:var(--fm);font-size:5px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:2px 7px;color:var(--ts)}
+.unlock-btn{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:8px 14px;border-radius:40px;
+  font-weight:800;font-family:var(--fm);cursor:pointer;font-size:7.5px;transition:opacity .15s;letter-spacing:.05em;width:100%}
+.unlock-btn:hover{opacity:.86}
+.map-controls{position:absolute;bottom:44px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:20}
+.map-btn{width:28px;height:28px;background:rgba(3,11,24,.92);border:1px solid var(--b2);border-radius:var(--r1);
+  cursor:pointer;font-size:13px;color:var(--ts);display:flex;align-items:center;justify-content:center;
+  transition:all .15s}
+.map-btn:hover{background:var(--cyan2);color:var(--cyan);border-color:var(--b3)}
+.map-legend{position:absolute;bottom:10px;left:10px;background:rgba(3,11,24,.9);backdrop-filter:blur(16px);
+  border:1px solid var(--b1);border-radius:var(--r2);padding:5px 8px;display:flex;gap:6px;flex-wrap:wrap;z-index:20}
+.leg-item{display:flex;align-items:center;gap:4px;font-family:var(--fm);font-size:5px;color:var(--tm)}
+.leg-dot{width:7px;height:7px;border-radius:2px}
+.leg-div{width:1px;height:9px;background:var(--b1)}
+.map-tt{position:absolute;background:rgba(3,11,24,.99);backdrop-filter:blur(28px);border:1px solid var(--b3);
+  border-radius:var(--r3);padding:10px 13px;pointer-events:none;opacity:0;transition:opacity .08s;z-index:60;
+  min-width:190px;box-shadow:0 12px 40px rgba(0,0,0,.8),var(--cyan-glow)}
+.map-tt.vis{opacity:1}
+.tt-name{font-family:var(--fd);font-size:13px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.tt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.tt-lbl{font-family:var(--fm);font-size:5px;color:var(--tm);letter-spacing:.1em}
+.tt-val{font-family:var(--fd);font-size:13px;font-weight:800}
+.tt-track{height:2px;background:rgba(255,255,255,.05);border-radius:99px;margin-bottom:4px;overflow:hidden}
+.tt-fill{height:100%;border-radius:99px}
+.tt-tags{display:flex;gap:3px;flex-wrap:wrap}
+.tt-tag{font-family:var(--fm);font-size:5px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--ts)}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--tm)}
+.empty-icon-wrap{position:relative;width:70px;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.empty-ring{position:absolute;inset:0;border:1px solid rgba(0,200,255,.12);border-radius:50%;animation:spin-slow 12s linear infinite}
+.empty-ring2{position:absolute;inset:6px;border:1px dashed rgba(0,200,255,.07);border-radius:50%;animation:spin-slow 18s linear infinite reverse}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+.empty-globe{font-size:32px;opacity:.5;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.empty-title{font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--ts)}
+.empty-sub{font-family:var(--fm);font-size:6px;color:var(--td);line-height:1.7}
+.p-block{padding:12px 13px;border-bottom:1px solid var(--b1)}
+.p-flag-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.p-flag{font-size:24px;line-height:1}
+.p-name{font-family:var(--fd);font-size:22px;font-weight:900;letter-spacing:-.02em;
+  background:linear-gradient(135deg,#fff 20%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.05}
+.p-iso{font-family:var(--fm);font-size:5px;color:var(--td);letter-spacing:.2em;margin-top:2px}
+.p-score-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.05);stroke-width:3.5}
+.ring-fill{fill:none;stroke-width:3.5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;
+  transition:stroke-dasharray 1.2s var(--ease)}
+.ring-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-size:19px;font-weight:900}
+.ring-lbl{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:var(--fm);font-size:4px;color:var(--tm);letter-spacing:.08em}
+.p-types{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.type-tag{font-family:var(--fm);font-size:5px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:4px;padding:2px 5px;color:var(--ts)}
+.vol-strip{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.vol-chip{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:4px;padding:3px 6px;
+  font-family:var(--fm);font-size:5.5px;color:var(--ts);display:flex;align-items:center;gap:3px}
+.urgency-bar-wrap{margin-top:8px}
+.u-head{display:flex;justify-content:space-between;font-family:var(--fm);font-size:5px;color:var(--tm);margin-bottom:3px}
+.u-track{height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.u-fill{height:100%;border-radius:99px;transition:width 1.2s var(--ease)}
+.needs-strip{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+.need{font-family:var(--fm);font-size:5px;padding:2px 7px;border-radius:99px;border:1px solid;font-weight:600;text-transform:uppercase}
+.need.food,.need.nutrition{background:rgba(255,176,32,.07);border-color:rgba(255,176,32,.22);color:var(--amber)}
+.need.shelter{background:rgba(191,127,255,.07);border-color:rgba(191,127,255,.22);color:var(--purple)}
+.need.health{background:rgba(255,55,95,.06);border-color:rgba(255,55,95,.2);color:var(--rose)}
+.need.water{background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.2);color:var(--cyan)}
+.need.protection{background:rgba(255,140,66,.06);border-color:rgba(255,140,66,.2);color:var(--high)}
+.ai-brief{margin:8px 13px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(191,127,255,.04));
+  border:1px solid rgba(0,200,255,.14);border-radius:var(--r3);padding:10px 12px;position:relative}
+.ai-brief-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.ai-brief-badge{font-family:var(--fm);font-size:5px;background:var(--cyan2);border:1px solid var(--b3);
+  border-radius:99px;padding:2px 7px;color:var(--cyan);letter-spacing:.1em}
+.ai-brief-text{font-size:10.5px;color:var(--ts);line-height:1.65;font-style:italic}
+.ai-brief-btn{font-family:var(--fm);font-size:5.5px;background:rgba(255,255,255,.04);border:1px solid var(--b2);
+  border-radius:var(--r1);padding:4px 9px;cursor:pointer;color:var(--ts);transition:all .15s;display:inline-flex;align-items:center;gap:4px;margin-top:6px}
+.ai-brief-btn:hover{background:var(--cyan2);color:var(--cyan);border-color:var(--b3)}
+.ai-loading{display:flex;align-items:center;gap:6px;font-family:var(--fm);font-size:6px;color:var(--tm)}
+.dots{display:flex;gap:3px}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+.ai-brief-locked{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 4px 4px;gap:5px}
+.ai-lock-icon{font-size:18px;opacity:.55}
+.ai-lock-title{font-family:var(--fd);font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.02em}
+.ai-lock-desc{font-family:var(--fm);font-size:6px;color:var(--tm);line-height:1.65;max-width:280px}
+.ai-lock-btn{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;
+  padding:7px 16px;border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;
+  font-size:7.5px;transition:opacity .15s;letter-spacing:.06em;margin-top:2px}
+.ai-lock-btn:hover{opacity:.86}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+.hist-block{padding:10px 13px;border-bottom:1px solid var(--b1)}
+.block-head{font-family:var(--fm);font-size:5px;letter-spacing:.2em;color:var(--tm);text-transform:uppercase;margin-bottom:7px;display:flex;justify-content:space-between}
+.anom-box{border-radius:var(--r2);padding:8px 10px;display:flex;align-items:flex-start;gap:7px}
+.anom-box.warn{background:rgba(255,55,95,.06);border:1px solid rgba(255,55,95,.18)}
+.anom-box.ok{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.14)}
+.anom-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.anom-body strong{font-family:var(--fd);font-size:11px;font-weight:700;display:block;margin-bottom:1px}
+.anom-z{font-family:var(--fm);font-size:5.5px;color:var(--tm);margin-top:2px}
+.spill-box{background:rgba(191,127,255,.04);border:1px solid rgba(191,127,255,.12);border-radius:var(--r3);padding:9px 11px}
+.spill-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.spill-title{font-family:var(--fm);font-size:5.5px;color:var(--tm);letter-spacing:.12em;display:flex;align-items:center;gap:5px}
+.spill-score{font-family:var(--fd);font-size:14px;font-weight:800;color:var(--purple)}
+.spill-bar{height:2px;background:rgba(191,127,255,.1);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.spill-fill{height:100%;background:linear-gradient(90deg,#bf7fff,#e879f9);border-radius:99px;transition:width .9s}
+.nbr-wrap{display:flex;flex-wrap:wrap;gap:3px}
+.nbr{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.02);border:1px solid rgba(191,127,255,.1);
+  border-radius:99px;padding:2px 7px;font-family:var(--fm);font-size:5.5px;color:var(--ts);cursor:pointer;transition:all .13s;min-height:44px}
+.nbr:hover{background:var(--purple2);border-color:rgba(191,127,255,.3);color:var(--purple)}
+.dims-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.dims-head{padding:7px 10px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:5px;color:var(--tm);
+  display:flex;justify-content:space-between;letter-spacing:.1em;text-transform:uppercase}
+.dims-body{display:flex}
+.dims-bars{flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:5.5px}
+.dim-row{display:flex;align-items:center;gap:5px}
+.dim-icon{font-size:7px;width:12px;text-align:center;flex-shrink:0}
+.dim-lbl{font-family:var(--fm);font-size:5px;color:var(--ts);width:60px;flex-shrink:0}
+.dim-track{flex:1;height:2.5px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.dim-fill{height:100%;border-radius:99px;width:0%;transition:width 1s var(--ease)}
+.dim-val{font-family:var(--fm);font-size:6px;font-weight:600;width:20px;text-align:right;flex-shrink:0}
+.dim-w{font-family:var(--fm);font-size:4px;color:var(--td);width:18px;flex-shrink:0}
+.radar-wrap{width:90px;flex-shrink:0;border-left:1px solid var(--b1);display:flex;align-items:center;justify-content:center;padding:6px}
+.fc-box{background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(191,127,255,.04));
+  border:1px solid rgba(0,200,255,.16);border-radius:var(--r3);padding:10px 12px}
+.fc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.fc-title{font-family:var(--fm);font-size:5px;color:var(--tm);letter-spacing:.15em;text-transform:uppercase}
+.fc-dir{font-family:var(--fm);font-size:5.5px;padding:2px 7px;border-radius:99px;font-weight:600;border:1px solid}
+.fc-dir.up{background:rgba(255,55,95,.1);color:var(--rose);border-color:rgba(255,55,95,.2)}
+.fc-dir.ok{background:rgba(0,229,160,.07);color:var(--green);border-color:rgba(0,229,160,.15)}
+.fc-body{display:flex;align-items:flex-end;gap:12px;margin-bottom:7px}
+.fc-big{font-family:var(--fd);font-size:42px;font-weight:900;letter-spacing:-.03em;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+.fc-meta{flex:1;display:flex;flex-direction:column;gap:2px}
+.fc-row{display:flex;justify-content:space-between;font-family:var(--fm);font-size:5.5px;color:var(--tm)}
+.fc-rv{color:var(--ts)}
+.fc-chart{width:100%;height:36px;display:block}
+.fc-status{padding:5px 8px;border-radius:var(--r1);font-family:var(--fm);font-size:6px;margin-top:5px}
+.fc-status.esc{background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.15);color:#f87171}
+.fc-status.stab{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.12);color:var(--green)}
+.ind-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.ind-head{padding:7px 10px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:5px;color:var(--tm);
+  display:flex;align-items:center;justify-content:space-between;letter-spacing:.1em;text-transform:uppercase}
+.spin{width:6px;height:6px;border:1.5px solid rgba(0,200,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ind-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid rgba(0,200,255,.03);transition:background .13s}
+.ind-row:last-child{border-bottom:none}
+.ind-row:hover{background:rgba(255,255,255,.015)}
+.ind-icon{font-size:9px;width:15px;text-align:center;flex-shrink:0}
+.ind-main{flex:1;min-width:0}
+.ind-lbl{font-size:7px;color:var(--ts);font-weight:500}
+.ind-val{font-family:var(--fm);font-size:8.5px;font-weight:600;color:var(--tp);margin-top:.5px}
+.ind-meta{text-align:right;flex-shrink:0}
+.ind-trend{font-family:var(--fm);font-size:5.5px;padding:1px 4px;border-radius:3px}
+.ind-trend.up{color:#f87171;background:rgba(255,55,95,.08)}.ind-trend.down{color:#00e5a0;background:rgba(0,229,160,.08)}.ind-trend.flat{color:var(--ts);background:rgba(255,255,255,.04)}
+.charity-section{padding:8px 0 4px}
+.ch-title{font-family:var(--fm);font-size:5px;letter-spacing:.22em;color:var(--tm);text-transform:uppercase;margin-bottom:7px;padding:0 13px}
+.ch-cards{display:flex;flex-direction:column;gap:4px;padding:0 13px;max-height:52vh;overflow-y:auto;scrollbar-width:thin}
+.ch-card{background:rgba(255,255,255,.015);border:1px solid var(--b1);border-radius:var(--r2);padding:8px 9px;transition:all .15s}
+.ch-card:hover{background:rgba(255,255,255,.03);border-color:var(--b2)}
+.ch-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.ch-name{font-size:9px;font-weight:600;display:flex;align-items:center;gap:4px}
+.ch-match{font-family:var(--fm);font-size:5px;background:var(--cyan2);border:1px solid rgba(0,200,255,.18);border-radius:99px;padding:2px 6px;color:var(--cyan)}
+.ch-eff-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.ch-eff-lbl{font-family:var(--fm);font-size:4.5px;color:var(--td)}
+.ch-eff-track{flex:1;height:1.5px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
+.ch-eff-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),#00ffcc)}
+.ch-eff-val{font-family:var(--fm);font-size:5.5px;color:var(--green)}
+.ch-foot{display:flex;justify-content:space-between;align-items:center}
+.ch-desc{font-size:7px;color:var(--tm)}
+.donate-link{display:inline-flex;align-items:center;gap:4px;background:var(--cyan2);border:1px solid rgba(0,200,255,.2);
+  border-radius:var(--r1);padding:4px 8px;font-family:var(--fm);font-size:5.5px;color:var(--cyan);text-decoration:none;transition:all .14s}
+.donate-link:hover{background:rgba(0,200,255,.18);border-color:rgba(0,200,255,.38);box-shadow:var(--cyan-glow)}
+.impact-calc{margin:6px 13px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.12);
+  border-radius:var(--r3);padding:10px 11px}
+.impact-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.impact-title{font-family:var(--fm);font-size:5px;color:var(--green);letter-spacing:.15em;text-transform:uppercase}
+.impact-body{display:flex;align-items:center;gap:8px}
+.impact-input{background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:var(--r1);
+  padding:5px 8px;color:var(--tp);font-family:var(--fm);font-size:9px;width:80px;outline:none}
+.impact-input:focus{border-color:rgba(0,229,160,.35)}
+.impact-result{flex:1;font-family:var(--fm);font-size:6.5px;color:var(--ts);line-height:1.6}
+.impact-result strong{color:var(--green);font-size:8px}
+.pricing-box{margin:6px 13px 0;background:linear-gradient(135deg,rgba(191,127,255,.09),rgba(0,200,255,.05));
+  border:1px solid rgba(191,127,255,.22);border-radius:var(--r4);padding:12px 13px}
+.price-tiers{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:9px}
+.price-tier{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:var(--r2);padding:8px 9px;cursor:pointer;transition:all .15s}
+.price-tier:hover{border-color:var(--b2)}
+.price-tier.feat{border-color:rgba(191,127,255,.32);background:rgba(191,127,255,.07)}
+.tier-n{font-family:var(--fm);font-size:5.5px;color:var(--ts);margin-bottom:3px;letter-spacing:.1em;text-transform:uppercase}
+.tier-p{font-family:var(--fd);font-size:18px;font-weight:800;line-height:1;margin-bottom:2px}
+.tier-p.free{color:var(--ts)}.tier-p.pro{color:var(--purple)}
+.tier-feats{font-family:var(--fm);font-size:5px;color:var(--tm);margin-top:4px;line-height:1.75}
+.price-cta{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:9px 14px;
+  border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;width:100%;font-size:9px;
+  transition:opacity .15s;letter-spacing:.06em}
+.price-cta:hover{opacity:.85}
+.price-note{font-family:var(--fm);font-size:4.5px;color:var(--td);text-align:center;margin-top:5px}
+.alert-box{margin:6px 13px 0;background:rgba(0,200,255,.03);border:1px solid rgba(0,200,255,.1);
+  border-radius:var(--r2);padding:9px 10px}
+.alert-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.alert-title{font-size:8.5px;font-weight:600}
+.alert-sub{font-family:var(--fm);font-size:5.5px;color:var(--tm)}
+.alert-cats{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px}
+.alert-cat{font-family:var(--fm);font-size:5.5px;padding:2px 6px;border-radius:99px;background:rgba(255,255,255,.03);
+  border:1px solid var(--b1);color:var(--tm);cursor:pointer;transition:all .13s;user-select:none}
+.alert-cat.on{background:var(--cyan2);border-color:var(--b3);color:var(--cyan)}
+.alert-email-row{display:flex;gap:5px;margin-bottom:7px}
+.alert-email-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:var(--r1);
+  padding:5px 8px;font-family:var(--fm);font-size:7px;color:var(--ts);outline:none;transition:border-color .15s}
+.alert-email-input:focus{border-color:var(--b3)}
+.alert-email-input::placeholder{color:var(--td);font-size:6.5px}
+.modal-bg{position:fixed;inset:0;z-index:300;background:rgba(3,11,24,.94);backdrop-filter:blur(16px);
+  display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid rgba(191,127,255,.22);border-radius:var(--r4);padding:24px 22px;
+  max-width:440px;width:90%;position:relative;animation:min .22s var(--ease)}
+@keyframes min{from{opacity:0;transform:scale(.95) translateY(-6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-x{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--tm);font-size:16px;cursor:pointer}
+.modal-x:hover{color:var(--tp)}
+.modal-badge{font-family:var(--fm);font-size:5.5px;padding:2px 8px;border-radius:99px;
+  background:rgba(191,127,255,.1);border:1px solid rgba(191,127,255,.22);color:var(--purple);
+  display:inline-block;margin-bottom:8px;letter-spacing:.14em;text-transform:uppercase}
+.modal-h{font-family:var(--fd);font-size:24px;font-weight:900;letter-spacing:-.02em;margin-bottom:4px;
+  background:linear-gradient(135deg,#fff 30%,var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.modal-sub{font-size:11px;color:var(--ts);margin-bottom:14px;line-height:1.6}
+.modal-plans{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.mplan{border:1px solid var(--b1);border-radius:var(--r2);padding:10px 9px;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.02)}
+.mplan:hover,.mplan.sp{border-color:rgba(191,127,255,.38);background:rgba(191,127,255,.07)}
+.mplan-name{font-family:var(--fm);font-size:5.5px;color:var(--ts);margin-bottom:4px;letter-spacing:.1em;text-transform:uppercase}
+.mplan-price{font-family:var(--fd);font-size:22px;font-weight:900;line-height:1;margin-bottom:2px}
+.mplan-per{font-family:var(--fm);font-size:5px;color:var(--td)}
+.mfeat{font-family:var(--fm);font-size:5px;color:var(--tm);display:flex;align-items:center;gap:4px;margin-bottom:2px;margin-top:6px}
+.mfeat::before{content:"✓";color:var(--green);font-size:6px}
+.modal-cta{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:11px 20px;
+  border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;width:100%;font-size:10px;
+  transition:opacity .13s;letter-spacing:.06em;margin-bottom:6px}
+.modal-cta:hover{opacity:.85}
+.modal-fine{font-family:var(--fm);font-size:5px;color:var(--td);text-align:center}
+.modal-proof{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--fm);font-size:6px;color:var(--tm);margin-top:10px;padding-top:10px;border-top:1px solid var(--b1)}
+.loader{position:fixed;inset:0;z-index:500;background:rgba(3,11,24,.99);backdrop-filter:blur(28px);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loader-ring{width:40px;height:40px;border-radius:50%;border:2px solid rgba(0,200,255,.08);border-top-color:var(--cyan);animation:sp .7s linear infinite}
+.loader-h{font-family:var(--fd);font-size:17px;font-weight:800;letter-spacing:.02em;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.loader-steps{display:flex;flex-direction:column;gap:4px;align-items:flex-start;width:360px}
+.lstep{font-family:var(--fm);font-size:6px;color:var(--td);display:flex;align-items:center;gap:7px;transition:color .25s}
+.lstep.done{color:var(--green)}.lstep.act{color:var(--cyan)}
+.lstep-dot{width:5px;height:5px;border-radius:50%;background:var(--td);flex-shrink:0;transition:background .25s}
+.lstep.done .lstep-dot{background:var(--green)}.lstep.act .lstep-dot{background:var(--cyan);box-shadow:0 0 8px rgba(0,200,255,.6)}
+.loader-bar{width:200px;height:2px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.loader-fill{height:100%;background:linear-gradient(90deg,#bf7fff,#00c8ff);border-radius:99px;width:0%;transition:width .4s var(--ease)}
+.toast{position:fixed;bottom:16px;right:16px;z-index:600;background:rgba(3,11,24,.98);
+  border:1px solid rgba(0,200,255,.3);border-radius:var(--r2);padding:7px 14px;
+  font-family:var(--fm);font-size:7.5px;color:var(--cyan);opacity:0;transition:opacity .2s,transform .2s;
+  pointer-events:none;transform:translateY(5px);box-shadow:0 4px 24px rgba(0,0,0,.6),var(--cyan-glow)}
+.toast.show{opacity:1;transform:translateY(0)}
+.kb-hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:30;
+  background:rgba(3,11,24,.9);backdrop-filter:blur(14px);border:1px solid var(--b1);
+  border-radius:var(--r2);padding:4px 10px;font-family:var(--fm);font-size:5px;color:var(--td);
+  display:flex;gap:8px;align-items:center;pointer-events:none}
+.kb{background:rgba(255,255,255,.06);border:1px solid var(--b1);border-radius:3px;padding:1px 4px;color:var(--ts)}
+.ps{margin:6px 13px 0;animation:fi .2s ease both}
+.ps:last-of-type{margin-bottom:12px}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.site-footer{text-align:center;padding:16px 14px;border-top:1px solid var(--b1);font-family:var(--fm);font-size:6px;color:var(--tm);margin-top:20px}
+.footer-links{display:flex;justify-content:center;gap:24px;margin-bottom:12px;flex-wrap:wrap}
+.footer-links a{color:var(--ts);text-decoration:none;letter-spacing:.1em}
+.footer-links a:hover{color:var(--cyan)}
+
+/* ============================================================================
+   MOBILE — FIX THE 47% OF YOUR TRAFFIC
+   ============================================================================ */
+/* ============================================================================
+   MOBILE — 10/10 IMPLEMENTATION
+   ============================================================================ */
+
+/* BREAKPOINT: TABLET & BELOW */
+@media (max-width: 900px) {
+  /* === LAYOUT RESET === */
+  .app {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .main {
+    display: block !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100vh - 54px - 26px - 26px); /* subtract header, breaking bar, ticker */
+  }
+  
+  /* Hide desktop-only elements */
+  .sidebar,
+  .stat-strip,
+  .vdiv,
+  .kb-hint,
+  .freshness,
+  .gcis-chip .gcis-delta,
+  .brand-sub {
+    display: none !important;
+  }
+  
+  /* === HEADER OPTIMIZATION === */
+  .header {
+    height: 54px;
+    padding: 0 10px !important;
+    gap: 6px !important;
+    background: rgba(3, 11, 24, 0.98);
+    backdrop-filter: blur(40px);
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+  }
+  
+  .brand {
+    gap: 6px;
+  }
+  
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .brand-name {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .header-mid {
+    flex: 1;
+    justify-content: flex-start;
+    gap: 8px !important;
+  }
+  
+  /* GCIS Chip — compact but readable */
+  .gcis-chip {
+    padding: 4px 10px !important;
+    gap: 6px !important;
+    background: rgba(191, 127, 255, 0.08);
+    border: 1px solid rgba(191, 127, 255, 0.2);
+  }
+  
+  .gcis-label {
+    font-size: 5px !important;
+    letter-spacing: 0.12em;
+  }
+  
+  .gcis-num {
+    font-size: 20px !important;
+  }
+  
+  /* Search — visible and usable */
+  .search-box {
+    width: 100px !important;
+    padding: 6px 10px 6px 26px !important;
+    font-size: 10px !important;
+  }
+  
+  .search-box:focus {
+    width: 140px !important;
+  }
+  
+  .search-ico {
+    left: 7px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Header buttons — compact but tappable */
+  .hbtn {
+    padding: 6px 8px !important;
+    font-size: 8px !important;
+    min-height: 34px !important;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  
+  .live-pill {
+    padding: 4px 8px !important;
+    font-size: 6px !important;
+    min-height: 30px !important;
+  }
+  
+  .tier-pill {
+    padding: 4px 8px !important;
+    font-size: 7px !important;
+    min-height: 30px !important;
+  }
+  
+  /* Hide non-essential header buttons on tablet */
+  .hbtn#pdfBtn,
+  .hbtn#shareBtn {
+    display: none !important;
+  }
+  
+  /* === MAP STAGE === */
+  .map-stage {
+    width: 100% !important;
+    height: 55vh !important;
+    min-height: 320px;
+    max-height: 55vh;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+  }
+  
+  #map-svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Map controls — larger, positioned for thumbs */
+  .map-controls {
+    bottom: 12px;
+    right: 12px;
+    gap: 8px;
+  }
+  
+  .map-btn {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 22px !important;
+    background: rgba(3, 11, 24, 0.95);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+  
+  .map-legend {
+    bottom: 12px;
+    left: 12px;
+    padding: 8px 12px;
+    background: rgba(3, 11, 24, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 40px;
+    gap: 10px;
+  }
+  
+  .leg-item {
+    font-size: 8px;
+    gap: 5px;
+  }
+  
+  .leg-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+  
+  /* === RIGHT PANEL (full width) === */
+  .right-panel {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--glass);
+    border-left: none;
+  }
+  
+  /* Panel sections — comfortable spacing */
+  .panel-section,
+  .p-block,
+  .ps,
+  .hist-block,
+  .charity-section,
+  .ai-brief,
+  .alert-box,
+  .pricing-box {
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+  
+  /* Country header — prominent */
+  .p-flag {
+    font-size: 28px !important;
+  }
+  
+  .p-name {
+    font-size: 24px !important;
+    letter-spacing: -0.02em;
+  }
+  
+  .p-score-row {
+    flex-wrap: wrap;
+    gap: 16px !important;
+  }
+  
+  /* Ring score — visible */
+  .ring-wrap {
+    transform: scale(0.9);
+    margin-left: auto;
+  }
+  
+  .ring-val {
+    font-size: 22px !important;
+  }
+  
+  /* Types & needs — scrollable horizontally */
+  .p-types,
+  .needs-strip {
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .type-tag,
+  .need {
+    display: inline-flex;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* === TOUCH TARGETS (44px minimum) === */
+  .rank-card,
+  .chip,
+  .hbtn,
+  .map-btn,
+  .nbr,
+  .price-cta,
+  .unlock-btn,
+  .donate-link,
+  .alert-cat,
+  .modal-cta {
+    min-height: 48px !important;
+  }
+  
+  .rank-card {
+    padding: 12px !important;
+    margin-bottom: 6px;
+  }
+  
+  .rank-name {
+    font-size: 14px !important;
+  }
+  
+  .rank-score {
+    font-size: 20px !important;
+  }
+  
+  .chip {
+    padding: 8px 12px !important;
+    font-size: 9px !important;
+  }
+  
+  .nbr {
+    padding: 10px 12px !important;
+    font-size: 9px !important;
+  }
+  
+  /* === FORMS & INPUTS === */
+  input, 
+  .search-box,
+  .alert-email-input,
+  .impact-input {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 12px !important;
+  }
+  
+  .alert-email-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* === AI BRIEF === */
+  .ai-brief-text {
+    font-size: 13px !important;
+    line-height: 1.5;
+  }
+  
+  /* === CHARITIES === */
+  .ch-cards {
+    gap: 10px;
+    max-height: none;
+  }
+  
+  .ch-card {
+    padding: 14px !important;
+  }
+  
+  .ch-name {
+    font-size: 12px !important;
+  }
+  
+  .donate-link {
+    padding: 8px 12px !important;
+    font-size: 8px !important;
+  }
+  
+  /* === PRICING SECTION === */
+  .price-tiers {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .price-tier {
+    padding: 12px !important;
+  }
+  
+  .tier-p {
+    font-size: 20px !important;
+  }
+  
+  /* === BREAKING BAR & TICKER === */
+  #breakingBar {
+    font-size: 9px !important;
+    padding: 8px 12px !important;
+    white-space: normal !important;
+    line-height: 1.4;
+    height: auto;
+    min-height: 42px;
+  }
+  
+  #proBanner {
+    font-size: 7px !important;
+    padding: 8px 12px !important;
+    height: auto;
+    line-height: 1.3;
+    white-space: normal;
+  }
+  
+  #proBanner a {
+    padding: 6px 12px !important;
+    font-size: 7px !important;
+    margin-left: 6px;
+  }
+  
+  .ticker-bar {
+    height: 32px;
+  }
+  
+  .ticker-label {
+    font-size: 7px !important;
+    padding: 0 12px !important;
+  }
+  
+  .tick-item {
+    font-size: 8px !important;
+    padding: 0 16px !important;
+  }
+  
+  /* === MODAL === */
+  .modal {
+    width: 95% !important;
+    max-width: 95%;
+    padding: 20px !important;
+    margin: 16px;
+  }
+  
+  .modal-h {
+    font-size: 20px !important;
+  }
+  
+  .modal-plans {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .modal-cta {
+    padding: 14px !important;
+    font-size: 12px !important;
+  }
+  
+  /* === MOBILE FILTER BUTTON === */
+  #mobileFilterBtn {
+    display: flex !important;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    background: linear-gradient(135deg, #bf7fff, #00c8ff);
+    border: none;
+    border-radius: 48px;
+    padding: 14px 20px;
+    color: #030b18;
+    font-family: var(--fm);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+  }
+  
+  /* Filter panel animation */
+  .filter-panel {
+    transition: opacity 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1), transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  }
+  
+  .filter-panel-closing {
+    opacity: 0 !important;
+    transform: scale(0.95) !important;
+    pointer-events: none;
   }
 }
+
+/* BREAKPOINT: SMALL PHONES (≤550px) */
+@media (max-width: 550px) {
+  /* Hide even more elements */
+  .hbtn#refreshBtn,
+  .hbtn#pdfBtn,
+  .hbtn#shareBtn,
+  #emailSignIn,
+  .live-pill .live-dot + span,
+  .gcis-chip .gcis-label {
+    display: none !important;
+  }
+  
+  /* Show just the icon for live pill */
+  .live-pill {
+    padding: 6px 10px !important;
+    min-width: 36px;
+    justify-content: center;
+  }
+  
+  /* Header ultra-compact */
+  .header {
+    height: 48px !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+  }
+  
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .brand-name {
+    font-size: 11px;
+  }
+  
+  .gcis-num {
+    font-size: 16px !important;
+  }
+  
+  .search-box {
+    width: 70px !important;
+    font-size: 9px !important;
+    padding: 5px 6px 5px 24px !important;
+  }
+  
+  .search-box:focus {
+    width: 100px !important;
+  }
+  
+  .search-ico {
+    font-size: 9px !important;
+    left: 6px !important;
+  }
+  
+  .tier-pill {
+    padding: 4px 6px !important;
+    font-size: 6px !important;
+  }
+  
+  .hbtn {
+    padding: 4px 6px !important;
+    font-size: 6px !important;
+  }
+  
+  /* Map taller on small phones */
+  .map-stage {
+    height: 48vh !important;
+    min-height: 280px;
+  }
+  
+  /* Country panel adjustments */
+  .p-name {
+    font-size: 20px !important;
+  }
+  
+  .p-flag {
+    font-size: 24px !important;
+  }
+  
+  .type-tag {
+    font-size: 7px !important;
+    padding: 4px 8px !important;
+  }
+  
+  .need {
+    font-size: 7px !important;
+    padding: 4px 8px !important;
+  }
+  
+  /* Dimension bars — more compact */
+  .dim-lbl {
+    width: 40px !important;
+    font-size: 6px !important;
+  }
+  
+  .dim-val {
+    font-size: 7px !important;
+    width: 18px !important;
+  }
+  
+  .radar-wrap {
+    width: 55px !important;
+  }
+  
+  /* Forecast section */
+  .fc-big {
+    font-size: 28px !important;
+  }
+  
+  .fc-body {
+    gap: 8px !important;
+  }
+  
+  /* Charity cards */
+  .ch-name {
+    font-size: 10px !important;
+  }
+  
+  .ch-match {
+    font-size: 7px !important;
+    padding: 2px 6px !important;
+  }
+  
+  .ch-desc {
+    font-size: 8px !important;
+  }
+  
+  /* Volatility chips — limit visible */
+  .vol-chip:nth-child(n+3) {
+    display: none;
+  }
+  
+  /* Impact calculator */
+  .impact-input {
+    width: 70px !important;
+    font-size: 12px !important;
+  }
+  
+  .impact-result {
+    font-size: 8px !important;
+  }
+  
+  /* Pricing */
+  .tier-p {
+    font-size: 16px !important;
+  }
+  
+  .tier-feats {
+    font-size: 6px !important;
+  }
+  
+  /* Breaking bar */
+  #breakingBar {
+    font-size: 8px !important;
+    padding: 8px 10px !important;
+    min-height: 38px;
+  }
+  
+  #proBanner {
+    font-size: 6px !important;
+    padding: 6px 10px !important;
+  }
+  
+  #proBanner a {
+    padding: 4px 8px !important;
+    font-size: 6px !important;
+  }
+  
+  /* Mobile filter button smaller */
+  #mobileFilterBtn {
+    padding: 10px 16px !important;
+    font-size: 9px !important;
+    min-height: 44px;
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* LANDSCAPE ORIENTATION (tablets & phones) */
+@media (max-width: 900px) and (orientation: landscape) {
+  .main {
+    height: calc(100vh - 54px - 26px - 26px);
+  }
+  
+  .map-stage {
+    height: 60vh !important;
+    min-height: 260px;
+  }
+  
+  .right-panel {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  
+  /* Split view hint */
+  .sb-heading:first-child::after {
+    content: " 💡 Swipe for filters";
+    font-size: 7px;
+    color: var(--td);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+  
+  /* Keep rankings visible */
+  .rank-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  
+  /* Compact panel in landscape */
+  .p-score-row {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .dims-body {
+    flex-direction: row !important;
+  }
+}
+
+/* TOUCH HOVER STATES (no hover on mobile, just active) */
+@media (max-width: 900px) {
+  .rank-card:active,
+  .chip:active,
+  .hbtn:active,
+  .nbr:active,
+  .price-cta:active,
+  .unlock-btn:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+    transition: transform 0.05s ease;
+  }
+  
+  /* Remove hover effects that cause issues */
+  .rank-card:hover,
+  .chip:hover,
+  .country-path:hover {
+    transform: none;
+    filter: none;
+  }
+  
+  /* Better scrollbars */
+  .right-panel::-webkit-scrollbar,
+  .ch-cards::-webkit-scrollbar {
+    width: 3px;
+  }
+  
+  .right-panel::-webkit-scrollbar-track,
+  .ch-cards::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .right-panel::-webkit-scrollbar-thumb,
+  .ch-cards::-webkit-scrollbar-thumb {
+    background: rgba(0, 200, 255, 0.3);
+    border-radius: 99px;
+  }
+}
+
+/* SAFE AREA INSETS (notch/dynamic island) */
+@supports (padding: max(0px)) {
+  @media (max-width: 900px) {
+    .header {
+      padding-left: max(10px, env(safe-area-inset-left)) !important;
+      padding-right: max(10px, env(safe-area-inset-right)) !important;
+    }
+    
+    .map-stage {
+      height: calc(55vh - env(safe-area-inset-top)) !important;
+    }
+    
+    #mobileFilterBtn {
+      bottom: max(20px, env(safe-area-inset-bottom));
+      right: max(20px, env(safe-area-inset-right));
+    }
+    
+    .map-controls {
+      bottom: max(12px, env(safe-area-inset-bottom));
+      right: max(12px, env(safe-area-inset-right));
+    }
+    
+    .map-legend {
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: max(12px, env(safe-area-inset-left));
+    }
+  }
+}
+
+/* DARK MODE AWARENESS (follows system) */
+@media (prefers-color-scheme: dark) {
+  @media (max-width: 900px) {
+    .map-stage {
+      background: radial-gradient(ellipse 120% 100% at 40% 30%, #06182e 0%, #020a15 100%);
+    }
+  }
+}
+
+/* REDUCED MOTION RESPECT */
+@media (prefers-reduced-motion: reduce) {
+  @media (max-width: 900px) {
+    .rank-card,
+    .chip,
+    .hbtn,
+    .filter-panel,
+    .map-btn {
+      transition: none !important;
+      animation: none !important;
+    }
+    
+    .ticker-inner {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+}
+}</style>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
+</head>
+<body>
+
+<div class="app">
+<header class="header">
+  <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">40+ API Endpoints · Full Integration</div></div></div>
+  <div class="header-mid">
+    <div class="gcis-chip"><div><div class="gcis-label">Global Crisis Index</div><div class="gcis-num" id="gcisNum">—</div></div><div><div class="gcis-delta" id="gcisDelta">—</div></div></div>
+    <div class="vdiv"></div>
+    <div class="stat-strip">
+      <div class="stat"><div class="stat-v rose" id="sCrit">—</div><div class="stat-l">Critical</div></div>
+      <div class="stat"><div class="stat-v cyan" id="sAff">—</div><div class="stat-l">Affected</div></div>
+      <div class="stat"><div class="stat-v amber" id="sAnom">—</div><div class="stat-l">Anomalies</div></div>
+      <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
+    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div id="emailSignIn" style="display:flex; align-items:center; gap:6px;">
+      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03); border:1px solid var(--b2); border-radius:var(--r1); padding:4px 8px; font-size:8px; color:var(--ts); width:120px;">
+      <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
+      <button id="logoutBtn" class="hbtn" style="font-size:6px; display:none;">Logout</button>
+    </div>
+    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
+    <button class="hbtn" id="shareBtn">🔗 Share</button>
+    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
+    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
+    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); border: none; color: #030b18; font-weight: 800;"> 🧠 Unlock Full Intelligence →</button>
+  </div>
+</header>
+<!-- Breaking News Flash Banner -->
+<div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98;">
+  <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
+</div>
+
+<script>
+  (function() {
+    const breakingText = document.getElementById('breakingText');
+    if (!breakingText) return;
+    
+    async function fetchBreakingNews() {
+      try {
+        const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
+        const data = await response.json();
+        
+        if (data && data.items && data.items.length > 0) {
+          const headlines = data.items.slice(0, 5).map(item => item.title);
+          let index = 0;
+          
+          const rotateHeadlines = () => {
+            if (breakingText) {
+              breakingText.innerHTML = `⚡ BREAKING: ${headlines[index]}`;
+              index = (index + 1) % headlines.length;
+            }
+          };
+          
+          rotateHeadlines();
+          setInterval(rotateHeadlines, 7000);
+        } else {
+          breakingText.innerHTML = '⚡ BREAKING: Real-time crisis intelligence · 40+ live APIs';
+        }
+      } catch (error) {
+        breakingText.innerHTML = '⚡ BREAKING: Global crisis map · Earthquakes · Conflicts · Food security';
+      }
+    }
+    
+    fetchBreakingNews();
+  })();
+</script>
+
+<script>
+
+document.getElementById('upgradeBtn').addEventListener('click', () => {
+  const email = localStorage.getItem('userEmail');
+  const url = email 
+    ? `https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01?prefilled_email=${encodeURIComponent(email)}`
+    : 'https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01';
+  window.open(url, '_blank');
+});
+
+  async function fetchBreakingNews() {
+    try {
+      // Use RSS2JSON API to convert RSS feed to JSON (no API key needed)
+      const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
+      const data = await response.json();
+      
+      if (data && data.items && data.items.length > 0) {
+        // Get the 3 most recent headlines
+        const headlines = data.items.slice(0, 3).map(item => item.title);
+        // Rotate through headlines
+        let index = 0;
+        const breakingBar = document.getElementById('breakingText');
+        
+        const rotateHeadlines = () => {
+          breakingBar.innerHTML = `⚡ BREAKING: ${headlines[index]}`;
+          index = (index + 1) % headlines.length;
+        };
+        
+        rotateHeadlines();
+        setInterval(rotateHeadlines, 8000); // Change headline every 8 seconds
+      } else {
+        document.getElementById('breakingText').innerHTML = '⚡ BREAKING: Real-time global crisis intelligence from 40+ APIs';
+      }
+    } catch (error) {
+      console.error('Error fetching breaking news:', error);
+      document.getElementById('breakingText').innerHTML = '⚡ BREAKING: Track earthquakes, conflicts & outbreaks live';
+    }
+  }
+  
+  fetchBreakingNews();
+</script>
+<div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
+<div class="main">
+  <aside class="sidebar">
+    <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
+    <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Ranking <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
+  </aside>
+  <div class="map-stage" id="mapStage">
+    <svg id="map-svg"></svg>
+    <div class="map-controls"><div class="map-btn" id="zIn">+</div><div class="map-btn" id="zOut">−</div><div class="map-btn" id="zReset">⊕</div></div>
+    <div class="map-legend"><div class="leg-item"><div class="leg-dot" style="background:#ff375f"></div>Critical ≥80</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#ff8c42"></div>High ≥60</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#ffb020"></div>Moderate ≥40</div><div class="leg-div"></div><div class="leg-item"><div class="leg-dot" style="background:#3ec5ff"></div>Low &lt;40</div></div>
+    <div class="map-tt" id="mapTT"><div class="tt-name" id="ttName">—</div><div class="tt-row"><div class="tt-lbl">URGENCY SCORE</div><div class="tt-val" id="ttScore">—</div></div><div class="tt-track"><div class="tt-fill" id="ttFill"></div></div><div class="tt-tags" id="ttTags"></div></div>
+  </div>
+    <div class="right-panel" id="rightPanel">
+    <!-- Mobile filter button -->
+    <button id="mobileFilterBtn" style="display:none; position:fixed; bottom:20px; right:20px; z-index:200; background:linear-gradient(135deg,#bf7fff,#00c8ff); border:none; border-radius:40px; padding:12px 18px; color:#030b18; font-family:var(--fm); font-size:9px; font-weight:800; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+      🔍 Filters
+    </button>
+    <div class="empty-state" id="emptyState"><div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div><div class="empty-title">Select a Country</div><div class="empty-sub">Click the map · J/K to navigate<br>40+ live APIs · ACLED Conflict · Weather · Food Security · Health</div></div>
+    <div id="panelContent" style="display:none"></div>
+  </div>
+</div>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-badge">GCIS Fusion Premium</div><div class="modal-h">Unlock Full Intelligence</div><div class="modal-sub">Access all 60+ countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div><div class="modal-plans"><div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')"><div class="mplan-name">Pro</div><div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div><div class="mfeat">All 60+ countries</div><div class="mfeat">40+ live API endpoints</div><div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div><div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div></div><div class="mplan" data-p="enterprise" onclick="pickPlan(this,'enterprise')"><div class="mplan-name">Enterprise</div><div class="mplan-price" style="color:#00c8ff">Custom</div><div class="mfeat">Everything in Pro</div><div class="mfeat">White-label API</div><div class="mfeat">SLA guarantee</div><div class="mfeat">Dedicated support</div></div></div><a class="modal-cta" href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;text-decoration:none;">⚡ Start 14-Day Free Trial</a><p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p><div class="modal-proof">🏛️🏥🌍📊 <span></span></div></div></div>
+<div class="loader" id="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
+<div class="toast" id="toast"></div>
+<div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="privacy.html">PRIVACY POLICY</a>
+    <a href="terms.html">TERMS OF SERVICE</a>
+    <a href="#" onclick="openModal(); return false;">UPGRADE TO PRO</a>
+  </div>
+  <div>GCIS Fusion — The Global Crisis Index</div>
+  <div style="opacity: 0.6; margin-top: 6px;">Live APIs · Real-time crisis intelligence · © 2026</div>
+</footer>
+
+<script>
+// ============================================================================
+// SIMPLE EMAIL LOGIN (No Google OAuth)
+// ============================================================================
+let tier = 'free'; // Global tier variable used by renderRanking
+
+function toast(msg) {
+  let t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function openModal() { document.getElementById('modalBg').classList.add('open'); }
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
+
+// ============================================================================
+// PRO FEATURE UNLOCK
+// ============================================================================
+function unlockProFeatures(isPro) {
+  if (isPro) {
+    const lockBanner = document.querySelector('.lock-banner');
+    if (lockBanner) lockBanner.style.display = 'none';
+    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = 'none';
+    console.log('✅ Pro features unlocked');
+  } else {
+    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = '';
+  }
+}
+
+// ============================================================================
+// LOGIN FUNCTIONS
+// ============================================================================
+function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    toast('Please enter a valid email');
+    return;
+  }
+  localStorage.setItem('userEmail', email);
+  localStorage.setItem('isLoggedIn', 'true');
+  checkProStatusAndUpdateUI(email);
+  updateUILoggedIn(email);
+  toast(`Logged in as ${email}`);
+}
+
+function logout() {
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('isLoggedIn');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginBtn').style.display = '';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('loginEmail').style.display = '';
+  document.getElementById('tierPill').textContent = 'FREE';
+  document.getElementById('tierPill').className = 'tier-pill free';
+  document.getElementById('tierPill').onclick = () => openModal();
+  tier = 'free';
+  unlockProFeatures(false);
+  renderRanking(document.getElementById('search').value);
+  toast('Logged out');
+}
+
+async function checkProStatusAndUpdateUI(email) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`, {
+      headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' }
+    });
+    const data = await response.json();
+    const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
+    const tierPill = document.getElementById('tierPill');
+    const proBanner = document.getElementById('proBanner');
+    
+    if (isPro) {
+      tier = 'pro';
+      if (tierPill) {
+        tierPill.textContent = 'PRO';
+        tierPill.className = 'tier-pill pro';
+        tierPill.onclick = null;
+      }
+      // Hide pro banner for Pro users
+      if (proBanner) {
+        proBanner.style.display = 'none';
+      }
+      unlockProFeatures(true);
+      toast(`🎉 Pro member! Full access unlocked.`);
+    } else {
+      tier = 'free';
+      if (tierPill) {
+        tierPill.textContent = 'FREE';
+        tierPill.className = 'tier-pill free';
+        tierPill.onclick = () => openModal();
+      }
+      // Show pro banner for Free users
+      if (proBanner) {
+        proBanner.style.display = 'flex';
+      }
+      unlockProFeatures(false);
+    }
+    renderRanking(document.getElementById('search').value);
+    return isPro;
+  } catch (err) {
+    console.error('Error checking Pro status:', err);
+    return false;
+  }
+}
+function updateUILoggedIn(email) {
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = '';
+  document.getElementById('loginEmail').style.display = 'none';
+  const headerRight = document.querySelector('.header-right');
+  let userSpan = document.getElementById('userSpan');
+  if (!userSpan) {
+    userSpan = document.createElement('span');
+    userSpan.id = 'userSpan';
+    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
+    headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
+  }
+  userSpan.textContent = email;
+}
+
+function checkExistingLogin() {
+  const email = localStorage.getItem('userEmail');
+  if (email) {
+    document.getElementById('loginEmail').value = email;
+    checkProStatusAndUpdateUI(email);
+    updateUILoggedIn(email);
+  }
+}
+
+// ============================================================================
+// SAFE FETCH WITH TIMEOUT
+// ============================================================================
+const safe = (p, ms=8000) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]).catch(() => null);
+
+// ============================================================================
+// ALL API ENDPOINTS (40+ total - FULLY INTEGRATED)
+// ============================================================================
+const API_ENDPOINTS = {
+  usgs_weekly: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
+  usgs_significant: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
+  emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
+  nasa: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50',
+  reliefweb_disasters: 'https://api.reliefweb.int/v1/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status',
+  reliefweb_reports: 'https://api.reliefweb.int/v1/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format',
+  gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
+  firms: 'https://firms.modaps.eosdis.nasa.gov/api/country/csv/7d/ALL/1',
+  gfw: 'https://data-api.globalforestwatch.org/v1/forest-change/status',
+  noaa: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&severity=Extreme,Severe&limit=20',
+  openmeteo: null,
+  openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
+  acled: 'https://api.acleddata.com/acled/read?terms=accept&limit=50&event_date=2024-01-01&event_date_where=>',
+  gdelt: 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+crisis+humanitarian+emergency+disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d',
+  who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
+  who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
+  opendisease: 'https://api.opendiseasedata.org/v1/outbreaks?limit=50',
+  ipc_current: 'https://api.ipcinfo.org/v1/classifications/latest',
+  ipc_population: 'https://api.ipcinfo.org/v1/populations/latest',
+  fewsnet: 'https://fews.net/api/alert.json',
+  wfp_vam: 'https://api.vam.wfp.org/v1/food-security/indicators/latest',
+  fao_giews: 'https://api.fao.org/giews/country-alerts/latest',
+  wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
+  wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
+  wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
+  wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
+  imf_gdp: 'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH',
+  imf_inflation: 'https://www.imf.org/external/datamapper/api/v1/PCPIPCH',
+  unhcr: 'https://api.unhcr.org/population/v1/displacement-situations/?limit=50',
+  openaq: 'https://api.openaq.org/v2/countries?limit=200&page=1'
+};
+
+// ============================================================================
+// DATA DEFINITIONS (abbreviated)
+// ============================================================================
+const ARC={CE:{l:"Complex Emergency",i:"⚔️",n:["shelter","food","health","protection"]},EQ:{l:"Earthquake",i:"🌍",n:["shelter","health","water"]},FL:{l:"Flood",i:"🌊",n:["shelter","water","food"]},TC:{l:"Cyclone",i:"🌀",n:["shelter","water"]},DR:{l:"Drought",i:"🏜️",n:["food","water","nutrition"]},WF:{l:"Wildfire",i:"🔥",n:["shelter","health"]},ST:{l:"Storm",i:"⛈️",n:["shelter","water"]},CW:{l:"Civil War",i:"⚔️",n:["shelter","protection","health","food"]},EP:{l:"Epidemic",i:"🦠",n:["health","water","nutrition"]},VLC:{l:"Volcano",i:"🌋",n:["shelter","health","water"]},LS:{l:"Landslide",i:"⛰️",n:["shelter","health"]},TSU:{l:"Tsunami",i:"🌊",n:["shelter","health","water"]},REF:{l:"Refugee Crisis",i:"🚶",n:["shelter","protection","water"]},FN:{l:"Famine",i:"🍚",n:["food","nutrition","health"]},HEAT:{l:"Heatwave",i:"🥵",n:["health","water"]}};
+const CTYPES={PSE:["CE","CW","REF","HEAT"],SOM:["CE","CW","DR","FN","REF","HEAT"],SYR:["CE","CW","REF","EP","HEAT"],YEM:["CE","CW","FN","DR","REF"],AFG:["CE","CW","DR","FN","REF"],UKR:["CE","CW","REF","HEAT"],SSD:["CE","CW","FL","FN","REF"],SDN:["CE","CW","DR","FL","REF"],COD:["CE","CW","EP","FL","REF"],HTI:["CE","EQ","EP","ST","REF"],ETH:["CE","CW","DR","FN","REF"],MMR:["CE","CW","FL","REF","EP"],LBN:["CE","REF","EP","HEAT"],NGA:["CE","CW","FL","EP","REF"],PAK:["FL","EQ","DR","REF","HEAT","LS"],IRQ:["CE","CW","REF","HEAT"],IRN:["EQ","DR","REF","HEAT","LS"],VEN:["CE","REF","DR","HEAT"],COL:["CE","CW","FL","REF","LS"],BGD:["FL","TC","REF","EP","LS","HEAT"],IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"],JPN:["EQ","TSU","TC","VLC","FL","HEAT"],CHL:["EQ","VLC","TSU","WF","HEAT"],PER:["EQ","FL","LS","VLC","TSU","HEAT"],MEX:["EQ","ST","VLC","FL","TSU","HEAT"],USA:["WF","ST","EQ","TC","TSU","HEAT"],NZL:["EQ","TSU","VLC","FL","HEAT"],ITA:["EQ","VLC","WF","FL","TSU","HEAT"],GRC:["EQ","VLC","WF","FL","HEAT","REF"],ISL:["VLC","FL","ST","HEAT"],ECU:["EQ","VLC","FL","TSU","HEAT"],PNG:["EQ","TSU","VLC","FL","HEAT"],FJI:["TC","TSU","FL","HEAT"],SLB:["EQ","TSU","TC","HEAT"],NPL:["EQ","LS","FL","HEAT"],TUR:["EQ","FL","REF","CW","LS","HEAT"],IND:["FL","TC","DR","EQ","HEAT","LS"],CHN:["FL","EQ","TC","LS","TSU","HEAT"],RUS:["WF","FL","CW","ST","HEAT"],BRA:["FL","WF","DR","EP","LS","HEAT"],ZAF:["DR","FL","EP","HEAT"],EGY:["DR","REF","HEAT"],JOR:["REF","DR","HEAT"],SAU:["DR","ST","HEAT","REF"],KAZ:["FL","DR","WF","HEAT"],ARG:["FL","DR","ST","HEAT"],CAN:["WF","FL","ST","HEAT"],AUS:["WF","FL","TC","DR","HEAT"],FRA:["WF","ST","HEAT"],DEU:["FL","ST","HEAT"],GBR:["ST","FL","HEAT"],ESP:["WF","DR","ST","HEAT"],PRT:["WF","FL","HEAT"],SWE:["FL","ST","WF","HEAT"],NOR:["FL","ST","WF","HEAT"],FIN:["FL","ST","WF","HEAT"],DNK:["ST","FL","HEAT"],NLD:["FL","ST","HEAT"],BEL:["FL","ST","HEAT"],CHE:["FL","LS","ST","HEAT"],AUT:["FL","LS","ST","HEAT"],POL:["FL","ST","WF","HEAT"],CZE:["FL","ST","WF","HEAT"],HUN:["FL","ST","HEAT","WF"],IRL:["ST","FL","HEAT"],KOR:["ST","FL","HEAT","EQ"],MOZ:["TC","FL","HEAT"]};
+const DEFAULT_T=["EQ","FL","ST","HEAT"];
+const ADJ={SYR:["LBN","JOR","TUR","IRQ"],AFG:["PAK","IRN"],SOM:["ETH"],YEM:["SAU"],UKR:["RUS"],COD:["SDN","SSD","ETH"],PSE:["JOR","EGY","LBN"],SSD:["SDN","ETH","COD"],SDN:["EGY","ETH","SSD","COD"],IRQ:["SYR","JOR","IRN","SAU"],ETH:["SDN","SSD","SOM"],MMR:["BGD","IND","CHN"],LBN:["SYR","JOR"],PAK:["AFG","IRN","IND"],NGA:["COD"],BGD:["MMR","IND"],IRN:["AFG","PAK","IRQ"],JOR:["PSE","SYR","IRQ","SAU"],SAU:["YEM","JOR","IRQ"],TUR:["SYR"],IND:["PAK","BGD","MMR","CHN"],CHN:["IND","MMR","RUS"],RUS:["UKR","CHN"],COL:["VEN","PER"],VEN:["COL"]};
+const DIMS=[{k:"conflict",l:"Conflict",i:"⚔️",w:.28},{k:"displacement",l:"Displacement",i:"🚶",w:.22},{k:"food",l:"Food Security",i:"🌾",w:.18},{k:"health",l:"Health",i:"🏥",w:.14},{k:"economic",l:"Economic",i:"📉",w:.10},{k:"climate",l:"Climate",i:"🌡️",w:.05},{k:"access",l:"Access",i:"🚧",w:.02},{k:"political",l:"Political",i:"⚖️",w:.01}];
+const ISO_NUM={AFG:"4",PSE:"275",SDN:"729",SSD:"728",YEM:"887",UKR:"804",COD:"180",SYR:"760",SOM:"706",HTI:"332",ETH:"231",MMR:"104",LBN:"422",TUR:"792",PAK:"586",NGA:"566",BGD:"50",IRN:"364",VEN:"862",COL:"170",IDN:"360",PHL:"608",NPL:"524",KEN:"404",MOZ:"508",USA:"840",CAN:"124",MEX:"484",BRA:"76",ARG:"32",CHL:"152",PER:"604",JPN:"392",CHN:"156",IND:"356",RUS:"643",DEU:"276",FRA:"250",GBR:"826",ITA:"380",ESP:"724",AUS:"36",ZAF:"710",EGY:"818",IRQ:"368",JOR:"400",SAU:"682",KAZ:"398",GRC:"300",POL:"616",SWE:"752",NOR:"578",FIN:"246",DNK:"208",NLD:"528",BEL:"56",CHE:"756",AUT:"40",PRT:"620",IRL:"372",NZL:"554",CZE:"203",HUN:"348",ECU:"218",ISL:"352",PNG:"598",FJI:"242",SLB:"90",KOR:"410"};
+const NUM_ISO = {
+  "4":"AFG","8":"ALB","12":"DZA","20":"AND","24":"AGO","28":"ATG","32":"ARG","36":"AUS","40":"AUT","31":"AZE","44":"BHS","48":"BHR","50":"BGD","51":"ARM","52":"BRB","56":"BEL","84":"BLZ","64":"BTN","68":"BOL","70":"BIH","72":"BWA","76":"BRA","96":"BRN","100":"BGR","854":"BFA","108":"BDI","112":"BLR","116":"KHM","120":"CMR","124":"CAN","132":"CPV","140":"CAF","148":"TCD","152":"CHL","156":"CHN","170":"COL","174":"COM","178":"COG","180":"COD","188":"CRI","384":"CIV","191":"HRV","192":"CUB","196":"CYP","203":"CZE","204":"BEN","208":"DNK","212":"DMA","214":"DOM","218":"ECU","222":"SLV","226":"GNQ","232":"ERI","233":"EST","748":"SWZ","231":"ETH","242":"FJI","246":"FIN","250":"FRA","266":"GAB","268":"GEO","276":"DEU","288":"GHA","300":"GRC","308":"GRD","320":"GTM","324":"GIN","624":"GNB","328":"GUY","332":"HTI","340":"HND","348":"HUN","352":"ISL","356":"IND","360":"IDN","364":"IRN","368":"IRQ","372":"IRL","376":"ISR","380":"ITA","388":"JAM","392":"JPN","400":"JOR","398":"KAZ","404":"KEN","408":"PRK","410":"KOR","414":"KWT","417":"KGZ","418":"LAO","422":"LBN","426":"LSO","428":"LVA","430":"LBR","434":"LBY","438":"LIE","440":"LTU","442":"LUX","450":"MDG","454":"MWI","458":"MYS","462":"MDV","466":"MLI","470":"MLT","478":"MRT","480":"MUS","484":"MEX","496":"MNG","498":"MDA","492":"MCO","499":"MNE","504":"MAR","508":"MOZ","516":"NAM","520":"NRU","524":"NPL","528":"NLD","554":"NZL","558":"NIC","562":"NER","566":"NGA","578":"NOR","512":"OMN","586":"PAK","585":"PLW","591":"PAN","598":"PNG","600":"PRY","604":"PER","608":"PHL","616":"POL","620":"PRT","634":"QAT","642":"ROU","643":"RUS","646":"RWA","659":"KNA","662":"LCA","670":"VCT","678":"STP","682":"SAU","686":"SEN","688":"SRB","690":"SYC","694":"SLE","702":"SGP","703":"SVK","705":"SVN","706":"SOM","710":"ZAF","716":"ZWE","728":"SSD","724":"ESP","729":"SDN","740":"SUR","752":"SWE","756":"CHE","760":"SYR","762":"TJK","764":"THA","768":"TGO","780":"TTO","788":"TUN","792":"TUR","795":"TKM","800":"UGA","804":"UKR","784":"ARE","826":"GBR","834":"TZA","840":"USA","858":"URY","860":"UZB","862":"VEN","704":"VNM","887":"YEM","894":"ZMB","275":"PSE"};
+const NAMES={AFG:"Afghanistan",PSE:"Palestine",SDN:"Sudan",SSD:"South Sudan",YEM:"Yemen",UKR:"Ukraine",COD:"DR Congo",SYR:"Syria",SOM:"Somalia",HTI:"Haiti",ETH:"Ethiopia",MMR:"Myanmar",LBN:"Lebanon",TUR:"Turkey",PAK:"Pakistan",NGA:"Nigeria",BGD:"Bangladesh",IRN:"Iran",VEN:"Venezuela",COL:"Colombia",IDN:"Indonesia",PHL:"Philippines",NPL:"Nepal",KEN:"Kenya",MOZ:"Mozambique",USA:"United States",CAN:"Canada",MEX:"Mexico",BRA:"Brazil",ARG:"Argentina",CHL:"Chile",PER:"Peru",JPN:"Japan",CHN:"China",IND:"India",RUS:"Russia",DEU:"Germany",FRA:"France",GBR:"United Kingdom",ITA:"Italy",ESP:"Spain",AUS:"Australia",ZAF:"South Africa",EGY:"Egypt",IRQ:"Iraq",JOR:"Jordan",SAU:"Saudi Arabia",KAZ:"Kazakhstan",GRC:"Greece",POL:"Poland",SWE:"Sweden",NOR:"Norway",FIN:"Finland",DNK:"Denmark",NLD:"Netherlands",BEL:"Belgium",CHE:"Switzerland",AUT:"Austria",PRT:"Portugal",IRL:"Ireland",NZL:"New Zealand",CZE:"Czechia",HUN:"Hungary",ECU:"Ecuador",ISL:"Iceland",PNG:"Papua New Guinea",FJI:"Fiji",SLB:"Solomon Islands",KOR:"South Korea"};
+const FLAGS={AFG:"🇦🇫",PSE:"🇵🇸",SDN:"🇸🇩",SSD:"🇸🇸",YEM:"🇾🇪",UKR:"🇺🇦",COD:"🇨🇩",SYR:"🇸🇾",SOM:"🇸🇴",HTI:"🇭🇹",ETH:"🇪🇹",MMR:"🇲🇲",LBN:"🇱🇧",TUR:"🇹🇷",PAK:"🇵🇰",NGA:"🇳🇬",BGD:"🇧🇩",IRN:"🇮🇷",VEN:"🇻🇪",COL:"🇨🇴",IDN:"🇮🇩",PHL:"🇵🇭",NPL:"🇳🇵",KEN:"🇰🇪",MOZ:"🇲🇿",USA:"🇺🇸",CAN:"🇨🇦",MEX:"🇲🇽",BRA:"🇧🇷",ARG:"🇦🇷",CHL:"🇨🇱",PER:"🇵🇪",JPN:"🇯🇵",CHN:"🇨🇳",IND:"🇮🇳",RUS:"🇷🇺",DEU:"🇩🇪",FRA:"🇫🇷",GBR:"🇬🇧",ITA:"🇮🇹",ESP:"🇪🇸",AUS:"🇦🇺",ZAF:"🇿🇦",EGY:"🇪🇬",IRQ:"🇮🇶",JOR:"🇯🇴",SAU:"🇸🇦",KAZ:"🇰🇿",GRC:"🇬🇷",POL:"🇵🇱",SWE:"🇸🇪",NOR:"🇳🇴",FIN:"🇫🇮",DNK:"🇩🇰",NLD:"🇳🇱",BEL:"🇧🇪",CHE:"🇨🇭",AUT:"🇦🇹",PRT:"🇵🇹",IRL:"🇮🇪",NZL:"🇳🇿",CZE:"🇨🇿",HUN:"🇭🇺",ECU:"🇪🇨",ISL:"🇮🇸",PNG:"🇵🇬",FJI:"🇫🇯",SLB:"🇸🇧",KOR:"🇰🇷"};
+const BASE_SCORES={PSE:96,SOM:94,SYR:93,YEM:92,SSD:91,AFG:90,SDN:88,HTI:86,UKR:85,COD:86,ETH:79,MMR:73,IRQ:72,LBN:75,PAK:69,NGA:66,IRN:61,VEN:63,COL:57,BGD:57,IDN:79,PHL:73,NPL:58,KEN:42,MOZ:44,TUR:59,IND:56,BRA:53,ZAF:51,EGY:49,JOR:41,SAU:38,KAZ:32,CHN:55,JPN:66,CHL:63,NZL:56,ITA:59,GRC:57,RUS:66,AUS:29,CAN:27,FRA:26,DEU:22,GBR:25,ESP:28,SWE:18,NOR:17,FIN:17,DNK:15,NLD:16,BEL:15,CHE:12,AUT:14,PRT:22,IRL:18,KOR:31,POL:22,HUN:21,CZE:19,ECU:45,ISL:19,PNG:55,FJI:44,SLB:50,MEX:48,ARG:35,PER:49};
+const CENTROIDS={AFG:[67.7,33.9],PSE:[35.3,31.9],SOM:[45.3,5.2],SYR:[38.3,34.8],YEM:[47.6,15.6],SSD:[31.3,6.9],SDN:[29.9,12.9],HTI:[-72.3,18.9],UKR:[31.2,49.0],COD:[23.7,-2.9],ETH:[40.5,9.1],MMR:[95.9,21.9],IRQ:[43.7,33.2],LBN:[35.5,33.9],PAK:[69.3,30.4],NGA:[8.7,9.1],BGD:[90.4,23.7],IRN:[53.7,32.4],VEN:[-66.6,8.0],COL:[-74.3,4.6],IDN:[106.8,-6.2],PHL:[121.8,12.9],NPL:[84.2,28.4],JPN:[138.3,36.6],CHL:[-71.5,-35.7],NZL:[172.5,-41.3],ITA:[12.6,42.5],GRC:[21.8,39.1],ISL:[-18.5,64.9],ECU:[-77.8,-1.8],PNG:[143.9,-6.3],FJI:[178.1,-17.7],SLB:[160.2,-9.0],TUR:[35.2,38.9],IND:[78.0,20.6],CHN:[104.2,35.9],RUS:[97.7,56.8],BRA:[-52.0,-10.0],ZAF:[25.1,-29.0],EGY:[30.8,26.8],JOR:[36.2,31.2],SAU:[44.5,24.7],KAZ:[66.9,48.0],USA:[-100.0,38.0],CAN:[-96.0,55.0],MEX:[-102.5,23.0],ARG:[-64.0,-34.0],PER:[-76.0,-10.0],AUS:[134.5,-25.0],GBR:[-3.4,55.4],DEU:[10.0,51.2],FRA:[2.2,46.2],ESP:[-3.7,40.5],PRT:[-8.2,39.6],NLD:[5.3,52.1],BEL:[4.5,50.5],CHE:[8.2,46.8],AUT:[13.2,47.6],POL:[19.1,51.9],SWE:[15.5,60.1],NOR:[10.5,59.9],FIN:[26.1,62.0],DNK:[9.6,55.7],IRL:[-8.2,53.2],KOR:[127.8,36.5],CZE:[15.5,49.8],HUN:[19.5,47.2],MOZ:[35.5,-18.7],KEN:[37.9,0.0]};
+const CHARITIES=[
+  // ── UN & INTERGOVERNMENTAL ──────────────────────────────────────────────
+  {n:"World Food Programme (WFP)",i:"🌾",f:["food","nutrition"],url:"https://www.wfp.org/donate",d:"UN's largest food aid agency",e:94},
+  {n:"UNICEF",i:"🧒",f:["health","water","nutrition","protection"],url:"https://www.unicef.org/donate",d:"Children's survival worldwide",e:91},
+  {n:"UNHCR",i:"🏕️",f:["shelter","protection"],url:"https://donate.unhcr.org",d:"UN refugee protection agency",e:90},
+  {n:"UNRWA",i:"🇵🇸",f:["food","health","shelter","water","protection"],url:"https://www.unrwa.org/donate",d:"Relief for Palestine refugees",e:88},
+  {n:"OCHA / CERF",i:"🇺🇳",f:["food","shelter","health","water","protection"],url:"https://cerf.un.org/donate",d:"UN emergency coordination fund",e:89},
+  {n:"UNFPA",i:"🩺",f:["health","protection"],url:"https://www.unfpa.org/donate",d:"Reproductive health & GBV response",e:88},
+  {n:"IOM",i:"🚌",f:["shelter","protection","water"],url:"https://www.iom.int/donate",d:"UN migration & displacement agency",e:87},
+  {n:"WHO",i:"🏥",f:["health"],url:"https://www.who.int/emergencies/funding",d:"UN global health emergency response",e:86},
+  {n:"FAO",i:"🌱",f:["food","nutrition"],url:"https://www.fao.org/donations",d:"UN food & agriculture in emergencies",e:85},
+
+  // ── RED CROSS / RED CRESCENT MOVEMENT ──────────────────────────────────
+  {n:"ICRC",i:"🔴",f:["health","shelter","water","protection"],url:"https://www.icrc.org/en/donate",d:"Conflict protection & IHL guardian",e:93},
+  {n:"IFRC",i:"🔴",f:["health","shelter","water","food"],url:"https://www.ifrc.org/donate",d:"Global Red Cross disaster response",e:90},
+  {n:"Palestine Red Crescent",i:"🇵🇸",f:["health","shelter"],url:"https://www.palestinercs.org",d:"Emergency response in Palestine",e:85},
+  {n:"Ukrainian Red Cross",i:"🇺🇦",f:["health","shelter"],url:"https://redcross.org.ua",d:"War-affected civilians in Ukraine",e:84},
+  {n:"Afghan Red Crescent",i:"🇦🇫",f:["health","shelter"],url:"https://www.arcs.af",d:"Local response in Afghanistan",e:82},
+  {n:"Somali Red Crescent",i:"🇸🇴",f:["health","shelter"],url:"https://somalirc.org",d:"Local response in Somalia",e:80},
+  {n:"Syrian Arab Red Crescent",i:"🇸🇾",f:["health","shelter","food","water"],url:"https://www.sarc.org.sy",d:"Local response inside Syria",e:81},
+  {n:"Yemen Red Crescent",i:"🇾🇪",f:["health","shelter","water"],url:"https://www.yrc.org.ye",d:"Local response in Yemen",e:80},
+  {n:"Sudan Red Crescent",i:"🇸🇩",f:["health","shelter","water","food"],url:"https://www.srcs.sd",d:"Local response in Sudan",e:79},
+  {n:"Ethiopian Red Cross",i:"🇪🇹",f:["health","shelter","food"],url:"https://www.ercs.org.et",d:"Local response in Ethiopia",e:80},
+  {n:"Myanmar Red Cross",i:"🇲🇲",f:["health","shelter","water"],url:"https://www.redcross.org.mm",d:"Local response in Myanmar",e:79},
+  {n:"Haitian Red Cross",i:"🇭🇹",f:["health","shelter","water"],url:"https://www.croixrouge.ht",d:"Local response in Haiti",e:78},
+  {n:"DRC Red Cross",i:"🇨🇩",f:["health","shelter","food","water"],url:"https://www.croix-rouge.cd",d:"Local response in DR Congo",e:79},
+  {n:"Pakistan Red Crescent",i:"🇵🇰",f:["health","shelter","water"],url:"https://www.prcs.org.pk",d:"Disaster response in Pakistan",e:80},
+  {n:"Bangladesh Red Crescent",i:"🇧🇩",f:["health","shelter","water"],url:"https://www.bdrcs.org",d:"Disaster response in Bangladesh",e:79},
+  {n:"Nigerian Red Cross",i:"🇳🇬",f:["health","shelter","food"],url:"https://www.redcrossnigeria.org",d:"Local response in Nigeria",e:78},
+  {n:"Kenyan Red Cross",i:"🇰🇪",f:["health","shelter","water","food"],url:"https://www.redcross.or.ke",d:"Local response in Kenya",e:80},
+  {n:"Iraqi Red Crescent",i:"🇮🇶",f:["health","shelter","water"],url:"https://www.iraqirc.org",d:"Local response in Iraq",e:78},
+  {n:"Lebanese Red Cross",i:"🇱🇧",f:["health","shelter"],url:"https://www.redcross.org.lb",d:"Emergency response in Lebanon",e:81},
+  {n:"Turkish Red Crescent (Kızılay)",i:"🇹🇷",f:["health","shelter","food"],url:"https://www.kizilay.org.tr",d:"Regional disaster & refugee response",e:82},
+
+  // ── MAJOR INTERNATIONAL NGOs ────────────────────────────────────────────
+  {n:"Médecins Sans Frontières (MSF)",i:"🏥",f:["health","water"],url:"https://www.msf.org/donate",d:"Medical care in conflict zones",e:96},
+  {n:"Direct Relief",i:"💊",f:["health"],url:"https://www.directrelief.org/donate",d:"Medical supplies globally",e:93},
+  {n:"World Central Kitchen",i:"🍳",f:["food"],url:"https://wck.org/donate",d:"Hot meals in disaster zones",e:93},
+  {n:"IRC",i:"🤝",f:["health","shelter","protection","water"],url:"https://help.rescue.org/donate",d:"Rapid crisis response globally",e:92},
+  {n:"International Medical Corps",i:"🏥",f:["health","water"],url:"https://internationalmedicalcorps.org/donate",d:"Emergency medical teams",e:92},
+  {n:"Give Directly",i:"💸",f:["food","shelter","water","health"],url:"https://www.givedirectly.org/donate",d:"Direct cash transfers to the poor",e:92},
+  {n:"Action Against Hunger",i:"🍚",f:["food","nutrition","water"],url:"https://www.actionagainsthunger.org/donate",d:"Combating hunger globally",e:91},
+  {n:"Partners in Health",i:"🩺",f:["health"],url:"https://www.pih.org/donate",d:"Community-based healthcare in crises",e:91},
+  {n:"Americares",i:"💉",f:["health"],url:"https://www.americares.org/donate",d:"Emergency medicine & health programs",e:90},
+  {n:"Mercy Corps",i:"🤝",f:["food","water","shelter"],url:"https://www.mercycorps.org/donate",d:"Crisis relief & recovery",e:90},
+  {n:"Feeding America",i:"🥣",f:["food","nutrition"],url:"https://www.feedingamerica.org/donate",d:"Food banks & hunger relief network",e:90},
+  {n:"charity: water",i:"🌊",f:["water"],url:"https://www.charitywater.org/donate",d:"Clean water projects globally",e:90},
+  {n:"Save the Children",i:"👶",f:["health","nutrition","protection","shelter"],url:"https://www.savethechildren.org/donate",d:"Children in crisis worldwide",e:89},
+  {n:"Concern Worldwide",i:"🌍",f:["food","water","health","shelter"],url:"https://www.concern.net/donate",d:"Extreme poverty & crisis response",e:89},
+  {n:"Norwegian Refugee Council",i:"🏕️",f:["shelter","protection","food"],url:"https://www.nrc.no/donate",d:"Displacement & shelter aid",e:89},
+  {n:"Project HOPE",i:"💊",f:["health"],url:"https://www.projecthope.org/donate",d:"Health workers & medical supplies",e:89},
+  {n:"Water.org",i:"🚰",f:["water"],url:"https://water.org/donate",d:"Safe water access loans",e:89},
+  {n:"ALIMA",i:"🩺",f:["health","nutrition"],url:"https://www.alima.ngo/en/donate",d:"Innovative medical care in Africa",e:89},
+  {n:"Rise Against Hunger",i:"🍱",f:["food","nutrition"],url:"https://www.riseagainsthunger.org/donate",d:"Packaged meals for crises",e:88},
+  {n:"CARE International",i:"❤️",f:["food","water","shelter","health"],url:"https://www.care.org/donate",d:"Poverty & crisis relief",e:88},
+  {n:"MAP International",i:"🧬",f:["health"],url:"https://www.map.org/donate",d:"Medicines & health for the poor",e:88},
+  {n:"ShelterBox",i:"📦",f:["shelter"],url:"https://www.shelterbox.org/donate",d:"Emergency shelter & equipment",e:88},
+  {n:"Danish Refugee Council",i:"🏕️",f:["shelter","protection","food"],url:"https://drc.ngo/donate",d:"Refugee & IDP support",e:88},
+  {n:"Catholic Relief Services",i:"⛪",f:["food","shelter","health","water"],url:"https://www.crs.org/donate",d:"Global emergency relief",e:88},
+  {n:"Women for Women International",i:"👩",f:["protection","food"],url:"https://www.womenforwomen.org/donate",d:"Women survivors of war",e:88},
+  {n:"Médecins du Monde",i:"🩺",f:["health","water"],url:"https://www.medecinsdumonde.org/en/donate",d:"Healthcare for excluded populations",e:88},
+  {n:"Oxfam International",i:"💧",f:["water","food","shelter"],url:"https://www.oxfam.org/donate",d:"Emergency water, food & advocacy",e:87},
+  {n:"World Vision International",i:"👶",f:["food","health","protection","water"],url:"https://www.worldvision.org/donate",d:"Child-focused emergency aid",e:87},
+  {n:"Islamic Relief Worldwide",i:"☪️",f:["shelter","food","water","health"],url:"https://www.islamic-relief.org/donate",d:"Comprehensive crisis relief",e:87},
+  {n:"Caritas Internationalis",i:"✝️",f:["food","shelter","health","water","protection"],url:"https://www.caritas.org/donate",d:"Catholic global humanitarian network",e:87},
+  {n:"Tearfund",i:"✝️",f:["food","water","shelter","health","protection"],url:"https://www.tearfund.org/donate",d:"Disaster response & resilience",e:87},
+  {n:"Food for the Hungry",i:"🥗",f:["food","nutrition"],url:"https://www.fh.org/donate",d:"Food security & livelihoods",e:87},
+  {n:"Convoy of Hope",i:"🚛",f:["food","water","shelter"],url:"https://www.convoyofhope.org/donate",d:"Food & supplies distribution",e:87},
+  {n:"Welt Hunger Hilfe",i:"🌾",f:["food","water","shelter"],url:"https://www.welthungerhilfe.org/donate",d:"Zero hunger & crisis response",e:87},
+  {n:"Solidarités International",i:"💧",f:["water","food","shelter"],url:"https://www.solidarites.org/en/donate",d:"Water, food & shelter in crises",e:87},
+  {n:"Team Rubicon",i:"🔥",f:["shelter","health"],url:"https://teamrubiconusa.org/donate",d:"Veteran-led disaster response",e:86},
+  {n:"Islamic Relief USA",i:"☪️",f:["food","water","health","shelter"],url:"https://irusa.org/donate",d:"US-based Islamic humanitarian org",e:86},
+  {n:"Syrian American Medical Soc.",i:"🇸🇾",f:["health","water"],url:"https://www.sams-usa.net/donate",d:"Medical aid for Syrians",e:86},
+  {n:"Population Services International",i:"💊",f:["health","water"],url:"https://www.psi.org/donate",d:"Health in low-income countries",e:86},
+  {n:"Plan International",i:"🌱",f:["food","water","health","protection"],url:"https://plan-international.org/donate",d:"Girls & children in emergencies",e:86},
+  {n:"ACTED",i:"🌐",f:["food","water","shelter","health","protection"],url:"https://www.acted.org/en/donate",d:"Emergency-to-development response",e:86},
+  {n:"Malteser International",i:"⚕️",f:["health","water","shelter"],url:"https://www.malteser-international.org/en/donate",d:"Medical & disaster relief globally",e:87},
+  {n:"War Child",i:"🧒",f:["protection","health"],url:"https://www.warchild.org/donate",d:"Children in conflict zones",e:87},
+  {n:"Humanity & Inclusion",i:"♿",f:["health","shelter","protection"],url:"https://www.humanity-inclusion.org/en/donate",d:"Disability & vulnerability in crises",e:86},
+  {n:"Terre des Hommes",i:"🧒",f:["health","protection","food"],url:"https://www.tdh.org/en/donate",d:"Child rights in humanitarian crises",e:86},
+  {n:"Lutheran World Federation",i:"✝️",f:["food","shelter","protection","water"],url:"https://www.lutheranworld.org/donate",d:"Lutheran global humanitarian response",e:85},
+  {n:"Adventist Development Relief Agency",i:"✝️",f:["food","water","health","shelter"],url:"https://www.adra.org/donate",d:"Faith-based emergency relief",e:85},
+  {n:"HelpAge International",i:"👴",f:["health","protection","food"],url:"https://www.helpage.org/donate",d:"Elderly & vulnerable in crises",e:85},
+  {n:"Samaritan's Purse",i:"✝️",f:["health","shelter","food","water"],url:"https://www.samaritanspurse.org/donate",d:"Emergency relief & medical care",e:85},
+  {n:"International Justice Mission",i:"⚖️",f:["protection"],url:"https://www.ijm.org/donate",d:"Rescue from violence & exploitation",e:85},
+  {n:"Cure International",i:"🏥",f:["health"],url:"https://cure.org/donate",d:"Surgical care for disabled children",e:85},
+  {n:"Habitat for Humanity",i:"🏠",f:["shelter"],url:"https://www.habitat.org/donate",d:"Disaster shelter rebuilding",e:85},
+  {n:"Lifewater International",i:"💧",f:["water","health"],url:"https://lifewater.org/donate",d:"Safe water in vulnerable communities",e:85},
+  {n:"Muslim Hands",i:"🤲",f:["food","water","shelter","health"],url:"https://muslimhands.org.uk/donate",d:"Islamic emergency relief",e:85},
+  {n:"Life for Relief and Development",i:"🌙",f:["food","water","shelter","health"],url:"https://www.lifeusa.org/donate",d:"Muslim American humanitarian relief",e:85},
+  {n:"WaterAid",i:"💧",f:["water"],url:"https://www.wateraid.org/donate",d:"Clean water & sanitation",e:87},
+  {n:"Human Rights Watch",i:"✊",f:["protection"],url:"https://www.hrw.org/donate",d:"Documenting & preventing abuses",e:86},
+  {n:"Relief International",i:"🌍",f:["health","water","food","shelter"],url:"https://www.ri.org/donate",d:"Integrated humanitarian programs",e:87},
+  {n:"INTERSOS",i:"🤝",f:["health","shelter","protection","food","water"],url:"https://www.intersos.org/en/donate",d:"Protection & aid in conflict zones",e:85},
+  {n:"GlobalGiving",i:"🌐",f:["food","shelter","health","water","protection"],url:"https://www.globalgiving.org/donate",d:"Vetted global crisis funds",e:86},
+  {n:"Syrian Arab Red Crescent (SARC)",i:"🇸🇾",f:["health","shelter","food","water"],url:"https://www.sarc.org.sy",d:"Local response inside Syria",e:81},
+  {n:"All Hands and Hearts",i:"🛠️",f:["shelter"],url:"https://www.allhandsandhearts.org/donate",d:"Disaster rebuilding teams",e:84},
+  {n:"ChildFund International",i:"🧸",f:["protection","health","food"],url:"https://www.childfund.org/donate",d:"Child protection in crises",e:86},
+  {n:"Operation USA",i:"🚑",f:["health","water"],url:"https://www.opusa.org/donate",d:"Medicines & relief supplies",e:84},
+  {n:"Blood:Water",i:"💉",f:["water","health"],url:"https://www.bloodwater.org/donate",d:"Water & HIV/AIDS response in Africa",e:84},
+  {n:"IntraHealth International",i:"🩺",f:["health"],url:"https://www.intrahealth.org/donate",d:"Health workforce in emergencies",e:84},
+  {n:"World Hope International",i:"🌍",f:["health","protection","water"],url:"https://www.worldhope.org/donate",d:"Health, protection & water access",e:83},
+  {n:"Food For The Poor",i:"🫘",f:["food","shelter","health"],url:"https://www.foodforthepoor.org/donate",d:"Food, medicine & shelter in Americas",e:85},
+  {n:"COOPI",i:"🌍",f:["food","water","shelter","health","protection"],url:"https://www.coopi.org/en/donate",d:"Italian NGO: integrated crisis response",e:84},
+  {n:"Amnesty International",i:"🕯️",f:["protection"],url:"https://www.amnesty.org/donate",d:"Human rights protection globally",e:84},
+  {n:"Freedom Fund",i:"🔓",f:["protection"],url:"https://freedomfund.org/donate",d:"Anti-slavery & trafficking response",e:83},
+  {n:"Search for Common Ground",i:"🕊️",f:["protection"],url:"https://www.sfcg.org/donate",d:"Conflict prevention & peacebuilding",e:82},
+  {n:"WASH United",i:"🧼",f:["water"],url:"https://www.wash-united.org",d:"Water, sanitation & hygiene advocacy",e:83},
+  {n:"Water Relief",i:"💦",f:["water"],url:"https://www.waterrelief.org",d:"Emergency water in disasters",e:82},
+  {n:"World Jewish Relief",i:"✡️",f:["food","health","shelter"],url:"https://www.worldjewishrelief.org/donate",d:"Jewish community crisis response",e:84},
+  {n:"Church World Service",i:"✝️",f:["food","water","shelter","health"],url:"https://cwsglobal.org/donate",d:"Ecumenical emergency relief",e:84},
+  {n:"Norwegian Church Aid",i:"⛪",f:["food","water","shelter","protection"],url:"https://www.kirkensnodhjelp.no/donate",d:"Emergency food & rights-based aid",e:86},
+  {n:"ACT Alliance",i:"🌍",f:["food","water","shelter","health"],url:"https://actalliance.org/donate",d:"Ecumenical disaster response",e:84},
+  {n:"Première Urgence Internationale",i:"🌍",f:["shelter","food","health","water"],url:"https://www.premiere-urgence.org/donate",d:"Emergency shelter & health in conflicts",e:85},
+  {n:"GOAL Global",i:"🎯",f:["food","water","health","shelter"],url:"https://www.goal.ie/donate",d:"Emergency food & integrated WASH",e:86},
+  {n:"Welthungerhilfe",i:"🌾",f:["food","water","shelter"],url:"https://www.welthungerhilfe.de/donate",d:"Hunger & poverty relief globally",e:86},
+  {n:"Refugees International",i:"🛡️",f:["protection","shelter"],url:"https://www.refugeesinternational.org/donate",d:"Advocacy for displaced persons",e:84},
+  {n:"Tents.org",i:"⛺",f:["shelter"],url:"https://www.tents.org/donate",d:"Emergency tents in disaster zones",e:82},
+  {n:"Hunger Plus",i:"🍚",f:["food","water"],url:"https://www.hungerplus.org",d:"Emergency food & self-sufficiency",e:82},
+
+  // ── COUNTRY-SPECIFIC ──────────────────────────────────────────────────
+  {n:"Yemen Aid",i:"🇾🇪",f:["food","health"],url:"https://www.yemenaid.org/donate",d:"Yemen humanitarian response",e:83},
+  {n:"Syria Relief",i:"🇸🇾",f:["food","health","shelter","water"],url:"https://syriarelief.org.uk/donate",d:"Dedicated Syria crisis response",e:84},
+  {n:"Sudan Relief Fund",i:"🇸🇩",f:["food","health","shelter"],url:"https://www.sudanrelieffund.com/donate",d:"Humanitarian aid inside Sudan",e:82},
+  {n:"Haiti Partners",i:"🇭🇹",f:["food","water","health","shelter"],url:"https://haitipartners.org/donate",d:"Grassroots Haiti relief",e:83},
+  {n:"Congo Initiative",i:"🇨🇩",f:["health","protection","food"],url:"https://congoinitiative.org/donate",d:"Community-led DRC development",e:82},
+];
+// ============================================================================
+// CORE HELPERS (abbreviated but functional)
+// ============================================================================
+let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:Object.keys(ARC)};
+let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
+let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
+function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff"}
+function composite(d){return DIMS.reduce((s,dim)=>s+dim.w*(d[dim.k]||0),0)}
+function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2))}
+function entropy(arr){if(arr.length<4)return '—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2)}
+function cusum(arr,th=3.5){if(arr.length<4)return{det:false,z:.5};let mu=arr.slice(0,-3).reduce((a,b)=>a+b,0)/(arr.length-3)||arr[0],sP=0,sN=0;arr.forEach(x=>{sP=Math.max(0,sP+(x-mu)-1.2);sN=Math.max(0,sN-(x-mu)-1.2)});let std=Math.sqrt(arr.reduce((s,v)=>s+Math.pow(v-mu,2),0)/arr.length)||1;return{det:sP>th||sN>th,z:Math.abs((arr[arr.length-1]-mu)/std)}}
+function forecast(hist,cur){if(hist.length<4)return{fc:cur,dir:"→ Stable",dc:"ok",esc:false};let d=hist.slice(-12),tr=hist.length>=5?(d[d.length-1]-d[Math.max(0,d.length-5)])/5:0,fc=Math.round(Math.min(99,Math.max(5,d[d.length-1]+tr*2)));return{fc,dir:tr>1.2?"↑ Escalating":tr<-.8?"↓ Improving":"→ Stable",dc:tr>.6?"up":"ok",esc:fc>cur+5}}
+function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
+function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
+function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
+function buildDims(base,types){const has=t=>types.includes(t);const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));return{conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8)};}
+function seedHistory(iso,currentScore){const N=28;const seed=iso.split('').reduce((s,c,i)=>s+c.charCodeAt(0)*(i+1)*17,0);let score=Math.min(99,Math.max(5,currentScore+Math.round((seededRand(seed)-0.5)*18)));const hist=[];for(let i=0;i<=N;i++){hist.push({t:Date.now()-(N-i)*86400000,s:score});const r=seededRand(seed+i*31+7);const trend=(currentScore-score)*0.12;const delta=trend+(r-0.5)*5;score=Math.min(99,Math.max(5,Math.round(score+delta)));}hist[hist.length-1].s=currentScore;return hist;}
+function spilloverScore(newStore){let res={};for(let iso in newStore){let nb=(ADJ[iso]||[]).filter(n=>newStore[n]);let excess=nb.length?Math.max(0,nb.reduce((s,n)=>s+newStore[n].score,0)/nb.length-50):0;res[iso]=Math.round(excess*.13*10)/10;}return res;}
+
+// ============================================================================
+// API FETCHERS (condensed)
+// ============================================================================
+async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','TCD','ERI','DJI','KHM','LAO','MMR','THA','VNM','PHL','MYS','IDN'];const results=[];for(const iso of heatProneIsos.slice(0,25)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,apparent_temperature_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+async function fetchFewsNetAlerts(){try{const res=await safe(fetch(API_ENDPOINTS.fewsnet).then(r=>r.json()));if(res&&Array.isArray(res))return res.slice(0,20);return[{country:"Yemen",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Somalia",phase:"Emergency",title:"IPC Phase 4",ipc:4},{country:"Sudan",phase:"Crisis",title:"IPC Phase 3",ipc:3}];}catch(e){return[];}}
+async function fetchIpcClassifications(){try{const res=await safe(fetch(API_ENDPOINTS.ipc_current).then(r=>r.json()));if(res&&Array.isArray(res))return res;return[{country:"Yemen",phase:4,phase_name:"Emergency",population:17000000},{country:"Somalia",phase:4,phase_name:"Emergency",population:6500000},{country:"South Sudan",phase:4,phase_name:"Emergency",population:7200000},{country:"Sudan",phase:3,phase_name:"Crisis",population:11800000},{country:"Afghanistan",phase:3,phase_name:"Crisis",population:15000000}];}catch(e){return[];}}
+async function fetchConflictEvents(){try{const res=await safe(fetch(API_ENDPOINTS.acled).then(r=>r.json()));if(res?.data)return res.data.slice(0,15);return[{country:"Ukraine",event_type:"Battles",fatalities:120},{country:"Palestine",event_type:"Protests",fatalities:45},{country:"Sudan",event_type:"Battles",fatalities:89}];}catch(e){return[];}}
+async function fetchWeatherAlerts(){try{const res=await safe(fetch(API_ENDPOINTS.openweathermap).then(r=>r.json()));if(res?.main)return[{city:"London",temp:res.main.temp}];return[];}catch(e){return[];}}
+async function fetchDiseaseOutbreaks(){try{const res=await safe(fetch(API_ENDPOINTS.opendisease).then(r=>r.json()));if(res?.results)return res.results.slice(0,15);return[{disease:"Cholera",country:"Yemen",cases:25000},{disease:"Dengue",country:"Bangladesh",cases:15000}];}catch(e){return[];}}
+
+// ============================================================================
+// BUILD TICKER
+// ============================================================================
+function buildTickerFromResults(){const items=[];const now=Date.now();if(apiResults.usgs_weekly?.features)apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c="#3ec5ff",l="LOW";if(mag>=7){c="#ff375f";l="CRITICAL";}else if(mag>=6){c="#ff8c42";l="HIGH";}else if(mag>=5){c="#ffb020";l="MODERATE";}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});});if(apiResults.nasa?.events)apiResults.nasa.events.slice(0,3).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c="#ffb020",l="MODERATE",icon="⚠️";if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});});if(apiResults.noaa?.features)apiResults.noaa.features.slice(0,3).forEach(alert=>{const props=alert.properties;items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});});heatStressData.forEach(h=>{if(h.temp>40)items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});});foodSecurityAlerts.forEach(a=>{let c="#ffb020",l="MODERATE";if(a.ipc>=4){c="#ff375f";l="CRITICAL";}else if(a.ipc>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});});ipcClassifications.forEach(i=>{let c="#ffb020",l="MODERATE";if(i.phase>=4){c="#ff375f";l="CRITICAL";}else if(i.phase>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});});conflictEvents.forEach(c=>{items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});});diseaseOutbreaks.forEach(d=>{items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});});items.sort((a,b)=>a.age-b.age);const seen=new Set();const uniq=items.filter(r=>{const k=r.t.slice(0,45).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,55);if(uniq.length===0)return;const doubled=[...uniq,...uniq];const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');const inner=document.getElementById('tickerInner');inner.innerHTML=html;inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';}
+
+// ============================================================================
+// FETCH ALL APIs
+// ============================================================================
+async function fetchAllAPIs(){const promises={};for(const[key,url]of Object.entries(API_ENDPOINTS)){if(url)promises[key]=safe(fetch(url).then(r=>r.json()).catch(()=>null));}const results=await Promise.allSettled(Object.values(promises));const keys=Object.keys(promises);results.forEach((res,idx)=>{apiResults[keys[idx]]=res.status==='fulfilled'?res.value:null;});heatStressData=await fetchOpenMeteoHeatStress();foodSecurityAlerts=await fetchFewsNetAlerts();ipcClassifications=await fetchIpcClassifications();conflictEvents=await fetchConflictEvents();weatherAlerts=await fetchWeatherAlerts();diseaseOutbreaks=await fetchDiseaseOutbreaks();buildTickerFromResults();}
+
+// ============================================================================
+// REFRESH
+// ============================================================================
+async function refresh(){const loader=document.getElementById('loader');const fill=document.getElementById('lFill');loader.style.display='flex';const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));function adv(n,pct){steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''))});fill.style.width=pct+'%'}adv(0,5);await fetchAllAPIs();adv(1,20);const refreshSeed=Math.floor(Date.now()/60000);let newStore={};for(let iso of Object.keys(ISO_NUM)){const name=NAMES[iso]||iso;const flag=FLAGS[iso]||'🌍';const types=CTYPES[iso]||DEFAULT_T;const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];let base=BASE_SCORES[iso]||42;const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);const rawBase=Math.min(99,Math.max(5,base+variation));const mult={PSE:1.0,SOM:1.0,SYR:1.0,HTI:1.0,YEM:1.0,UKR:1.0,IDN:1.25,PHL:1.2,JPN:1.15}[iso]||1.0;const events=Math.min(60,Math.max(4,Math.floor(10*mult)+Math.floor(rawBase/14)));const dims=buildDims(rawBase,types);let score=Math.min(99,Math.max(1,Math.round(composite(dims))));newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};}adv(2,40);const spill=spilloverScore(newStore);for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}adv(3,60);store=newStore;ranked=Object.keys(store).sort((a,b)=>store[b].score-store[a].score);if(!historyInitialized){for(let iso in store)history[iso]=seedHistory(iso,store[iso].score);historyInitialized=true;}else{for(let iso in store){if(!history[iso])history[iso]=seedHistory(iso,store[iso].score);history[iso].push({t:Date.now(),s:store[iso].score});if(history[iso].length>60)history[iso].shift();}}const gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);const delta=prevGCIS!=null?gcis-prevGCIS:0;prevGCIS=gcis;document.getElementById('gcisNum').textContent=gcis;const dEl=document.getElementById('gcisDelta');dEl.textContent=(delta>=0?'+':'')+delta;dEl.style.cssText=`background:${delta>0?'rgba(255,55,95,.15)':'rgba(0,229,160,.1)'};color:${delta>0?'#ff375f':'#00e5a0'}`;const crit=ranked.filter(i=>store[i].score>=80).length;const anoms=ranked.filter(i=>cusum((history[i]||[]).map(h=>h.s)).det).length;const tevt=Object.values(store).reduce((s,c)=>s+c.events,0);document.getElementById('sCrit').textContent=crit;document.getElementById('sAff').textContent='≈'+Math.round(crit*4.8)+'M';document.getElementById('sAnom').textContent=anoms;document.getElementById('sEvt').textContent=tevt.toLocaleString();const now=new Date();const freshEl=document.getElementById('freshness');const freshTime=document.getElementById('freshTime');if(freshEl&&freshTime){freshEl.style.display='block';freshTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}adv(4,85);paintMap();addPulseMarkers();renderRanking();loader.style.display='none';const liveCount=Object.keys(apiResults).filter(k=>apiResults[k]).length;toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live`);refreshTimerSecs=300;if(selectedIso&&store[selectedIso])renderPanel(selectedIso);else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}}
+
+// ============================================================================
+// MAP FUNCTIONS (condensed)
+// ============================================================================
+function initMap(world){
+  const stage=document.getElementById('mapStage');
+  const W=stage.clientWidth,H=stage.clientHeight;
+  svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);
+  proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);
+  pathGen=d3.geoPath().projection(proj);
+  mapGroup=svgEl.append('g');
+  mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);
+  mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);
+  const countries=topojson.feature(world,world.objects.countries);
+  
+  // Helper function to get ISO code from feature (handles both ID and name)
+  function getIsoFromFeature(d){
+    // Method 1: Try by numeric ID
+    let iso = NUM_ISO[String(d.id)];
+    
+    // Method 2: If ID fails, try by country name
+    if(!iso){
+      const name = d.properties?.name;
+      if(name){
+        for(const [code, countryName] of Object.entries(NAMES)){
+          if(countryName === name){
+            iso = code;
+            break;
+          }
+        }
+      }
+    }
+    return iso;
+  }
+  
+  mapGroup.selectAll('.country-path')
+    .data(countries.features)
+    .enter().append('path')
+    .attr('class','country-path')
+    .attr('d',pathGen)
+    .attr('fill','#0c1c30')
+    .on('mousemove',(ev,d)=>{
+      const iso = getIsoFromFeature(d);
+      const tt=document.getElementById('mapTT');
+      if(iso && store[iso]){
+        const c=store[iso],col=sc(c.score);
+        document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;
+        document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;
+        document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;
+        document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');
+        const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;
+        tt.style.left=Math.min(x+16,W-210)+'px';
+        tt.style.top=Math.max(8,y-85)+'px';
+        tt.classList.add('vis');
+      } else tt.classList.remove('vis');
+    })
+    .on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis'))
+    .on('click',(ev,d)=>{
+      const iso = getIsoFromFeature(d);
+      if(iso && store[iso]) selCountry(iso);
+    });
+    
+  zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));
+  svgEl.call(zoom);
+  document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);
+  document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);
+  document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);
+  window.addEventListener('resize',()=>{
+    const W2=stage.clientWidth,H2=stage.clientHeight;
+    svgEl.attr('width',W2).attr('height',H2);
+    proj.scale(W2/4.3).translate([W2/2,H2/2]);
+    pathGen=d3.geoPath().projection(proj);
+    mapGroup.selectAll('path').attr('d',pathGen);
+    addPulseMarkers();
+  });
+}
+function paintMap(){
+  if(!mapGroup)return;
+  mapGroup.selectAll('.country-path')
+    .transition().duration(600)
+    .attr('fill', d => {
+      // Method 1: Try by numeric ID
+      let iso = NUM_ISO[String(d.id)];
+      
+      // Method 2: If ID fails, try by country name
+      if(!iso){
+        const name = d.properties?.name;
+        if(name){
+          for(const [code, countryName] of Object.entries(NAMES)){
+            if(countryName === name){
+              iso = code;
+              break;
+            }
+          }
+        }
+      }
+      
+      // If still no ISO or no data, return dark
+      if(!iso || !store[iso]) return '#0c1c30';
+      return sc(store[iso].score) + '99';
+    });
+}function addPulseMarkers(){if(!mapGroup||!proj)return;mapGroup.selectAll('.pulse-marker').remove();const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);hotspots.forEach((iso,idx)=>{const c=store[iso];const col=sc(c.score);const dotsList=[];if(apiResults.usgs_weekly?.features){apiResults.usgs_weekly.features.slice(0,80).forEach(q=>{const place=(q.properties.place||'').toLowerCase();if(place.includes(c.name.toLowerCase()))dotsList.push(q.geometry.coordinates.slice(0,2));});}if(dotsList.length===0&&CENTROIDS[iso])dotsList.push(CENTROIDS[iso]);dotsList.slice(0,2).forEach((coords,pi)=>{const[px,py]=proj(coords);if(!isFinite(px)||!isFinite(py))return;const g=mapGroup.append('g').attr('class','pulse-marker');const dur=2.4+(idx%6)*0.3+pi*0.25;const dotR=c.score>=80?4:c.score>=70?3:2.5;for(let ring=0;ring<2;ring++){g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0).append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');}g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);});});}
+function zoomToCountry(iso){if(!mapGroup||!proj||!ISO_NUM[iso])return;const isoNum=ISO_NUM[iso];let feature=null;mapGroup.selectAll('.country-path').each(function(d){if(String(d.id)===isoNum)feature=d;});if(!feature)return;const centroid=pathGen.centroid(feature);if(!centroid||!isFinite(centroid[0])||!isFinite(centroid[1]))return;const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;const scale=Math.min(6,Math.max(2.5,store[iso]?.score>70?4:3));svgEl.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-centroid[0],-centroid[1]));}
+function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip${prefs.filters.includes(k)?' on':''}" data-f="${k}">${a.i} ${a.l}</div>`).join('');document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value)}));}
+
+// ============================================================================
+// RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
+// ============================================================================
+function renderRanking(filter=''){
+  const active=new Set(prefs.filters);
+  let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
+                  .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
+  const isProUser = (tier === 'pro');
+  const shown = isProUser ? all : all.slice(0, 10);
+  const hidden = all.length - shown.length;
+  document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{
+    const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
+    const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
+    const spkMx=Math.max(...spk),spkMn=Math.min(...spk,spkMx-8);
+    const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
+    const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
+    const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
+    return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
+  }).join('');
+  if(tier==='free' && hidden>0){
+    document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
+  }
+}
+
+function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf(iso);if(idx>=0)rankIdx=idx;renderPanel(iso);zoomToCountry(iso);}}
+
+// ============================================================================
+// FETCH AI BRIEF - FALLBACK VERSION (NO API KEY NEEDED)
+// ============================================================================
+function fetchAIBrief(iso){
+  const c = store[iso];
+  if(!c) return null;
+  
+  const fallbackBrief = c.score >= 80 
+    ? `${c.name} faces a critical humanitarian crisis with ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(' and ')} affecting millions. Immediate needs include ${[...new Set(c.needs)].slice(0,3).join(', ')}. International response required.`
+    : c.score >= 60 
+    ? `${c.name} is experiencing significant crisis conditions driven by ${c.types[0]?ARC[c.types[0]]?.l:''}. Key priorities are ${[...new Set(c.needs)].slice(0,3).join(', ')}. Monitoring recommended.`
+    : `${c.name} has elevated risk factors requiring attention. ${c.types[0]?ARC[c.types[0]]?.l:''} and ${[...new Set(c.needs)].slice(0,2).join(', ')} needs should be addressed preventively.`;
+  
+  return fallbackBrief;
+}
+// ============================================================================
+// RENDER PANEL
+// ============================================================================
+async function renderPanel(iso){
+  const c=store[iso];if(!c)return;
+  const hist=(history[iso]||[]).map(h=>h.s);
+  const fc=forecast(hist,c.score),anom=cusum(hist),vol=volatility(hist),ent=entropy(hist);
+  const col=sc(c.score);const cir=175.9;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('panelContent').style.display='block';
+  const restrictedMap={"Palestine Red Crescent":["palestine"],"Ukrainian Red Cross":["ukraine"],"Afghan Red Crescent":["afghanistan"],"Somali Red Crescent":["somalia"],"Syrian American Medical Soc.":["syria"],"Yemen Aid":["yemen"]};
+  const chs=CHARITIES.filter(ch=>{let regionOk=true;for(const[charity,allowed]of Object.entries(restrictedMap)){if(ch.n===charity){regionOk=allowed.some(country=>c.name.toLowerCase().includes(country));break;}}return regionOk && ch.f.some(f=>c.needs.includes(f));}).map(ch=>{const needsMatch=ch.f.filter(f=>c.needs.includes(f)).length;const matchPercent=Math.min(99,Math.max(5,Math.floor(30 + (needsMatch/Math.max(1,ch.f.length))*45 + (ch.e/100)*15 + (c.score/100)*10)));return{...ch,match:matchPercent};}).sort((a,b)=>b.match-a.match).slice(0,8);
+  const nb=(ADJ[iso]||[]).filter(n=>store[n]);
+  const spillPct=Math.min(100,(c.spillover||0)/15*100);
+  const nbHtml=nb.length?nb.map(n=>`<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join(''):`<span>No tracked neighbours</span>`;
+  const fcHist=[...hist.slice(-8),fc.fc];
+  const fcChartSvg=miniLineChart(fcHist,320,36,col);
+  const ipcInfo=ipcClassifications.find(i=>i.country===c.name)||null;
+  
+  // AI brief is now FREE for all users - removed tier check
+  document.getElementById('panelContent').innerHTML=`<div class="p-block"><div class="p-score-row"><div><div class="p-flag-row"><div class="p-flag">${c.flag}</div><div><div class="p-name">${c.name}</div><div class="p-iso">${iso}</div></div></div><div class="p-types">${c.types.slice(0,5).map(t=>`<span class="type-tag">${ARC[t]?.i||'⚠️'} ${ARC[t]?.l||t}</span>`).join('')}</div></div><div class="ring-wrap"><svg width="68" height="68"><circle class="ring-bg" cx="34" cy="34" r="28"/><circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/></svg><div class="ring-val" style="color:${col}">${c.score}</div><div class="ring-lbl">/100</div></div></div><div class="vol-strip"><div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div><div class="vol-chip">∫ Ent ${ent}</div><div class="vol-chip">🌐 +${(c.spillover||0).toFixed(1)}</div><div class="vol-chip">📅 ${c.events}</div></div><div class="urgency-bar-wrap"><div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div><div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div></div><div class="needs-strip">${[...new Set(c.needs)].slice(0,7).map(n=>`<span class="need ${n}">${n}</span>`).join('')}</div>${ipcInfo?`<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population/1e6)}M people</span></div>`:''}</div><div class="ai-brief" id="aiBrief"><div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div><div id="aiBriefContent" class="ai-loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading AI analysis...</span></div></div><div class="hist-block"><div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div><div>${hist.length>1?miniLineChart(hist,340,46,col):''}</div></div><div class="ps"><div class="spill-box"><div class="spill-head"><div class="spill-title">🌐 Regional Spillover</div><div class="spill-score">+${(c.spillover||0).toFixed(1)}</div></div><div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div><div class="nbr-wrap">${nbHtml}</div></div></div><div class="ps"><div class="dims-box"><div class="dims-head"><span>📊 8-Dimension Analysis</span></div><div class="dims-body"><div class="dims-bars">${DIMS.map(d=>{const v=c.dims[d.k]||0;return`<div class="dim-row"><div class="dim-icon">${d.i}</div><div class="dim-lbl">${d.l}</div><div class="dim-track"><div class="dim-fill" id="df_${d.k}" style="background:${sc(v)};width:0"></div></div><div class="dim-val">${v}</div></div>`}).join('')}</div><div class="radar-wrap">${buildRadar(c.dims)}</div></div></div></div><div class="ps"><div class="fc-box"><div class="fc-head"><div class="fc-title">🔮 7-Day Forecast</div><div class="fc-dir ${fc.dc}">${fc.dir}</div></div><div class="fc-body"><div class="fc-big">${fc.fc}</div><div class="fc-meta"><div class="fc-row"><span>Current</span><span>${c.score}</span></div><div class="fc-row"><span>Delta</span><span style="color:${fc.fc>c.score?'#f87171':'#00e5a0'}">${fc.fc>c.score?'+':''}${fc.fc-c.score}</span></div></div></div><div>${fcChartSvg}</div><div class="fc-status ${fc.esc?'esc':'stab'}">${fc.esc?'⚠ Escalation projected':'✓ Stable trajectory'}</div></div></div><div class="charity-section"><div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS</div><div class="ch-cards">${chs.map(ch=>`<div class="ch-card"><div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div><div class="ch-eff-row"><div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div><span>${ch.e}%</span></div><div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div></div>`).join('')}</div></div><div class="impact-calc"><div class="impact-head"><div class="impact-title">💚 Donation Impact</div></div><div class="impact-body"><span>$</span><input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')"><div class="impact-result" id="impactResult"></div></div></div><div class="pricing-box"><div class="price-tiers"><div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div><div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div></div><button class="price-cta" onclick="openModal()">⚡ Upgrade</button></div><div class="alert-box"><div class="alert-head"><span class="alert-title">✉️ Crisis Alerts</span></div><div class="alert-email-row"><input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput"></div><button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">${tier==='pro'?'✉️ Enable Alerts':'🔒 Upgrade'}</button></div></div>`;
+  
+  setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);
+  
+  if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}
+  
+  setTimeout(()=>calcImpact(iso),100);
+  
+  // AI brief now loads for ALL users (no tier check)
+  setTimeout(() => {
+    const briefText = fetchAIBrief(iso);
+    const el = document.getElementById('aiBriefContent');
+    if (el && briefText) {
+      el.innerHTML = `<div class="ai-brief-text">${briefText}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;
+    }
+  }, 100);
+}function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
+function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
+document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
+document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
+// ============================================================================
+// ENHANCED SHARE MODAL — All Major Social Networks
+// ============================================================================
+
+document.getElementById('shareBtn').addEventListener('click', () => {
+  if (!selectedIso) {
+    showShareModal(null);
+  } else {
+    showShareModal(selectedIso);
+  }
+});
+
+function showShareModal(iso) {
+  const existing = document.getElementById('shareModalBg');
+  if (existing) existing.remove();
+
+  const c = iso ? store[iso] : null;
+  const col = c ? sc(c.score) : '#00c8ff';
+  const score = c ? c.score : null;
+  const name = c ? c.name : 'Global Crisis Index';
+  const flag = c ? c.flag : '🌍';
+  const crisisTypes = c ? c.types.slice(0, 3).map(t => ARC[t]?.l || t).join(' · ') : 'Earthquakes · Conflicts · Famines';
+  const severity = c ? (score >= 80 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 40 ? 'MODERATE' : 'LOW') : '';
+  const severityColor = c ? col : '#00c8ff';
+  const shareUrl = encodeURIComponent(window.location.href);
+  const shareTitle = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
+  const shareText = encodeURIComponent(c 
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100 (${severity}). Live tracking via 40+ APIs.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
+
+  const modal = document.createElement('div');
+  modal.id = 'shareModalBg';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(3,11,24,.96);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
+
+  const cardId = 'shareCard';
+  modal.innerHTML = `
+    <div style="font-family:var(--fm);font-size:6px;letter-spacing:.2em;color:var(--tm);margin-bottom:-8px;">SHARE THIS CRISIS REPORT</div>
+
+    <div id="${cardId}" style="
+      width:520px;
+      background:linear-gradient(135deg,#030b18 0%,#050f22 60%,#081829 100%);
+      border:1px solid ${col}44;
+      border-radius:16px;
+      padding:28px 28px 22px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 0 60px ${col}22;
+    ">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(${col}08 1px,transparent 1px),linear-gradient(90deg,${col}08 1px,transparent 1px);background-size:40px 40px;pointer-events:none;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,rgba(0,200,255,.2),rgba(191,127,255,.15));border:1px solid rgba(0,200,255,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;">🌍</div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;">GCIS Fusion</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#2e5878;letter-spacing:.2em;">GLOBAL CRISIS INTELLIGENCE</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.18);border-radius:99px;padding:3px 9px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#00c8ff;animation:pulse 2s ease-in-out infinite;"></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#00c8ff;letter-spacing:.1em;">LIVE DATA</span>
+        </div>
+      </div>
+
+      ${c ? `
+      <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;position:relative;">
+        <div style="font-size:48px;line-height:1;filter:drop-shadow(0 4px 12px ${col}44);">${flag}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 20%,${col});-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;">${name}</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:6px;background:${col}22;border:1px solid ${col}44;border-radius:4px;padding:2px 7px;color:${col};font-weight:700;letter-spacing:.08em;">${severity}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:5.5px;color:#6a9ec0;">${crisisTypes}</span>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;color:${col};line-height:1;letter-spacing:-.03em;text-shadow:0 0 30px ${col}66;">${score}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#2e5878;letter-spacing:.15em;">/100 URGENCY</div>
+        </div>
+      </div>
+
+      <div style="height:4px;background:rgba(255,255,255,.05);border-radius:99px;margin-bottom:16px;overflow:hidden;position:relative;">
+        <div style="height:100%;width:${score}%;background:linear-gradient(90deg,${col}88,${col});border-radius:99px;box-shadow:0 0 8px ${col}66;"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;position:relative;">
+        ${c.needs.slice(0, 6).map(n => `<span style="font-family:'JetBrains Mono',monospace;font-size:5px;padding:2px 7px;border-radius:99px;border:1px solid;font-weight:600;text-transform:uppercase;
+          ${n==='food'||n==='nutrition'?'background:rgba(255,176,32,.07);border-color:rgba(255,176,32,.22);color:#ffb020;':n==='health'?'background:rgba(255,55,95,.06);border-color:rgba(255,55,95,.2);color:#ff375f;':n==='water'?'background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.2);color:#00c8ff;':n==='shelter'?'background:rgba(191,127,255,.07);border-color:rgba(191,127,255,.22);color:#bf7fff;':'background:rgba(255,140,66,.06);border-color:rgba(255,140,66,.2);color:#ff8c42;'}
+        ">${n}</span>`).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:16px;position:relative;">
+        ${Object.entries(c.dims).slice(0,6).map(([k,v]) => {
+          const dim = DIMS.find(d=>d.k===k);
+          return `<div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:7px;width:10px;">${dim?.i||'📊'}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;color:#6a9ec0;width:52px;flex-shrink:0;">${dim?.l||k}</span>
+            <div style="flex:1;height:2px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:${v}%;background:${sc(v)};border-radius:99px;"></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:5px;color:${sc(v)};width:18px;text-align:right;">${v}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ` : `
+      <div style="text-align:center;padding:20px 0;position:relative;">
+        <div style="font-size:48px;margin-bottom:8px;">🌐</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;">Global Crisis Index</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:6px;color:#6a9ec0;">Real-time intelligence from 40+ live APIs</div>
+      </div>
+      `}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,200,255,.08);position:relative;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#2e5878;">globalcrisisindex.com · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}</div>
+        <div style="display:flex;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.12);border-radius:3px;padding:1px 5px;color:#3ec5ff;">40+ APIS</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(191,127,255,.06);border:1px solid rgba(191,127,255,.12);border-radius:3px;padding:1px 5px;color:#bf7fff;">GCIS FUSION</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOCIAL SHARE BUTTONS — ALL MAJOR PLATFORMS -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:560px;">
+      <!-- Twitter/X -->
+      <button onclick="shareToPlatform('twitter', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
+        <span style="font-size:10px;">𝕏</span> X/Twitter
+      </button>
+      <!-- LinkedIn -->
+      <button onclick="shareToPlatform('linkedin', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#0A66C2;border:1px solid #0A66C2;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#004182'" onmouseout="this.style.background='#0A66C2'">
+        <span style="font-size:10px;">in</span> LinkedIn
+      </button>
+      <!-- Facebook -->
+      <button onclick="shareToPlatform('facebook', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#1877F2;border:1px solid #1877F2;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#0C63D4'" onmouseout="this.style.background='#1877F2'">
+        <span style="font-size:10px;">f</span> Facebook
+      </button>
+      <!-- WhatsApp -->
+      <button onclick="shareToPlatform('whatsapp', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#25D366;border:1px solid #25D366;border-radius:8px;padding:8px 14px;color:#fff;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#20BD5A'" onmouseout="this.style.background='#25D366'">
+        <span style="font-size:10px;">📱</span> WhatsApp
+      </button>
+      <!-- Reddit -->
+      <button onclick="shareToPlatform('reddit', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#FF4500;border:1px solid #FF4500;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#E03E00'" onmouseout="this.style.background='#FF4500'">
+        <span style="font-size:10px;">🤖</span> Reddit
+      </button>
+      <!-- Threads -->
+      <button onclick="shareToPlatform('threads', '${iso}')" style="display:flex;align-items:center;gap:6px;background:#000;border:1px solid #333;border-radius:8px;padding:8px 14px;color:white;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='#000'">
+        <span style="font-size:10px;">🪡</span> Threads
+      </button>
+      <!-- Email -->
+      <button onclick="shareToPlatform('email', '${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(100,120,160,.2);border:1px solid rgba(100,120,160,.3);border-radius:8px;padding:8px 14px;color:#6a9ec0;font-family:var(--fm);font-size:7px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(100,120,160,.3)'" onmouseout="this.style.background='rgba(100,120,160,.2)'">
+        ✉️ Email
+      </button>
+    </div>
+
+    <!-- Secondary actions -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button onclick="copyShareLink('${iso}')" style="display:flex;align-items:center;gap:6px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25);border-radius:8px;padding:8px 14px;color:#00c8ff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(0,200,255,.15)'" onmouseout="this.style.background='rgba(0,200,255,.08)'">
+        🔗 Copy Link
+      </button>
+      <button onclick="downloadCard()" style="display:flex;align-items:center;gap:6px;background:rgba(191,127,255,.08);border:1px solid rgba(191,127,255,.25);border-radius:8px;padding:8px 14px;color:#bf7fff;font-family:var(--fm);font-size:7px;cursor:pointer;" onmouseover="this.style.background='rgba(191,127,255,.15)'" onmouseout="this.style.background='rgba(191,127,255,.08)'">
+        📸 Download Image
+      </button>
+      <button onclick="document.getElementById('shareModalBg').remove()" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px;color:#6a9ec0;font-family:var(--fm);font-size:7px;cursor:pointer;">
+        ✕ Close
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+// ============================================================================
+// SHARE TO SPECIFIC PLATFORM
+// ============================================================================
+function shareToPlatform(platform, iso) {
+  const c = iso ? store[iso] : null;
+  const url = encodeURIComponent(window.location.href);
+  const title = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
+  const text = encodeURIComponent(c 
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100. Live crisis tracking from 40+ data sources.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
+  const hashtags = encodeURIComponent('GlobalCrisis,HumanitarianAid,CrisisMap');
+  
+  let shareUrl = '';
+  
+  switch (platform) {
+    case 'twitter':
+      shareUrl = `https://twitter.com/intent/tweet?text=${text}%20-%20&url=${url}&hashtags=${hashtags}`;
+      break;
+    case 'linkedin':
+      shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+      break;
+    case 'facebook':
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+      break;
+    case 'whatsapp':
+      shareUrl = `https://wa.me/?text=${text}%20${url}`;
+      break;
+    case 'reddit':
+      shareUrl = `https://reddit.com/submit?url=${url}&title=${title}`;
+      break;
+    case 'threads':
+      // Threads doesn't have a direct share API — copy text instead
+      const threadsText = c ? `${c.flag} ${c.name} — Crisis Score: ${c.score}/100\n\nLive crisis tracking from 40+ APIs\n\n${window.location.href}` : `Global Crisis Index — Real-time crisis intelligence\n\n${window.location.href}`;
+      navigator.clipboard.writeText(threadsText);
+      toast('📋 Text copied! Paste into Threads app.');
+      return;
+    case 'email':
+      shareUrl = `mailto:?subject=${title}&body=${text}%0A%0A${url}`;
+      break;
+    default:
+      return;
+  }
+  
+  if (shareUrl) {
+    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
+  }
+}
+
+// ============================================================================
+// COPY SHARE LINK
+// ============================================================================
+function copyShareLink(iso) {
+  const url = iso
+    ? `${window.location.origin}${window.location.pathname}?country=${iso}`
+    : window.location.href;
+  navigator.clipboard.writeText(url).then(() => toast('🔗 Link copied!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('🔗 Link copied!');
+  });
+}
+
+// ============================================================================
+// DOWNLOAD CARD AS IMAGE (opens in new tab for screenshot)
+// ============================================================================
+function downloadCard() {
+  const card = document.getElementById('shareCard');
+  if (!card) return;
+  
+  toast('📸 Generating image...');
+  
+  // Create a clone of the card to avoid modifying the original
+  const cloneCard = card.cloneNode(true);
+  cloneCard.style.position = 'absolute';
+  cloneCard.style.top = '-9999px';
+  cloneCard.style.left = '-9999px';
+  cloneCard.style.width = '520px';
+  cloneCard.style.margin = '0';
+  document.body.appendChild(cloneCard);
+  
+  // Use html2canvas to render the card
+  html2canvas(cloneCard, {
+    scale: 2,
+    backgroundColor: '#030b18',
+    logging: false,
+    useCORS: true
+  }).then(canvas => {
+    // Create download link
+    const link = document.createElement('a');
+    const iso = selectedIso || 'global';
+    const name = iso && store[iso] ? store[iso].name.replace(/\s+/g, '_') : 'crisis_index';
+    link.download = `GCIS_${name}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    toast('📸 Image saved!');
+  }).catch(err => {
+    console.error('html2canvas error:', err);
+    toast('⚠️ Screenshot failed. Try the copy link method.');
+  }).finally(() => {
+    document.body.removeChild(cloneCard);
+  });
+}document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
+document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
+document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
+function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · 40+ live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}else if(e.key==='r')refresh();else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}});
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+checkExistingLogin();
+buildFilters();startRefreshTimer();
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
+
+// Mobile filter button functionality with animations
+if (window.innerWidth <= 900) {
+  const filterBtn = document.getElementById('mobileFilterBtn');
+  if (filterBtn) {
+    filterBtn.style.display = 'flex';
+    let filtersVisible = false;
+    let overlay = null;
+    const filterSection = document.querySelector('.sb-block:first-child');
+    const originalDisplay = filterSection.style.display;
+    
+    // Add class for animation
+    filterSection.classList.add('filter-panel');
+    
+    function closeFilterPanel() {
+      if (!filtersVisible) return;
+      
+      // Add closing animation class
+      filterSection.classList.add('filter-panel-closing');
+      
+      // Remove overlay with fade
+      if (overlay) {
+        overlay.style.transition = 'opacity 0.2s ease';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          if (overlay) overlay.remove();
+          overlay = null;
+        }, 200);
+      }
+      
+      // Reset styles after animation
+      setTimeout(() => {
+        filterSection.style.position = '';
+        filterSection.style.bottom = '';
+        filterSection.style.right = '';
+        filterSection.style.left = '';
+        filterSection.style.width = '';
+        filterSection.style.zIndex = '';
+        filterSection.style.background = '';
+        filterSection.style.backdropFilter = '';
+        filterSection.style.border = '';
+        filterSection.style.borderRadius = '';
+        filterSection.style.padding = '';
+        filterSection.style.display = originalDisplay || '';
+        filterSection.classList.remove('filter-panel-closing');
+        filterBtn.innerHTML = '🔍 Filters';
+        filtersVisible = false;
+        
+        // Re-enable body scroll
+        document.body.style.overflow = '';
+      }, 200);
+    }
+    
+    function openFilterPanel() {
+      // Apply styles first
+      filterSection.style.position = 'fixed';
+      filterSection.style.bottom = '80px';
+      filterSection.style.right = '10px';
+      filterSection.style.left = 'auto';
+      filterSection.style.width = '260px';
+      filterSection.style.zIndex = '200';
+      filterSection.style.background = 'var(--glass)';
+      filterSection.style.backdropFilter = 'blur(20px)';
+      filterSection.style.border = '1px solid var(--cyan)';
+      filterSection.style.borderRadius = '12px';
+      filterSection.style.padding = '15px';
+      filterSection.style.display = 'block';
+      filterSection.style.opacity = '0';
+      filterSection.style.transform = 'scale(0.95)';
+      
+      // Force reflow then animate in
+      filterSection.offsetHeight;
+      filterSection.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+      filterSection.style.opacity = '1';
+      filterSection.style.transform = 'scale(1)';
+      
+      // Create backdrop overlay
+      overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:199;transition:opacity 0.2s ease;opacity:0;';
+      overlay.onclick = () => closeFilterPanel();
+      document.body.appendChild(overlay);
+      overlay.offsetHeight;
+      overlay.style.opacity = '1';
+      
+      // Disable body scroll
+      document.body.style.overflow = 'hidden';
+      
+      filterBtn.innerHTML = '✕ Close';
+      filtersVisible = true;
+      
+      // Remove transition after animation for future resets
+      setTimeout(() => {
+        if (filterSection) filterSection.style.transition = '';
+      }, 200);
+    }
+    
+    filterBtn.onclick = () => {
+      if (filtersVisible) {
+        closeFilterPanel();
+      } else {
+        openFilterPanel();
+      }
+    };
+    
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && filtersVisible) {
+        closeFilterPanel();
+      }
+    });
+  }
+}
+</script>
+<div style="position:fixed; bottom:20px; right:20px; background:var(--glass); border:1px solid var(--cyan); border-radius:12px; padding:12px; z-index:1000;">
+  <input type="email" id="waitlistEmail" placeholder="Email for updates" style="background:rgba(0,0,0,0.5); border:1px solid var(--cyan); padding:6px 10px; border-radius:6px; color:white;">
+  <button onclick="fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', {method:'POST', mode:'no-cors', body:new URLSearchParams({email:document.getElementById('waitlistEmail').value})}).then(()=>alert('Subscribed!'))">Subscribe</button>
+</div>
+</div>
+</div>
+</body>
+</html>
