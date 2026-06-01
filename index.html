@@ -2545,7 +2545,13 @@ if (window.innerWidth <= 900) {
       }
     });
   }
-}
+}window.addEventListener('popstate', (event) => {
+  const params = new URLSearchParams(window.location.search);
+  const iso = params.get('country');
+  if (iso && store[iso]) {
+    selCountry(iso);
+  }
+});
 </script>
 <div style="position:fixed; bottom:20px; right:20px; background:var(--glass); border:1px solid var(--cyan); border-radius:12px; padding:12px; z-index:1000;">
   <input type="email" id="waitlistEmail" placeholder="Email for updates" style="background:rgba(0,0,0,0.5); border:1px solid var(--cyan); padding:6px 10px; border-radius:6px; color:white;">
