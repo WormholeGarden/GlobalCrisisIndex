@@ -41,7 +41,7 @@ countries.forEach(country => {
   <meta charset="UTF-8">
   <title>${country.name} Crisis Report | Global Crisis Index</title>
   <meta name="description" content="Real-time crisis intelligence for ${country.name}. Live data from 40+ sources.">
-  <meta http-equiv="refresh" content="0; url=https://globalcrisisindex.com/?country=${country.code}">
+  <meta http-equiv="refresh" content="0; url=https://globalcrisisindex.com/#country=${country.code}">
   <link rel="canonical" href="https://globalcrisisindex.com/country/${lowerCode}">
 </head>
 <body>
