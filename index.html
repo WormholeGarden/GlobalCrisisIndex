@@ -14,42 +14,29 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is the Global Crisis Index?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "The Global Crisis Index is a real-time crisis intelligence dashboard that aggregates data from 40+ live APIs including USGS for earthquakes, ACLED for conflicts, WHO for disease outbreaks, and IPC/FEWS NET for food security. It updates every 5 minutes and provides urgency scores for 60+ countries."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How accurate is the crisis data?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "All data comes directly from official sources including USGS, NASA, WHO, World Bank, IMF, UNHCR, and ACLED. The map updates every 5 minutes with the latest available information from these trusted humanitarian and scientific organizations."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is the Global Crisis Index free?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, GCIS Fusion offers a free tier with access to the top 10 most critical countries. Pro access at $29/month unlocks all 60+ countries, AI-powered country briefs, PDF reports, and email alerts."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What crisis data sources do you use?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "GCIS Fusion integrates 40+ live APIs including USGS (earthquakes), NASA EONET (natural events), ACLED (conflicts), GDACS (disasters), WHO (disease outbreaks), IPC/FEWS NET/WFP/FAO (food security), World Bank/IMF (economic indicators), NOAA/Open-Meteo (weather alerts), and UNHCR (displacement data)."
-      }
-    }
-  ]
+  "@type": "WebApplication",
+  "name": "Global Crisis Index (GCSI)",
+  "alternateName": "GCIS Fusion",
+  "description": "Real-time crisis intelligence dashboard and companion to INFORM GCSI. Live data on earthquakes, conflicts, food security, and disease outbreaks from 40+ UN, government, and humanitarian APIs.",
+  "url": "https://globalcrisisindex.com",
+  "applicationCategory": "Utility",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "GCIS Fusion"
+  },
+  "citation": {
+    "@type": "CreativeWork",
+    "name": "INFORM GCSI",
+    "url": "https://drmkc.jrc.ec.europa.eu/inform-index"
+  }
 }
+</script>
 </script>
 </script>
 <meta charset="UTF-8">
@@ -2538,3 +2525,5 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
+
+
