@@ -1464,21 +1464,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
     </div>
   </div>
-  <div class="header-right">
-    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
-    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
-    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
-    <div id="emailSignIn" style="display:flex; align-items:center; gap:6px;">
-      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03); border:1px solid var(--b2); border-radius:var(--r1); padding:4px 8px; font-size:8px; color:var(--ts); width:120px;">
-      <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
-      <button id="logoutBtn" class="hbtn" style="font-size:6px; display:none;">Logout</button>
-    </div>
-    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
-    <button class="hbtn" id="shareBtn">🔗 Share</button>
-    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
-    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
-    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); border: none; color: #030b18; font-weight: 800;"> 🧠 Unlock Full Intelligence → ALL SUBSCRIPTIONS BOUGHT BEFORE 6/9/26 HALF OFF</button>
+<div class="header-right">
+  <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
+  <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
+  <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+  <div id="emailSignIn" style="display:flex; align-items:center; gap:6px;">
+    <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03); border:1px solid var(--b2); border-radius:var(--r1); padding:4px 8px; font-size:8px; color:var(--ts); width:120px;">
+    <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
+    <button id="logoutBtn" class="hbtn" style="font-size:6px; display:none;">Logout</button>
   </div>
+  <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
+  <button class="hbtn" id="shareBtn">🔗 Share</button>
+  <button class="hbtn" id="citeBtn" onclick="copyCitation()" style="font-family:var(--fm); font-size:6px;">📄 Cite Dataset</button>
+  <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
+  <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
+  <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); border: none; color: #030b18; font-weight: 800;"> 🧠 Unlock Full Intelligence → ALL SUBSCRIPTIONS BOUGHT BEFORE 6/9/26 HALF OFF</button>
+</div>
 </header>
 <!-- Breaking News Flash Banner -->
 <div id="breakingBar" style="background: linear-gradient(90deg, #ff375f, #ff8c42); color: white; padding: 6px 12px; text-align: center; font-family: var(--fm); font-size: 7px; font-weight: bold; letter-spacing: 0.05em; overflow: hidden; white-space: nowrap; position: relative; z-index: 98;">
@@ -1486,6 +1487,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <script>
+
+function copyCitation() {
+  const citationText = `GCIS Fusion. (2025). Global Crisis Index Dataset. Kaggle. https://www.kaggle.com/datasets/johnmontagno/global-crisis-index`;
+  navigator.clipboard.writeText(citationText).then(() => {
+    toast('📄 Citation copied to clipboard!');
+  }).catch(() => {
+    toast('⚠️ Could not copy citation. Please cite: GCIS Fusion. (2025). Global Crisis Index Dataset.');
+  });
+}
+
   (function() {
     const breakingText = document.getElementById('breakingText');
     if (!breakingText) return;
