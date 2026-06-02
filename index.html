@@ -6,11 +6,37 @@
   <meta name="msvalidate.01" content="E3F97DC68FA16302C8DA8A744B934C90" />
 <!-- PRO BANNER - Converts viral traffic -->
 <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 8px 16px; text-align: center; font-family: var(--fm); font-size: 7px; letter-spacing: 0.1em; backdrop-filter: blur(8px); z-index: 98; position: relative;">
-  <span style="color: var(--cyan);">An independent, real-time companion to the Global Crisis Severity Index (INFORM) (GCSI) with Live APIs  🔥</span>
+  <span style="color: var(--cyan);">An independent, real-time companion to the Global Crisis Severity Index (INFORM) (GCSI) with Live APIs 🔥</span>
   <span style="color: var(--tm); margin: 0 8px;">|</span>
   <span style="color: var(--ts);">Real-time earthquakes, conflicts, food security & disease outbreaks</span>
   <span style="color: var(--tm); margin: 0 8px;">|</span>
-  <a href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); color: #030b18; text-decoration: none; font-weight: 800; border: none; padding: 4px 14px; border-radius: 20px; transition: all 0.2s; font-size: 8px; display: inline-block; box-shadow: 0 0 12px rgba(191,127,255,0.3);" onmouseover="this.style.transform='scale(1.02)';" onmouseout="this.style.transform='scale(1)';"> ALL SUBSCRIPTIONS HALF OFF UNTIL JUNE 9TH 2026 → $29/mo (buy one month, get one free!)🗺️</a>
+  <a href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" style="background: linear-gradient(135deg, #bf7fff, #00c8ff); color: #030b18; text-decoration: none; font-weight: 800; border: none; padding: 4px 14px; border-radius: 20px; transition: all 0.2s; font-size: 8px; display: inline-block; box-shadow: 0 0 12px rgba(191,127,255,0.3);" onmouseover="this.style.transform='scale(1.02)';" onmouseout="this.style.transform='scale(1)';">ALL SUBSCRIPTIONS HALF OFF UNTIL JUNE 9TH 2026 → $29/mo (buy one month, get one free!)🗺️</a>
+</div>
+
+<!-- PERSISTENT PRO UPSELL ON MAP (FLOATING BADGE) -->
+<div id="mapProUpsell" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #030b18, #081829); border: 1px solid var(--cyan); border-radius: 40px; padding: 8px 20px; z-index: 25; display: flex; align-items: center; gap: 12px; backdrop-filter: blur(20px); box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,200,255,0.2); pointer-events: auto; cursor: pointer; transition: all 0.2s ease; opacity: 0.95;" 
+     onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01', '_blank')"
+     onmouseover="this.style.transform='translateX(-50%) scale(1.02)'; this.style.borderColor='var(--purple)'; this.style.opacity='1';"
+     onmouseout="this.style.transform='translateX(-50%) scale(1)'; this.style.borderColor='var(--cyan)'; this.style.opacity='0.95';">
+  <span style="font-size: 20px;">🚀</span>
+  <div style="text-align: left;">
+    <div style="font-family: var(--fd); font-size: 11px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #fff, var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent;">UNLOCK FULL ACCESS</div>
+    <div style="font-family: var(--fm); font-size: 6px; color: var(--ts);">40+ live APIs · All 60+ countries · AI briefs · PDF reports</div>
+  </div>
+  <div style="background: linear-gradient(135deg, #bf7fff, #00c8ff); border-radius: 40px; padding: 5px 12px; font-family: var(--fm); font-size: 9px; font-weight: 800; color: #030b18;">$29/mo →</div>
+</div>
+
+<style>
+  /* Hide the map upsell for Pro users */
+  body.pro-user #mapProUpsell { display: none !important; }
+  @media (max-width: 700px) {
+    #mapProUpsell { bottom: 70px; padding: 5px 12px; gap: 8px; }
+    #mapProUpsell span:first-child { font-size: 14px; }
+    #mapProUpsell div div:first-child { font-size: 8px; }
+    #mapProUpsell div div:last-child { font-size: 5px; }
+    #mapProUpsell div:last-child { padding: 3px 8px; font-size: 7px; }
+  }
+</style>
 </div>
 <script type="application/ld+json">
 {
