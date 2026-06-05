@@ -6,10 +6,12 @@ console.log('🔧 Starting country page generation...');
 
 // Complete list of ALL countries with their correct ISO codes
 const countries = [
+  // ── EXISTING ──────────────────────────────────────────────────────────────
   { code: 'AFG', name: 'Afghanistan' },
   { code: 'ALB', name: 'Albania' },
   { code: 'DZA', name: 'Algeria' },
   { code: 'AGO', name: 'Angola' },
+  { code: 'AND', name: 'Andorra' },
   { code: 'ARG', name: 'Argentina' },
   { code: 'ARM', name: 'Armenia' },
   { code: 'AUS', name: 'Australia' },
@@ -38,7 +40,7 @@ const countries = [
   { code: 'CHN', name: 'China' },
   { code: 'COL', name: 'Colombia' },
   { code: 'COM', name: 'Comoros' },
-  { code: 'COG', name: 'Congo' },
+  { code: 'COG', name: 'Republic of Congo' },
   { code: 'COD', name: 'DR Congo' },
   { code: 'CRI', name: 'Costa Rica' },
   { code: 'CIV', name: "Côte d'Ivoire" },
@@ -68,6 +70,7 @@ const countries = [
   { code: 'GHA', name: 'Ghana' },
   { code: 'GRC', name: 'Greece' },
   { code: 'GRD', name: 'Grenada' },
+  { code: 'GRL', name: 'Greenland' },
   { code: 'GTM', name: 'Guatemala' },
   { code: 'GIN', name: 'Guinea' },
   { code: 'GNB', name: 'Guinea-Bissau' },
@@ -170,6 +173,7 @@ const countries = [
   { code: 'SWE', name: 'Sweden' },
   { code: 'CHE', name: 'Switzerland' },
   { code: 'SYR', name: 'Syria' },
+  // ── ASIA ──────────────────────────────────────────────────────────────────
   { code: 'TWN', name: 'Taiwan' },
   { code: 'TJK', name: 'Tajikistan' },
   { code: 'TZA', name: 'Tanzania' },
@@ -195,24 +199,151 @@ const countries = [
   { code: 'VNM', name: 'Vietnam' },
   { code: 'YEM', name: 'Yemen' },
   { code: 'ZMB', name: 'Zambia' },
-  { code: 'ZWE', name: 'Zimbabwe' }
+  { code: 'ZWE', name: 'Zimbabwe' },
+  // ── AFRICA (newly added) ───────────────────────────────────────────────────
+  { code: 'ATG', name: 'Antigua and Barbuda' },
+  { code: 'BHS', name: 'Bahamas' },
+  { code: 'BRB', name: 'Barbados' },
+  { code: 'BLZ', name: 'Belize' },
+  { code: 'CUB', name: 'Cuba' },
+  { code: 'DMA', name: 'Dominica' },
+  // ── AMERICAS — CARIBBEAN ──────────────────────────────────────────────────
+  { code: 'ATG', name: 'Antigua and Barbuda' },
+  { code: 'BHS', name: 'Bahamas' },
+  { code: 'BRB', name: 'Barbados' },
+  { code: 'BLZ', name: 'Belize' },
+  { code: 'CRI', name: 'Costa Rica' },
+  { code: 'CUB', name: 'Cuba' },
+  { code: 'DMA', name: 'Dominica' },
+  { code: 'DOM', name: 'Dominican Republic' },
+  { code: 'SLV', name: 'El Salvador' },
+  { code: 'GRD', name: 'Grenada' },
+  { code: 'GTM', name: 'Guatemala' },
+  { code: 'HTI', name: 'Haiti' },
+  { code: 'HND', name: 'Honduras' },
+  { code: 'JAM', name: 'Jamaica' },
+  { code: 'KNA', name: 'Saint Kitts and Nevis' },
+  { code: 'LCA', name: 'Saint Lucia' },
+  { code: 'VCT', name: 'Saint Vincent and the Grenadines' },
+  { code: 'TTO', name: 'Trinidad and Tobago' },
+  { code: 'NIC', name: 'Nicaragua' },
+  { code: 'PAN', name: 'Panama' },
+  // ── AMERICAS — SOUTH ──────────────────────────────────────────────────────
+  { code: 'BOL', name: 'Bolivia' },
+  { code: 'GUY', name: 'Guyana' },
+  { code: 'PRY', name: 'Paraguay' },
+  { code: 'SUR', name: 'Suriname' },
+  { code: 'URY', name: 'Uruguay' },
+  // ── EUROPE — ADDITIONAL ───────────────────────────────────────────────────
+  { code: 'ALB', name: 'Albania' },
+  { code: 'AND', name: 'Andorra' },
+  { code: 'BIH', name: 'Bosnia and Herzegovina' },
+  { code: 'BGR', name: 'Bulgaria' },
+  { code: 'BLR', name: 'Belarus' },
+  { code: 'EST', name: 'Estonia' },
+  { code: 'HRV', name: 'Croatia' },
+  { code: 'XKX', name: 'Kosovo' },
+  { code: 'LVA', name: 'Latvia' },
+  { code: 'LIE', name: 'Liechtenstein' },
+  { code: 'LTU', name: 'Lithuania' },
+  { code: 'LUX', name: 'Luxembourg' },
+  { code: 'MDA', name: 'Moldova' },
+  { code: 'MKD', name: 'North Macedonia' },
+  { code: 'MLT', name: 'Malta' },
+  { code: 'MNE', name: 'Montenegro' },
+  { code: 'MCO', name: 'Monaco' },
+  { code: 'ROU', name: 'Romania' },
+  { code: 'SMR', name: 'San Marino' },
+  { code: 'SRB', name: 'Serbia' },
+  { code: 'SVK', name: 'Slovakia' },
+  { code: 'SVN', name: 'Slovenia' },
+  // ── GREENLAND ─────────────────────────────────────────────────────────────
+  { code: 'GRL', name: 'Greenland' },
+  // ── OCEANIA — ADDITIONAL ──────────────────────────────────────────────────
+  { code: 'COK', name: 'Cook Islands' },
+  { code: 'FSM', name: 'Micronesia' },
+  { code: 'KIR', name: 'Kiribati' },
+  { code: 'MHL', name: 'Marshall Islands' },
+  { code: 'NRU', name: 'Nauru' },
+  { code: 'PLW', name: 'Palau' },
+  { code: 'TON', name: 'Tonga' },
+  { code: 'TUV', name: 'Tuvalu' },
+  { code: 'VUT', name: 'Vanuatu' },
+  { code: 'WSM', name: 'Samoa' },
+  // ── ASIA — CENTRAL ────────────────────────────────────────────────────────
+  { code: 'KGZ', name: 'Kyrgyzstan' },
+  { code: 'TJK', name: 'Tajikistan' },
+  { code: 'TKM', name: 'Turkmenistan' },
+  { code: 'UZB', name: 'Uzbekistan' },
+  // ── ASIA — EAST ───────────────────────────────────────────────────────────
+  { code: 'HKG', name: 'Hong Kong' },
+  { code: 'MAC', name: 'Macau' },
+  { code: 'MNG', name: 'Mongolia' },
+  { code: 'PRK', name: 'North Korea' },
+  { code: 'TWN', name: 'Taiwan' },
+  // ── ASIA — SOUTHEAST ──────────────────────────────────────────────────────
+  { code: 'BRN', name: 'Brunei' },
+  { code: 'KHM', name: 'Cambodia' },
+  { code: 'TLS', name: 'Timor-Leste' },
+  { code: 'LAO', name: 'Laos' },
+  { code: 'MYS', name: 'Malaysia' },
+  { code: 'MMR', name: 'Myanmar' },
+  { code: 'SGP', name: 'Singapore' },
+  { code: 'THA', name: 'Thailand' },
+  { code: 'VNM', name: 'Vietnam' },
+  // ── ASIA — SOUTH ──────────────────────────────────────────────────────────
+  { code: 'BGD', name: 'Bangladesh' },
+  { code: 'BTN', name: 'Bhutan' },
+  { code: 'IND', name: 'India' },
+  { code: 'MDV', name: 'Maldives' },
+  { code: 'NPL', name: 'Nepal' },
+  { code: 'PAK', name: 'Pakistan' },
+  { code: 'LKA', name: 'Sri Lanka' },
+  // ── ASIA — WEST / MIDDLE EAST ─────────────────────────────────────────────
+  { code: 'ARE', name: 'United Arab Emirates' },
+  { code: 'ARM', name: 'Armenia' },
+  { code: 'AZE', name: 'Azerbaijan' },
+  { code: 'BHR', name: 'Bahrain' },
+  { code: 'CYP', name: 'Cyprus' },
+  { code: 'GEO', name: 'Georgia' },
+  { code: 'IRN', name: 'Iran' },
+  { code: 'IRQ', name: 'Iraq' },
+  { code: 'ISR', name: 'Israel' },
+  { code: 'JOR', name: 'Jordan' },
+  { code: 'KWT', name: 'Kuwait' },
+  { code: 'LBN', name: 'Lebanon' },
+  { code: 'OMN', name: 'Oman' },
+  { code: 'PSE', name: 'Palestine' },
+  { code: 'QAT', name: 'Qatar' },
+  { code: 'SAU', name: 'Saudi Arabia' },
+  { code: 'SYR', name: 'Syria' },
+  { code: 'TUR', name: 'Turkey' },
+  { code: 'YEM', name: 'Yemen' },
+  // ── DISPUTED / SPECIAL TERRITORIES ───────────────────────────────────────
+  { code: 'ESH', name: 'Western Sahara' },
+  { code: 'XKX', name: 'Kosovo' },
 ];
 
-// Define the output directory (relative to the script's location)
-// This will create a 'country-pages' folder right next to your index.html
+// Deduplicate by code (keep first occurrence)
+const seen = new Set();
+const uniqueCountries = countries.filter(c => {
+  if (seen.has(c.code)) return false;
+  seen.add(c.code);
+  return true;
+});
+
+// Define the output directory
 const outputDir = path.join(__dirname, 'country-pages');
 
-// Create the directory if it doesn't exist
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
   console.log(`📁 Created folder: ${outputDir}`);
 }
 
-// Also create a sitemap for SEO
 const sitemapUrls = [];
 let generatedCount = 0;
 
-countries.forEach(country => {
+uniqueCountries.forEach(country => {
   const lowerCode = country.code.toLowerCase();
   const html = `<!DOCTYPE html>
 <html>
@@ -231,19 +362,18 @@ countries.forEach(country => {
   <p>Redirecting to <a href="https://globalcrisisindex.com/?country=${country.code}">${country.name} crisis report</a>...</p>
 </body>
 </html>`;
-  
+
   const filePath = path.join(outputDir, `${lowerCode}.html`);
   fs.writeFileSync(filePath, html);
   generatedCount++;
-  
-  // Add to sitemap
+
   sitemapUrls.push(`  <url>
     <loc>https://globalcrisisindex.com/country/${lowerCode}</loc>
     <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>`);
-  
+
   if (generatedCount % 20 === 0) {
     console.log(`📄 Generated ${generatedCount} pages...`);
   }
@@ -257,7 +387,7 @@ ${sitemapUrls.join('\n')}
 
 const sitemapPath = path.join(outputDir, 'sitemap.xml');
 fs.writeFileSync(sitemapPath, sitemap);
-console.log(`🗺️ Created sitemap.xml with ${countries.length} URLs`);
+console.log(`🗺️ Created sitemap.xml with ${uniqueCountries.length} URLs`);
 
 console.log(`\n✅ SUCCESS! Generated ${generatedCount} country pages in the 'country-pages' folder.`);
 console.log(`📂 Full path: ${outputDir}`);
