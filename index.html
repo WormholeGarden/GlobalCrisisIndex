@@ -2181,55 +2181,57 @@ function initMap(world){
 function paintMap(){
   if(!mapGroup)return;
   
-  // Helper function to get ISO from any country path
+  // Crimea bounding box: roughly 32.5–36.7°E, 44.4–46.2°N
+  function isCrimeaBounds(d){
+    if(!pathGen)return false;
+    const centroid = pathGen.centroid(d);
+    if(!centroid||!isFinite(centroid[0])||!isFinite(centroid[1]))return false;
+    // Unproject from screen coords back to geo coords
+    if(!proj||!proj.invert)return false;
+    const geo = proj.invert(centroid);
+    if(!geo)return false;
+    const [lon, lat] = geo;
+    return lon >= 32.5 && lon <= 36.7 && lat >= 44.4 && lat <= 46.2;
+  }
+
   function getIsoFromPath(d){
-    // Try by numeric ID first
     let iso = NUM_ISO[String(d.id)];
-    
-    // If ID fails, try by country name
     if(!iso){
       const name = d.properties?.name;
       if(name){
         for(const [code, countryName] of Object.entries(NAMES)){
-          if(countryName === name){
-            iso = code;
-            break;
-          }
+          if(countryName === name){ iso = code; break; }
         }
       }
     }
+    // If it resolved to Russia but centroid is in Crimea → remap to Ukraine
+    if(iso === 'RUS' && isCrimeaBounds(d)) iso = 'UKR';
     return iso;
   }
   
-  // Special territory mappings: disputed regions that should match their parent country
   const territoryMapping = {
-    "Crimea": "UKR",           // Crimea → Ukraine
-    "Taiwan": "TWN",           // Taiwan → separate (not China)
-    "Hong Kong": "HKG",        // Hong Kong → separate (not China)
-    "Macau": "MAC",            // Macau → separate (not China)
-    "Kosovo": "XKX",           // Kosovo → separate (not Serbia)
-    "Western Sahara": "ESH",   // Western Sahara → disputed, keep separate
-    "Palestine": "PSE",        // Palestine → already correct
-    "Kashmir": "IND"           // Kashmir → India (contested, but maps often show as India)
+    "Crimea":         "UKR",
+    "Taiwan":         "TWN",
+    "Hong Kong":      "HKG",
+    "Macau":          "MAC",
+    "Kosovo":         "XKX",
+    "Western Sahara": "ESH",
+    "Palestine":      "PSE",
+    "Kashmir":        "IND"
   };
   
-  // Countries that should NOT inherit parent color (always show separately)
   const independentTerritories = ["Taiwan", "Hong Kong", "Macau", "Kosovo", "Western Sahara"];
   
-  // Update fill colors
   mapGroup.selectAll('.country-path')
     .transition().duration(600)
     .attr('fill', d => {
       const name = d.properties?.name;
       
-      // Handle disputed/separate territories
       if(name && territoryMapping[name]){
         const parentIso = territoryMapping[name];
-        // For independent territories, check if they have their own data
         if(independentTerritories.includes(name)){
-          if(store[name.slice(0,3).toUpperCase()]) {
+          if(store[name.slice(0,3).toUpperCase()])
             return sc(store[name.slice(0,3).toUpperCase()].score) + '99';
-          }
         }
         if(store[parentIso]) return sc(store[parentIso].score) + '99';
         return '#0c1c30';
@@ -2240,19 +2242,16 @@ function paintMap(){
       return sc(store[iso].score) + '99';
     });
     
-  // Re-attach hover and click events to handle name-based countries
   mapGroup.selectAll('.country-path')
     .on('mousemove', function(ev, d) {
       let iso = getIsoFromPath(d);
       const name = d.properties?.name;
       
-      // Override for territories to show correct parent info
       if(name && territoryMapping[name]){
         const parentIso = territoryMapping[name];
         if(independentTerritories.includes(name)){
           const territoryIso = name.slice(0,3).toUpperCase();
-          if(store[territoryIso]) iso = territoryIso;
-          else iso = parentIso;
+          iso = store[territoryIso] ? territoryIso : parentIso;
         } else {
           iso = parentIso;
         }
@@ -2263,40 +2262,32 @@ function paintMap(){
         const c = store[iso];
         const col = sc(c.score);
         let displayName = c.name;
-        // If it's a territory, show the territory name with parent context
-        if(name && territoryMapping[name] && independentTerritories.includes(name)){
+        if(name && territoryMapping[name] && independentTerritories.includes(name))
           displayName = `${name} (${c.name})`;
-        }
         document.getElementById('ttName').innerHTML = `${c.flag} ${displayName}`;
         document.getElementById('ttScore').innerHTML = `<span style="color:${col}">${c.score}</span>/100`;
         document.getElementById('ttFill').style.cssText = `width:${c.score}%;background:${col}`;
         document.getElementById('ttTags').innerHTML = c.types.slice(0,4).map(t => `<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');
         const stage = document.getElementById('mapStage');
         const r = stage.getBoundingClientRect();
-        const x = ev.clientX - r.left;
-        const y = ev.clientY - r.top;
         const W = stage.clientWidth;
-        tt.style.left = Math.min(x + 16, W - 210) + 'px';
-        tt.style.top = Math.max(8, y - 85) + 'px';
+        tt.style.left = Math.min(ev.clientX - r.left + 16, W - 210) + 'px';
+        tt.style.top  = Math.max(8, ev.clientY - r.top - 85) + 'px';
         tt.classList.add('vis');
       } else {
         tt.classList.remove('vis');
       }
     })
-    .on('mouseleave', () => {
-      document.getElementById('mapTT').classList.remove('vis');
-    })
+    .on('mouseleave', () => document.getElementById('mapTT').classList.remove('vis'))
     .on('click', (ev, d) => {
       let iso = getIsoFromPath(d);
       const name = d.properties?.name;
       
-      // Override for territories to select correct country
       if(name && territoryMapping[name]){
         const parentIso = territoryMapping[name];
         if(independentTerritories.includes(name)){
           const territoryIso = name.slice(0,3).toUpperCase();
-          if(store[territoryIso]) iso = territoryIso;
-          else iso = parentIso;
+          iso = store[territoryIso] ? territoryIso : parentIso;
         } else {
           iso = parentIso;
         }
