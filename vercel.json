@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/crisis/:slug",
+      "destination": "/crisis-pages/:slug.html"
+    }
+  ]
+}
