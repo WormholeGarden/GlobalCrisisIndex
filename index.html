@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1034,7 +1035,114 @@ async function fetchAllAPIs(){const promises={};for(const[key,url]of Object.entr
 // ============================================================================
 // REFRESH
 // ============================================================================
-async function refresh(){const loader=document.getElementById('loader');const fill=document.getElementById('lFill');loader.style.display='flex';const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));function adv(n,pct){steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''))});fill.style.width=pct+'%'}adv(0,5);await fetchAllAPIs();adv(1,20);const refreshSeed=Math.floor(Date.now()/60000);let newStore={};for(let iso of Object.keys(ISO_NUM)){const name=NAMES[iso]||iso;const flag=FLAGS[iso]||'🌍';const types=CTYPES[iso]||DEFAULT_T;const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];let base=BASE_SCORES[iso]||42;const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);const rawBase=Math.min(99,Math.max(5,base+variation));const mult={PSE:1.0,SOM:1.0,SYR:1.0,HTI:1.0,YEM:1.0,UKR:1.0,IDN:1.25,PHL:1.2,JPN:1.15}[iso]||1.0;const events=Math.min(60,Math.max(4,Math.floor(10*mult)+Math.floor(rawBase/14)));const dims=buildDims(rawBase,types);let score=Math.min(99,Math.max(1,Math.round(composite(dims))));newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};}adv(2,40);const spill=spilloverScore(newStore);for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}adv(3,60);store=newStore;ranked=Object.keys(store).sort((a,b)=>store[b].score-store[a].score);if(!historyInitialized){for(let iso in store)history[iso]=seedHistory(iso,store[iso].score);historyInitialized=true;}else{for(let iso in store){if(!history[iso])history[iso]=seedHistory(iso,store[iso].score);history[iso].push({t:Date.now(),s:store[iso].score});if(history[iso].length>60)history[iso].shift();}}const gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);const delta=prevGCIS!=null?gcis-prevGCIS:0;prevGCIS=gcis;document.getElementById('gcisNum').textContent=gcis;const dEl=document.getElementById('gcisDelta');dEl.textContent=(delta>=0?'+':'')+delta;dEl.style.cssText=`background:${delta>0?'rgba(255,55,95,.15)':'rgba(0,229,160,.1)'};color:${delta>0?'#ff375f':'#00e5a0'}`;const crit=ranked.filter(i=>store[i].score>=80).length;const anoms=ranked.filter(i=>cusum((history[i]||[]).map(h=>h.s)).det).length;const tevt=Object.values(store).reduce((s,c)=>s+c.events,0);document.getElementById('sCrit').textContent=crit;document.getElementById('sAff').textContent='≈'+Math.round(crit*4.8)+'M';document.getElementById('sAnom').textContent=anoms;document.getElementById('sEvt').textContent=tevt.toLocaleString();const now=new Date();const freshEl=document.getElementById('freshness');const freshTime=document.getElementById('freshTime');if(freshEl&&freshTime){freshEl.style.display='block';freshTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}adv(4,85);paintMap();addPulseMarkers();renderRanking();loader.style.display='none';const liveCount=Object.keys(apiResults).filter(k=>apiResults[k]).length;toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live`);refreshTimerSecs=300;if(selectedIso&&store[selectedIso])renderPanel(selectedIso);else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}}
+async function refresh() {
+  const loader = document.getElementById('loader');
+  const fill = document.getElementById('lFill');
+  loader.style.display = 'flex';
+  
+  const steps = ['ls0', 'ls1', 'ls2', 'ls3', 'ls4', 'ls5', 'ls6'].map(id => document.getElementById(id));
+  
+  function adv(n, pct) {
+    steps.forEach((s, i) => {
+      if (s) s.className = 'lstep' + (i < n ? ' done' : (i === n ? ' act' : ''));
+    });
+    fill.style.width = pct + '%';
+  }
+  
+  adv(0, 5);
+  await fetchAllAPIs();
+  adv(1, 20);
+  
+  const refreshSeed = Math.floor(Date.now() / 60000);
+  let newStore = {};
+  
+  for (let iso of Object.keys(ISO_NUM)) {
+    const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    let base = BASE_SCORES[iso] || 42;
+    const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0) * 137 + (iso.charCodeAt(1) || 0) * 31) - 0.5) * 5);
+    const rawBase = Math.min(99, Math.max(5, base + variation));
+    const mult = { PSE: 1.0, SOM: 1.0, SYR: 1.0, HTI: 1.0, YEM: 1.0, UKR: 1.0, IDN: 1.25, PHL: 1.2, JPN: 1.15 }[iso] || 1.0;
+    const events = Math.min(60, Math.max(4, Math.floor(10 * mult) + Math.floor(rawBase / 14)));
+    const dims = buildDims(rawBase, types);
+    let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
+    newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
+  }
+  
+  adv(2, 40);
+  const spill = spilloverScore(newStore);
+  for (let iso in newStore) {
+    newStore[iso].spillover = spill[iso] || 0;
+    newStore[iso].score = Math.min(99, Math.max(1, newStore[iso].score + newStore[iso].spillover));
+  }
+  
+  adv(3, 60);
+  store = newStore;
+  ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  
+  if (!historyInitialized) {
+    for (let iso in store) history[iso] = seedHistory(iso, store[iso].score);
+    historyInitialized = true;
+  } else {
+    for (let iso in store) {
+      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
+      history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (history[iso].length > 60) history[iso].shift();
+    }
+  }
+  
+  const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
+  const delta = prevGCIS != null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+  
+  const crit = ranked.filter(i => store[i].score >= 80).length;
+  const anoms = ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
+  const tevt = Object.values(store).reduce((s, c) => s + c.events, 0);
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = '≈' + Math.round(crit * 4.8) + 'M';
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+  
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  adv(4, 85);
+  paintMap();
+  addPulseMarkers();
+  renderRanking();
+  loader.style.display = 'none';
+  
+  const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
+  toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live`);
+  
+  refreshTimerSecs = 300;
+  
+  // Handle URL parameters and panel rendering
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCountry = urlParams.get('country');
+  
+  if (urlCountry && store[urlCountry]) {
+    selectedIso = urlCountry;
+    renderPanel(selectedIso, urlParams.get('crisis'));
+    if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
+  } else if (selectedIso && store[selectedIso]) {
+    renderPanel(selectedIso);
+  } else if (ranked.length) {
+    selectedIso = ranked[0];
+    renderPanel(selectedIso);
+  }
+}
 
 // ============================================================================
 // MAP FUNCTIONS (condensed)
@@ -1069,7 +1177,19 @@ function renderRanking(filter=''){
   }
 }
 
-function selCountry(iso){if(store[iso]){selectedIso=iso;const idx=ranked.indexOf(iso);if(idx>=0)rankIdx=idx;renderPanel(iso);zoomToCountry(iso);}}
+function selCountry(iso) {
+  if (store[iso]) {
+    selectedIso = iso;
+    const idx = ranked.indexOf(iso);
+    if (idx >= 0) rankIdx = idx;
+    const urlParams = new URLSearchParams(window.location.search);
+    const crisisParam = (urlParams.get('country') === iso) ? urlParams.get('crisis') : null;
+    renderPanel(iso, crisisParam);
+    zoomToCountry(iso);
+    const newUrl = `${window.location.pathname}?country=${iso}`;
+    window.history.pushState({ country: iso }, '', newUrl);
+  }
+}
 
 // ============================================================================
 // FETCH AI BRIEF - FALLBACK VERSION (NO API KEY NEEDED)
@@ -1089,52 +1209,306 @@ function fetchAIBrief(iso){
 // ============================================================================
 // RENDER PANEL
 // ============================================================================
-async function renderPanel(iso){
-  const c=store[iso];if(!c)return;
-  const hist=(history[iso]||[]).map(h=>h.s);
-  const fc=forecast(hist,c.score),anom=cusum(hist),vol=volatility(hist),ent=entropy(hist);
-  const col=sc(c.score);const cir=175.9;
-  document.getElementById('emptyState').style.display='none';
-  document.getElementById('panelContent').style.display='block';
-  const restrictedMap={"Palestine Red Crescent":["palestine"],"Ukrainian Red Cross":["ukraine"],"Afghan Red Crescent":["afghanistan"],"Somali Red Crescent":["somalia"],"Syrian American Medical Soc.":["syria"],"Yemen Aid":["yemen"]};
-  const chs=CHARITIES.filter(ch=>{let regionOk=true;for(const[charity,allowed]of Object.entries(restrictedMap)){if(ch.n===charity){regionOk=allowed.some(country=>c.name.toLowerCase().includes(country));break;}}return regionOk && ch.f.some(f=>c.needs.includes(f));}).map(ch=>{const needsMatch=ch.f.filter(f=>c.needs.includes(f)).length;const matchPercent=Math.min(99,Math.max(5,Math.floor(30 + (needsMatch/Math.max(1,ch.f.length))*45 + (ch.e/100)*15 + (c.score/100)*10)));return{...ch,match:matchPercent};}).sort((a,b)=>b.match-a.match).slice(0,8);
-  const nb=(ADJ[iso]||[]).filter(n=>store[n]);
-  const spillPct=Math.min(100,(c.spillover||0)/15*100);
-  const nbHtml=nb.length?nb.map(n=>`<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join(''):`<span>No tracked neighbours</span>`;
-  const fcHist=[...hist.slice(-8),fc.fc];
-  const fcChartSvg=miniLineChart(fcHist,320,36,col);
-  const ipcInfo=ipcClassifications.find(i=>i.country===c.name)||null;
-  
-  // AI brief is now FREE for all users - removed tier check
-  document.getElementById('panelContent').innerHTML=`<div class="p-block"><div class="p-score-row"><div><div class="p-flag-row"><div class="p-flag">${c.flag}</div><div><div class="p-name">${c.name}</div><div class="p-iso">${iso}</div></div></div><div class="p-types">${c.types.slice(0,5).map(t=>`<span class="type-tag">${ARC[t]?.i||'⚠️'} ${ARC[t]?.l||t}</span>`).join('')}</div></div><div class="ring-wrap"><svg width="68" height="68"><circle class="ring-bg" cx="34" cy="34" r="28"/><circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/></svg><div class="ring-val" style="color:${col}">${c.score}</div><div class="ring-lbl">/100</div></div></div><div class="vol-strip"><div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div><div class="vol-chip">∫ Ent ${ent}</div><div class="vol-chip">🌐 +${(c.spillover||0).toFixed(1)}</div><div class="vol-chip">📅 ${c.events}</div></div><div class="urgency-bar-wrap"><div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div><div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div></div><div class="needs-strip">${[...new Set(c.needs)].slice(0,7).map(n=>`<span class="need ${n}">${n}</span>`).join('')}</div>${ipcInfo?`<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population/1e6)}M people</span></div>`:''}</div><div class="ai-brief" id="aiBrief" style="cursor:pointer;" onclick="if(document.getElementById('aiBriefContent').innerHTML.includes('ai-brief-text')){document.getElementById('aiBriefContent').scrollIntoView({behavior:'smooth'});}"><div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div><div style="font-size:6px;color:var(--cyan);margin-left:auto;">▼ Tap to read</div></div><div id="aiBriefContent" class="ai-loading" style="max-height:80px;overflow:hidden;transition:max-height 0.4s ease;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading AI analysis...</span></div></div><div class="hist-block"><div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div><div>${hist.length>1?miniLineChart(hist,340,46,col):''}</div></div><div class="ps"><div class="spill-box"><div class="spill-head"><div class="spill-title">🌐 Regional Spillover</div><div class="spill-score">+${(c.spillover||0).toFixed(1)}</div></div><div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div><div class="nbr-wrap">${nbHtml}</div></div></div><div class="ps"><div class="dims-box"><div class="dims-head"><span>📊 8-Dimension Analysis</span></div><div class="dims-body"><div class="dims-bars">${DIMS.map(d=>{const v=c.dims[d.k]||0;return`<div class="dim-row"><div class="dim-icon">${d.i}</div><div class="dim-lbl">${d.l}</div><div class="dim-track"><div class="dim-fill" id="df_${d.k}" style="background:${sc(v)};width:0"></div></div><div class="dim-val">${v}</div></div>`}).join('')}</div><div class="radar-wrap">${buildRadar(c.dims)}</div></div></div></div><div class="ps"><div class="fc-box"><div class="fc-head"><div class="fc-title">🔮 7-Day Forecast</div><div class="fc-dir ${fc.dc}">${fc.dir}</div></div><div class="fc-body"><div class="fc-big">${fc.fc}</div><div class="fc-meta"><div class="fc-row"><span>Current</span><span>${c.score}</span></div><div class="fc-row"><span>Delta</span><span style="color:${fc.fc>c.score?'#f87171':'#00e5a0'}">${fc.fc>c.score?'+':''}${fc.fc-c.score}</span></div></div></div><div>${fcChartSvg}</div><div class="fc-status ${fc.esc?'esc':'stab'}">${fc.esc?'⚠ Escalation projected':'✓ Stable trajectory'}</div></div></div><div class="charity-section"><div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS</div><div class="ch-cards">${chs.map(ch=>`<div class="ch-card"><div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div><div class="ch-eff-row"><div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div><span>${ch.e}%</span></div><div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div></div>`).join('')}</div></div><div class="impact-calc"><div class="impact-head"><div class="impact-title">💚 Donation Impact</div></div><div class="impact-body"><span>$</span><input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')"><div class="impact-result" id="impactResult"></div></div></div><div class="pricing-box"><div class="price-tiers"><div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div><div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div></div><button class="price-cta" onclick="openModal()">⚡ Upgrade</button></div><div class="alert-box"><div class="alert-head"><span class="alert-title">✉️ Crisis Alerts</span></div><div class="alert-email-row"><input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput"></div><button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">${tier==='pro'?'✉️ Enable Alerts':'🔒 Upgrade'}</button></div></div>`;
-  
-  setTimeout(()=>{const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});},60);
-  
-  if(mapGroup){mapGroup.selectAll('.country-path').classed('sel-path',false);if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);}
-  
-  setTimeout(()=>calcImpact(iso),100);
-  
-  // AI brief now loads for ALL users (no tier check)
+async function renderPanel(iso, focusCrisisType) {
+  const c = store[iso]; if (!c) return;
+  const hist = (history[iso] || []).map(h => h.s);
+  const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
+  const col = sc(c.score); const cir = 175.9;
+
+  // ── CRISIS PARAM: only show focused crisis if there's an active pulse marker for it ──
+  const activePulseIsos = new Set(ranked.filter(i => store[i]?.score >= 60).slice(0, 18).map(i => i));
+  const countryHasPulse = activePulseIsos.has(iso);
+  const crisisTypeValid = focusCrisisType && c.types.includes(focusCrisisType) && countryHasPulse;
+  const activeCrisis = crisisTypeValid ? focusCrisisType : null;
+  const activeCrisisData = activeCrisis ? ARC[activeCrisis] : null;
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('panelContent').style.display = 'block';
+
+  const restrictedMap = {
+    "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
+    "Afghan Red Crescent": ["afghanistan"], "Somali Red Crescent": ["somalia"],
+    "Syrian American Medical Soc.": ["syria"], "Yemen Aid": ["yemen"]
+  };
+
+  // If crisis focused, filter charities to that crisis type's needs
+  const needsFilter = activeCrisisData ? activeCrisisData.n : c.needs;
+  const chs = CHARITIES.filter(ch => {
+    let regionOk = true;
+    for (const [charity, allowed] of Object.entries(restrictedMap)) {
+      if (ch.n === charity) { regionOk = allowed.some(country => c.name.toLowerCase().includes(country)); break; }
+    }
+    return regionOk && ch.f.some(f => needsFilter.includes(f));
+  }).map(ch => {
+    const needsMatch = ch.f.filter(f => needsFilter.includes(f)).length;
+    const matchPercent = Math.min(99, Math.max(5, Math.floor(30 + (needsMatch / Math.max(1, ch.f.length)) * 45 + (ch.e / 100) * 15 + (c.score / 100) * 10)));
+    return { ...ch, match: matchPercent };
+  }).sort((a, b) => b.match - a.match).slice(0, 8);
+
+  const nb = (ADJ[iso] || []).filter(n => store[n]);
+  const spillPct = Math.min(100, (c.spillover || 0) / 15 * 100);
+  const nbHtml = nb.length
+    ? nb.map(n => `<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join('')
+    : `<span>No tracked neighbours</span>`;
+  const fcHist = [...hist.slice(-8), fc.fc];
+  const fcChartSvg = miniLineChart(fcHist, 320, 36, col);
+  const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
+
+  // ── CRISIS FOCUS BANNER (shown only when pulse-verified) ──
+  const crisisBannerHtml = activeCrisisData ? `
+    <div id="crisisFocusBanner" style="
+      margin:0 0 0 0;
+      padding:12px 13px;
+      background:linear-gradient(135deg,rgba(255,55,95,0.12),rgba(255,140,66,0.08));
+      border-bottom:1px solid rgba(255,55,95,0.25);
+      display:flex;align-items:center;gap:10px;
+    ">
+      <div style="font-size:22px;flex-shrink:0;animation:float 3s ease-in-out infinite;">${activeCrisisData.i}</div>
+      <div style="flex:1;">
+        <div style="font-family:var(--fd);font-size:15px;font-weight:800;color:#ff375f;letter-spacing:-.01em;">
+          ${activeCrisisData.l} — ${c.name}
+        </div>
+        <div style="font-family:var(--fm);font-size:5.5px;color:var(--tm);margin-top:2px;letter-spacing:.1em;">
+          ⚡ ACTIVE CRISIS · LIVE PULSE DETECTED · ${activeCrisis} CLASSIFICATION
+        </div>
+      </div>
+      <div style="
+        background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);
+        border-radius:var(--r1);padding:3px 8px;
+        font-family:var(--fm);font-size:6px;font-weight:700;color:#ff375f;
+        display:flex;align-items:center;gap:4px;flex-shrink:0;
+      ">
+        <div style="width:5px;height:5px;border-radius:50%;background:#ff375f;animation:live-pulse 1.8s ease infinite;"></div>
+        LIVE
+      </div>
+    </div>
+    <div style="padding:8px 13px 0;border-bottom:1px solid var(--b1);">
+      <div style="font-family:var(--fm);font-size:5px;color:var(--tm);letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px;">
+        Crisis-Specific Needs
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;padding-bottom:8px;">
+        ${activeCrisisData.n.map(n => `<span class="need ${n}">${n}</span>`).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // ── CRISIS TYPE PILLS (highlight active crisis if present) ──
+  const typeTagsHtml = c.types.slice(0, 5).map(t => {
+    const isActive = t === activeCrisis;
+    return `<span class="type-tag${isActive ? ' active-crisis-tag' : ''}" data-type="${t}" style="${isActive
+      ? 'background:rgba(255,55,95,0.18);border-color:rgba(255,55,95,0.5);color:#ff375f;box-shadow:0 0 10px rgba(255,55,95,0.3);'
+      : ''}">${ARC[t]?.i || '⚠️'} ${ARC[t]?.l || t}${isActive ? ' ●' : ''}</span>`;
+  }).join('');
+
+  // ── CRISIS DIMENSION HIGHLIGHT: which dims are most relevant to this crisis ──
+  const crisisDimWeights = {
+    CE: { conflict: 1.0, displacement: 0.9, access: 0.8 },
+    CW: { conflict: 1.0, displacement: 0.8, political: 0.7 },
+    EQ: { displacement: 1.0, health: 0.8, economic: 0.7 },
+    FL: { displacement: 0.9, food: 0.7, economic: 0.7 },
+    DR: { food: 1.0, health: 0.8, economic: 0.7 },
+    FN: { food: 1.0, health: 0.9, displacement: 0.6 },
+    EP: { health: 1.0, access: 0.7, economic: 0.6 },
+    REF: { displacement: 1.0, protection: 0.9, political: 0.7 },
+    TC: { displacement: 0.9, economic: 0.8, health: 0.7 },
+    WF: { displacement: 0.8, economic: 0.7, health: 0.6 },
+    HEAT: { health: 1.0, food: 0.7, economic: 0.6 },
+    LS: { displacement: 0.9, health: 0.7, economic: 0.6 },
+    TSU: { displacement: 1.0, health: 0.8, economic: 0.8 },
+    VLC: { displacement: 0.9, health: 0.7, economic: 0.7 },
+    ST: { displacement: 0.8, economic: 0.7, food: 0.6 },
+  };
+  const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
+
+  document.getElementById('panelContent').innerHTML = `
+    ${crisisBannerHtml}
+    <div class="p-block">
+      <div class="p-score-row">
+        <div>
+          <div class="p-flag-row">
+            <div class="p-flag">${c.flag}</div>
+            <div>
+              <div class="p-name">${c.name}</div>
+              <div class="p-iso">${iso}${activeCrisis ? ` · ${activeCrisis}` : ''}</div>
+            </div>
+          </div>
+          <div class="p-types">${typeTagsHtml}</div>
+        </div>
+        <div class="ring-wrap">
+          <svg width="68" height="68">
+            <circle class="ring-bg" cx="34" cy="34" r="28"/>
+            <circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/>
+          </svg>
+          <div class="ring-val" style="color:${col}">${c.score}</div>
+          <div class="ring-lbl">/100</div>
+        </div>
+      </div>
+      <div class="vol-strip">
+        <div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div>
+        <div class="vol-chip">∫ Ent ${ent}</div>
+        <div class="vol-chip">🌐 +${(c.spillover || 0).toFixed(1)}</div>
+        <div class="vol-chip">📅 ${c.events}</div>
+        ${activeCrisis ? `<div class="vol-chip" style="background:rgba(255,55,95,0.1);border-color:rgba(255,55,95,0.25);color:#ff375f;">⚡ ${activeCrisis} Focus</div>` : ''}
+      </div>
+      <div class="urgency-bar-wrap">
+        <div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div>
+        <div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div>
+      </div>
+      <div class="needs-strip">
+        ${[...new Set(activeCrisisData ? [...activeCrisisData.n, ...c.needs] : c.needs)].slice(0, 7).map(n =>
+          `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
+        ).join('')}
+      </div>
+      ${ipcInfo ? `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span></div>` : ''}
+    </div>
+
+    <div class="ai-brief" id="aiBrief">
+      <div class="ai-brief-head">
+        <div class="ai-brief-badge">🤖 AI SITREP${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
+      </div>
+      <div id="aiBriefContent" class="ai-loading">
+        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span>Loading AI analysis...</span>
+      </div>
+    </div>
+
+    <div class="hist-block">
+      <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
+      <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
+    </div>
+
+    <div class="ps">
+      <div class="spill-box">
+        <div class="spill-head">
+          <div class="spill-title">🌐 Regional Spillover</div>
+          <div class="spill-score">+${(c.spillover || 0).toFixed(1)}</div>
+        </div>
+        <div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div>
+        <div class="nbr-wrap">${nbHtml}</div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="dims-box">
+        <div class="dims-head">
+          <span>📊 8-Dimension Analysis${activeCrisis ? ` · ${activeCrisis} weighted` : ''}</span>
+        </div>
+        <div class="dims-body">
+          <div class="dims-bars">
+            ${DIMS.map(d => {
+              const v = c.dims[d.k] || 0;
+              const isHighlighted = activeDimHighlights[d.k] >= 0.7;
+              return `<div class="dim-row" style="${isHighlighted ? 'background:rgba(255,55,95,0.05);border-radius:4px;margin:0 -4px;padding:0 4px;' : ''}">
+                <div class="dim-icon">${d.i}</div>
+                <div class="dim-lbl" style="${isHighlighted ? 'color:var(--tp);font-weight:600;' : ''}">${d.l}${isHighlighted ? ' ◆' : ''}</div>
+                <div class="dim-track">
+                  <div class="dim-fill" id="df_${d.k}" style="background:${isHighlighted ? '#ff375f' : sc(v)};width:0;${isHighlighted ? 'box-shadow:0 0 6px rgba(255,55,95,0.5);' : ''}"></div>
+                </div>
+                <div class="dim-val" style="${isHighlighted ? 'color:#ff375f;font-weight:700;' : ''}">${v}</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="radar-wrap">${buildRadar(c.dims)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="fc-box">
+        <div class="fc-head">
+          <div class="fc-title">🔮 7-Day Forecast</div>
+          <div class="fc-dir ${fc.dc}">${fc.dir}</div>
+        </div>
+        <div class="fc-body">
+          <div class="fc-big">${fc.fc}</div>
+          <div class="fc-meta">
+            <div class="fc-row"><span>Current</span><span>${c.score}</span></div>
+            <div class="fc-row"><span>Delta</span><span style="color:${fc.fc > c.score ? '#f87171' : '#00e5a0'}">${fc.fc > c.score ? '+' : ''}${fc.fc - c.score}</span></div>
+          </div>
+        </div>
+        <div>${fcChartSvg}</div>
+        <div class="fc-status ${fc.esc ? 'esc' : 'stab'}">${fc.esc ? '⚠ Escalation projected' : '✓ Stable trajectory'}</div>
+      </div>
+    </div>
+
+    <div class="charity-section">
+      <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
+      <div class="ch-cards">
+        ${chs.map(ch => `
+          <div class="ch-card">
+            <div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div>
+            <div class="ch-eff-row">
+              <div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div>
+              <span>${ch.e}%</span>
+            </div>
+            <div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="impact-calc">
+      <div class="impact-head"><div class="impact-title">💚 Donation Impact${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div></div>
+      <div class="impact-body">
+        <span>$</span>
+        <input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')">
+        <div class="impact-result" id="impactResult"></div>
+      </div>
+    </div>
+
+    <div class="pricing-box">
+      <div class="price-tiers">
+        <div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div>
+        <div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div>
+      </div>
+      <button class="price-cta" onclick="openModal()">⚡ Upgrade</button>
+    </div>
+
+    <div class="alert-box">
+      <div class="alert-head"><span class="alert-title">✉️ Crisis Alerts${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</span></div>
+      <div class="alert-email-row">
+        <input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput">
+      </div>
+      <button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">
+        ${tier === 'pro' ? '✉️ Enable Alerts' : '🔒 Upgrade'}
+      </button>
+    </div>
+  `;
+
+  // ── ANIMATE IN ──
   setTimeout(() => {
-    const briefText = fetchAIBrief(iso);
+    const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
+    const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
+    const ring = document.getElementById('ringFill');
+    if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
+    DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
+  }, 60);
+
+  if (mapGroup) {
+    mapGroup.selectAll('.country-path').classed('sel-path', false);
+    if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
+  }
+
+  setTimeout(() => calcImpact(iso), 100);
+
+  // ── AI BRIEF: crisis-aware ──
+  setTimeout(() => {
+    const briefText = activeCrisisData
+      ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l} (${activeCrisis}). Key needs include ${activeCrisisData.n.join(', ')}. This crisis type contributes significantly to the country's overall urgency score of ${c.score}/100. Immediate humanitarian response targeting ${activeCrisisData.n.slice(0,2).join(' and ')} is recommended.`
+      : fetchAIBrief(iso);
     const el = document.getElementById('aiBriefContent');
     if (el && briefText) {
       el.innerHTML = `<div class="ai-brief-text">${briefText}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;
-el.style.maxHeight = '80px';
-el.style.overflow = 'hidden';
-el.style.cursor = 'pointer';
-el.onclick = function(e) {
-  e.stopPropagation();
-  if (this.classList.contains('expanded')) {
-    this.style.maxHeight = '80px';
-    this.classList.remove('expanded');
-  } else {
-    this.style.maxHeight = this.scrollHeight + 'px';
-    this.classList.add('expanded');
-  }
-};
     }
   }, 100);
+
+  // ── SCROLL TO CRISIS BANNER if crisis param active ──
+  if (activeCrisis) {
+    setTimeout(() => {
+      const banner = document.getElementById('crisisFocusBanner');
+      if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
 }function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
