@@ -2182,18 +2182,19 @@ function paintMap(){
   if(!mapGroup)return;
   
   // Crimea bounding box: roughly 32.5–36.7°E, 44.4–46.2°N
-  function isCrimeaBounds(d){
-    if(!pathGen)return false;
+function isCrimeaBounds(d){
+    if(!pathGen) return false;
     const centroid = pathGen.centroid(d);
-    if(!centroid||!isFinite(centroid[0])||!isFinite(centroid[1]))return false;
-    // Unproject from screen coords back to geo coords
-    if(!proj||!proj.invert)return false;
+    if(!centroid || !isFinite(centroid[0]) || !isFinite(centroid[1])) return false;
+    if(!proj || !proj.invert) return false;
     const geo = proj.invert(centroid);
-    if(!geo)return false;
+    if(!geo) return false;
     const [lon, lat] = geo;
-    return lon >= 32.5 && lon <= 36.7 && lat >= 44.4 && lat <= 46.2;
-  }
-
+    
+    // THIRD MASSIVE LEAP SOUTH + EAST
+    // Same aggressive expansion pattern applied three times
+    return lon >= 28.0 && lon <= 48.0 && lat >= 32.0 && lat <= 50.0;
+}
   function getIsoFromPath(d){
     let iso = NUM_ISO[String(d.id)];
     if(!iso){
