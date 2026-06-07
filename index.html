@@ -150,11 +150,16 @@ function buildUrgencyNarrative(iso) {
     : '';
 
   // ── 6. ANOMALY FLAG ────────────────────────────────────────────────────
-  const anomPhrase = anom.det
-    ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
-      ` indicating the current score deviates significantly` +
-      ` from the 28-day baseline.`
-    : '';
+// Only flag if z-score is genuinely exceptional (>3.5) AND the raw
+// 28-day swing is large enough to be meaningful (>12 pts), otherwise
+// seeded history trends cause near-universal false positives.
+const histSwing = hist.length >= 4
+  ? Math.max(...hist) - Math.min(...hist)
+  : 0;
+const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
+  ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
+    ` indicating an unusual spike relative to the 28-day baseline.`
+  : '';
 
   // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
   const parts = [];
@@ -224,21 +229,31 @@ function showTopUrgentStory() {
   selectedIso = targetIso;
   rankIdx = ranked.indexOf(targetIso);
 
-  // Render panel first so the AI brief slot exists in the DOM
+  // Render panel and zoom — no scroll side effects
   renderPanel(targetIso, topCrisisType);
   zoomToCountry(targetIso);
 
+  // Reset right panel to top so it doesn't jump mid-content
+  const rightPanel = document.getElementById('rightPanel');
+  if (rightPanel) rightPanel.scrollTop = 0;
+
+  // Highlight sidebar card — only scroll if it's genuinely off-screen
   document.querySelectorAll('.rank-card').forEach(el =>
     el.classList.toggle('sel', el.dataset.iso === targetIso));
-  document.querySelector(`[data-iso="${targetIso}"]`)
-    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const activeCard = document.querySelector(`[data-iso="${targetIso}"]`);
+  if (activeCard) {
+    const rect = activeCard.getBoundingClientRect();
+    const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+    if (!inView) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
+  // Update URL
   const url = topCrisisType
     ? `?country=${targetIso}&crisis=${topCrisisType}`
     : `?country=${targetIso}`;
   window.history.pushState({ country: targetIso }, '', url);
 
-  // Inject the data-driven narrative into the AI brief slot
+  // Inject narrative — must beat renderPanel's own 100ms brief timeout
   setTimeout(() => {
     const briefEl = document.getElementById('aiBriefContent');
     if (!briefEl) return;
@@ -251,14 +266,13 @@ function showTopUrgentStory() {
       `  <button class="ai-brief-btn" onclick="selCountry('${targetIso}')">` +
       `    ↗ Full analysis</button>` +
       `</div>`;
-  }, 80);
+  }, 120);
 
   const isEventBacked = withEventMatch.includes(targetIso);
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
         (isEventBacked ? "live event confirmed" : "score threshold"));
-}
-  window.dataLayer = window.dataLayer || [];
+}  window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-0LR42BR1B9');
