@@ -42,7 +42,7 @@
 <meta name="keywords" content="global crisis, earthquake tracker, conflict map, food security, disease outbreak, humanitarian data, real-time alerts">
 <link rel="canonical" href="https://globalcrisisindex.com">
 <meta property="og:title" content="Global Crisis Index | Real-time Crisis Map">
-<meta property="og:description" content="Track earthquakes, conflicts, food security, and disease outbreaks live. 40+ data sources.">
+<meta property="og:description" content="Track earthquakes, conflicts, food security, and disease outbreaks live. Data sources.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Global Crisis Index | Real-time Crisis Map">
@@ -640,7 +640,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   
   fetchBreakingNews();
 </script>
-<div class="ticker-bar"><div class="ticker-label">⚡ 40+ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
+<div class="ticker-bar"><div class="ticker-label">⚡ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
   <aside class="sidebar">
     <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
@@ -657,12 +657,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button id="mobileFilterBtn" style="display:none; position:fixed; bottom:20px; right:20px; z-index:200; background:linear-gradient(135deg,#bf7fff,#00c8ff); border:none; border-radius:40px; padding:12px 18px; color:#030b18; font-family:var(--fm); font-size:9px; font-weight:800; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.4);">
       🔍 Filters
     </button>
-    <div class="empty-state" id="emptyState"><div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div><div class="empty-title">Select a Country</div><div class="empty-sub">Click the map · J/K to navigate<br>40+ live APIs · ACLED Conflict · Weather · Food Security · Health</div></div>
+    <div class="empty-state" id="emptyState"><div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div><div class="empty-title">Select a Country</div><div class="empty-sub">Click the map · J/K to navigate<br>Live APIs · ACLED Conflict · Weather · Food Security · Health</div></div>
     <div id="panelContent" style="display:none"></div>
   </div>
 </div>
 </div>
-<div class="modal-bg" id="modalBg"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-badge">GCIS Fusion Premium</div><div class="modal-h">Unlock Full Intelligence</div><div class="modal-sub">Access all 60+ countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div><div class="modal-plans"><div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')"><div class="mplan-name">Pro</div><div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div><div class="mfeat">All 60+ countries</div><div class="mfeat">40+ live API endpoints</div><div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div><div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div></div><div class="mplan" data-p="enterprise" onclick="pickPlan(this,'enterprise')"><div class="mplan-name">Enterprise</div><div class="mplan-price" style="color:#00c8ff">Custom</div><div class="mfeat">Everything in Pro</div><div class="mfeat">White-label API</div><div class="mfeat">SLA guarantee</div><div class="mfeat">Dedicated support</div></div></div><a class="modal-cta" href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;text-decoration:none;">⚡ Start 14-Day Free Trial</a><p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p><div class="modal-proof">🏛️🏥🌍📊 <span></span></div></div></div>
+<div class="modal-bg" id="modalBg"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-badge">GCIS Fusion Premium</div><div class="modal-h">Unlock Full Intelligence</div><div class="modal-sub">Access all 60+ countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div><div class="modal-plans"><div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')"><div class="mplan-name">Pro</div><div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div><div class="mfeat">All 60+ countries</div><div class="mfeat">Live API endpoints</div><div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div><div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div></div><div class="mplan" data-p="enterprise" onclick="pickPlan(this,'enterprise')"><div class="mplan-name">Enterprise</div><div class="mplan-price" style="color:#00c8ff">Custom</div><div class="mfeat">Everything in Pro</div><div class="mfeat">White-label API</div><div class="mfeat">SLA guarantee</div><div class="mfeat">Dedicated support</div></div></div><a class="modal-cta" href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;text-decoration:none;">⚡ Start 14-Day Free Trial</a><p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p><div class="modal-proof">🏛️🏥🌍📊 <span></span></div></div></div>
 <div class="loader" id="loader"><div class="loader-ring"></div><div class="loader-h">GCIS Fusion</div><div class="loader-steps"><div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div><div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb×2 + GDACS + FIRMS + GFW…</div><div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + NOAA + Open-Meteo…</div><div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div><div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div><div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div><div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div></div><div class="loader-bar"><div class="loader-fill" id="lFill"></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
@@ -674,7 +674,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <a href="#" onclick="openModal(); return false;">UPGRADE TO PRO</a>
   </div>
   <div>GCIS Fusion — The Global Crisis Index</div>
-  <div style="opacity: 0.6; margin-top: 6px;">Live APIs · Real-time crisis intelligence · © 2026</div>
+  <div style="opacity: 0.6; margin-top: 6px;">Live APIs · "Highly efficient dashboard for cross-border risk comparisons"
+— Google AI © 2026</div>
 </footer>
 
 <script>
@@ -817,7 +818,7 @@ function checkExistingLogin() {
 const safe = (p, ms=8000) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]).catch(() => null);
 
 // ============================================================================
-// ALL API ENDPOINTS (40+ total - FULLY INTEGRATED)
+// ALL API ENDPOINTS (FULLY INTEGRATED)
 // ============================================================================
 const API_ENDPOINTS = {
   usgs_weekly: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
@@ -1234,7 +1235,7 @@ async function refresh() {
   loader.style.display = 'none';
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
-  toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/40+ APIs live`);
+  toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/APIs live`);
   
   refreshTimerSecs = 300;
   
@@ -1650,8 +1651,8 @@ function showShareModal(iso) {
   const shareUrl = encodeURIComponent(window.location.href);
   const shareTitle = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
   const shareText = encodeURIComponent(c 
-    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100 (${severity}). Live tracking via 40+ APIs.`
-    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100 (${severity}). Live tracking via live APIs.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from live data sources.');
 
   const modal = document.createElement('div');
   modal.id = 'shareModalBg';
@@ -1730,14 +1731,14 @@ function showShareModal(iso) {
       <div style="text-align:center;padding:20px 0;position:relative;">
         <div style="font-size:48px;margin-bottom:8px;">🌐</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,#fff,#00c8ff);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;">Global Crisis Index</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:6px;color:#6a9ec0;">Real-time intelligence from 40+ live APIs</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:6px;color:#6a9ec0;">Real-time intelligence from live APIs</div>
       </div>
       `}
 
       <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid rgba(0,200,255,.08);position:relative;">
         <div style="font-family:'JetBrains Mono',monospace;font-size:5px;color:#2e5878;">globalcrisisindex.com · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}</div>
         <div style="display:flex;gap:4px;">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.12);border-radius:3px;padding:1px 5px;color:#3ec5ff;">40+ APIS</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.12);border-radius:3px;padding:1px 5px;color:#3ec5ff;">APIS</span>
           <span style="font-family:'JetBrains Mono',monospace;font-size:4.5px;background:rgba(191,127,255,.06);border:1px solid rgba(191,127,255,.12);border-radius:3px;padding:1px 5px;color:#bf7fff;">GCIS FUSION</span>
         </div>
       </div>
@@ -1801,8 +1802,8 @@ function shareToPlatform(platform, iso) {
   const url = encodeURIComponent(window.location.href);
   const title = encodeURIComponent(c ? `${c.name} — Crisis Score: ${c.score}/100 | Global Crisis Index` : 'Global Crisis Index — Real-time Crisis Intelligence');
   const text = encodeURIComponent(c 
-    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100. Live crisis tracking from 40+ data sources.`
-    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from 40+ live data sources.');
+    ? `${c.flag} ${c.name} — Urgency Score: ${c.score}/100. Live crisis tracking from data sources.`
+    : 'Real-time global crisis intelligence. Track earthquakes, conflicts, food security & disease outbreaks from live data sources.');
   const hashtags = encodeURIComponent('GlobalCrisis,HumanitarianAid,CrisisMap');
   
   let shareUrl = '';
@@ -1825,7 +1826,7 @@ function shareToPlatform(platform, iso) {
       break;
     case 'threads':
       // Threads doesn't have a direct share API — copy text instead
-      const threadsText = c ? `${c.flag} ${c.name} — Crisis Score: ${c.score}/100\n\nLive crisis tracking from 40+ APIs\n\n${window.location.href}` : `Global Crisis Index — Real-time crisis intelligence\n\n${window.location.href}`;
+      const threadsText = c ? `${c.flag} ${c.name} — Crisis Score: ${c.score}/100\n\nLive crisis tracking from live APIs\n\n${window.location.href}` : `Global Crisis Index — Real-time crisis intelligence\n\n${window.location.href}`;
       navigator.clipboard.writeText(threadsText);
       toast('📋 Text copied! Paste into Threads app.');
       return;
@@ -1901,7 +1902,7 @@ function downloadCard() {
 }document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
-function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · 40+ live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
+function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · Live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}else if(e.key==='r')refresh();else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}});
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
 document.getElementById('loginBtn').addEventListener('click', login);
