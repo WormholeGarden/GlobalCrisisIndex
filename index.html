@@ -54,63 +54,209 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0LR42BR1B9"></script>
 <script>
 
-function showTopUrgentStory() {
+/**
+ * buildUrgencyNarrative(iso)
+ * Returns a 3–5 sentence plain-English explanation of WHY
+ * this country is the top urgent story right now.
+ * Pulls exclusively from data already loaded into memory.
+ */
+function buildUrgencyNarrative(iso) {
+  const c = store[iso];
+  const hist = (history[iso] || []).map(h => h.s);
+  const name = c.name, flag = c.flag;
 
-  // Mirror exactly what addPulseMarkers() uses
+  // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
+  const rank = ranked.indexOf(iso) + 1;
+  const totalCountries = ranked.length;
+  const severityLabel = c.score >= 80 ? "critical"
+                      : c.score >= 60 ? "high" : "elevated";
+  const pctile = Math.round((1 - rank / totalCountries) * 100);
+
+  // ── 2. DOMINANT DIMENSIONS ─────────────────────────────────────────────
+  const sortedDims = [...DIMS]
+    .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
+    .sort((a, b) => b.val - a.val);
+  const topDim = sortedDims[0];
+  const secondDim = sortedDims[1];
+
+  // ── 3. TREND ANALYSIS ──────────────────────────────────────────────────
+  const anom = cusum(hist);
+  const vol = volatility(hist);
+  const fc = forecast(hist, c.score);
+  const recentDelta = hist.length >= 7
+    ? hist[hist.length - 1] - hist[hist.length - 7]
+    : 0;
+  const deltaAbs = Math.abs(Math.round(recentDelta));
+  const trendPhrase = recentDelta > 4
+    ? `escalated ${deltaAbs} points over the past 7 days`
+    : recentDelta < -3
+    ? `eased slightly (${deltaAbs} pts) but remains ${severityLabel}`
+    : `held steady at ${severityLabel} levels`;
+
+  // ── 4. LIVE EVENT EVIDENCE ─────────────────────────────────────────────
+  const nameLower = name.toLowerCase();
+  const liveSignals = [];
+
+  const quakes = (apiResults.usgs_weekly?.features || [])
+    .filter(f => f.properties.place.toLowerCase().includes(nameLower));
+  if (quakes.length) {
+    const biggest = quakes.reduce((a, b) =>
+      b.properties.mag > a.properties.mag ? b : a);
+    liveSignals.push(
+      `a M${(+biggest.properties.mag).toFixed(1)} earthquake ` +
+      `(USGS, ${biggest.properties.place.split(',')[0]})`
+    );
+  }
+
+  const conflict = (conflictEvents || [])
+    .find(e => e.country.toLowerCase().includes(nameLower));
+  if (conflict) {
+    liveSignals.push(
+      `active ${conflict.event_type.toLowerCase()} ` +
+      `(${conflict.fatalities}+ fatalities, ACLED)`
+    );
+  }
+
+  const ipc = (ipcClassifications || [])
+    .find(i => i.country.toLowerCase().includes(nameLower));
+  if (ipc && ipc.phase >= 3) {
+    const pop = Math.round(ipc.population / 1e6);
+    liveSignals.push(
+      `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
+    );
+  }
+
+  const fews = (foodSecurityAlerts || [])
+    .find(a => a.country.toLowerCase().includes(nameLower));
+  if (fews && !ipc) {
+    liveSignals.push(`FEWS NET: ${fews.title}`);
+  }
+
+  const heat = (heatStressData || [])
+    .find(h => h.iso === iso && h.temp > 38);
+  if (heat) {
+    liveSignals.push(
+      `extreme heat (${heat.temp}°C, Open-Meteo)`
+    );
+  }
+
+  // ── 5. SPILLOVER PRESSURE ──────────────────────────────────────────────
+  const highNeighbours = (ADJ[iso] || [])
+    .filter(n => store[n]?.score >= 60)
+    .map(n => store[n].name);
+  const spillPhrase = highNeighbours.length >= 2
+    ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')}` +
+      ` adds +${(c.spillover || 0).toFixed(1)} to the composite score.`
+    : '';
+
+  // ── 6. ANOMALY FLAG ────────────────────────────────────────────────────
+  const anomPhrase = anom.det
+    ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
+      ` indicating the current score deviates significantly` +
+      ` from the 28-day baseline.`
+    : '';
+
+  // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
+  const parts = [];
+
+  // Sentence 1 — score + rank
+  parts.push(
+    `${flag} ${name} ranks #${rank} globally with a ${severityLabel} ` +
+    `urgency score of ${c.score}/100, placing it in the ` +
+    `top ${100 - pctile}% of all tracked countries.`
+  );
+
+  // Sentence 2 — dominant dimensions
+  parts.push(
+    `The composite is driven primarily by ${topDim.l.toLowerCase()} ` +
+    `(${topDim.val}/100) and ${secondDim.l.toLowerCase()} ` +
+    `(${secondDim.val}/100), the two highest-weighted dimensions.`
+  );
+
+  // Sentence 3 — trend
+  parts.push(
+    `The score has ${trendPhrase}` +
+    (fc.esc
+      ? `, with the 7-day model projecting further escalation to ${fc.fc}.`
+      : `.`)
+  );
+
+  // Sentence 4 — live evidence (if any)
+  if (liveSignals.length) {
+    const joined = liveSignals.length === 1
+      ? liveSignals[0]
+      : liveSignals.slice(0, -1).join(', ') + ' and ' + liveSignals.slice(-1);
+    parts.push(
+      `Live data confirms ${joined}.`
+    );
+  }
+
+  // Sentence 5 — spillover / anomaly
+  if (spillPhrase || anomPhrase) {
+    parts.push((spillPhrase + anomPhrase).trim());
+  }
+
+  return parts.join(' ');
+}
+
+
+// ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
+function showTopUrgentStory() {
   const pulseEligible = ranked
     .filter(iso => store[iso]?.score >= 60)
     .slice(0, 18);
 
-  // Prefer an ISO that has a real seismic/NASA event match
   const withEventMatch = pulseEligible.filter(iso => {
-    const name = store[iso].name.toLowerCase();
-    const hasQuake = apiResults.usgs_weekly?.features
-      ?.some(f => f.properties.place.toLowerCase().includes(name));
-    const hasEvent = apiResults.nasa?.events
-      ?.some(e => e.title.toLowerCase().includes(name));
-    const hasConflict = conflictEvents
-      ?.some(e => e.country.toLowerCase().includes(name));
-    return hasQuake || hasEvent || hasConflict;
+    const n = store[iso].name.toLowerCase();
+    return apiResults.usgs_weekly?.features?.some(f =>
+        f.properties.place.toLowerCase().includes(n))
+      || conflictEvents?.some(e =>
+        e.country.toLowerCase().includes(n))
+      || (heatStressData || []).some(h => h.iso === iso && h.temp > 38);
   });
 
-  // Best candidate: event-matched first, then score-threshold only
   const targetIso = withEventMatch[0] ?? pulseEligible[0] ?? ranked[0];
-
-  if (!targetIso || !store[targetIso]) {
-    toast("⏳ Loading crisis data...");
-    return;
-  }
+  if (!targetIso || !store[targetIso]) { toast("⏳ Loading..."); return; }
 
   const c = store[targetIso];
-  const isEventBacked = withEventMatch.includes(targetIso);
-  const severity = c.score >= 80 ? "🔴 CRITICAL"
-                 : c.score >= 60 ? "🟠 HIGH"
-                 : "🟡 ELEVATED";
-
-  // Find the most active crisis type for this country
   const topCrisisType = c.types?.[0] ?? null;
 
   selectedIso = targetIso;
   rankIdx = ranked.indexOf(targetIso);
 
+  // Render panel first so the AI brief slot exists in the DOM
   renderPanel(targetIso, topCrisisType);
   zoomToCountry(targetIso);
 
-  // Highlight the card in the sidebar
-  document.querySelectorAll('.rank-card').forEach(el => {
-    el.classList.toggle('sel', el.dataset.iso === targetIso);
-  });
-  const activeCard = document.querySelector(`[data-iso="${targetIso}"]`);
-  activeCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.querySelectorAll('.rank-card').forEach(el =>
+    el.classList.toggle('sel', el.dataset.iso === targetIso));
+  document.querySelector(`[data-iso="${targetIso}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  // Update URL state
   const url = topCrisisType
     ? `?country=${targetIso}&crisis=${topCrisisType}`
     : `?country=${targetIso}`;
   window.history.pushState({ country: targetIso }, '', url);
 
-  const source = isEventBacked ? "· live API event" : "· score threshold";
-  toast(`${severity}: ${c.flag} ${c.name} (${c.score}/100) ${source}`);
+  // Inject the data-driven narrative into the AI brief slot
+  setTimeout(() => {
+    const briefEl = document.getElementById('aiBriefContent');
+    if (!briefEl) return;
+    const narrative = buildUrgencyNarrative(targetIso);
+    briefEl.innerHTML =
+      `<div class="ai-brief-text">${narrative}</div>` +
+      `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">` +
+      `  <button class="ai-brief-btn" onclick="showTopUrgentStory()">` +
+      `    ↺ Recheck top story</button>` +
+      `  <button class="ai-brief-btn" onclick="selCountry('${targetIso}')">` +
+      `    ↗ Full analysis</button>` +
+      `</div>`;
+  }, 80);
+
+  const isEventBacked = withEventMatch.includes(targetIso);
+  const badge = c.score >= 80 ? "🔴" : "🟠";
+  toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
+        (isEventBacked ? "live event confirmed" : "score threshold"));
 }
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -1696,16 +1842,19 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 
   setTimeout(() => calcImpact(iso), 100);
 
-  // ── AI BRIEF: crisis-aware ──
-  setTimeout(() => {
-    const briefText = activeCrisisData
-      ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l} (${activeCrisis}). Key needs include ${activeCrisisData.n.join(', ')}. This crisis type contributes significantly to the country's overall urgency score of ${c.score}/100. Immediate humanitarian response targeting ${activeCrisisData.n.slice(0,2).join(' and ')} is recommended.`
-      : fetchAIBrief(iso);
-    const el = document.getElementById('aiBriefContent');
-    if (el && briefText) {
-      el.innerHTML = `<div class="ai-brief-text">${briefText}</div><button class="ai-brief-btn" onclick="location.reload()">↺ Regenerate</button>`;
-    }
-  }, 100);
+ // ── AI BRIEF: data-driven narrative ──
+setTimeout(() => {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  const narrative = typeof buildUrgencyNarrative === 'function'
+    ? buildUrgencyNarrative(iso)
+    : (activeCrisisData
+        ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
+        : fetchAIBrief(iso));
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
+}, 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
