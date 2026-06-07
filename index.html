@@ -18,12 +18,14 @@
 </div>
   </div>
   <div style="font-size: 10px;">
-    <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
-    <span style="opacity: 0.3;">|</span>
-    <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
-    <span style="opacity: 0.3;">|</span>
-    <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
-  </div>
+  <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
+  <span style="opacity: 0.3;">|</span>
+  <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
+  <span style="opacity: 0.3;">|</span>
+  <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
+  <span style="opacity: 0.3;">|</span>
+  <a href="#" onclick="showTopUrgentStory(); return false;" style="color: inherit; text-decoration: none;">TOP URGENT STORY</a>
+</div>
 </div>  <span style="color: var(--tm); margin: 0 8px;">|</span>
   <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
 </div>
@@ -51,6 +53,65 @@
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0LR42BR1B9"></script>
 <script>
+
+function showTopUrgentStory() {
+
+  // Mirror exactly what addPulseMarkers() uses
+  const pulseEligible = ranked
+    .filter(iso => store[iso]?.score >= 60)
+    .slice(0, 18);
+
+  // Prefer an ISO that has a real seismic/NASA event match
+  const withEventMatch = pulseEligible.filter(iso => {
+    const name = store[iso].name.toLowerCase();
+    const hasQuake = apiResults.usgs_weekly?.features
+      ?.some(f => f.properties.place.toLowerCase().includes(name));
+    const hasEvent = apiResults.nasa?.events
+      ?.some(e => e.title.toLowerCase().includes(name));
+    const hasConflict = conflictEvents
+      ?.some(e => e.country.toLowerCase().includes(name));
+    return hasQuake || hasEvent || hasConflict;
+  });
+
+  // Best candidate: event-matched first, then score-threshold only
+  const targetIso = withEventMatch[0] ?? pulseEligible[0] ?? ranked[0];
+
+  if (!targetIso || !store[targetIso]) {
+    toast("⏳ Loading crisis data...");
+    return;
+  }
+
+  const c = store[targetIso];
+  const isEventBacked = withEventMatch.includes(targetIso);
+  const severity = c.score >= 80 ? "🔴 CRITICAL"
+                 : c.score >= 60 ? "🟠 HIGH"
+                 : "🟡 ELEVATED";
+
+  // Find the most active crisis type for this country
+  const topCrisisType = c.types?.[0] ?? null;
+
+  selectedIso = targetIso;
+  rankIdx = ranked.indexOf(targetIso);
+
+  renderPanel(targetIso, topCrisisType);
+  zoomToCountry(targetIso);
+
+  // Highlight the card in the sidebar
+  document.querySelectorAll('.rank-card').forEach(el => {
+    el.classList.toggle('sel', el.dataset.iso === targetIso);
+  });
+  const activeCard = document.querySelector(`[data-iso="${targetIso}"]`);
+  activeCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Update URL state
+  const url = topCrisisType
+    ? `?country=${targetIso}&crisis=${topCrisisType}`
+    : `?country=${targetIso}`;
+  window.history.pushState({ country: targetIso }, '', url);
+
+  const source = isEventBacked ? "· live API event" : "· score threshold";
+  toast(`${severity}: ${c.flag} ${c.name} (${c.score}/100) ${source}`);
+}
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
@@ -2077,6 +2138,8 @@ function searchGoogleCrisis() {
   // Optional: show feedback
   toast(`🔍 Searching: "global crisis index" ${query}`);
 }
+
+
 </script>
 
 
