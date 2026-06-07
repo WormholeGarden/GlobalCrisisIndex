@@ -87,7 +87,19 @@
   0% { opacity: 0; transform: scale(0.95); }
   100% { opacity: 1; transform: scale(1); }
 }
+#searchGoogleBtn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
 
+#searchGoogleBtn:active {
+  transform: scale(0.98);
+}
+
+#crisisSearch:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+}
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
@@ -661,6 +673,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="ticker-bar"><div class="ticker-label">⚡ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
   <aside class="sidebar">
+    <!-- NEW: Google Search Box -->
+    <div class="sb-block">
+      <div class="sb-heading">Ask Global Crisis Index <span style="font-size: 11px; font-weight: normal; color: var(--tm);">🔍 powered by Google</span></div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <input type="text" id="crisisSearch" placeholder="e.g., sudan drought, japan earthquake, yemen famine..." 
+               style="flex: 1; background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; outline: none; transition: all 0.2s;"
+               onkeypress="if(event.key === 'Enter') searchGoogleCrisis()">
+        <button id="searchGoogleBtn" onclick="searchGoogleCrisis()"
+                style="background: linear-gradient(135deg, #1a73e8, #0d47a1); border: none; border-radius: 8px; padding: 0 16px; color: white; font-weight: 600; font-size: 13px; cursor: pointer; transition: opacity 0.2s;">
+          🔍 Ask
+        </button>
+      </div>
+      <div style="font-size: 10px; color: var(--tm); margin-top: 6px;">
+        ⚡ Searches "global crisis index" + your question for authoritative results
+      </div>
+    </div>
+
     <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
     <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Ranking <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
   </aside>
@@ -2029,6 +2058,27 @@ if (window.innerWidth <= 900) {
       }
     });
   }
+}
+
+// Google Search function for crisis queries
+function searchGoogleCrisis() {
+  const input = document.getElementById('crisisSearch');
+  const query = input.value.trim();
+  
+  if (!query) {
+    toast('❓ Please enter a crisis question first');
+    return;
+  }
+  
+  // Build the branded search: "global crisis index" + user query
+  const brandedQuery = `"global crisis index" ${query} article`;
+  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(brandedQuery)}`;
+  
+  // Open in new tab
+  window.open(googleUrl, '_blank');
+  
+  // Optional: show feedback
+  toast(`🔍 Searching: "global crisis index" ${query}`);
 }
 </script>
 
