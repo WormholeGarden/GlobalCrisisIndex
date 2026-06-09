@@ -270,12 +270,42 @@ async function fetchACLED(apiKey, email) {
 }
 
 async function fetchIPC() {
+  // Fetch the list of analyses to find the most recent one
   const r = await safeFetch(
-    fetch("https://api.ipcinfo.org/v1/classifications/latest").then(r => r.json())
+    fetch("https://api.ipcinfo.org/analyses")
+      .then(r => r.json())
   );
-  return r.ok && Array.isArray(r.data) ? r.data : [];
+  
+  if (!r.ok || !r.data || !r.data.length) {
+    return [];
+  }
+  
+  // Get the most recent analysis ID
+  const latestAnalysis = r.data.sort((a, b) => 
+    new Date(b.analysis_date) - new Date(a.analysis_date)
+  )[0];
+  
+  if (!latestAnalysis || !latestAnalysis.id) {
+    return [];
+  }
+  
+  // Fetch population data for that analysis
+  const popR = await safeFetch(
+    fetch(`https://api.ipcinfo.org/population/${latestAnalysis.id}`)
+      .then(r => r.json())
+  );
+  
+  if (!popR.ok || !popR.data) {
+    return [];
+  }
+  
+  // Transform to format expected by extractSignals()
+  return popR.data.map(item => ({
+    country: item.area_name,
+    phase: item.phase_class,
+    population: item.population || 0,
+  }));
 }
-
 async function fetchWeather(lon, lat) {
   const r = await safeFetch(
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max&timezone=auto&forecast_days=1`)
