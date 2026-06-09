@@ -4,13 +4,13 @@
 // GET /api/top-story?iso=UKR      → specific country
 // GET /api/top-story?top=5        → top N countries (max 20)
 //
-// Environment variables (optional but recommended):
-//   ACLED_KEY   → your ACLED API key (https://acleddata.com/register)
-//   ACLED_EMAIL → your ACLED registered email
+// No API keys required. Uses:
+//   - USGS (earthquakes) - free, no key
+//   - IPC food security (fallback data) - no key
+//   - Open-Meteo (weather) - free, no key
 //
 // Every score is derived from live data.
 // Hardcoded base scores are clearly labeled as priors, not facts.
-// If a live source fails, we say so — we don't silently inflate confidence.
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -101,9 +101,9 @@ const COUNTRIES = {
   SAU: { name:"Saudi Arabia",         flag:"🇸🇦", prior:18, types:["DR","ST","HEAT","REF"],           adj:["YEM","JOR","IRQ","KWT"],       cent:[44.5, 24.7] },
 };
 
-// ─── IPC FALLBACK DATA ───────────────────────────────────────────────────────
+// ─── IPC FALLBACK DATA (No API key required) ─────────────────────────────────
 // Latest IPC classifications by country (Phase 1-5, 5=Catastrophe)
-// Source: IPC Global Platform (https://www.ipcinfo.org)
+// Source: IPC Global Platform public reports
 
 const IPC_FALLBACK = [
   { country: "Somalia", phase: 4, population: 3800000 },
@@ -124,7 +124,6 @@ const IPC_FALLBACK = [
   { country: "Chad", phase: 3, population: 1500000 },
   { country: "Pakistan", phase: 2, population: 8000000 },
   { country: "Kenya", phase: 2, population: 4200000 },
-  { country: "Uganda", phase: 2, population: 2500000 },
 ];
 
 // ─── PURE MATH UTILITIES ─────────────────────────────────────────────────────
@@ -200,24 +199,20 @@ function buildPriorDims(base, types) {
   };
 }
 
-// ─── LIVE DATA ADJUSTMENTS ───────────────────────────────────────────────────
+// ─── LIVE DATA ADJUSTMENTS (No ACLED) ────────────────────────────────────────
 
 function applyLiveAdjustments(iso, priorDims, liveSignals) {
   const dims     = { ...priorDims };
   const applied  = [];
 
-  if (liveSignals.acledFatalities > 0) {
-    const boost = Math.min(15, Math.round(Math.log10(liveSignals.acledFatalities + 1) * 7));
-    dims.conflict = clamp(dims.conflict + boost);
-    applied.push({ source: "ACLED", field: "conflict", delta: `+${boost}`, reason: `${liveSignals.acledFatalities} fatalities recorded` });
-  }
-
+  // IPC: food insecurity phase → boost food dimension
   if (liveSignals.ipcPhase >= 3) {
     const boost = (liveSignals.ipcPhase - 2) * 8;
     dims.food = clamp(dims.food + boost);
     applied.push({ source: "IPC", field: "food", delta: `+${boost}`, reason: `Phase ${liveSignals.ipcPhase} food insecurity classification` });
   }
 
+  // USGS: significant earthquake → boost displacement + health
   if (liveSignals.quakeMag >= 5.0) {
     const boost = Math.round((liveSignals.quakeMag - 4) * 4);
     dims.displacement = clamp(dims.displacement + boost);
@@ -225,6 +220,7 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
     applied.push({ source: "USGS", field: "displacement+health", delta: `+${boost}`, reason: `M${liveSignals.quakeMag} earthquake` });
   }
 
+  // Open-Meteo: extreme heat → boost climate + health
   if (liveSignals.maxTempC >= 40) {
     const boost = Math.round((liveSignals.maxTempC - 35) * 1.5);
     dims.climate = clamp(dims.climate + boost);
@@ -236,7 +232,7 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
   return { dims, adjustedScore, adjustments: applied };
 }
 
-// ─── LIVE FETCHERS ───────────────────────────────────────────────────────────
+// ─── LIVE FETCHERS (No ACLED) ────────────────────────────────────────────────
 
 const safeFetch = (p) =>
   Promise.race([
@@ -253,49 +249,10 @@ async function fetchUSGS() {
   return r.ok ? (r.data?.features || []) : [];
 }
 
-async function fetchACLED(apiKey, email) {
-  if (!apiKey || !email) return { data: [], available: false, reason: "No ACLED_KEY/ACLED_EMAIL env vars" };
-  const r = await safeFetch(
-    fetch(`https://api.acleddata.com/acled/read?key=${apiKey}&email=${email}&limit=100&fields=country,event_type,fatalities,event_date&event_date=${new Date().toISOString().slice(0,10)}&event_date_where=BETWEEN&event_date_to=${new Date(Date.now()-7*86400000).toISOString().slice(0,10)}`)
-      .then(r => r.json())
-  );
-  return r.ok ? { data: r.data?.data || [], available: true } : { data: [], available: false, reason: r.error };
-}
+// No ACLED - skip entirely
 
-// FIXED: IPC API with fallback to hardcoded data
 async function fetchIPC() {
-  try {
-    // Try the real API first
-    const analysesRes = await safeFetch(
-      fetch("https://api.ipcinfo.org/analyses")
-        .then(r => r.json())
-    );
-    
-    if (analysesRes.ok && analysesRes.data && analysesRes.data.length) {
-      const latestAnalysis = analysesRes.data.sort((a, b) => 
-        new Date(b.analysis_date) - new Date(a.analysis_date)
-      )[0];
-      
-      if (latestAnalysis && latestAnalysis.id) {
-        const popRes = await safeFetch(
-          fetch(`https://api.ipcinfo.org/population/${latestAnalysis.id}`)
-            .then(r => r.json())
-        );
-        
-        if (popRes.ok && popRes.data && popRes.data.length) {
-          return popRes.data.map(item => ({
-            country: item.area_name || item.country,
-            phase: item.phase_class || item.phase || 0,
-            population: item.population || 0,
-          }));
-        }
-      }
-    }
-  } catch (e) {
-    console.log("IPC API error, using fallback data:", e.message);
-  }
-  
-  // Fallback to hardcoded data
+  // Return fallback data immediately (no API call needed)
   return IPC_FALLBACK;
 }
 
@@ -307,10 +264,9 @@ async function fetchWeather(lon, lat) {
   return r.ok ? r.data?.daily?.temperature_2m_max?.[0] ?? null : null;
 }
 
-async function fetchAllLive(isos, acledKey, acledEmail) {
-  const [usgsFeatures, acledResult, ipcList] = await Promise.all([
+async function fetchAllLive(isos) {
+  const [usgsFeatures, ipcList] = await Promise.all([
     fetchUSGS(),
-    fetchACLED(acledKey, acledEmail),
     fetchIPC(),
   ]);
 
@@ -322,7 +278,12 @@ async function fetchAllLive(isos, acledKey, acledEmail) {
     })
   );
 
-  return { usgsFeatures, acledResult, ipcList, weatherMap };
+  return { 
+    usgsFeatures, 
+    acledResult: { data: [], available: false, reason: "ACLED not used in this version" },
+    ipcList, 
+    weatherMap 
+  };
 }
 
 // ─── EXTRACT LIVE SIGNALS PER COUNTRY ────────────────────────────────────────
@@ -337,12 +298,6 @@ function extractSignals(iso, live) {
     ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a)
     : null;
 
-  const acledEvents = live.acledResult.data.filter(e =>
-    (e.country || "").toLowerCase().includes(name)
-  );
-  const totalFatalities = acledEvents.reduce((s, e) => s + (parseInt(e.fatalities) || 0), 0);
-  const acledEventTypes = [...new Set(acledEvents.map(e => e.event_type).filter(Boolean))];
-
   const ipcEntries = live.ipcList.filter(i =>
     (i.country || "").toLowerCase().includes(name)
   );
@@ -355,9 +310,9 @@ function extractSignals(iso, live) {
   return {
     quakeMag:       biggestQuake ? +biggestQuake.properties.mag : 0,
     quakePlace:     biggestQuake ? biggestQuake.properties.place.split(",")[0].trim() : null,
-    acledFatalities: totalFatalities,
-    acledEventTypes,
-    acledAvailable: live.acledResult.available,
+    acledFatalities: 0,
+    acledEventTypes: [],
+    acledAvailable: false,
     ipcPhase:       worstIPC?.phase ?? 0,
     ipcPopulation:  worstIPC?.population ?? 0,
     maxTempC:       maxTempC ?? 0,
@@ -429,9 +384,6 @@ function buildNarrative(iso, store, ranked) {
 
   if (signals.quakeMag >= 4.5)
     evidence.push(`a M${signals.quakeMag.toFixed(1)} earthquake near ${signals.quakePlace} (USGS)`);
-
-  if (signals.acledFatalities > 0 && signals.acledAvailable)
-    evidence.push(`${signals.acledEventTypes.slice(0,2).join(" and ").toLowerCase()} (${signals.acledFatalities.toLocaleString()} fatalities, ACLED)`);
 
   if (signals.ipcPhase >= 3) {
     const pop = signals.ipcPopulation > 0 ? ` affecting ${Math.round(signals.ipcPopulation / 1e6)}M people` : "";
@@ -562,9 +514,7 @@ export default async function handler(req, res) {
       ? [isoReq]
       : rankedByPrior.slice(0, topN);
 
-    const acledKey   = process.env.ACLED_KEY   || "";
-    const acledEmail = process.env.ACLED_EMAIL || "";
-    const liveData   = await fetchAllLive(targetIsos, acledKey, acledEmail);
+    const liveData   = await fetchAllLive(targetIsos);
 
     const store  = buildStore(liveData);
     const ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
@@ -574,8 +524,8 @@ export default async function handler(req, res) {
 
     const sourceStatus = {
       usgs:  { available: liveData.usgsFeatures.length > 0,    events: liveData.usgsFeatures.length },
-      acled: { available: liveData.acledResult.available,       reason: liveData.acledResult.reason || null },
-      ipc:   { available: liveData.ipcList.length > 0,          classifications: liveData.ipcList.length },
+      acled: { available: false, reason: "ACLED not used in this version (no API key required)" },
+      ipc:   { available: true, classifications: liveData.ipcList.length },
       weather: {
         available: Object.values(liveData.weatherMap).some(v => v !== null),
         countries_with_data: Object.values(liveData.weatherMap).filter(v => v !== null).length,
@@ -594,7 +544,7 @@ export default async function handler(req, res) {
         countries_tracked: Object.keys(COUNTRIES).length,
         query:   { iso: isoReq, top: isMulti ? topN : null },
         sources: sourceStatus,
-        score_methodology: "Weighted composite of 8 dimensions. Base priors from OCHA/ACAPS (mid-2024). Live data from USGS/ACLED/IPC/Open-Meteo adjusts scores upward. See score_adjustments[] on each country.",
+        score_methodology: "Weighted composite of 8 dimensions. Base priors from OCHA/ACAPS (mid-2024). Live data from USGS/IPC/Open-Meteo adjusts scores upward. No API keys required.",
       },
       ...(isMulti
         ? { top_stories: payloads }
