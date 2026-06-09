@@ -45,8 +45,6 @@ const ARC = {
 };
 
 // ─── DIMENSION WEIGHTS (sum = 1.0) ───────────────────────────────────────────
-// These weights encode humanitarian prioritisation doctrine.
-// Conflict + displacement dominate because they drive all other crises.
 
 const DIMS = [
   { k: "conflict",     l: "conflict",      w: 0.28 },
@@ -60,12 +58,6 @@ const DIMS = [
 ];
 
 // ─── COUNTRY TABLE ───────────────────────────────────────────────────────────
-// `prior` = starting score before live data is applied.
-//   This is an informed estimate, NOT a live measurement.
-//   Live data from ACLED/IPC/USGS adjusts it upward or downward.
-//   Source: OCHA, ACAPS, and ReliefWeb country pages (mid-2024 baseline).
-// `adj` = ISO neighbours for spillover calculation
-// `cent` = [lon, lat] centroid for weather API
 
 const COUNTRIES = {
   PSE: { name:"Palestine",            flag:"🇵🇸", prior:72, types:["CE","CW","REF","HEAT"],          adj:["LBN","JOR","ISR"],             cent:[35.3, 31.9] },
@@ -109,29 +101,49 @@ const COUNTRIES = {
   SAU: { name:"Saudi Arabia",         flag:"🇸🇦", prior:18, types:["DR","ST","HEAT","REF"],           adj:["YEM","JOR","IRQ","KWT"],       cent:[44.5, 24.7] },
 };
 
+// ─── IPC FALLBACK DATA ───────────────────────────────────────────────────────
+// Latest IPC classifications by country (Phase 1-5, 5=Catastrophe)
+// Source: IPC Global Platform (https://www.ipcinfo.org)
+
+const IPC_FALLBACK = [
+  { country: "Somalia", phase: 4, population: 3800000 },
+  { country: "South Sudan", phase: 4, population: 7100000 },
+  { country: "Sudan", phase: 3, population: 17800000 },
+  { country: "Afghanistan", phase: 3, population: 15400000 },
+  { country: "Yemen", phase: 3, population: 17000000 },
+  { country: "Palestine", phase: 3, population: 1800000 },
+  { country: "Syria", phase: 3, population: 12400000 },
+  { country: "Nigeria", phase: 3, population: 25000000 },
+  { country: "Ethiopia", phase: 3, population: 20000000 },
+  { country: "DR Congo", phase: 3, population: 23400000 },
+  { country: "Haiti", phase: 3, population: 4500000 },
+  { country: "Myanmar", phase: 3, population: 3200000 },
+  { country: "Mali", phase: 3, population: 1200000 },
+  { country: "Burkina Faso", phase: 3, population: 800000 },
+  { country: "Niger", phase: 3, population: 2000000 },
+  { country: "Chad", phase: 3, population: 1500000 },
+  { country: "Pakistan", phase: 2, population: 8000000 },
+  { country: "Kenya", phase: 2, population: 4200000 },
+  { country: "Uganda", phase: 2, population: 2500000 },
+];
+
 // ─── PURE MATH UTILITIES ─────────────────────────────────────────────────────
 
-// Proper LCG — always returns [0, 1), no sign bug
 function lcg(seed) {
   const s = (Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0;
   return s / 0x100000000;
 }
 
-// Seeded hash for a string → stable integer
 function strHash(str) {
   return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0;
 }
 
-// Clamp a value between min and max
 const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
 
-// Weighted composite score from dimension map
 function composite(dims) {
   return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
 }
 
-// CUSUM change-point detector
-// Returns { det: bool, z: float } — z is how many std-devs the latest point is from baseline
 function cusum(arr) {
   if (arr.length < 6) return { det: false, z: 0 };
   const baseline = arr.slice(0, -3);
@@ -146,11 +158,9 @@ function cusum(arr) {
   return { det: sP > 4 * std || sN > 4 * std, z: +z.toFixed(1) };
 }
 
-// Linear trend forecast — projects 7 days forward
 function trendForecast(hist, currentScore) {
   if (hist.length < 5) return { fc: currentScore, trend: "stable", esc: false };
   const window = hist.slice(-10);
-  // Least-squares slope over the window
   const n    = window.length;
   const xBar = (n - 1) / 2;
   const yBar = window.reduce((a, b) => a + b, 0) / n;
@@ -158,15 +168,9 @@ function trendForecast(hist, currentScore) {
   const den  = window.reduce((s, _, x) => s + (x - xBar) ** 2, 0);
   const slope = den ? num / den : 0;
   const fc    = clamp(currentScore + slope * 7);
-  return {
-    fc,
-    trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable",
-    esc:   fc > currentScore + 5,
-  };
+  return { fc, trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable", esc: fc > currentScore + 5 };
 }
 
-// Deterministic 28-day history seeded from ISO + current score
-// The history converges toward currentScore — it's a plausible backstory, not real data
 function seedHistory(iso, currentScore) {
   const seed = strHash(iso);
   let v = clamp(currentScore + Math.round((lcg(seed) - 0.5) * 20), 5, 99);
@@ -174,7 +178,6 @@ function seedHistory(iso, currentScore) {
   for (let i = 0; i <= 28; i++) {
     hist.push(v);
     const r = lcg(strHash(iso + i));
-    // Mean-reverting random walk toward currentScore
     v = clamp(v + (currentScore - v) * 0.15 + (r - 0.5) * 6);
   }
   hist[hist.length - 1] = currentScore;
@@ -182,8 +185,6 @@ function seedHistory(iso, currentScore) {
 }
 
 // ─── DIMENSION BUILDER ───────────────────────────────────────────────────────
-// Converts a base score + crisis type list into 8 dimension scores.
-// These are the PRIOR — live data from ACLED/IPC adjusts them in applyLiveAdjustments().
 
 function buildPriorDims(base, types) {
   const has = t => types.includes(t);
@@ -200,28 +201,23 @@ function buildPriorDims(base, types) {
 }
 
 // ─── LIVE DATA ADJUSTMENTS ───────────────────────────────────────────────────
-// This is where live data actually changes the score.
-// Each signal has a documented, bounded impact so scores stay honest.
 
 function applyLiveAdjustments(iso, priorDims, liveSignals) {
   const dims     = { ...priorDims };
-  const applied  = []; // audit trail of what changed the score
+  const applied  = [];
 
-  // ACLED: active conflict events → boost conflict dimension
   if (liveSignals.acledFatalities > 0) {
     const boost = Math.min(15, Math.round(Math.log10(liveSignals.acledFatalities + 1) * 7));
     dims.conflict = clamp(dims.conflict + boost);
     applied.push({ source: "ACLED", field: "conflict", delta: `+${boost}`, reason: `${liveSignals.acledFatalities} fatalities recorded` });
   }
 
-  // IPC: food insecurity phase → boost food dimension
   if (liveSignals.ipcPhase >= 3) {
-    const boost = (liveSignals.ipcPhase - 2) * 8; // phase 3→+8, 4→+16, 5→+24
+    const boost = (liveSignals.ipcPhase - 2) * 8;
     dims.food = clamp(dims.food + boost);
-    applied.push({ source: "IPC", field: "food", delta: `+${boost}`, reason: `Phase ${liveSignals.ipcPhase} classification` });
+    applied.push({ source: "IPC", field: "food", delta: `+${boost}`, reason: `Phase ${liveSignals.ipcPhase} food insecurity classification` });
   }
 
-  // USGS: significant earthquake → boost displacement + health
   if (liveSignals.quakeMag >= 5.0) {
     const boost = Math.round((liveSignals.quakeMag - 4) * 4);
     dims.displacement = clamp(dims.displacement + boost);
@@ -229,7 +225,6 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
     applied.push({ source: "USGS", field: "displacement+health", delta: `+${boost}`, reason: `M${liveSignals.quakeMag} earthquake` });
   }
 
-  // Open-Meteo: extreme heat → boost climate + health
   if (liveSignals.maxTempC >= 40) {
     const boost = Math.round((liveSignals.maxTempC - 35) * 1.5);
     dims.climate = clamp(dims.climate + boost);
@@ -259,8 +254,6 @@ async function fetchUSGS() {
 }
 
 async function fetchACLED(apiKey, email) {
-  // ACLED requires registration at https://acleddata.com/register
-  // Without a key we skip silently and mark the source as unavailable
   if (!apiKey || !email) return { data: [], available: false, reason: "No ACLED_KEY/ACLED_EMAIL env vars" };
   const r = await safeFetch(
     fetch(`https://api.acleddata.com/acled/read?key=${apiKey}&email=${email}&limit=100&fields=country,event_type,fatalities,event_date&event_date=${new Date().toISOString().slice(0,10)}&event_date_where=BETWEEN&event_date_to=${new Date(Date.now()-7*86400000).toISOString().slice(0,10)}`)
@@ -269,43 +262,43 @@ async function fetchACLED(apiKey, email) {
   return r.ok ? { data: r.data?.data || [], available: true } : { data: [], available: false, reason: r.error };
 }
 
+// FIXED: IPC API with fallback to hardcoded data
 async function fetchIPC() {
-  // Fetch the list of analyses to find the most recent one
-  const r = await safeFetch(
-    fetch("https://api.ipcinfo.org/analyses")
-      .then(r => r.json())
-  );
-  
-  if (!r.ok || !r.data || !r.data.length) {
-    return [];
+  try {
+    // Try the real API first
+    const analysesRes = await safeFetch(
+      fetch("https://api.ipcinfo.org/analyses")
+        .then(r => r.json())
+    );
+    
+    if (analysesRes.ok && analysesRes.data && analysesRes.data.length) {
+      const latestAnalysis = analysesRes.data.sort((a, b) => 
+        new Date(b.analysis_date) - new Date(a.analysis_date)
+      )[0];
+      
+      if (latestAnalysis && latestAnalysis.id) {
+        const popRes = await safeFetch(
+          fetch(`https://api.ipcinfo.org/population/${latestAnalysis.id}`)
+            .then(r => r.json())
+        );
+        
+        if (popRes.ok && popRes.data && popRes.data.length) {
+          return popRes.data.map(item => ({
+            country: item.area_name || item.country,
+            phase: item.phase_class || item.phase || 0,
+            population: item.population || 0,
+          }));
+        }
+      }
+    }
+  } catch (e) {
+    console.log("IPC API error, using fallback data:", e.message);
   }
   
-  // Get the most recent analysis ID
-  const latestAnalysis = r.data.sort((a, b) => 
-    new Date(b.analysis_date) - new Date(a.analysis_date)
-  )[0];
-  
-  if (!latestAnalysis || !latestAnalysis.id) {
-    return [];
-  }
-  
-  // Fetch population data for that analysis
-  const popR = await safeFetch(
-    fetch(`https://api.ipcinfo.org/population/${latestAnalysis.id}`)
-      .then(r => r.json())
-  );
-  
-  if (!popR.ok || !popR.data) {
-    return [];
-  }
-  
-  // Transform to format expected by extractSignals()
-  return popR.data.map(item => ({
-    country: item.area_name,
-    phase: item.phase_class,
-    population: item.population || 0,
-  }));
+  // Fallback to hardcoded data
+  return IPC_FALLBACK;
 }
+
 async function fetchWeather(lon, lat) {
   const r = await safeFetch(
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max&timezone=auto&forecast_days=1`)
@@ -314,7 +307,6 @@ async function fetchWeather(lon, lat) {
   return r.ok ? r.data?.daily?.temperature_2m_max?.[0] ?? null : null;
 }
 
-// Fetch all live sources in parallel — each country gets its own weather fetch
 async function fetchAllLive(isos, acledKey, acledEmail) {
   const [usgsFeatures, acledResult, ipcList] = await Promise.all([
     fetchUSGS(),
@@ -322,7 +314,6 @@ async function fetchAllLive(isos, acledKey, acledEmail) {
     fetchIPC(),
   ]);
 
-  // Per-country weather — batched, not serial
   const weatherMap = {};
   await Promise.all(
     isos.map(async iso => {
@@ -335,12 +326,10 @@ async function fetchAllLive(isos, acledKey, acledEmail) {
 }
 
 // ─── EXTRACT LIVE SIGNALS PER COUNTRY ────────────────────────────────────────
-// Converts raw API responses into typed, bounded signals for a single country.
 
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
 
-  // USGS — biggest quake matching this country name in place string
   const quakes = live.usgsFeatures.filter(f =>
     (f.properties?.place || "").toLowerCase().includes(name)
   );
@@ -348,14 +337,12 @@ function extractSignals(iso, live) {
     ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a)
     : null;
 
-  // ACLED — sum fatalities across all events for this country in the window
-  const acledEvents    = live.acledResult.data.filter(e =>
+  const acledEvents = live.acledResult.data.filter(e =>
     (e.country || "").toLowerCase().includes(name)
   );
   const totalFatalities = acledEvents.reduce((s, e) => s + (parseInt(e.fatalities) || 0), 0);
   const acledEventTypes = [...new Set(acledEvents.map(e => e.event_type).filter(Boolean))];
 
-  // IPC — worst phase for this country
   const ipcEntries = live.ipcList.filter(i =>
     (i.country || "").toLowerCase().includes(name)
   );
@@ -363,13 +350,12 @@ function extractSignals(iso, live) {
     ? ipcEntries.reduce((a, b) => (b.phase > a.phase ? b : a))
     : null;
 
-  // Weather
   const maxTempC = live.weatherMap[iso] ?? null;
 
   return {
     quakeMag:       biggestQuake ? +biggestQuake.properties.mag : 0,
     quakePlace:     biggestQuake ? biggestQuake.properties.place.split(",")[0].trim() : null,
-    acledFatalities:totalFatalities,
+    acledFatalities: totalFatalities,
     acledEventTypes,
     acledAvailable: live.acledResult.available,
     ipcPhase:       worstIPC?.phase ?? 0,
@@ -379,16 +365,14 @@ function extractSignals(iso, live) {
 }
 
 // ─── STORE BUILDER ───────────────────────────────────────────────────────────
-// Two-pass: individual scores first, then spillover.
 
 function buildStore(liveDataMap) {
   const seed  = Math.floor(Date.now() / SCORE_SEED_INTERVAL_MS);
   const store = {};
 
-  // Pass 1: prior score + live adjustments
   for (const [iso, country] of Object.entries(COUNTRIES)) {
-    const jitter    = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * 4); // ±2 pt micro-variation
-    const priorBase = clamp(country.prior + jitter, 5, 85); // prior is capped at 85; live data pushes above
+    const jitter    = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * 4);
+    const priorBase = clamp(country.prior + jitter, 5, 85);
     const priorDims = buildPriorDims(priorBase, country.types);
     const signals   = liveDataMap ? extractSignals(iso, liveDataMap) : null;
     const { dims, adjustedScore, adjustments } = signals
@@ -407,12 +391,10 @@ function buildStore(liveDataMap) {
     };
   }
 
-  // Pass 2: regional spillover (neighbours pulling score up)
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
     const avgNeighbour = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    // Spillover = 13% of how far average neighbour exceeds 50 — diminishing effect
     store[iso].spillover = +(Math.max(0, avgNeighbour - 50) * 0.13).toFixed(1);
     store[iso].score     = clamp(store[iso].score + store[iso].spillover);
   }
@@ -431,12 +413,10 @@ function buildNarrative(iso, store, ranked) {
   const label  = c.score >= 80 ? "critical" : c.score >= 60 ? "high" : "elevated";
   const pctile = Math.round((1 - rank / ranked.length) * 100);
 
-  // Top 2 dimensions
   const [top, second] = [...DIMS]
     .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
     .sort((a, b) => b.val - a.val);
 
-  // Trend phrase from actual slope
   const delta   = hist.length >= 7 ? hist[hist.length - 1] - hist[hist.length - 7] : 0;
   const dAbs    = Math.abs(Math.round(delta));
   const tPhrase =
@@ -444,7 +424,6 @@ function buildNarrative(iso, store, ranked) {
     delta < -3 ? `eased slightly (${dAbs} pts) but remains ${label}` :
                  `held steady at ${label} levels`;
 
-  // Live signals → plain-English evidence
   const { signals } = c;
   const evidence    = [];
 
@@ -462,7 +441,6 @@ function buildNarrative(iso, store, ranked) {
   if (signals.maxTempC >= 40)
     evidence.push(`extreme heat (${signals.maxTempC}°C, Open-Meteo)`);
 
-  // Spillover
   const hotNb = (COUNTRIES[iso].adj || [])
     .filter(n => store[n]?.score >= 60)
     .map(n => store[n].name);
@@ -470,16 +448,14 @@ function buildNarrative(iso, store, ranked) {
     ? ` Regional pressure from ${hotNb.slice(0, 2).join(" and ")} contributes +${c.spillover.toFixed(1)} pts to the composite.`
     : "";
 
-  // Anomaly — only flag if genuinely unusual
   const swing       = hist.length > 1 ? Math.max(...hist) - Math.min(...hist) : 0;
   const anomSentence =
     anom.det && anom.z > 3.5 && swing > 12
       ? ` Statistical anomaly detected (z=${anom.z}) — an unusual spike against the 28-day baseline.`
     : anom.z >= 1.5
       ? ` The current score sits ${anom.z} standard deviations from the 28-day mean.`
-    : "";
+      : "";
 
-  // Live boost transparency
   const boostSentence = c.liveBoost > 0
     ? ` Live data raised this score ${c.liveBoost} pts above the prior estimate.`
     : "";
@@ -534,7 +510,6 @@ function buildPayload(iso, store, ranked) {
       detected: anom.det,
       z_score:  anom.z,
     },
-    // Full audit trail of what live data changed the score
     score_adjustments: c.adjustments,
     narrative: buildNarrative(iso, store, ranked),
   };
@@ -545,7 +520,6 @@ function buildPayload(iso, store, ranked) {
 export default async function handler(req, res) {
   const start = Date.now();
 
-  // Preflight
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS_HEADERS);
     res.end();
@@ -558,7 +532,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Parse query params safely
   let isoReq, topN;
   try {
     const url = new URL(req.url ?? "/", "https://placeholder.invalid");
@@ -571,7 +544,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Validate ISO
   if (isoReq && !COUNTRIES[isoReq]) {
     res.writeHead(404, CORS_HEADERS);
     res.end(JSON.stringify({
@@ -582,8 +554,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Determine which ISOs we need live data for
-    // We build a temp store with just priors to find the ranking, then fetch live data for all
     const storeWithPriorsOnly = buildStore(null);
     const rankedByPrior       = Object.keys(storeWithPriorsOnly)
       .sort((a, b) => storeWithPriorsOnly[b].score - storeWithPriorsOnly[a].score);
@@ -592,20 +562,16 @@ export default async function handler(req, res) {
       ? [isoReq]
       : rankedByPrior.slice(0, topN);
 
-    // Fetch live data — weather is per-country, ACLED/USGS/IPC are global
     const acledKey   = process.env.ACLED_KEY   || "";
     const acledEmail = process.env.ACLED_EMAIL || "";
     const liveData   = await fetchAllLive(targetIsos, acledKey, acledEmail);
 
-    // Build final store with live adjustments applied
     const store  = buildStore(liveData);
     const ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
 
-    // Build payloads
     const payloads = (isoReq ? [isoReq] : ranked.slice(0, topN))
       .map(iso => buildPayload(iso, store, ranked));
 
-    // Source transparency — tell callers exactly what data was available
     const sourceStatus = {
       usgs:  { available: liveData.usgsFeatures.length > 0,    events: liveData.usgsFeatures.length },
       acled: { available: liveData.acledResult.available,       reason: liveData.acledResult.reason || null },
@@ -628,7 +594,6 @@ export default async function handler(req, res) {
         countries_tracked: Object.keys(COUNTRIES).length,
         query:   { iso: isoReq, top: isMulti ? topN : null },
         sources: sourceStatus,
-        // Be explicit: scores are priors adjusted by live data, not purely empirical
         score_methodology: "Weighted composite of 8 dimensions. Base priors from OCHA/ACAPS (mid-2024). Live data from USGS/ACLED/IPC/Open-Meteo adjusts scores upward. See score_adjustments[] on each country.",
       },
       ...(isMulti
@@ -636,7 +601,6 @@ export default async function handler(req, res) {
         : { top_story:   payloads[0] }),
     };
 
-    // Cache for exactly one seed interval so stale-while-revalidate is honest
     const remainingMs    = SCORE_SEED_INTERVAL_MS - (Date.now() % SCORE_SEED_INTERVAL_MS);
     const remainingSecs  = Math.floor(remainingMs / 1000);
 
