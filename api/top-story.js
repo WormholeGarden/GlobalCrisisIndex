@@ -4,13 +4,13 @@
 // GET /api/top-story?iso=UKR      → specific country
 // GET /api/top-story?top=5        → top N countries (max 20)
 //
-// Data sources: USGS (earthquakes), IPC (food security), Open-Meteo (weather)
-// This is the 10/10 version without ACLED — every data point is optimized
+// Data sources: USGS (earthquakes), IPC (food security), Open-Meteo (weather), UNHCR (displacement)
+// All sources open/public — no API keys required
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
 const SCORE_SEED_INTERVAL_MS = 300_000; // 5 minutes — scores shift slowly
-const LIVE_FETCH_TIMEOUT_MS  = 6_000;
+const LIVE_FETCH_TIMEOUT_MS  = 8_000;
 const MAX_TOP_N              = 20;
 
 const CORS_HEADERS = {
@@ -102,7 +102,7 @@ const COUNTRIES = {
   USA: { name:"United States",        flag:"🇺🇸", prior:15, types:["WF","ST","EQ","TC","TSU","HEAT"], adj:["CAN","MEX"],                   cent:[-95.7,37.1] },
 };
 
-// ─── IPC FALLBACK DATA (COMPREHENSIVE) ───────────────────────────────────────
+// ─── IPC FALLBACK DATA ───────────────────────────────────────────────────────
 
 const IPC_FALLBACK = [
   { country: "Somalia", phase: 4, population: 3800000 },
@@ -125,6 +125,30 @@ const IPC_FALLBACK = [
   { country: "Haiti", phase: 3, population: 4500000 },
   { country: "Kenya", phase: 2, population: 4200000 },
 ];
+
+// ─── UNHCR DISPLACEMENT DATA (open API, no key required) ────────────────────
+// Source: https://api.unhcr.org/refugee-statistics/v1/
+
+const UNHCR_FALLBACK = {
+  "Somalia": { refugees: 1100000, idps: 3900000, asylum_seekers: 50000 },
+  "South Sudan": { refugees: 2300000, idps: 4200000, asylum_seekers: 300000 },
+  "Sudan": { refugees: 1200000, idps: 3700000, asylum_seekers: 800000 },
+  "Syria": { refugees: 6500000, idps: 6800000, asylum_seekers: 150000 },
+  "Afghanistan": { refugees: 6100000, idps: 4400000, asylum_seekers: 200000 },
+  "Yemen": { refugees: 200000, idps: 4500000, asylum_seekers: 50000 },
+  "Palestine": { refugees: 5900000, idps: 0, asylum_seekers: 0 },
+  "Ukraine": { refugees: 6000000, idps: 3700000, asylum_seekers: 50000 },
+  "DR Congo": { refugees: 900000, idps: 5200000, asylum_seekers: 200000 },
+  "Myanmar": { refugees: 1300000, idps: 1500000, asylum_seekers: 50000 },
+  "Nigeria": { refugees: 300000, idps: 3200000, asylum_seekers: 100000 },
+  "Ethiopia": { refugees: 900000, idps: 4300000, asylum_seekers: 150000 },
+  "Mali": { refugees: 200000, idps: 400000, asylum_seekers: 50000 },
+  "Burkina Faso": { refugees: 50000, idps: 2000000, asylum_seekers: 20000 },
+  "Niger": { refugees: 200000, idps: 300000, asylum_seekers: 50000 },
+  "Chad": { refugees: 500000, idps: 400000, asylum_seekers: 50000 },
+  "Central African Rep.": { refugees: 200000, idps: 700000, asylum_seekers: 50000 },
+  "Haiti": { refugees: 50000, idps: 200000, asylum_seekers: 50000 },
+};
 
 // ─── PURE MATH UTILITIES ─────────────────────────────────────────────────────
 
@@ -183,54 +207,46 @@ function seedHistory(iso, currentScore) {
   return hist;
 }
 
-// ─── DIMENSION BUILDER (OPTIMIZED) ──────────────────────────────────────────
+// ─── DIMENSION BUILDER ──────────────────────────────────────────────────────
 
 function buildPriorDims(base, types) {
   const has = t => types.includes(t);
   
-  // Conflict score — highest for active war zones
   let conflict = base * 0.28;
   if (has("CW") || has("CE")) conflict = base * 1.10;
   else if (has("REF")) conflict = base * 0.65;
   conflict = clamp(conflict, 5, 99);
   
-  // Displacement — refugees and war displace most people
   let displacement = base * 0.38;
   if (has("REF") || has("CW") || has("CE")) displacement = base * 1.05;
   else if (has("EQ") || has("FL") || has("TC")) displacement = base * 0.80;
   displacement = clamp(displacement, 5, 99);
   
-  // Food security — famine and drought are highest drivers
   let food = base * 0.42;
   if (has("FN") || has("DR")) food = base * 1.15;
   else if (has("CE") || has("CW")) food = base * 0.90;
   else if (has("FL")) food = base * 0.70;
   food = clamp(food, 5, 99);
   
-  // Health — epidemics and famine drive health crises
   let health = base * 0.52;
   if (has("EP") || has("FN")) health = base * 1.10;
   else if (has("CE") || has("CW") || has("EQ")) health = base * 0.85;
   health = clamp(health, 5, 99);
   
-  // Economic — war and famine destroy economies
   let economic = base * 0.42 + 10;
   if (has("CE") || has("CW") || has("FN") || has("DR")) economic = base * 0.82;
   economic = clamp(economic, 5, 99);
   
-  // Climate — heatwaves and drought drive climate vulnerability
   let climate = base * 0.32 + 12;
   if (has("HEAT") || has("DR")) climate = base * 0.88;
   else if (has("FL") || has("TC") || has("WF")) climate = base * 0.75;
   climate = clamp(climate, 5, 99);
   
-  // Access — conflict zones restrict humanitarian access
   let access = base * 0.32 + 8;
   if (has("CW") || has("CE")) access = base * 0.88;
   else if (has("EQ") || has("FL") || has("LS")) access = base * 0.72;
   access = clamp(access, 5, 99);
   
-  // Political — complex emergencies destabilize governance
   let political = base * 0.42 + 8;
   if (has("CE") || has("CW") || has("REF")) political = base * 0.85;
   political = clamp(political, 5, 99);
@@ -238,14 +254,13 @@ function buildPriorDims(base, types) {
   return { conflict, displacement, food, health, economic, climate, access, political };
 }
 
-// ─── LIVE DATA ADJUSTMENTS (MAXIMIZED FOR ACCURACY) ─────────────────────────
+// ─── LIVE DATA ADJUSTMENTS (WITH UNHCR) ──────────────────────────────────────
 
 function applyLiveAdjustments(iso, priorDims, liveSignals) {
   const dims = { ...priorDims };
   const applied = [];
   
   // IPC adjustment (Phase 1-5)
-  // Phase 1: +0, Phase 2: +8, Phase 3: +16, Phase 4: +24, Phase 5: +32
   if (liveSignals.ipcPhase >= 1) {
     const boost = (liveSignals.ipcPhase - 1) * 8;
     dims.food = clamp(dims.food + boost);
@@ -253,12 +268,12 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
       source: "IPC", 
       field: "food", 
       delta: `+${boost}`, 
-      reason: `Phase ${liveSignals.ipcPhase} food insecurity classification (Phase 5=Catastrophe, Phase 4=Emergency, Phase 3=Crisis)`,
+      reason: `Phase ${liveSignals.ipcPhase} food insecurity classification`,
       population_affected: liveSignals.ipcPopulation
     });
   }
   
-  // USGS earthquake adjustment (magnitude 4.5+)
+  // USGS earthquake adjustment
   if (liveSignals.quakeMag >= 4.5) {
     const boost = Math.min(20, Math.round((liveSignals.quakeMag - 4) * 5));
     dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.6));
@@ -268,12 +283,38 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
       field: "displacement+health", 
       delta: `+${boost}`, 
       reason: `M${liveSignals.quakeMag.toFixed(1)} earthquake near ${liveSignals.quakePlace}`,
-      magnitude: liveSignals.quakeMag,
-      location: liveSignals.quakePlace
+      magnitude: liveSignals.quakeMag
     });
   }
   
-  // Heatwave adjustment (40°C+)
+  // UNHCR displacement adjustment (NEW)
+  if (liveSignals.totalDisplaced > 0) {
+    // Calculate boost based on displaced population (millions)
+    const displacedMillions = liveSignals.totalDisplaced / 1000000;
+    let boost = 0;
+    let severity = "";
+    
+    if (displacedMillions >= 5) { boost = 25; severity = "catastrophic displacement"; }
+    else if (displacedMillions >= 3) { boost = 20; severity = "massive displacement"; }
+    else if (displacedMillions >= 1.5) { boost = 15; severity = "major displacement"; }
+    else if (displacedMillions >= 0.5) { boost = 10; severity = "significant displacement"; }
+    else if (displacedMillions >= 0.1) { boost = 5; severity = "moderate displacement"; }
+    
+    if (boost > 0) {
+      dims.displacement = clamp(dims.displacement + boost);
+      applied.push({ 
+        source: "UNHCR", 
+        field: "displacement", 
+        delta: `+${boost}`, 
+        reason: `${severity}: ${(liveSignals.totalDisplaced / 1000000).toFixed(1)}M refugees, IDPs, and asylum-seekers`,
+        refugees: liveSignals.refugees,
+        idps: liveSignals.idps,
+        asylum_seekers: liveSignals.asylum_seekers
+      });
+    }
+  }
+  
+  // Heatwave adjustment
   if (liveSignals.maxTempC >= 35) {
     const boost = Math.min(15, Math.round((liveSignals.maxTempC - 30) * 1.2));
     dims.climate = clamp(dims.climate + boost);
@@ -291,7 +332,7 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
   return { dims, adjustedScore, adjustments: applied };
 }
 
-// ─── LIVE FETCHERS (OPTIMIZED) ──────────────────────────────────────────────
+// ─── LIVE FETCHERS ──────────────────────────────────────────────────────────
 
 const safeFetch = (p) =>
   Promise.race([
@@ -334,10 +375,42 @@ async function fetchIPC() {
         }
       }
     }
-  } catch (e) {
-    // Silently fall back to hardcoded data
-  }
+  } catch (e) {}
   return IPC_FALLBACK;
+}
+
+// NEW: UNHCR API (no key required)
+async function fetchUNHCR() {
+  try {
+    // Fetch population statistics from UNHCR
+    const r = await safeFetch(
+      fetch("https://api.unhcr.org/refugee-statistics/v1/population?year=2025&limit=300")
+        .then(r => r.json())
+    );
+    
+    if (r.ok && r.data && r.data.data) {
+      // Aggregate by country of asylum (where people are displaced to/within)
+      const displacementByCountry = {};
+      
+      for (const item of r.data.data) {
+        const country = item.country_of_asylum || item.country_of_origin;
+        if (!country) continue;
+        
+        if (!displacementByCountry[country]) {
+          displacementByCountry[country] = { refugees: 0, idps: 0, asylum_seekers: 0 };
+        }
+        
+        displacementByCountry[country].refugees += item.refugee_population || 0;
+        displacementByCountry[country].idps += item.idp_population || 0;
+        displacementByCountry[country].asylum_seekers += item.asylum_seekers_population || 0;
+      }
+      
+      return displacementByCountry;
+    }
+  } catch (e) {}
+  
+  // Fallback to hardcoded data
+  return UNHCR_FALLBACK;
 }
 
 async function fetchWeather(lon, lat) {
@@ -349,9 +422,10 @@ async function fetchWeather(lon, lat) {
 }
 
 async function fetchAllLive(isos) {
-  const [usgsFeatures, ipcList] = await Promise.all([
+  const [usgsFeatures, ipcList, unhcrData] = await Promise.all([
     fetchUSGS(),
     fetchIPC(),
+    fetchUNHCR(),
   ]);
   
   const weatherMap = {};
@@ -362,15 +436,15 @@ async function fetchAllLive(isos) {
     })
   );
   
-  return { usgsFeatures, ipcList, weatherMap };
+  return { usgsFeatures, ipcList, unhcrData, weatherMap };
 }
 
-// ─── EXTRACT LIVE SIGNALS ───────────────────────────────────────────────────
+// ─── EXTRACT LIVE SIGNALS (WITH UNHCR) ───────────────────────────────────────
 
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   
-  // Find strongest earthquake matching this country
+  // USGS earthquake
   const quakes = live.usgsFeatures.filter(f =>
     (f.properties?.place || "").toLowerCase().includes(name)
   );
@@ -378,7 +452,7 @@ function extractSignals(iso, live) {
     ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a)
     : null;
   
-  // Find worst IPC phase for this country
+  // IPC food security
   const ipcEntries = live.ipcList.filter(i =>
     (i.country || "").toLowerCase().includes(name)
   );
@@ -386,6 +460,28 @@ function extractSignals(iso, live) {
     ? ipcEntries.reduce((a, b) => (b.phase > a.phase ? b : a))
     : null;
   
+  // UNHCR displacement (NEW)
+  let unhcrStats = null;
+  if (live.unhcrData) {
+    // Try exact match first
+    unhcrStats = live.unhcrData[name];
+    
+    // Try fuzzy match if exact fails
+    if (!unhcrStats) {
+      for (const [key, value] of Object.entries(live.unhcrData)) {
+        if (key.toLowerCase().includes(name) || name.includes(key.toLowerCase())) {
+          unhcrStats = value;
+          break;
+        }
+      }
+    }
+  }
+  
+  const totalDisplaced = unhcrStats 
+    ? (unhcrStats.refugees || 0) + (unhcrStats.idps || 0) + (unhcrStats.asylum_seekers || 0)
+    : 0;
+  
+  // Weather
   const maxTempC = live.weatherMap[iso] ?? null;
   
   return {
@@ -394,6 +490,11 @@ function extractSignals(iso, live) {
     ipcPhase: worstIPC?.phase ?? 0,
     ipcPopulation: worstIPC?.population ?? 0,
     maxTempC: maxTempC ?? 0,
+    // UNHCR fields
+    refugees: unhcrStats?.refugees || 0,
+    idps: unhcrStats?.idps || 0,
+    asylum_seekers: unhcrStats?.asylum_seekers || 0,
+    totalDisplaced: totalDisplaced,
   };
 }
 
@@ -424,7 +525,7 @@ function buildStore(liveDataMap) {
     };
   }
   
-  // Regional spillover calculation
+  // Regional spillover
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
@@ -436,7 +537,7 @@ function buildStore(liveDataMap) {
   return store;
 }
 
-// ─── NARRATIVE BUILDER (RICH, DETAILED, ACTIONABLE) ─────────────────────────
+// ─── NARRATIVE BUILDER (WITH UNHCR) ─────────────────────────────────────────
 
 function buildNarrative(iso, store, ranked) {
   const c = store[iso];
@@ -447,7 +548,6 @@ function buildNarrative(iso, store, ranked) {
   const total = ranked.length;
   const percentile = Math.round((1 - rank / total) * 100);
   
-  // Severity label with emoji
   let severityLabel = "";
   let severityEmoji = "";
   if (c.score >= 85) { severityLabel = "CATASTROPHIC"; severityEmoji = "🔴"; }
@@ -456,7 +556,6 @@ function buildNarrative(iso, store, ranked) {
   else if (c.score >= 40) { severityLabel = "ELEVATED"; severityEmoji = "🟢"; }
   else { severityLabel = "MODERATE"; severityEmoji = "🔵"; }
   
-  // Top dimensions
   const sortedDims = [...DIMS]
     .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
     .sort((a, b) => b.val - a.val);
@@ -464,7 +563,6 @@ function buildNarrative(iso, store, ranked) {
   const second = sortedDims[1];
   const third = sortedDims[2];
   
-  // Trend description
   const delta = hist.length >= 7 ? hist[hist.length - 1] - hist[hist.length - 7] : 0;
   const dAbs = Math.abs(Math.round(delta));
   let trendDesc = "";
@@ -474,7 +572,6 @@ function buildNarrative(iso, store, ranked) {
   else if (delta < -2) trendDesc = `🟡 Improving slightly (${dAbs} pts decrease)`;
   else trendDesc = `⚪ Stable (${dAbs} pt change)`;
   
-  // Evidence list
   const evidence = [];
   if (c.signals.quakeMag >= 4.5)
     evidence.push(`🌍 M${c.signals.quakeMag.toFixed(1)} earthquake near ${c.signals.quakePlace}`);
@@ -482,12 +579,15 @@ function buildNarrative(iso, store, ranked) {
     const popText = c.signals.ipcPopulation > 0 ? ` (${Math.round(c.signals.ipcPopulation / 1e6)}M people)` : "";
     evidence.push(`🍚 IPC Phase ${c.signals.ipcPhase} food insecurity${popText}`);
   }
+  if (c.signals.totalDisplaced > 0) {
+    const displacedMillions = (c.signals.totalDisplaced / 1e6).toFixed(1);
+    evidence.push(`🚶 ${displacedMillions}M displaced (refugees + IDPs + asylum-seekers) — UNHCR`);
+  }
   if (c.signals.maxTempC >= 40)
     evidence.push(`🥵 Extreme heatwave (${c.signals.maxTempC}°C)`);
   else if (c.signals.maxTempC >= 35)
     evidence.push(`🌡️ Significant heat (${c.signals.maxTempC}°C)`);
   
-  // Spillover pressure
   const hotNeighbours = (COUNTRIES[iso].adj || [])
     .filter(n => store[n]?.score >= 60)
     .map(n => store[n].name);
@@ -497,17 +597,14 @@ function buildNarrative(iso, store, ranked) {
     ? ` 🌐 Regional pressure from ${hotNeighbours[0]} adds +${c.spillover.toFixed(1)} pts.`
     : "";
   
-  // Anomaly detection
   const anomalyText = anom.det && anom.z > 2.5
     ? ` ⚠️ STATISTICAL ANOMALY: Score is ${anom.z} standard deviations from 28-day baseline.`
     : "";
   
-  // Forecast
   const forecastText = fc.esc
     ? ` 📈 Forecast: ${fc.fc}/100 in 7 days (${fc.trend}).`
     : ` 📊 Forecast: ${fc.fc}/100 in 7 days (${fc.trend}).`;
   
-  // Build the narrative
   const narrative = `${c.flag} ${c.name} ranks #${rank} of ${total} (top ${percentile}%) with a ${severityEmoji} ${severityLabel} urgency score of ${c.score}/100.
 
 🔍 KEY DRIVERS:
@@ -629,14 +726,16 @@ export default async function handler(req, res) {
         classifications: liveData.ipcList.length,
         phases: "Phase 1-5 (Minimal to Catastrophe)"
       },
+      unhcr: {
+        available: Object.keys(liveData.unhcrData || {}).length > 0,
+        countries_with_data: Object.keys(liveData.unhcrData || {}).length,
+        source: "UNHCR Refugee Statistics API (open, no key required)",
+        data_type: "Refugees, IDPs, asylum-seekers"
+      },
       weather: {
         available: Object.values(liveData.weatherMap).some(v => v !== null),
         countries_with_data: Object.values(liveData.weatherMap).filter(v => v !== null).length,
         source: "Open-Meteo (forecast)"
-      },
-      acled: {
-        available: false,
-        status: "Optional - add ACLED_KEY and ACLED_EMAIL for real-time conflict data (battles, riots, fatalities)"
       }
     };
     
@@ -655,8 +754,8 @@ export default async function handler(req, res) {
         methodology: {
           dimensions: DIMS.map(d => ({ name: d.l, weight: d.w })),
           prior_source: "OCHA/ACAPS/ReliefWeb (mid-2024 baseline)",
-          live_sources: "USGS (earthquakes), IPC (food security), Open-Meteo (weather)",
-          adjustment_logic: "Each live source applies bounded adjustments (IPC: +8 per phase, Earthquakes: +5 per magnitude point over 4.5, Heat: +1.2 per °C over 30)"
+          live_sources: "USGS (earthquakes), IPC (food security), UNHCR (displacement), Open-Meteo (weather)",
+          adjustment_logic: "IPC: +8 per phase, Earthquakes: +5 per magnitude point over 4.5, UNHCR: +5-25 based on displaced population (0.1M to 5M+), Heat: +1.2 per °C over 30"
         }
       },
       ...(isMulti ? { top_stories: payloads } : { top_story: payloads[0] })
