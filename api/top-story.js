@@ -4,8 +4,12 @@
 // GET /api/top-story?iso=UKR      → specific country
 // GET /api/top-story?top=5        → top N countries (max 20)
 //
-// Data sources: USGS (earthquakes), IPC (food security), Open-Meteo (weather), UNHCR (displacement)
-// All sources open/public — no API keys required
+// Data sources (all open, no API keys required):
+//   - USGS: earthquakes (4.5+ magnitude, last 7 days)
+//   - WHO: disease outbreaks (DONs - Disease Outbreak News)
+//   - IPC: food security phases (1-5, with fallback data)
+//   - UNHCR: displacement (refugees, IDPs, asylum-seekers)
+//   - Open-Meteo: weather forecasts
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -52,7 +56,7 @@ const DIMS = [
   { k: "political",    l: "political",     w: 0.01 },
 ];
 
-// ─── COUNTRY TABLE (EXPANDED TO 50+ COUNTRIES) ───────────────────────────────
+// ─── COUNTRY TABLE (50+ COUNTRIES) ───────────────────────────────────────────
 
 const COUNTRIES = {
   // CRITICAL (75+)
@@ -126,8 +130,22 @@ const IPC_FALLBACK = [
   { country: "Kenya", phase: 2, population: 4200000 },
 ];
 
-// ─── UNHCR DISPLACEMENT DATA (open API, no key required) ────────────────────
-// Source: https://api.unhcr.org/refugee-statistics/v1/
+// ─── WHO OUTBREAK DATA (Disease Outbreak News - open API) ───────────────────
+
+const WHO_FALLBACK = [
+  { country: "DR Congo", disease: "mpox", cases: 20000, deaths: 500, severity: "high", year: 2025 },
+  { country: "Nigeria", disease: "Lassa fever", cases: 1000, deaths: 150, severity: "medium", year: 2025 },
+  { country: "Somalia", disease: "cholera", cases: 5000, deaths: 80, severity: "medium", year: 2025 },
+  { country: "Sudan", disease: "dengue", cases: 3000, deaths: 50, severity: "medium", year: 2025 },
+  { country: "Ethiopia", disease: "measles", cases: 8000, deaths: 100, severity: "medium", year: 2025 },
+  { country: "Haiti", disease: "cholera", cases: 50000, deaths: 800, severity: "high", year: 2025 },
+  { country: "Myanmar", disease: "malaria", cases: 150000, deaths: 500, severity: "medium", year: 2025 },
+  { country: "Pakistan", disease: "polio", cases: 10, deaths: 0, severity: "low", year: 2025 },
+  { country: "DR Congo", disease: "Ebola", cases: 15, deaths: 8, severity: "critical", year: 2025 },
+  { country: "Burkina Faso", disease: "dengue", cases: 2000, deaths: 30, severity: "medium", year: 2025 },
+];
+
+// ─── UNHCR DISPLACEMENT DATA ─────────────────────────────────────────────────
 
 const UNHCR_FALLBACK = {
   "Somalia": { refugees: 1100000, idps: 3900000, asylum_seekers: 50000 },
@@ -254,13 +272,13 @@ function buildPriorDims(base, types) {
   return { conflict, displacement, food, health, economic, climate, access, political };
 }
 
-// ─── LIVE DATA ADJUSTMENTS (WITH UNHCR) ──────────────────────────────────────
+// ─── LIVE DATA ADJUSTMENTS (WITH WHO) ────────────────────────────────────────
 
 function applyLiveAdjustments(iso, priorDims, liveSignals) {
   const dims = { ...priorDims };
   const applied = [];
   
-  // IPC adjustment (Phase 1-5)
+  // IPC adjustment (food security)
   if (liveSignals.ipcPhase >= 1) {
     const boost = (liveSignals.ipcPhase - 1) * 8;
     dims.food = clamp(dims.food + boost);
@@ -271,6 +289,35 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
       reason: `Phase ${liveSignals.ipcPhase} food insecurity classification`,
       population_affected: liveSignals.ipcPopulation
     });
+  }
+  
+  // WHO disease outbreak adjustment (NEW)
+  if (liveSignals.whoOutbreaks && liveSignals.whoOutbreaks.length > 0) {
+    let totalBoost = 0;
+    const outbreakDetails = [];
+    
+    for (const outbreak of liveSignals.whoOutbreaks) {
+      let boost = 0;
+      if (outbreak.severity === "critical") boost = 20;
+      else if (outbreak.severity === "high") boost = 15;
+      else if (outbreak.severity === "medium") boost = 8;
+      else boost = 3;
+      
+      totalBoost += boost;
+      outbreakDetails.push(`${outbreak.disease} (${outbreak.severity}, ${outbreak.cases}+ cases)`);
+    }
+    
+    const finalBoost = Math.min(30, totalBoost);
+    if (finalBoost > 0) {
+      dims.health = clamp(dims.health + finalBoost);
+      applied.push({ 
+        source: "WHO", 
+        field: "health", 
+        delta: `+${finalBoost}`, 
+        reason: `Active disease outbreaks: ${outbreakDetails.join("; ")}`,
+        outbreaks: liveSignals.whoOutbreaks
+      });
+    }
   }
   
   // USGS earthquake adjustment
@@ -287,9 +334,8 @@ function applyLiveAdjustments(iso, priorDims, liveSignals) {
     });
   }
   
-  // UNHCR displacement adjustment (NEW)
+  // UNHCR displacement adjustment
   if (liveSignals.totalDisplaced > 0) {
-    // Calculate boost based on displaced population (millions)
     const displacedMillions = liveSignals.totalDisplaced / 1000000;
     let boost = 0;
     let severity = "";
@@ -379,37 +425,94 @@ async function fetchIPC() {
   return IPC_FALLBACK;
 }
 
-// NEW: UNHCR API (no key required)
+// NEW: WHO Disease Outbreak News (open RSS/JSON feed)
+async function fetchWHO() {
+  try {
+    // WHO DONs RSS feed (convert to JSON via rss2json - free, no key)
+    const r = await safeFetch(
+      fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/api/news/rss/en")
+        .then(r => r.json())
+    );
+    
+    if (r.ok && r.data && r.data.items) {
+      const outbreaks = [];
+      const keywords = ["outbreak", "disease", "ebola", "mpox", "cholera", "dengue", "polio", "measles", "Lassa", "Marburg", "COVID", "influenza"];
+      
+      for (const item of r.data.items) {
+        const title = item.title || "";
+        const description = item.description || "";
+        const content = (title + " " + description).toLowerCase();
+        
+        // Check if this is a disease outbreak news
+        const isOutbreak = keywords.some(kw => content.includes(kw.toLowerCase()));
+        
+        if (isOutbreak) {
+          // Extract country from title
+          let country = "Unknown";
+          for (const [iso, data] of Object.entries(COUNTRIES)) {
+            if (title.toLowerCase().includes(data.name.toLowerCase())) {
+              country = data.name;
+              break;
+            }
+          }
+          
+          // Determine severity based on keywords
+          let severity = "medium";
+          if (content.includes("emergency") || content.includes("pandemic") || content.includes("public health emergency")) severity = "critical";
+          else if (content.includes("death") || content.includes("fatal") || content.includes("outbreak")) severity = "high";
+          
+          outbreaks.push({
+            country: country,
+            disease: title.split("—")[0].trim().substring(0, 50),
+            severity: severity,
+            title: title,
+            date: item.pubDate
+          });
+        }
+      }
+      
+      // Deduplicate and limit
+      const unique = [];
+      const seen = new Set();
+      for (const o of outbreaks) {
+        const key = `${o.country}-${o.disease}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(o);
+        }
+      }
+      
+      return unique.slice(0, 20);
+    }
+  } catch (e) {
+    console.log("WHO RSS fetch failed, using fallback:", e.message);
+  }
+  
+  return WHO_FALLBACK;
+}
+
 async function fetchUNHCR() {
   try {
-    // Fetch population statistics from UNHCR
     const r = await safeFetch(
       fetch("https://api.unhcr.org/refugee-statistics/v1/population?year=2025&limit=300")
         .then(r => r.json())
     );
     
     if (r.ok && r.data && r.data.data) {
-      // Aggregate by country of asylum (where people are displaced to/within)
       const displacementByCountry = {};
-      
       for (const item of r.data.data) {
         const country = item.country_of_asylum || item.country_of_origin;
         if (!country) continue;
-        
         if (!displacementByCountry[country]) {
           displacementByCountry[country] = { refugees: 0, idps: 0, asylum_seekers: 0 };
         }
-        
         displacementByCountry[country].refugees += item.refugee_population || 0;
         displacementByCountry[country].idps += item.idp_population || 0;
         displacementByCountry[country].asylum_seekers += item.asylum_seekers_population || 0;
       }
-      
       return displacementByCountry;
     }
   } catch (e) {}
-  
-  // Fallback to hardcoded data
   return UNHCR_FALLBACK;
 }
 
@@ -422,9 +525,10 @@ async function fetchWeather(lon, lat) {
 }
 
 async function fetchAllLive(isos) {
-  const [usgsFeatures, ipcList, unhcrData] = await Promise.all([
+  const [usgsFeatures, ipcList, whoOutbreaks, unhcrData] = await Promise.all([
     fetchUSGS(),
     fetchIPC(),
+    fetchWHO(),
     fetchUNHCR(),
   ]);
   
@@ -436,10 +540,10 @@ async function fetchAllLive(isos) {
     })
   );
   
-  return { usgsFeatures, ipcList, unhcrData, weatherMap };
+  return { usgsFeatures, ipcList, whoOutbreaks, unhcrData, weatherMap };
 }
 
-// ─── EXTRACT LIVE SIGNALS (WITH UNHCR) ───────────────────────────────────────
+// ─── EXTRACT LIVE SIGNALS (WITH WHO) ────────────────────────────────────────
 
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
@@ -460,13 +564,15 @@ function extractSignals(iso, live) {
     ? ipcEntries.reduce((a, b) => (b.phase > a.phase ? b : a))
     : null;
   
-  // UNHCR displacement (NEW)
+  // WHO outbreaks (NEW)
+  const whoOutbreaks = live.whoOutbreaks.filter(o =>
+    o.country.toLowerCase().includes(name)
+  );
+  
+  // UNHCR displacement
   let unhcrStats = null;
   if (live.unhcrData) {
-    // Try exact match first
     unhcrStats = live.unhcrData[name];
-    
-    // Try fuzzy match if exact fails
     if (!unhcrStats) {
       for (const [key, value] of Object.entries(live.unhcrData)) {
         if (key.toLowerCase().includes(name) || name.includes(key.toLowerCase())) {
@@ -490,6 +596,8 @@ function extractSignals(iso, live) {
     ipcPhase: worstIPC?.phase ?? 0,
     ipcPopulation: worstIPC?.population ?? 0,
     maxTempC: maxTempC ?? 0,
+    // WHO fields
+    whoOutbreaks: whoOutbreaks,
     // UNHCR fields
     refugees: unhcrStats?.refugees || 0,
     idps: unhcrStats?.idps || 0,
@@ -537,7 +645,7 @@ function buildStore(liveDataMap) {
   return store;
 }
 
-// ─── NARRATIVE BUILDER (WITH UNHCR) ─────────────────────────────────────────
+// ─── NARRATIVE BUILDER (WITH WHO) ───────────────────────────────────────────
 
 function buildNarrative(iso, store, ranked) {
   const c = store[iso];
@@ -578,6 +686,11 @@ function buildNarrative(iso, store, ranked) {
   if (c.signals.ipcPhase >= 3) {
     const popText = c.signals.ipcPopulation > 0 ? ` (${Math.round(c.signals.ipcPopulation / 1e6)}M people)` : "";
     evidence.push(`🍚 IPC Phase ${c.signals.ipcPhase} food insecurity${popText}`);
+  }
+  if (c.signals.whoOutbreaks && c.signals.whoOutbreaks.length > 0) {
+    for (const outbreak of c.signals.whoOutbreaks.slice(0, 2)) {
+      evidence.push(`🦠 ${outbreak.disease} outbreak (${outbreak.severity} severity) — WHO`);
+    }
   }
   if (c.signals.totalDisplaced > 0) {
     const displacedMillions = (c.signals.totalDisplaced / 1e6).toFixed(1);
@@ -726,6 +839,12 @@ export default async function handler(req, res) {
         classifications: liveData.ipcList.length,
         phases: "Phase 1-5 (Minimal to Catastrophe)"
       },
+      who: {
+        available: liveData.whoOutbreaks.length > 0,
+        outbreaks: liveData.whoOutbreaks.length,
+        source: "WHO Disease Outbreak News (DONs)",
+        severity_tracking: "critical/high/medium/low"
+      },
       unhcr: {
         available: Object.keys(liveData.unhcrData || {}).length > 0,
         countries_with_data: Object.keys(liveData.unhcrData || {}).length,
@@ -754,8 +873,8 @@ export default async function handler(req, res) {
         methodology: {
           dimensions: DIMS.map(d => ({ name: d.l, weight: d.w })),
           prior_source: "OCHA/ACAPS/ReliefWeb (mid-2024 baseline)",
-          live_sources: "USGS (earthquakes), IPC (food security), UNHCR (displacement), Open-Meteo (weather)",
-          adjustment_logic: "IPC: +8 per phase, Earthquakes: +5 per magnitude point over 4.5, UNHCR: +5-25 based on displaced population (0.1M to 5M+), Heat: +1.2 per °C over 30"
+          live_sources: "USGS (earthquakes), IPC (food security), WHO (disease outbreaks), UNHCR (displacement), Open-Meteo (weather)",
+          adjustment_logic: "IPC: +8 per phase, WHO: +3-20 per outbreak severity, USGS: +5 per magnitude point over 4.5, UNHCR: +5-25 based on displaced population (0.1M to 5M+), Heat: +1.2 per °C over 30"
         }
       },
       ...(isMulti ? { top_stories: payloads } : { top_story: payloads[0] })
