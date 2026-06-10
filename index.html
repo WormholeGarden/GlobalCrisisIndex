@@ -938,8 +938,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 // ============================================================================
 // SIMPLE EMAIL LOGIN (No Google OAuth)
 // ============================================================================
-let tier = 'free'; // Global tier variable used by renderRanking
-
+let tier = 'pro'; // Global tier variable used by renderRanking - PRO UNLOCKED
 function toast(msg) {
   let t = document.getElementById('toast');
   t.textContent = msg;
@@ -1539,7 +1538,8 @@ function renderRanking(filter=''){
     const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
     return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
   }).join('');
-  if(tier==='free' && hidden>0){
+    // Removed lock banner - all countries shown for all users
+  if(false && tier==='free' && hidden>0){
     document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
   }
 }
