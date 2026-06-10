@@ -1,4 +1,3 @@
-hows this for the api for crys. cat > /mnt/user-data/outputs/top-story.js << 'ENDOFFILE'
 // /api/top-story.js
 //
 // The data layer behind CRYS — returns everything the UI needs to answer
