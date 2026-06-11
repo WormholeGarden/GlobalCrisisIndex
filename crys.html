@@ -3,375 +3,301 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CRYS · Crisis Intelligence</title>
+<title>CRYS · Crisis Intelligence Terminal</title>
+<meta name="description" content="CRYS is a crisis intelligence terminal. Ask about any country, compare crises, get real-time scores from USGS, WHO, UNHCR, IPC, Open-Meteo.">
+<meta name="theme-color" content="#020b17">
 <style>
-/* ── RESET ── */
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg0:#020b17; --bg1:#071221; --bg2:#0c1a2e; --bg3:#102338; --bg4:#162d47;
-  --b1:rgba(66,153,225,.12); --b2:rgba(66,153,225,.22); --b3:rgba(66,153,225,.38);
-  --cyan:#4dabf7; --cyan2:#74c0fc; --cyan3:#a5d8ff;
-  --text:#e8f4ff; --t2:#8eb8e0; --t3:#4a6a8a; --t4:#2a3e55;
-  --red:#ff6b6b; --orange:#ffa94d; --yellow:#ffe066; --green:#69db7c; --purple:#cc5de8;
-  --r:14px; --rs:8px; --rss:5px;
-  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;
+/* ── RESET & BASE ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg0:      #020b17;
+  --bg1:      #071221;
+  --bg2:      #0b1a2e;
+  --bg3:      #0f2040;
+  --border:   rgba(66,153,225,0.15);
+  --border2:  rgba(66,153,225,0.28);
+  --cyan:     #4dabf7;
+  --cyan2:    #74c0fc;
+  --text:     #e8f4ff;
+  --text2:    #8eb8e0;
+  --text3:    #4a6a8a;
+  --red:      #ff6b6b;
+  --orange:   #ffa94d;
+  --yellow:   #ffe066;
+  --green:    #69db7c;
+  --blue:     #74c0fc;
+  --purple:   #cc5de8;
+  --r:        14px;
+  --r-sm:     8px;
+  --transition: .2s ease;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+html, body { height:100%; overflow:hidden; background:var(--bg0); color:var(--text); font-family:system-ui,-apple-system,'Segoe UI','Inter',sans-serif; font-size:15px; line-height:1.5; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:99px; }
 
-/* ── SHELL ── */
-.shell{display:flex;flex-direction:column;height:100vh;position:relative}
+/* ── LAYOUT ────────────────────────────────────────────────────────────────── */
+.shell { display:flex; flex-direction:column; height:100vh; }
 
-/* ── HEADER ── */
-.hdr{
-  display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;
-  padding:.65rem 1.4rem;border-bottom:1px solid var(--b1);
-  background:rgba(2,11,23,.96);backdrop-filter:blur(20px);z-index:30;flex-shrink:0;
+/* ── HEADER ────────────────────────────────────────────────────────────────── */
+.header {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
+  padding:.75rem 1.5rem; border-bottom:1px solid var(--border);
+  background:rgba(2,11,23,.92); backdrop-filter:blur(20px); z-index:20; flex-shrink:0;
 }
-.brand{display:flex;align-items:center;gap:.55rem;cursor:pointer;user-select:none}
-.brand h1{
-  font-size:1.5rem;font-weight:900;letter-spacing:-.035em;
-  background:linear-gradient(135deg,#fff 30%,var(--cyan));
-  -webkit-background-clip:text;background-clip:text;color:transparent;
+.brand { display:flex; align-items:baseline; gap:.6rem; }
+.brand h1 {
+  font-size:1.55rem; font-weight:800; letter-spacing:-.02em;
+  background:linear-gradient(135deg,#fff 30%,var(--cyan)); -webkit-background-clip:text; background-clip:text; color:transparent;
 }
-.brand-tag{
-  font-size:.62rem;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;
-  background:var(--bg3);color:var(--cyan2);padding:.16rem .5rem;border-radius:99px;
-  border:1px solid var(--b2);
+.brand-tag {
+  font-size:.68rem; font-family:monospace; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--bg3); color:var(--cyan2); padding:.18rem .55rem; border-radius:99px; border:1px solid var(--border2);
 }
-.hdr-right{display:flex;align-items:center;gap:.6rem}
-.live-badge{
-  display:flex;align-items:center;gap:.35rem;font-size:.65rem;font-family:monospace;
-  color:var(--t3);letter-spacing:.06em;
+.header-right { display:flex; align-items:center; gap:.75rem; }
+.live-dot-wrap { display:flex; align-items:center; gap:.4rem; font-size:.7rem; color:var(--text3); font-family:monospace; }
+.live-dot { width:6px; height:6px; border-radius:50%; background:#51cf66; box-shadow:0 0 6px #51cf66; animation:blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.source-pills { display:flex; gap:.4rem; flex-wrap:wrap; }
+.pill { font-size:.62rem; font-family:monospace; background:var(--bg2); border:1px solid var(--border); color:var(--text3); padding:.18rem .55rem; border-radius:99px; }
+
+/* ── TOOLBAR ───────────────────────────────────────────────────────────────── */
+.toolbar {
+  display:flex; align-items:center; gap:.5rem; padding:.5rem 1.5rem;
+  background:rgba(7,18,33,.6); border-bottom:1px solid var(--border); flex-shrink:0;
 }
-.live-dot{width:5px;height:5px;border-radius:50%;background:#51cf66;box-shadow:0 0 5px #51cf66;animation:blink 2.2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.src-pills{display:flex;gap:.3rem;flex-wrap:wrap}
-.src-pill{font-size:.58rem;font-family:monospace;background:var(--bg2);border:1px solid var(--b1);color:var(--t3);padding:.14rem .45rem;border-radius:99px;letter-spacing:.04em}
-.settings-btn{
-  background:var(--bg2);border:1px solid var(--b1);color:var(--t2);border-radius:var(--rs);
-  padding:.3rem .6rem;font-size:.72rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.3rem;
+.tool-btn {
+  background:transparent; border:none; color:var(--text3); font-size:.7rem;
+  font-family:monospace; cursor:pointer; padding:.2rem .6rem; border-radius:99px;
+  transition:all var(--transition);
 }
-.settings-btn:hover{background:var(--bg3);border-color:var(--b2);color:var(--text)}
+.tool-btn:hover { color:var(--cyan2); background:var(--bg2); }
+.tool-btn.clear-btn:hover { color:var(--red); }
+.url-share { font-size:.65rem; color:var(--text3); font-family:monospace; margin-left:auto; }
 
-/* ── CHAT ── */
-.chat{flex:1;overflow-y:auto;padding:1.25rem 1.4rem;scroll-behavior:smooth}
-.msgs{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:1.15rem;padding-bottom:.5rem}
+/* ── CHAT ──────────────────────────────────────────────────────────────────── */
+.chat { flex:1; overflow-y:auto; padding:1.5rem; scroll-behavior:smooth; }
+.messages { max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:1.25rem; }
 
-/* ── WELCOME ── */
-.welcome{
-  text-align:center;padding:3rem 1rem 2rem;display:flex;flex-direction:column;align-items:center;gap:.75rem;
+/* ── MESSAGE BUBBLES ───────────────────────────────────────────────────────── */
+.msg { display:flex; flex-direction:column; gap:.3rem; max-width:88%; animation:rise .18s ease-out; }
+@keyframes rise { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg-user  { align-self:flex-end; }
+.msg-crys  { align-self:flex-start; }
+.bubble {
+  padding:.8rem 1.15rem; border-radius:1.4rem; word-break:break-word;
+  font-size:.9rem; line-height:1.55;
 }
-.welcome-mark{font-size:2.8rem;opacity:.5;animation:float 3.5s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.welcome h2{font-size:1.2rem;font-weight:700;color:var(--text)}
-.welcome p{font-size:.82rem;color:var(--t3);line-height:1.75;max-width:400px}
-.welcome p em{color:var(--t2);font-style:normal}
-.welcome-examples{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem}
-.welcome-ex{
-  font-size:.7rem;background:var(--bg2);border:1px solid var(--b1);color:var(--t2);
-  padding:.25rem .7rem;border-radius:99px;cursor:pointer;transition:all .15s;
+.msg-user .bubble { background:#1a3a60; border-bottom-right-radius:.3rem; color:#fff; }
+.msg-crys .bubble { background:var(--bg2); border:1px solid var(--border); border-bottom-left-radius:.3rem; color:var(--text); }
+.msg-meta  { font-size:.65rem; color:var(--text3); font-family:monospace; padding:0 .4rem; }
+
+/* ── RICH CONTENT ──────────────────────────────────────────────────────────── */
+.bubble strong { font-weight:700; color:var(--cyan2); }
+.bubble em     { font-style:normal; color:var(--text2); }
+.score-hero {
+  display:inline-flex; align-items:baseline; gap:.4rem;
+  font-size:1.8rem; font-weight:900; letter-spacing:-.03em; line-height:1;
 }
-.welcome-ex:hover{background:var(--bg3);border-color:var(--b2);color:var(--text)}
-
-/* ── MESSAGES ── */
-.msg{display:flex;flex-direction:column;gap:.28rem;max-width:90%;animation:rise .16s ease-out}
-@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-.msg-user{align-self:flex-end}
-.msg-crys{align-self:flex-start;max-width:96%}
-.bubble{padding:.8rem 1.1rem;border-radius:1.35rem;word-break:break-word;font-size:.875rem;line-height:1.6}
-.msg-user .bubble{background:#1a3d65;border-bottom-right-radius:.3rem;color:#fff}
-.msg-crys .bubble{background:var(--bg2);border:1px solid var(--b1);border-bottom-left-radius:.3rem;color:var(--text)}
-.msg-meta{font-size:.6rem;color:var(--t4);font-family:monospace;padding:0 .35rem;letter-spacing:.04em}
-
-/* ── BUBBLE CONTENT ── */
-.bubble strong{font-weight:700;color:var(--cyan2)}
-.bubble em{font-style:normal;color:var(--t2)}
-.h-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.65rem}
-.cname{font-size:1.05rem;font-weight:800;line-height:1.2}
-.score-big{font-size:1.9rem;font-weight:900;letter-spacing:-.04em;line-height:1}
-.score-denom{font-size:.9rem;font-weight:400;color:var(--t3)}
-.rank-tag{font-size:.62rem;font-family:monospace;color:var(--t3);margin-top:.15rem}
-
-/* Severity */
-.sev{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;padding:.18rem .55rem;border-radius:99px;font-family:monospace;vertical-align:middle}
-.sev-CATASTROPHIC{background:rgba(255,107,107,.15);color:#ff6b6b;border:1px solid rgba(255,107,107,.28)}
-.sev-CRITICAL    {background:rgba(255,169,77,.14);color:#ffa94d;border:1px solid rgba(255,169,77,.28)}
-.sev-HIGH        {background:rgba(255,224,102,.1);color:#ffe066;border:1px solid rgba(255,224,102,.25)}
-.sev-ELEVATED    {background:rgba(105,219,124,.09);color:#69db7c;border:1px solid rgba(105,219,124,.22)}
-.sev-MODERATE    {background:rgba(116,192,252,.09);color:#74c0fc;border:1px solid rgba(116,192,252,.22)}
-
-/* Section label */
-.slbl{display:block;font-size:.58rem;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin:.7rem 0 .35rem}
-
-/* Divider */
-.div{height:1px;background:var(--b1);margin:.6rem 0;opacity:.6}
-
-/* ── DIMENSION BARS ── */
-.dims{display:flex;flex-direction:column;gap:.38rem}
-.dr{display:flex;align-items:center;gap:.55rem}
-.dl{font-size:.68rem;color:var(--t2);width:84px;flex-shrink:0;font-family:monospace;letter-spacing:.025em;text-transform:uppercase}
-.dl-hl{color:var(--cyan2)!important;font-weight:700}
-.dt{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.df{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1)}
-.dv{font-size:.68rem;font-family:monospace;width:24px;text-align:right;flex-shrink:0}
-.dc{font-size:.62rem;color:var(--t3);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* ── EVIDENCE ── */
-.ev-list{display:flex;flex-direction:column;gap:.28rem}
-.ev-item{display:flex;align-items:flex-start;gap:.45rem;font-size:.78rem}
-.ev-ico{flex-shrink:0;font-size:.82rem;margin-top:.04rem;line-height:1}
-.ev-txt{color:var(--t2);line-height:1.45;flex:1}
-.ev-src{font-size:.58rem;font-family:monospace;color:var(--t3);margin-left:.3rem}
-
-/* ── TREND ── */
-.trend-line{display:flex;align-items:center;gap:.55rem;font-size:.78rem;margin:.15rem 0}
-.t-up{color:var(--red)}
-.t-dn{color:var(--green)}
-.t-fl{color:var(--t3)}
-.fc-line{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--t2)}
-
-/* ── RECOMMENDATION ── */
-.rec{
-  display:flex;align-items:flex-start;gap:.55rem;
-  background:rgba(255,255,255,.025);border:1px solid var(--b1);
-  border-radius:var(--rs);padding:.5rem .7rem;margin:.4rem 0;font-size:.8rem;
+.score-hero .denom { font-size:1rem; font-weight:400; color:var(--text3); }
+.sev {
+  display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.08em;
+  padding:.22rem .6rem; border-radius:99px; font-family:monospace;
 }
-.rec-IMMEDIATE{border-color:rgba(255,107,107,.32);background:rgba(255,107,107,.045)}
-.rec-URGENT   {border-color:rgba(255,169,77,.28);background:rgba(255,169,77,.035)}
-.rec-HIGH     {border-color:rgba(255,224,102,.22);background:rgba(255,224,102,.03)}
-.rec-MONITOR  {border-color:rgba(105,219,124,.18);background:rgba(105,219,124,.025)}
-.rec-WATCH    {border-color:var(--b1)}
-.rec-ico{font-size:.9rem;flex-shrink:0;margin-top:.05rem}
-.rec-txt{color:var(--t2);line-height:1.45}
+.sev-CATASTROPHIC { background:rgba(255,107,107,.15); color:#ff6b6b; border:1px solid rgba(255,107,107,.3); }
+.sev-CRITICAL     { background:rgba(255,169,77,.15);  color:#ffa94d; border:1px solid rgba(255,169,77,.3); }
+.sev-HIGH         { background:rgba(255,224,102,.12); color:#ffe066; border:1px solid rgba(255,224,102,.3); }
+.sev-ELEVATED     { background:rgba(105,219,124,.1);  color:#69db7c; border:1px solid rgba(105,219,124,.25); }
+.sev-MODERATE     { background:rgba(116,192,252,.1);  color:#74c0fc; border:1px solid rgba(116,192,252,.25); }
+.rank-chip { display:inline-flex; align-items:center; gap:.3rem; font-size:.68rem; font-family:monospace; color:var(--text3); }
 
-/* ── SPILLOVER ── */
-.spill{display:flex;align-items:center;gap:.45rem;font-size:.76rem;color:var(--t2)}
+/* Dimensions */
+.dims { display:flex; flex-direction:column; gap:.45rem; margin:.35rem 0; }
+.dim-row { display:flex; align-items:center; gap:.6rem; }
+.dim-label { font-size:.72rem; color:var(--text2); width:90px; flex-shrink:0; font-family:monospace; text-transform:uppercase; }
+.dim-track { flex:1; height:5px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden; }
+.dim-fill  { height:100%; border-radius:99px; transition:width .6s ease; }
+.dim-val   { font-size:.72rem; font-family:monospace; width:28px; text-align:right; color:var(--text2); flex-shrink:0; }
+.dim-ctx   { font-size:.65rem; color:var(--text3); flex:0 0 auto; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* ── ANOMALY ── */
-.anom{font-size:.72rem;color:var(--orange);padding:.25rem .5rem;background:rgba(255,169,77,.06);border:1px solid rgba(255,169,77,.18);border-radius:var(--rss);margin:.3rem 0}
+/* Evidence */
+.evidence { display:flex; flex-direction:column; gap:.3rem; margin:.35rem 0; }
+.ev-item { display:flex; align-items:flex-start; gap:.5rem; font-size:.8rem; }
+.ev-icon { flex-shrink:0; font-size:.85rem; }
+.ev-text { color:var(--text2); line-height:1.4; }
+.ev-source { font-size:.62rem; color:var(--text3); font-family:monospace; margin-left:.3rem; }
+.section-label { font-size:.62rem; font-family:monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--text3); margin-bottom:.4rem; display:block; padding-top:.6rem; }
 
-/* ── AUDIT ── */
-.audit-list{display:flex;flex-direction:column;gap:.28rem}
-.audit-item{display:flex;align-items:flex-start;gap:.4rem;font-size:.72rem;color:var(--t2)}
-.audit-src{font-family:monospace;font-size:.6rem;color:var(--cyan);background:rgba(77,171,247,.1);padding:.1rem .35rem;border-radius:3px;flex-shrink:0}
-.audit-delta{font-family:monospace;font-size:.63rem;color:var(--green);flex-shrink:0;min-width:28px}
-.audit-foot{font-size:.68rem;color:var(--t3);font-family:monospace;margin-top:.3rem}
+/* Comparison */
+.comp-table { width:100%; border-collapse:collapse; font-size:.8rem; margin:.4rem 0; }
+.comp-table th { font-size:.65rem; font-family:monospace; letter-spacing:.08em; color:var(--text3); text-align:left; padding:.3rem .5rem; border-bottom:1px solid var(--border); }
+.comp-table td { padding:.3rem .5rem; border-bottom:1px solid rgba(66,153,225,.06); color:var(--text2); }
+.comp-table td.winner { color:var(--cyan2); font-weight:700; }
+.comp-table td.loser  { color:var(--text3); }
 
-/* ── RANK LIST ── */
-.rank-list{display:flex;flex-direction:column;gap:.25rem}
-.ri{
-  display:flex;align-items:center;gap:.55rem;
-  padding:.38rem .55rem;border-radius:var(--rs);background:rgba(255,255,255,.018);
-  border:1px solid rgba(66,153,225,.07);cursor:pointer;transition:all .14s;
-}
-.ri:hover{background:rgba(66,153,225,.07);border-color:var(--b2)}
-.ri-num{font-family:monospace;font-size:.62rem;color:var(--t4);width:20px;flex-shrink:0;text-align:right}
-.ri-flag{font-size:.95rem;flex-shrink:0}
-.ri-name{flex:1;font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ri-bar{width:52px;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;flex-shrink:0}
-.ri-fill{height:100%;border-radius:99px}
-.ri-score{font-family:monospace;font-size:.75rem;font-weight:700;flex-shrink:0;min-width:22px;text-align:right}
-.ri-sev{font-size:.55rem;flex-shrink:0}
+/* Trend & Forecast */
+.trend-row { display:flex; align-items:center; gap:.6rem; font-size:.8rem; margin:.2rem 0; }
+.trend-dir { font-size:.72rem; font-family:monospace; }
+.trend-up   { color:var(--red); }
+.trend-down { color:var(--green); }
+.trend-flat { color:var(--text3); }
+.forecast-row { display:flex; align-items:center; gap:.6rem; font-size:.78rem; color:var(--text2); }
 
-/* ── COMPARISON TABLE ── */
-.ctbl{width:100%;border-collapse:collapse;font-size:.77rem;margin:.4rem 0}
-.ctbl th{font-size:.6rem;font-family:monospace;letter-spacing:.08em;color:var(--t3);text-align:left;padding:.28rem .45rem;border-bottom:1px solid var(--b1)}
-.ctbl td{padding:.28rem .45rem;border-bottom:1px solid rgba(66,153,225,.05);color:var(--t2);vertical-align:middle}
-.ctbl td.w{color:var(--cyan2);font-weight:700}
-.ctbl td.l{color:var(--t3)}
-.comp-head{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-bottom:.6rem}
-.comp-name{font-size:1.1rem;font-weight:800}
-.comp-vs{color:var(--t4);font-weight:300}
-.verdict-box{
-  padding:.5rem .65rem;background:rgba(77,171,247,.04);border:1px solid var(--b1);
-  border-radius:var(--rs);font-size:.78rem;color:var(--t2);margin-top:.45rem;line-height:1.5;
+/* Recommendation */
+.rec-box {
+  display:flex; align-items:flex-start; gap:.6rem;
+  background:rgba(255,255,255,.03); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:.55rem .75rem; margin:.4rem 0; font-size:.82rem;
 }
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-top:.4rem}
+.rec-IMMEDIATE { border-color:rgba(255,107,107,.35); background:rgba(255,107,107,.05); }
+.rec-URGENT    { border-color:rgba(255,169,77,.3);  background:rgba(255,169,77,.04); }
+.rec-HIGH      { border-color:rgba(255,224,102,.25);background:rgba(255,224,102,.04); }
+.rec-MONITOR   { border-color:rgba(105,219,124,.2); background:rgba(105,219,124,.03); }
+.rec-icon { font-size:.95rem; flex-shrink:0; }
 
-/* ── GAP ANALYSIS ── */
-.gap-header{font-size:.9rem;line-height:1.5;margin-bottom:.55rem}
-.gap-stat{
-  display:inline-flex;align-items:baseline;gap:.3rem;
-  background:rgba(255,169,77,.06);border:1px solid rgba(255,169,77,.2);
-  border-radius:var(--rss);padding:.12rem .45rem;font-family:monospace;font-size:.78rem;color:var(--orange);
+/* Ranking list */
+.rank-list { display:flex; flex-direction:column; gap:.3rem; margin:.4rem 0; }
+.rank-item {
+  display:flex; align-items:center; gap:.6rem;
+  padding:.4rem .6rem; border-radius:var(--r-sm); background:rgba(255,255,255,.02);
+  border:1px solid rgba(66,153,225,.08); font-size:.82rem; cursor:pointer;
+  transition:background .15s, border-color .15s;
 }
-.delta-row{display:flex;align-items:center;gap:.55rem;font-size:.78rem;color:var(--t2);padding:.25rem 0}
-.delta-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.delta-bar{height:100%;border-radius:99px}
-.delta-val{font-family:monospace;font-size:.68rem;min-width:28px;text-align:right;flex-shrink:0}
-.timeline-box{
-  font-size:.75rem;color:var(--t2);padding:.45rem .6rem;
-  background:rgba(255,255,255,.02);border:1px solid var(--b1);border-radius:var(--rs);margin-top:.4rem;line-height:1.55;
-}
+.rank-item:hover { background:rgba(66,153,225,.07); border-color:var(--border2); }
+.rank-num  { font-family:monospace; font-size:.68rem; color:var(--text3); width:22px; flex-shrink:0; }
+.rank-flag { font-size:1rem; flex-shrink:0; }
+.rank-name { flex:1; font-weight:500; }
+.rank-score{ font-family:monospace; font-size:.78rem; font-weight:700; flex-shrink:0; }
+.rank-bar  { width:60px; height:3px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden; flex-shrink:0; }
+.rank-fill { height:100%; border-radius:99px; }
 
-/* ── ALERT BOX ── */
-.alert-box{
-  display:flex;align-items:flex-start;gap:.55rem;
-  padding:.5rem .7rem;background:rgba(77,171,247,.04);border:1px solid var(--b2);
-  border-radius:var(--rs);font-size:.8rem;
-}
-.alert-ico{font-size:.95rem;flex-shrink:0;margin-top:.05rem}
-.alert-txt{color:var(--t2);line-height:1.5}
-.alert-note{font-size:.65rem;color:var(--t3);margin-top:.3rem}
+/* Audit & Spillover */
+.audit-list { display:flex; flex-direction:column; gap:.3rem; margin:.35rem 0; }
+.audit-item { font-size:.75rem; color:var(--text2); display:flex; align-items:flex-start; gap:.5rem; }
+.audit-src  { font-family:monospace; font-size:.65rem; color:var(--cyan); background:rgba(77,171,247,.1); padding:.1rem .4rem; border-radius:3px; flex-shrink:0; }
+.audit-delta{ font-family:monospace; font-size:.68rem; color:var(--green); flex-shrink:0; }
+.spill-row { display:flex; align-items:center; gap:.5rem; font-size:.78rem; color:var(--text2); }
+.divider { height:1px; background:var(--border); margin:.6rem 0; opacity:.5; }
 
-/* ── WORST DIM ── */
-.wd-row{
-  display:flex;align-items:center;gap:.55rem;padding:.3rem .45rem;
-  border-radius:var(--rs);cursor:pointer;transition:background .13s;
-}
-.wd-row:hover{background:rgba(66,153,225,.06)}
-.wd-flag{font-size:.95rem;flex-shrink:0}
-.wd-name{font-size:.8rem;font-weight:500;width:110px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wd-bar{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.wd-fill{height:100%;border-radius:99px}
-.wd-val{font-family:monospace;font-size:.72rem;font-weight:700;min-width:24px;text-align:right}
-.wd-ctx{font-size:.6rem;color:var(--t3);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Typing */
+.typing { display:flex; gap:5px; align-items:center; padding:.55rem .9rem; background:var(--bg2); border:1px solid var(--border); border-radius:2rem; width:fit-content; }
+.typing span { width:7px; height:7px; background:var(--cyan); border-radius:50%; animation:tp 1.1s ease-in-out infinite; }
+.typing span:nth-child(2){animation-delay:.14s}
+.typing span:nth-child(3){animation-delay:.28s}
+@keyframes tp { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1.2)} }
 
-/* ── CRISIS TYPE PILLS ── */
-.type-pills{display:flex;flex-wrap:wrap;gap:.3rem;margin:.15rem 0}
-.type-pill{
-  font-size:.6rem;background:rgba(255,255,255,.03);border:1px solid var(--b1);
-  color:var(--t2);padding:.14rem .45rem;border-radius:99px;
-}
+/* Welcome */
+.welcome { text-align:center; padding:2.5rem 1rem; }
+.welcome-globe { font-size:3rem; margin-bottom:.75rem; opacity:.6; animation:float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.welcome h2 { font-size:1.25rem; font-weight:700; margin-bottom:.4rem; }
+.welcome p  { font-size:.82rem; color:var(--text3); line-height:1.7; max-width:420px; margin:0 auto; }
 
-/* ── GLOBAL GCIS ── */
-.gcis-banner{
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
-  padding:.5rem .7rem;background:rgba(77,171,247,.04);border:1px solid var(--b1);
-  border-radius:var(--rs);margin-bottom:.65rem;font-size:.78rem;
+/* ── INPUT AREA ────────────────────────────────────────────────────────────── */
+.input-area {
+  flex-shrink:0; background:rgba(7,18,33,.97); border-top:1px solid var(--border);
+  padding:.9rem 1.5rem 1.25rem; backdrop-filter:blur(12px);
 }
-.gcis-score{font-size:1.4rem;font-weight:900;font-family:monospace;color:var(--cyan2)}
-.gcis-meta{display:flex;flex-direction:column;gap:.15rem}
-.gcis-label{font-size:.6rem;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.input-row {
+  max-width:860px; margin:0 auto; display:flex; gap:.6rem;
+  background:var(--bg2); border:1px solid var(--border2); border-radius:3rem;
+  padding:.3rem .3rem .3rem .3rem; transition:border-color .2s, box-shadow .2s;
+}
+.input-row:focus-within { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(77,171,247,.15); }
+.input-row input {
+  flex:1; background:transparent; border:none; outline:none;
+  padding:.75rem 1.1rem; font-size:.95rem; color:var(--text); font-family:inherit;
+}
+.input-row input::placeholder { color:var(--text3); }
+.send-btn {
+  background:var(--cyan); color:#020b17; border:none; border-radius:2.5rem;
+  padding:.5rem 1.3rem; font-weight:700; font-size:.88rem; cursor:pointer; flex-shrink:0;
+  transition:background .15s, transform .1s;
+}
+.send-btn:hover { background:var(--cyan2); }
+.send-btn:active { transform:scale(.97); }
 
-/* ── TYPING ── */
-.typing{display:flex;gap:5px;align-items:center;padding:.5rem .85rem;background:var(--bg2);border:1px solid var(--b1);border-radius:2rem;width:fit-content}
-.typing span{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:tp 1.05s ease-in-out infinite}
-.typing span:nth-child(2){animation-delay:.13s}
-.typing span:nth-child(3){animation-delay:.26s}
-@keyframes tp{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+/* Chips */
+.chips-row {
+  max-width:860px; margin:.65rem auto 0; display:flex; flex-wrap:wrap; gap:.4rem;
+}
+.chip {
+  font-size:.7rem; background:var(--bg2); border:1px solid var(--border);
+  color:var(--text2); padding:.28rem .85rem; border-radius:2rem; cursor:pointer;
+  transition:all .15s; user-select:none;
+}
+.chip:hover { background:var(--bg3); border-color:var(--border2); color:var(--text); }
+.footer-note { text-align:center; font-size:.62rem; color:var(--text3); font-family:monospace; margin-top:.6rem; }
 
-/* ── INPUT ── */
-.inp-area{
-  flex-shrink:0;background:rgba(7,18,33,.98);border-top:1px solid var(--b1);
-  padding:.8rem 1.4rem 1.1rem;
-}
-.inp-wrap{
-  max-width:880px;margin:0 auto;display:flex;gap:.5rem;
-  background:var(--bg2);border:1px solid var(--b2);border-radius:3rem;
-  padding:.28rem .28rem .28rem .28rem;transition:border-color .2s,box-shadow .2s;
-}
-.inp-wrap:focus-within{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(77,171,247,.13)}
-.inp-wrap input{
-  flex:1;background:transparent;border:none;outline:none;
-  padding:.68rem 1rem;font-size:.92rem;color:var(--text);font-family:var(--font);
-}
-.inp-wrap input::placeholder{color:var(--t3)}
-.send{
-  background:var(--cyan);color:#020b17;border:none;border-radius:2.5rem;
-  padding:.46rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;
-  flex-shrink:0;transition:background .14s,transform .1s;display:flex;align-items:center;gap:.3rem;
-  letter-spacing:.01em;
-}
-.send:hover{background:var(--cyan2)}
-.send:active{transform:scale(.97)}
-.chips{max-width:880px;margin:.55rem auto 0;display:flex;flex-wrap:wrap;gap:.35rem}
-.chip{
-  font-size:.68rem;background:var(--bg2);border:1px solid var(--b1);color:var(--t2);
-  padding:.24rem .75rem;border-radius:2rem;cursor:pointer;transition:all .13s;white-space:nowrap;user-select:none;
-}
-.chip:hover{background:var(--bg3);border-color:var(--b2);color:var(--text)}
-.inp-footer{text-align:center;font-size:.58rem;color:var(--t4);font-family:monospace;margin-top:.5rem;letter-spacing:.04em}
-
-/* ── RESPONSIVE ── */
+/* Mobile */
 @media(max-width:600px){
-  .hdr{padding:.55rem .9rem}
-  .src-pills,.settings-btn{display:none}
-  .chat{padding:.9rem}
-  .msg{max-width:97%}
-  .bubble{font-size:.82rem;padding:.7rem .9rem}
-  .inp-area{padding:.65rem .9rem .9rem}
-  .chips{display:none}
-  .dc,.wd-ctx{display:none}
-  .two-col{grid-template-columns:1fr}
-  .ctbl{font-size:.7rem}
+  .header { padding:.6rem 1rem; }
+  .source-pills { display:none; }
+  .toolbar { padding:.4rem 1rem; }
+  .chat { padding:1rem; }
+  .msg { max-width:95%; }
+  .bubble { font-size:.85rem; padding:.7rem 1rem; }
+  .input-area { padding:.7rem 1rem 1rem; }
+  .chips-row { display:none; }
+  .dim-ctx { display:none; }
+  .comp-table { font-size:.72rem; }
 }
 </style>
 </head>
 <body>
 <div class="shell">
 
-<!-- HEADER -->
-<header class="hdr">
-  <div class="brand" onclick="resetChat()">
+<header class="header">
+  <div class="brand">
     <h1>CRYS</h1>
-    <span class="brand-tag">crisis intelligence</span>
+    <span class="brand-tag">crisis intelligence terminal</span>
   </div>
-  <div class="hdr-right">
-    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="src-pills">
-      <span class="src-pill">USGS</span>
-      <span class="src-pill">IPC</span>
-      <span class="src-pill">WHO</span>
-      <span class="src-pill">UNHCR</span>
-      <span class="src-pill">Open-Meteo</span>
+  <div class="header-right">
+    <div class="live-dot-wrap"><div class="live-dot"></div>LIVE</div>
+    <div class="source-pills">
+      <span class="pill">USGS</span><span class="pill">IPC</span>
+      <span class="pill">WHO</span><span class="pill">UNHCR</span>
+      <span class="pill">Open-Meteo</span>
     </div>
   </div>
 </header>
 
-<!-- CHAT -->
+<div class="toolbar">
+  <button class="tool-btn clear-btn" id="clearBtn">🗑 Clear chat</button>
+  <button class="tool-btn" id="shareBtn">🔗 Share</button>
+  <button class="tool-btn" id="exampleBtn">📋 Examples</button>
+  <span class="url-share" id="urlIndicator"></span>
+</div>
+
 <div class="chat" id="chat">
-  <div class="msgs" id="msgs">
-    <div class="welcome" id="welcome">
-      <div class="welcome-mark">🌐</div>
+  <div class="messages" id="msgs">
+    <div class="welcome">
+      <div class="welcome-globe">🌐</div>
       <h2>Ask CRYS anything about crisis.</h2>
-      <p>Type a country name, a question, or a comparison.<br>
-        <em>CRYS does not guess. The data shows.</em></p>
-      <div class="welcome-examples">
-        <div class="welcome-ex" data-q="Somalia">🇸🇴 Somalia</div>
-        <div class="welcome-ex" data-q="Yemen">🇾🇪 Yemen</div>
-        <div class="welcome-ex" data-q="compare Sudan and Yemen">📊 Compare Sudan vs Yemen</div>
-        <div class="welcome-ex" data-q="top 5 crises">🔝 Top 5 crises</div>
-        <div class="welcome-ex" data-q="worst food crisis">🍚 Worst food crisis</div>
-        <div class="welcome-ex" data-q="what is escalating">📈 What's escalating</div>
-        <div class="welcome-ex" data-q="Africa ranked">🌍 Africa ranked</div>
-        <div class="welcome-ex" data-q="Why is Palestine not highest?">❓ Why not highest?</div>
-      </div>
+      <p>Type a country, a question, or a comparison.<br><em>CRYS does not guess. The data shows.</em></p>
     </div>
   </div>
 </div>
 
-<!-- INPUT -->
-<div class="inp-area">
-  <div class="inp-wrap">
-    <input id="inp" type="text"
-      placeholder="Somalia · compare Sudan vs Yemen · top 5 · Africa ranked · worst displacement · above 70 …"
-      autocomplete="off" spellcheck="false">
-    <button class="send" id="sendBtn">Ask ↵</button>
+<div class="input-area">
+  <div class="input-row">
+    <input id="inp" type="text" placeholder="How bad is Somalia? · Compare Sudan and Yemen · Top 5 crises · Africa ranked …" autocomplete="off" spellcheck="false">
+    <button class="send-btn" id="sendBtn">↵ Ask</button>
   </div>
-  <div class="chips">
+  <div class="chips-row" id="chips">
     <div class="chip" data-q="Somalia">🇸🇴 Somalia</div>
     <div class="chip" data-q="Sudan">🇸🇩 Sudan</div>
     <div class="chip" data-q="Yemen">🇾🇪 Yemen</div>
     <div class="chip" data-q="Palestine">🇵🇸 Palestine</div>
-    <div class="chip" data-q="Afghanistan">🇦🇫 Afghanistan</div>
     <div class="chip" data-q="top 5">🔝 Top 5</div>
-    <div class="chip" data-q="top 10">🔟 Top 10</div>
     <div class="chip" data-q="compare Somalia and Yemen">📊 Somalia vs Yemen</div>
-    <div class="chip" data-q="compare Sudan and Palestine">📊 Sudan vs Palestine</div>
     <div class="chip" data-q="Africa ranked">🌍 Africa</div>
-    <div class="chip" data-q="Middle East ranked">🕌 Middle East</div>
-    <div class="chip" data-q="what is escalating">📈 Escalating</div>
     <div class="chip" data-q="what is improving">📉 Improving</div>
+    <div class="chip" data-q="what is escalating">📈 Escalating</div>
     <div class="chip" data-q="worst food crisis">🍚 Food crisis</div>
     <div class="chip" data-q="worst displacement">🚶 Displacement</div>
-    <div class="chip" data-q="above 70">⚠️ Score ≥ 70</div>
-    <div class="chip" data-q="Why is Palestine not highest?">❓ Why not #1?</div>
   </div>
-  <div class="inp-footer">Scores refresh every 5 min · USGS · IPC · WHO · UNHCR · Open-Meteo · scores are prior-based with live adjustments</div>
+  <div class="footer-note">Scores refresh every 5 min · USGS · IPC · WHO · UNHCR · Open-Meteo</div>
 </div>
 
 </div>
@@ -379,758 +305,202 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);fo
 <script>
 "use strict";
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
-const API   = "https://www.globalcrisisindex.com/api/top-story";
-const CACHE_TTL = 300_000; // 5 min — matches API seed interval
+// ─────────────────────────────────────────────────────────────────────────────
+// 10/10 CRYS — Production Crisis Intelligence Terminal
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CACHE  (keyed by serialised params, TTL = one seed cycle)
-// ═══════════════════════════════════════════════════════════════════════════
+const API = "https://www.globalcrisisindex.com/api/top-story";
+const STORAGE_KEY = "crys_chat_history";
+const MAX_HISTORY = 50;
+
+// ── CACHE ────────────────────────────────────────────────────────────────────
 const _cache = new Map();
-
-async function api(params) {
+async function cachedFetch(params, force = false) {
   const key = JSON.stringify(params);
   const hit = _cache.get(key);
-  if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data;
-
+  if (!force && hit && Date.now() - hit.ts < 300_000) return hit.data;
   const url = new URL(API);
-  for (const [k,v] of Object.entries(params))
-    if (v !== null && v !== undefined) url.searchParams.set(k, String(v));
-
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(\`API returned \${res.status}\`);
+  for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, v);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
   const data = await res.json();
   _cache.set(key, { ts: Date.now(), data });
   return data;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INTENT PARSER  — pure, no side effects
-// ═══════════════════════════════════════════════════════════════════════════
-const ALIASES = {
-  "dr congo":"COD","congo":"COD","drc":"COD",
-  "central african republic":"CAF","car":"CAF",
-  "south sudan":"SSD","burkina faso":"BFA",
-  "us":"USA","united states":"USA","america":"USA",
-  "uk":"GBR","britain":"GBR",
-  "myanmar":"MMR","burma":"MMR",
-  "iran":"IRN","persia":"IRN",
-  "north korea":"PRK","nk":"PRK",
-  "south korea":"KOR","sk":"KOR",
-};
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+function escHtml(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escAttr(s) { return String(s ?? "").replace(/"/g,"&quot;"); }
+function scoreColor(s) { if (s>=85) return "#ff6b6b"; if (s>=75) return "#ffa94d"; if (s>=60) return "#ffe066"; if (s>=40) return "#69db7c"; return "#74c0fc"; }
+function dimColor(v) { if (v>=80) return "#ff6b6b"; if (v>=65) return "#ffa94d"; if (v>=50) return "#ffe066"; if (v>=35) return "#74c0fc"; return "#4a6a8a"; }
+function estimateDays(slope, gap) { if (!slope || slope <= 0) return "unknown timeline"; const days = Math.ceil(gap / slope); return days > 365 ? "over a year" : days > 90 ? `~${Math.round(days/30)} months` : `~${days} days`; }
 
-function resolveName(raw) {
-  const l = raw.toLowerCase().trim();
-  return ALIASES[l] || l;
-}
-
-const REGIONS = {
-  africa:    ["africa","african"],
-  asia:      ["asia","asian","southeast asia","south asia","east asia"],
-  europe:    ["europe","european"],
-  middleeast:["middle east","middleeast","mena","arab","gulf"],
-  americas:  ["americas","america","latin america","latam","caribbean"],
-};
-
-function detectRegion(text) {
-  const l = text.toLowerCase();
-  for (const [r, kw] of Object.entries(REGIONS))
-    if (kw.some(k => l.includes(k))) return r;
-  return null;
-}
-
-const DIMS = {
-  food:        ["food","hunger","famine","starvation","ipc","nutrition","eating"],
-  displacement:["displacement","displaced","refugee","refugees","idp","idps","homeless","migrant"],
-  health:      ["health","disease","outbreak","epidemic","cholera","ebola","malaria","medical","illness"],
-  conflict:    ["conflict","war","fighting","combat","battle","violence","armed","military","attack"],
-  economic:    ["economic","economy","gdp","poverty","financial","currency","inflation"],
-  climate:     ["climate","heat","flood","drought","weather","temperature","cyclone","storm"],
-};
-
-function detectDim(text) {
-  const l = text.toLowerCase();
-  for (const [d, kw] of Object.entries(DIMS))
-    if (kw.some(k => l.includes(k))) return d;
-  return null;
-}
+// ── INTENT PARSER ────────────────────────────────────────────────────────────
+const COUNTRY_ALIASES = { "dr congo":"COD","congo":"COD","drc":"COD","central african republic":"CAF","car":"CAF","south sudan":"SSD","burkina faso":"BFA","us":"USA","united states":"USA","america":"USA","uk":"GBR","britain":"GBR","iran":"IRN","myanmar":"MMR","burma":"MMR","uae":"ARE","emirates":"ARE","north korea":"PRK","south korea":"KOR" };
+function resolveCountryName(raw) { if (!raw) return null; const lower = raw.toLowerCase().trim(); return COUNTRY_ALIASES[lower] || lower; }
+const REGION_MAP = { africa:["africa","african"], asia:["asia","asian"], europe:["europe","european"], middleeast:["middle east","middleeast","mena","gulf"], americas:["americas","latin america","latam","caribbean"] };
+function detectRegion(text) { const lower = text.toLowerCase(); for (const [region, aliases] of Object.entries(REGION_MAP)) if (aliases.some(a => lower.includes(a))) return region; return null; }
+const DIM_ALIASES = { food:["food","hunger","famine","starvation","ipc"], displacement:["displacement","displaced","refugee","idp"], health:["health","disease","outbreak","epidemic"], conflict:["conflict","war","fighting","violence"] };
+function detectDimension(text) { const lower = text.toLowerCase(); for (const [dim, words] of Object.entries(DIM_ALIASES)) if (words.some(w => lower.includes(w))) return dim; return null; }
 
 function parseIntent(raw) {
   const t = raw.trim();
   const l = t.toLowerCase();
-
-  // Compare: "X vs Y" or "compare X and Y"
-  const cmp =
-    l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i) ||
-    l.match(/(.+?)\s+(?:vs?\.?|versus)\s+(.+)/i);
-  if (cmp) return { type:"compare", a:resolveName(cmp[1].trim()), b:resolveName(cmp[2].trim()) };
-
-  // Why not highest / lowest
-  const nh = l.match(/why\s+(?:is\s+|isn't\s+)?(.+?)\s+not\s+(?:the\s+)?(?:#1|number\s+one|highest|first|top)/i);
-  if (nh) return { type:"why_not_highest", country:resolveName(nh[1].trim()) };
-  const nl = l.match(/why\s+(?:is\s+)?(.+?)\s+not\s+(?:the\s+)?lowest/i);
-  if (nl) return { type:"why_not_lowest", country:resolveName(nl[1].trim()) };
-
-  // Why is X higher/worse than Y
-  const wh = l.match(/why\s+(?:is\s+)?(.+?)\s+(?:higher|worse|more severe|ranked higher)\s+than\s+(.+)/i);
-  if (wh) return { type:"compare", a:resolveName(wh[1].trim()), b:resolveName(wh[2].trim()) };
-
-  // Top N
-  const top = l.match(/top\s+(\d+)/i);
-  if (top) return { type:"top_n", n:Math.min(20, Math.max(1, parseInt(top[1]))) };
-
-  // Worst [dimension]
-  const worst = l.match(/worst\s+(.+?)(?:\s+crisis|\s+situation|\s+countries?)?\s*$/i);
-  if (worst) {
-    const dim = detectDim(worst[1]);
-    if (dim) return { type:"worst_dim", dim };
-  }
-
-  // Trend filters
-  if (/\b(improv|getting better|going down|declining|decreasing)\w*/.test(l)) return { type:"trend", trend:"improving" };
-  if (/\b(escalat|worsening|getting worse|going up|rising|increasing)\w*/.test(l)) return { type:"trend", trend:"escalating" };
-  if (/\bstable\b/.test(l)) return { type:"trend", trend:"stable" };
-
-  // Threshold  "above 70" "over 80" "countries scoring 75+"
-  const thr = l.match(/(?:above|over|at least|score[sd]?\s*(?:above|over|of)?|≥|>=)\s*(\d{2,3})/i)
-           || l.match(/(\d{2,3})\s*(?:\+|or (?:more|higher|above))/i);
-  if (thr) return { type:"threshold", value:parseInt(thr[1]) };
-
-  // Region (standalone — not buried in a country query)
+  const cmpMatch = l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus)\s+(.+)/i) || l.match(/(.+?)\s+(?:vs?\.?|versus)\s+(.+)/i);
+  if (cmpMatch) return { type:"compare", a:resolveCountryName(cmpMatch[1].trim()), b:resolveCountryName(cmpMatch[2].trim()) };
+  const whyHighest = l.match(/why\s+(?:is\s+)?(.+?)\s+not\s+(?:the\s+)?highest/i);
+  if (whyHighest) return { type:"why_not_highest", country:resolveCountryName(whyHighest[1].trim()) };
+  const whyLowest = l.match(/why\s+(?:is\s+)?(.+?)\s+not\s+(?:the\s+)?lowest/i);
+  if (whyLowest) return { type:"why_not_lowest", country:resolveCountryName(whyLowest[1].trim()) };
+  const whyHigher = l.match(/why\s+(?:is\s+)?(.+?)\s+(?:higher|worse|more severe)\s+than\s+(.+)/i);
+  if (whyHigher) return { type:"compare", a:resolveCountryName(whyHigher[1].trim()), b:resolveCountryName(whyHigher[2].trim()) };
+  const topMatch = l.match(/top\s+(\d+)/i);
+  if (topMatch) return { type:"top_n", n:Math.min(20, Math.max(1, parseInt(topMatch[1]))) };
+  const worstMatch = l.match(/worst\s+(.+?)(?:\s+crisis|\s+situation)?$/i);
+  if (worstMatch) { const dim = detectDimension(worstMatch[1]); if (dim) return { type:"worst_dimension", dim }; }
+  if (/\b(improv|getting better|going down)\w*/.test(l)) return { type:"trend_filter", trend:"improving" };
+  if (/\b(escalat|worsening|getting worse|going up)\w*/.test(l)) return { type:"trend_filter", trend:"escalating" };
+  const threshMatch = l.match(/(?:above|over|at|score[sd]?\s+of?)\s*(\d{2,3})/i);
+  if (threshMatch) return { type:"threshold", value:parseInt(threshMatch[1]) };
   const region = detectRegion(l);
-  if (region && t.split(" ").length <= 5) return { type:"region", region };
-
-  // Alert: "tell me when Sudan hits 90"
-  const alert = l.match(/(?:alert|notify|tell|warn)\s+me\s+(?:if|when|once)\s+(.+?)\s+(?:hits?|reaches?|gets?\s+to|exceeds?|goes?\s+(?:above|over))\s+(\d+)/i);
-  if (alert) return { type:"alert", country:resolveName(alert[1].trim()), threshold:parseInt(alert[2]) };
-
-  // "Situation in X" / "How bad is X" / "What's happening in X"
-  const sit = l.match(/(?:situation|status|update|what(?:'?s)?\s+happening|how\s+(?:bad|severe|is)|tell\s+me\s+about|what\s+about)\s+(?:in\s+)?(.+)/i);
-  if (sit) return { type:"country", country:resolveName(sit[1].trim()) };
-
-  // Default: treat as country lookup
-  return { type:"country", country:resolveName(t) };
+  if (region && l.split(" ").length <= 4) return { type:"region", region };
+  const situationMatch = l.match(/(?:situation|status|update|how bad|how is|tell me about|what about)\s+(?:in\s+)?(.+)/i);
+  if (situationMatch) return { type:"country", country:resolveCountryName(situationMatch[1].trim()) };
+  return { type:"country", country:resolveCountryName(t) };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// COLOUR HELPERS
-// ═══════════════════════════════════════════════════════════════════════════
-function sc(s) {
-  return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";
-}
-function dc(v) {
-  return v>=80?"#ff6b6b":v>=65?"#ffa94d":v>=50?"#ffe066":v>=35?"#74c0fc":"#4a6a8a";
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML ESCAPE
-// ═══════════════════════════════════════════════════════════════════════════
-const H = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const A = s => String(s??"").replace(/"/g,"&quot;");
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT RENDERERS
-// ═══════════════════════════════════════════════════════════════════════════
-
-function Sev(sev) {
-  return \`<span class="sev sev-\${H(sev)}">\${H(sev)}</span>\`;
-}
-
-function Dims(dimensions, highlight = null) {
+// ── RENDERERS ────────────────────────────────────────────────────────────────
+function renderDims(dimensions) {
   const order = ["conflict","displacement","food","health","economic","climate","access","political"];
-  return \`<div class="dims">\${order.map(k => {
+  return `<div class="dims">${order.map(k => {
     const d = dimensions[k]; if (!d) return "";
-    const v = d.value, col = dc(v), hl = highlight===k;
-    return \`<div class="dr">
-      <div class="dl\${hl?" dl-hl":""}">\${H(d.label)}</div>
-      <div class="dt"><div class="df" style="width:\${v}%;background:\${col}"></div></div>
-      <div class="dv" style="color:\${col}">\${v}</div>
-      \${d.context?\`<div class="dc">\${H(d.context.trim())}</div>\`:""}
-    </div>\`;
-  }).join("")}</div>\`;
+    const col = dimColor(d.value);
+    return `<div class="dim-row">
+      <div class="dim-label">${escHtml(d.label)}</div>
+      <div class="dim-track"><div class="dim-fill" style="width:${d.value}%;background:${col}"></div></div>
+      <div class="dim-val" style="color:${col}">${d.value}</div>
+      <div class="dim-ctx">${d.context ? escHtml(d.context) : ""}</div>
+    </div>`;
+  }).join("")}</div>`;
 }
 
-function Evidence(ev) {
+function renderEvidence(ev) {
   if (!ev) return "";
   const items = [];
-  if (ev.earthquake)
-    items.push({i:"🌍",t:\`M\${ev.earthquake.magnitude.toFixed(1)} earthquake — \${H(ev.earthquake.location)}\`,s:"USGS"});
-  if (ev.food_security) {
-    const pop = ev.food_security.population_affected>0
-      ? \` — \${(ev.food_security.population_affected/1e6).toFixed(1)}M people\` : "";
-    items.push({i:"🍚",t:\`IPC Phase \${ev.food_security.phase} food insecurity\${pop}\`,s:"IPC"});
-  }
-  (ev.disease_outbreaks||[]).slice(0,3).forEach(ob => {
-    const cases = ob.cases>0?\`, \${ob.cases.toLocaleString()}+ cases\`:"";
-    items.push({i:"🦠",t:\`\${H(ob.disease)} — \${ob.severity} severity\${cases}\`,s:"WHO"});
-  });
-  if (ev.displacement) {
-    const total=(ev.displacement.total/1e6).toFixed(1);
-    const parts=[];
-    if(ev.displacement.refugees>0)       parts.push(\`\${(ev.displacement.refugees/1e6).toFixed(1)}M refugees\`);
-    if(ev.displacement.idps>0)           parts.push(\`\${(ev.displacement.idps/1e6).toFixed(1)}M IDPs\`);
-    if(ev.displacement.asylum_seekers>0) parts.push(\`\${(ev.displacement.asylum_seekers/1e6).toFixed(1)}M asylum-seekers\`);
-    items.push({i:"🚶",t:\`\${total}M displaced — \${parts.join(", ")}\`,s:"UNHCR"});
-  }
-  if (ev.heat) {
-    const lbl=ev.heat.max_temp_c>=42?"extreme heatwave":ev.heat.max_temp_c>=38?"severe heat":"significant heat";
-    items.push({i:"🥵",t:\`\${ev.heat.max_temp_c}°C — \${lbl}\`,s:"Open-Meteo"});
-  }
-  if (!items.length) return \`<div style="font-size:.75rem;color:var(--t3)">No active live event signals.</div>\`;
-  return \`<div class="ev-list">\${items.map(x=>\`<div class="ev-item">
-    <div class="ev-ico">\${x.i}</div>
-    <div class="ev-txt">\${x.t}<span class="ev-src">\${x.s}</span></div>
-  </div>\`).join("")}</div>\`;
+  if (ev.earthquake) items.push({ icon:"🌍", text:`M${ev.earthquake.magnitude.toFixed(1)} earthquake — ${escHtml(ev.earthquake.location)}`, src:"USGS" });
+  if (ev.food_security) items.push({ icon:"🍚", text:`IPC Phase ${ev.food_security.phase} food insecurity${ev.food_security.population_affected ? ` — ${(ev.food_security.population_affected/1e6).toFixed(1)}M people` : ""}`, src:"IPC" });
+  if (ev.disease_outbreaks?.length) ev.disease_outbreaks.slice(0,2).forEach(ob => items.push({ icon:"🦠", text:`${escHtml(ob.disease)} — ${ob.severity} severity${ob.cases ? `, ${ob.cases.toLocaleString()}+ cases` : ""}`, src:"WHO" }));
+  if (ev.displacement) items.push({ icon:"🚶", text:`${(ev.displacement.total/1e6).toFixed(1)}M displaced (${ev.displacement.refugees ? (ev.displacement.refugees/1e6).toFixed(1)+"M refugees" : ""}${ev.displacement.idps ? " "+ (ev.displacement.idps/1e6).toFixed(1)+"M IDPs" : ""})`, src:"UNHCR" });
+  if (ev.heat) items.push({ icon:"🥵", text:`${ev.heat.max_temp_c}°C — ${ev.heat.max_temp_c >= 42 ? "extreme heatwave" : ev.heat.max_temp_c >= 38 ? "severe heat" : "significant heat"}`, src:"Open-Meteo" });
+  if (!items.length) return "";
+  return `<div class="evidence">${items.map(i => `<div class="ev-item"><div class="ev-icon">${i.icon}</div><div class="ev-text">${i.text} <span class="ev-source">${i.src}</span></div></div>`).join("")}</div>`;
 }
 
-function Trend(trend) {
-  const {delta_7d,direction,forecast_7d,escalating}=trend;
-  const sign=delta_7d>0?"+":"";
-  const cls=direction==="escalating"?"t-up":direction==="improving"?"t-dn":"t-fl";
-  const arrow=direction==="escalating"?"↑":direction==="improving"?"↓":"→";
-  return \`<div class="trend-line">
-    <span class="\${cls}" style="font-size:.75rem;font-family:monospace;font-weight:700;">
-      \${arrow} \${H(direction.charAt(0).toUpperCase()+direction.slice(1))}
-    </span>
-    <span style="font-size:.72rem;color:var(--t3)">\${sign}\${delta_7d} pts (7 days)</span>
+function renderCountryCard(story, opts = { showAudit: true }) {
+  const col = scoreColor(story.score);
+  const sevClass = `sev sev-${story.severity}`;
+  return `<div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.6rem;">
+    <span style="font-size:1.6rem;">${story.flag}</span>
+    <div><div style="font-size:1.1rem;font-weight:800;">${escHtml(story.name)}</div>
+    <div class="rank-chip">#${story.rank} of ${story.total_countries} · top ${story.percentile}%</div></div>
+    <div style="margin-left:auto;text-align:right;"><div class="score-hero" style="color:${col}">${story.score}<span class="denom">/100</span></div>
+    <span class="${sevClass}">${story.severity}</span></div>
   </div>
-  <div class="fc-line">
-    <span>📊 7-day forecast: <strong>\${forecast_7d}/100</strong></span>
-    \${escalating?\`<span style="color:var(--red);font-size:.68rem;">⚠ escalating</span>`:``}
-  </div>\`;
+  <span class="section-label">Key drivers</span>${renderDims(story.dimensions)}
+  <span class="section-label">Trend</span>
+  <div class="trend-row"><span class="trend-dir ${story.trend.direction === 'escalating' ? 'trend-up' : story.trend.direction === 'improving' ? 'trend-down' : 'trend-flat'}">${story.trend.direction === 'escalating' ? '↑' : story.trend.direction === 'improving' ? '↓' : '→'} ${story.trend.direction.charAt(0).toUpperCase()+story.trend.direction.slice(1)}</span><span style="font-size:.75rem;color:var(--text3);">${story.trend.delta_7d > 0 ? '+' : ''}${story.trend.delta_7d} pts in 7 days</span></div>
+  <div class="forecast-row"><span>📊 7-day forecast: <strong>${story.trend.forecast_7d}/100</strong></span>${story.trend.escalating ? `<span style="color:var(--red);font-size:.72rem;"> ⚠ escalating</span>` : ""}</div>
+  <span class="section-label">Live evidence</span>${renderEvidence(story.live_evidence) || '<span style="color:var(--text3);font-size:.78rem;">No live event signals at this time.</span>'}
+  ${story.spillover?.value > 0 ? `<div class="divider"></div><div class="spill-row">🌐 Regional pressure from ${story.spillover.from.map(f=>f.name).join(", ")} → +${story.spillover.value} pts</div>` : ""}
+  ${story.anomaly?.z_score >= 1.5 ? `<div style="font-size:.75rem;color:var(--orange);margin:.3rem 0;">⚠️ Statistical anomaly (z=${story.anomaly.z_score})</div>` : ""}
+  <div class="divider"></div>
+  <div class="rec-box rec-${story.recommendation.tier}"><div class="rec-icon">${story.recommendation.tier==='IMMEDIATE'?'🔴':story.recommendation.tier==='URGENT'?'🟠':story.recommendation.tier==='HIGH'?'🟡':'🟢'}</div><div class="rec-text">${escHtml(story.recommendation.text)}</div></div>
+  ${opts.showAudit && story.score_audit?.adjustments?.length ? `<div class="divider"></div><span class="section-label">Score adjustments</span><div class="audit-list">${story.score_audit.adjustments.map(a=>`<div class="audit-item"><span class="audit-src">${a.source}</span><span class="audit-delta">+${a.delta}</span><span>${escHtml(a.reason)}</span></div>`).join("")}</div><div style="font-size:.72rem;color:var(--text3);margin-top:.3rem;">Prior: ${story.score_audit.prior_score} → Live: +${story.score_audit.live_boost} → Spillover: +${story.score_audit.spillover} → <strong>${story.score_audit.final_score}</strong></div>` : ""}
+  <div style="font-size:.65rem;color:var(--text3);margin-top:.5rem;">${story.crisis_types.map(c=>`${c.icon} ${c.label}`).join(" · ")}</div>`;
 }
 
-function Spillover(spill) {
-  if (!spill?.value) return "";
-  const nb=(spill.from||[]).map(f=>\`\${H(f.name)} (\${f.score})\`).join(", ");
-  return \`<div class="spill">🌐 Regional pressure from \${nb} → <strong>+\${spill.value} pts</strong></div>\`;
+function renderRankList(countries, limit = 20) {
+  return `<div class="rank-list">${countries.slice(0, limit).map(c => {
+    const col = scoreColor(c.score);
+    return `<div class="rank-item" data-country="${escAttr(c.name)}">
+      <div class="rank-num">#${c.rank}</div>
+      <div class="rank-flag">${c.flag}</div>
+      <div class="rank-name">${escHtml(c.name)}</div>
+      <div class="rank-bar"><div class="rank-fill" style="width:${c.score}%;background:${col}"></div></div>
+      <div class="rank-score" style="color:${col}">${c.score}</div>
+      <span class="sev sev-${c.severity}" style="font-size:.58rem;">${c.severity}</span>
+    </div>`;
+  }).join("")}</div>`;
 }
 
-function Rec(rec) {
-  if (!rec) return "";
-  const icons={IMMEDIATE:"🔴",URGENT:"🟠",HIGH:"🟡",MONITOR:"🟢",WATCH:"🔵"};
-  return \`<div class="rec rec-\${rec.tier}">
-    <div class="rec-ico">\${icons[rec.tier]||"ℹ️"}</div>
-    <div class="rec-txt">\${H(rec.text)}</div>
-  </div>\`;
-}
+// ── HANDLERS ─────────────────────────────────────────────────────────────────
+async function handleCountry(country) { const d = await cachedFetch({ q: country }); if (!d.top_story) throw new Error(`No data for "${country}"`); return renderCountryCard(d.top_story); }
+async function handleTopN(n) { const d = await cachedFetch({ top: n }); const countries = d.countries || (d.top_story ? [d.top_story] : []); if (!countries.length) throw new Error("No data"); return `<div style="margin-bottom:.6rem;font-size:.82rem;color:var(--text2);">Top ${n} countries by urgency score</div>${renderRankList(countries, n)}`; }
+async function handleCompare(a, b) { const [d1, d2] = await Promise.all([cachedFetch({ q: a }), cachedFetch({ q: b })]); const s1 = d1.top_story, s2 = d2.top_story; if (!s1 || !s2) throw new Error("Country not found"); let cmp = null; try { cmp = (await cachedFetch({ iso: `${s1.iso},${s2.iso}` })).comparison; } catch(e){} return `<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.7rem;"><span style="font-size:1.3rem;">${s1.flag} ${escHtml(s1.name)}</span><span style="color:var(--text3);">vs</span><span style="font-size:1.3rem;">${s2.flag} ${escHtml(s2.name)}</span></div>${cmp ? `<table class="comp-table"><thead><tr><th>Metric</th><th>${s1.flag} ${escHtml(s1.name)}</th><th>${s2.flag} ${escHtml(s2.name)}</th></tr></thead><tbody><tr><td><strong>Score</strong></td><td class="${s1.score>=s2.score?'winner':'loser'}">${s1.score}</td><td class="${s2.score>s1.score?'winner':'loser'}">${s2.score}</td></tr><tr><td><strong>Rank</strong></td><td>#${s1.rank}</td><td>#${s2.rank}</td></tr>${["conflict","displacement","food","health"].map(k=>{const v1=s1.dimensions?.[k]?.value??0, v2=s2.dimensions?.[k]?.value??0; return `<tr><td>${s1.dimensions?.[k]?.label||k}</td><td class="${v1>v2?'winner':'loser'}">${v1}</td><td class="${v2>v1?'winner':'loser'}">${v2}</td></tr>`;}).join("")}<tr><td>Trend (7d)</td><td style="color:${s1.trend.delta_7d>0?'var(--red)':'var(--green)'}">${s1.trend.delta_7d>0?'+':''}${s1.trend.delta_7d}</td><td style="color:${s2.trend.delta_7d>0?'var(--red)':'var(--green)'}">${s2.trend.delta_7d>0?'+':''}${s2.trend.delta_7d}</td></tr></tbody></table><div style="margin-top:.5rem;padding:.5rem;background:rgba(77,171,247,.05);border-radius:var(--r-sm);">${cmp.verdict}</div>` : `<div class="divider"></div><div>${renderCountryCard(s1,{showAudit:false})}</div><div class="divider"></div><div>${renderCountryCard(s2,{showAudit:false})}</div>`}`; }
+async function handleWhyNotHighest(country) { const [t, top] = await Promise.all([cachedFetch({ q: country }), cachedFetch({ top: 1 })]); const target = t.top_story, highest = top.top_story; if (!target || !highest) throw new Error("No data"); if (target.iso === highest.iso) return `${target.flag} ${target.name} IS the highest.`; const gap = highest.score - target.score; const diffs = []; for (const k of ["food","displacement","health","conflict"]) { const hv = highest.dimensions?.[k]?.value ?? 0, tv = target.dimensions?.[k]?.value ?? 0; if (hv - tv >= 5) diffs.push(`• ${highest.dimensions?.[k]?.label||k}: ${hv} vs ${tv} (+${hv-tv})`); } return `<div><strong>Why ${target.name} (${target.score}) is not highest</strong><br>Highest: ${highest.flag} ${highest.name} (${highest.score}) · Gap: +${gap} pts<br><span class="section-label">Where ${highest.name} leads</span>${diffs.length ? `<div class="dims">${diffs.map(d=>`<div class="dim-row"><div class="dim-label">${d.split(":")[0]}</div><div class="dim-ctx" style="color:var(--orange);">${d.split(":")[1]}</div></div>`).join("")}</div>` : "<div>Scores are broadly similar across dimensions.</div>"}<div class="divider"></div>${target.name} would need +${gap} points to tie. ${estimateDays(target.trend.slope, gap)} at current trend.</div>`; }
+async function handleWhyNotLowest(country) { const [t, all] = await Promise.all([cachedFetch({ q: country }), cachedFetch({ top: 20 })]); const target = t.top_story, countries = all.countries || []; if (!target || !countries.length) throw new Error("No data"); const lowest = countries[countries.length-1]; if (target.iso === lowest.iso) return `${target.flag} ${target.name} IS among the lowest.`; const gap = target.score - lowest.score; return `<div><strong>Why ${target.name} (${target.score}) is not lowest</strong><br>Lowest: ${lowest.flag} ${lowest.name} (${lowest.score}) · Gap: +${gap} pts above lowest<br><span class="section-label">Key elevated dimensions</span>${renderDims(target.dimensions)}<div class="divider"></div>${target.name} scores +${gap} higher than the lowest tracked crisis.</div>`; }
+async function handleRegion(region) { const d = await cachedFetch({ region }); const countries = d.countries || []; if (!countries.length) throw new Error(`No data for ${region}`); return `<div style="margin-bottom:.5rem;">${countries.length} countries in <strong>${region.charAt(0).toUpperCase()+region.slice(1)}</strong></div>${renderRankList(countries, 20)}`; }
+async function handleThreshold(v) { const d = await cachedFetch({ threshold: v }); const countries = d.countries || (d.top_story ? [d.top_story] : []); if (!countries.length) return `No countries at or above score ${v}.`; return `<div style="margin-bottom:.5rem;">${countries.length} countries scoring ≥${v}</div>${renderRankList(countries, 20)}`; }
+async function handleTrendFilter(trend) { const d = await cachedFetch({ top: 20 }); const countries = (d.countries || []).filter(c => c.trend?.direction === trend); if (!countries.length) return `No countries currently ${trend} in top 20.`; return `<div style="margin-bottom:.5rem;">${countries.length} countries ${trend}</div>${renderRankList(countries, 20)}`; }
+async function handleWorstDimension(dim) { const d = await cachedFetch({ top: 20 }); const countries = (d.countries || []).sort((a,b)=>(b.dimensions?.[dim]?.value??0)-(a.dimensions?.[dim]?.value??0)); const label = countries[0]?.dimensions?.[dim]?.label || dim; return `<div style="margin-bottom:.5rem;">Worst <strong>${escHtml(label)}</strong> crises</div>${renderRankList(countries.slice(0,10), 10)}`; }
 
-function Anomaly(anomaly) {
-  if (!anomaly?.z_score||anomaly.z_score<1.5) return "";
-  return \`<div class="anom">⚠️ Score is \${anomaly.z_score}σ from 28-day baseline\${anomaly.detected?" — anomaly detected":""}</div>\`;
-}
-
-function Audit(audit) {
-  if (!audit?.adjustments?.length) {
-    return \`<div style="font-size:.72rem;color:var(--t3)">No live data adjustments this cycle — score reflects prior baseline.</div>\`;
-  }
-  const items = audit.adjustments.map(a=>\`<div class="audit-item">
-    <span class="audit-src">\${H(a.source)}</span>
-    <span class="audit-delta">+\${a.delta}</span>
-    <span>\${H(a.reason)}</span>
-  </div>\`).join("");
-  return \`<div class="audit-list">\${items}</div>
-    <div class="audit-foot">Prior: \${audit.prior_score} → +\${audit.live_boost} live → +\${audit.spillover} spillover → <strong style="color:var(--t2)">\${audit.final_score} final</strong></div>\`;
-}
-
-function TypePills(types) {
-  if (!types?.length) return "";
-  return \`<div class="type-pills">\${types.map(t=>\`<span class="type-pill">\${t.icon} \${H(t.label)}</span>\`).join("")}</div>\`;
-}
-
-// Full country card — the hero view
-function CountryCard(s, opts={}) {
-  const {highlightDim=null, showAudit=true} = opts;
-  const col = sc(s.score);
-  return \`
-    <div class="h-row">
-      <span style="font-size:1.55rem">\${s.flag}</span>
-      <div>
-        <div class="cname">\${H(s.name)}</div>
-        <div class="rank-tag">#\${s.rank} of \${s.total_countries} · top \${s.percentile}%</div>
-      </div>
-      <div style="margin-left:auto;text-align:right">
-        <div class="score-big" style="color:\${col}">\${s.score}<span class="score-denom">/100</span></div>
-        \${Sev(s.severity)}
-      </div>
-    </div>
-
-    \${TypePills(s.crisis_types)}
-
-    <span class="slbl">Key drivers</span>
-    \${Dims(s.dimensions, highlightDim)}
-
-    <span class="slbl">Trend & forecast</span>
-    \${Trend(s.trend)}
-    \${Anomaly(s.anomaly)}
-
-    <div class="div"></div>
-    <span class="slbl">Live evidence</span>
-    \${Evidence(s.live_evidence)}
-
-    \${s.spillover?.value>0?\`<div class="div"></div>\${Spillover(s.spillover)}\`:""}
-
-    <div class="div"></div>
-    \${Rec(s.recommendation)}
-
-    \${showAudit?\`<span class="slbl">Score transparency</span>\${Audit(s.score_audit)}\`:""}
-  \`;
-}
-
-// Compact rank row — used in lists
-function RankItem(c, idx) {
-  const col = sc(c.score);
-  return \`<div class="ri" data-country="\${A(c.name)}">
-    <div class="ri-num">#\${c.rank??idx+1}</div>
-    <div class="ri-flag">\${c.flag}</div>
-    <div class="ri-name">\${H(c.name)}</div>
-    <div class="ri-bar"><div class="ri-fill" style="width:\${c.score}%;background:\${col}"></div></div>
-    <div class="ri-score" style="color:\${col}">\${c.score}</div>
-    <span class="sev ri-sev sev-\${c.severity}">\${c.severity.slice(0,3)}</span>
-  </div>\`;
-}
-
-function RankList(countries, limit=20) {
-  return \`<div class="rank-list">\${countries.slice(0,limit).map((c,i)=>RankItem(c,i)).join("")}</div>\`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RESPONSE BUILDERS — one per intent type
-// ═══════════════════════════════════════════════════════════════════════════
-
-async function respondCountry(country) {
-  const d = await api({q:country});
-  const s = d.top_story;
-  if (!s) throw new Error(\`No data found for "\${country}"\`);
-  return CountryCard(s, {showAudit:true});
-}
-
-async function respondTopN(n) {
-  const d = await api({top:n});
-  const countries = d.countries || (d.top_story?[d.top_story]:[]);
-  if (!countries.length) throw new Error("Could not fetch rankings");
-  const header = \`<div style="font-size:.8rem;color:var(--t2);margin-bottom:.55rem">
-    <strong>Top \${n}</strong> countries by urgency score — \${countries.length} returned
-  </div>\`;
-  return header + RankList(countries, n);
-}
-
-async function respondCompare(a, b) {
-  const [dA, dB] = await Promise.all([api({q:a}), api({q:b})]);
-  const sA=dA.top_story, sB=dB.top_story;
-  if (!sA||!sB) throw new Error("Could not find one or both countries");
-
-  let comparison=null;
-  try {
-    const cmp = await api({iso:\`\${sA.iso},\${sB.iso}\`});
-    comparison = cmp.comparison;
-  } catch {}
-
-  const dimOrder = ["conflict","displacement","food","health","economic","climate"];
-  const rows = dimOrder.map(k => {
-    const av=sA.dimensions?.[k]?.value??0, bv=sB.dimensions?.[k]?.value??0;
-    const lbl=sA.dimensions?.[k]?.label??k;
-    return \`<tr>
-      <td>\${H(lbl)}</td>
-      <td class="\${av>bv?"w":"l"}">\${av}\${av>bv?\` <span style="font-size:.6rem;color:var(--cyan2)">▲</span>`:``}</td>
-      <td class="\${bv>av?"w":"l"}">\${bv}\${bv>av?\` <span style="font-size:.6rem;color:var(--cyan2)">▲</span>`:``}</td>
-    </tr>\`;
-  }).join("");
-
-  const trendA=sA.trend, trendB=sB.trend;
-  const sa=sc(sA.score), sb=sc(sB.score);
-
-  return \`
-    <div class="comp-head">
-      <span class="comp-name">\${sA.flag} \${H(sA.name)}</span>
-      <span class="comp-vs">vs</span>
-      <span class="comp-name">\${sB.flag} \${H(sB.name)}</span>
-    </div>
-
-    <table class="ctbl">
-      <thead>
-        <tr><th>Metric</th><th>\${sA.flag} \${H(sA.name)}</th><th>\${sB.flag} \${H(sB.name)}</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Score</strong></td>
-          <td class="\${sA.score>=sB.score?"w":"l"}" style="font-weight:700">\${sA.score} \${Sev(sA.severity)}</td>
-          <td class="\${sB.score>sA.score?"w":"l"}" style="font-weight:700">\${sB.score} \${Sev(sB.severity)}</td>
-        </tr>
-        <tr>
-          <td>Rank</td>
-          <td class="\${sA.rank<=sB.rank?"w":"l"}">#\${sA.rank}</td>
-          <td class="\${sB.rank<sA.rank?"w":"l"}">#\${sB.rank}</td>
-        </tr>
-        \${rows}
-        <tr>
-          <td>7d trend</td>
-          <td style="color:\${(trendA?.delta_7d??0)>0?"var(--red)":"var(--green)"}">\${(trendA?.delta_7d??0)>0?"+":""}\${trendA?.delta_7d??0}</td>
-          <td style="color:\${(trendB?.delta_7d??0)>0?"var(--red)":"var(--green)"}">\${(trendB?.delta_7d??0)>0?"+":""}\${trendB?.delta_7d??0}</td>
-        </tr>
-        <tr>
-          <td>Forecast</td>
-          <td>\${trendA?.forecast_7d??"-"}/100</td>
-          <td>\${trendB?.forecast_7d??"-"}/100</td>
-        </tr>
-      </tbody>
-    </table>
-
-    \${comparison?.verdict?\`<div class="verdict-box"><strong>Verdict:</strong> \${H(comparison.verdict)}</div>\`:""}
-
-    <div class="two-col" style="margin-top:.55rem">
-      <div>
-        <span class="slbl">\${sA.flag} \${H(sA.name)} — Evidence</span>
-        \${Evidence(sA.live_evidence)}
-      </div>
-      <div>
-        <span class="slbl">\${sB.flag} \${H(sB.name)} — Evidence</span>
-        \${Evidence(sB.live_evidence)}
-      </div>
-    </div>
-
-    <div class="div"></div>
-    <div class="two-col">
-      <div>\${Rec(sA.recommendation)}</div>
-      <div>\${Rec(sB.recommendation)}</div>
-    </div>
-  \`;
-}
-
-async function respondWhyNotHighest(country) {
-  const [dTarget, dTop] = await Promise.all([api({q:country}), api({top:1})]);
-  const target=dTarget.top_story, highest=dTop.top_story;
-  if (!target||!highest) throw new Error("Could not fetch data");
-
-  if (target.iso===highest.iso)
-    return \`\${target.flag} <strong>\${H(target.name)}</strong> IS the highest — #\${target.rank} at \${target.score}/100 \${Sev(target.severity)}\`;
-
-  const gap = highest.score-target.score;
-  const keyDims = ["conflict","displacement","food","health"].filter(k => {
-    const hv=highest.dimensions?.[k]?.value??0, tv=target.dimensions?.[k]?.value??0;
-    return hv-tv>=7;
-  });
-
-  // Estimate timeline at current slope
-  const slope = target.trend?.slope??0;
-  const timeline = slope>0.05 ? \`~\${Math.ceil(gap/slope)} days at current rate\` : "unlikely at current trajectory";
-
-  return \`
-    <div class="gap-header">
-      <strong>\${target.flag} \${H(target.name)}</strong> (\${target.score}) is
-      <span class="gap-stat">+\${gap} pts</span>
-      behind <strong>\${highest.flag} \${H(highest.name)}</strong> (\${highest.score}).
-    </div>
-
-    \${keyDims.length?\`<span class="slbl">Where \${H(highest.name)} leads</span>
-    <div style="display:flex;flex-direction:column;gap:.32rem">\${keyDims.map(k=>{
-      const hv=highest.dimensions[k].value, tv=target.dimensions[k]?.value??0;
-      const lbl=highest.dimensions[k].label, col=dc(hv), diff=hv-tv;
-      return \`<div class="delta-row">
-        <span style="font-size:.7rem;color:var(--t2);width:80px;flex-shrink:0;font-family:monospace;text-transform:uppercase">\${H(lbl)}</span>
-        <div class="delta-bar-wrap"><div class="delta-bar" style="width:\${hv}%;background:\${col}"></div></div>
-        <div class="delta-val" style="color:\${col}">\${hv}</div>
-        <span style="font-size:.65rem;color:var(--orange);flex-shrink:0">+\${diff} vs \${H(target.name)}</span>
-      </div>\`;
-    }).join("")}</div>\`:""}
-
-    <span class="slbl">Evidence \${H(highest.name)} has that \${H(target.name)} lacks</span>
-    \${(()=>{
-      const items=[];
-      const hfs=highest.live_evidence?.food_security, tfs=target.live_evidence?.food_security;
-      if(hfs&&(!tfs||tfs.phase<hfs.phase))
-        items.push(\`🍚 IPC Phase \${hfs.phase} vs Phase \${tfs?.phase??"N/A"} — \${hfs.phase-( tfs?.phase??0)} phase gap\`);
-      const hd=highest.live_evidence?.displacement?.total??0, td=target.live_evidence?.displacement?.total??0;
-      if(hd>td+500000)
-        items.push(\`🚶 \${(hd/1e6).toFixed(1)}M vs \${(td/1e6).toFixed(1)}M displaced (UNHCR)\`);
-      const hob=highest.live_evidence?.disease_outbreaks||[], tob=target.live_evidence?.disease_outbreaks||[];
-      if(hob.length>tob.length)
-        items.push(\`🦠 \${hob.length} active outbreak(s) vs \${tob.length} — \${H(hob[0]?.disease??"")}\`);
-      if(!items.length) return \`<div style="font-size:.76rem;color:var(--t3)">\${H(highest.name)} maintains a consistent marginal advantage across dimensions.</div>\`;
-      return \`<div class="ev-list">\${items.map(x=>\`<div class="ev-item"><div class="ev-txt">\${x}</div></div>\`).join("")}</div>\`;
-    })()}
-
-    <div class="timeline-box">
-      <strong>\${H(target.name)}</strong> needs +\${gap} pts to tie.
-      Current trajectory: <em>\${H(target.trend?.direction??"stable")}</em>.
-      Estimated time: <strong>\${timeline}</strong>.
-    </div>
-  \`;
-}
-
-async function respondWhyNotLowest(country) {
-  const [dTarget, dAll] = await Promise.all([api({q:country}), api({top:20})]);
-  const target=dTarget.top_story, all=dAll.countries||[];
-  if (!target||!all.length) throw new Error("Could not fetch data");
-  const lowest = all[all.length-1];
-
-  if (target.iso===lowest.iso)
-    return \`\${target.flag} <strong>\${H(target.name)}</strong> is among the lowest tracked — #\${target.rank} at \${target.score}/100.\`;
-
-  const gap = target.score-lowest.score;
-  const aboveDims = ["conflict","displacement","food","health"].filter(k=>{
-    return (target.dimensions?.[k]?.value??0)-(lowest.dimensions?.[k]?.value??0)>=6;
-  });
-
-  return \`
-    <div class="gap-header">
-      <strong>\${target.flag} \${H(target.name)}</strong> (\${target.score}) sits
-      <span class="gap-stat">+\${gap} pts</span>
-      above the lowest: <strong>\${lowest.flag} \${H(lowest.name)}</strong> (\${lowest.score}).
-    </div>
-
-    <span class="slbl">What keeps \${H(target.name)} elevated</span>
-    \${Evidence(target.live_evidence)||"<div style='font-size:.76rem;color:var(--t3)'>Prior indicators remain elevated.</div>"}
-
-    \${aboveDims.length?\`<span class="slbl">Dimensions above \${H(lowest.name)}</span>
-    <div style="display:flex;flex-direction:column;gap:.32rem">\${aboveDims.map(k=>{
-      const tv=target.dimensions[k].value, lv=lowest.dimensions?.[k]?.value??0;
-      const col=dc(tv), lbl=target.dimensions[k].label;
-      return \`<div class="delta-row">
-        <span style="font-size:.7rem;color:var(--t2);width:80px;flex-shrink:0;font-family:monospace;text-transform:uppercase">\${H(lbl)}</span>
-        <div class="delta-bar-wrap"><div class="delta-bar" style="width:\${tv}%;background:\${col}"></div></div>
-        <div class="delta-val" style="color:\${col}">\${tv}</div>
-        <span style="font-size:.65rem;color:var(--orange);flex-shrink:0">+\${tv-lv} vs \${H(lowest.name)}</span>
-      </div>\`;
-    }).join("")}</div>\`:""}
-
-    <div class="div"></div>
-    \${Rec(target.recommendation)}
-  \`;
-}
-
-async function respondRegion(region) {
-  const d = await api({region});
-  const countries = d.countries||[];
-  if (!countries.length) throw new Error(\`No data for region: \${region}\`);
-  const label = region==="middleeast"?"Middle East":(region.charAt(0).toUpperCase()+region.slice(1));
-  const avg = Math.round(countries.reduce((s,c)=>s+c.score,0)/countries.length);
-  return \`<div style="display:flex;align-items:baseline;gap:.6rem;margin-bottom:.55rem;flex-wrap:wrap">
-    <span style="font-size:.88rem;font-weight:700">\${label}</span>
-    <span style="font-size:.72rem;color:var(--t3)">\${countries.length} countries · avg score \${avg}</span>
-  </div>\${RankList(countries,20)}\`;
-}
-
-async function respondThreshold(value) {
-  const d = await api({threshold:value});
-  const countries = d.countries||(d.top_story?[d.top_story]:[]);
-  if (!countries.length) return \`<div style="font-size:.82rem;color:var(--t3)">No countries currently scoring ≥\${value}.</div>\`;
-  return \`<div style="font-size:.78rem;color:var(--t2);margin-bottom:.5rem">
-    <strong>\${countries.length}</strong> \${countries.length===1?"country":"countries"} scoring ≥\${value}
-  </div>\${RankList(countries,20)}\`;
-}
-
-async function respondTrend(trend) {
-  const d = await api({top:20});
-  const countries = (d.countries||[]).filter(c=>c.trend?.direction===trend);
-  if (!countries.length) return \`<div style="font-size:.82rem;color:var(--t3)">No countries currently <strong>\${trend}</strong> in the top 20.</div>\`;
-  const icon = trend==="escalating"?"📈":trend==="improving"?"📉":"📊";
-  return \`<div style="font-size:.78rem;color:var(--t2);margin-bottom:.5rem">
-    \${icon} <strong>\${countries.length}</strong> countries \${trend} (of top 20)
-  </div>\${RankList(countries,20)}\`;
-}
-
-async function respondWorstDim(dim) {
-  const d = await api({top:20});
-  const countries = d.countries||[];
-  const sorted = [...countries].sort((a,b)=>(b.dimensions?.[dim]?.value??0)-(a.dimensions?.[dim]?.value??0));
-  const dimLabel = sorted[0]?.dimensions?.[dim]?.label??dim;
-  return \`<div style="font-size:.78rem;color:var(--t2);margin-bottom:.55rem">
-    Worst <strong>\${H(dimLabel)}</strong> — sorted by dimension score
-  </div>
-  <div style="display:flex;flex-direction:column;gap:.22rem">\${sorted.slice(0,12).map(c=>{
-    const v=c.dimensions?.[dim]?.value??0, col=dc(v), ctx=c.dimensions?.[dim]?.context??"";
-    return \`<div class="wd-row" data-country="\${A(c.name)}">
-      <div class="wd-flag">\${c.flag}</div>
-      <div class="wd-name">\${H(c.name)}</div>
-      <div class="wd-bar"><div class="wd-fill" style="width:\${v}%;background:\${col}"></div></div>
-      <div class="wd-val" style="color:\${col}">\${v}</div>
-      <div class="wd-ctx">\${H(ctx.trim())}</div>
-    </div>\`;
-  }).join("")}</div>\`;
-}
-
-async function respondAlert(country, threshold) {
-  const d = await api({q:country});
-  const s = d.top_story;
-  if (!s) throw new Error(\`No data for "\${country}"\`);
-  const gap = threshold - s.score;
-  const slope = s.trend?.slope??0;
-  const timeline = gap<=0 ? "already reached or exceeded"
-    : slope>0.05 ? \`~\${Math.ceil(gap/slope)} days at current rate\`
-    : slope<-0.05 ? \`unlikely — score is \${s.trend.direction}\`
-    : "unknown — score is stable";
-
-  return \`<div class="alert-box">
-    <div class="alert-ico">🔔</div>
-    <div class="alert-txt">
-      <strong>Alert noted.</strong>
-      \${s.flag} \${H(s.name)} is currently at <strong>\${s.score}/100</strong> \${Sev(s.severity)}.
-      It needs <strong>+\${Math.max(0,gap)} pts</strong> to hit \${threshold}.
-      <div style="margin-top:.3rem">Estimated: <strong>\${timeline}</strong></div>
-      <div class="alert-note">CRYS doesn't persist alerts server-side. Bookmark this page and check back, or set a browser reminder.</div>
-    </div>
-  </div>\`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ORCHESTRATOR
-// ═══════════════════════════════════════════════════════════════════════════
-async function respond(raw) {
-  const intent = parseIntent(raw);
-  switch (intent.type) {
-    case "country":       return respondCountry(intent.country);
-    case "compare":       return respondCompare(intent.a, intent.b);
-    case "why_not_highest": return respondWhyNotHighest(intent.country);
-    case "why_not_lowest":  return respondWhyNotLowest(intent.country);
-    case "top_n":         return respondTopN(intent.n);
-    case "region":        return respondRegion(intent.region);
-    case "threshold":     return respondThreshold(intent.value);
-    case "trend":         return respondTrend(intent.trend);
-    case "worst_dim":     return respondWorstDim(intent.dim);
-    case "alert":         return respondAlert(intent.country, intent.threshold);
-    default:              return respondCountry(intent.country);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DOM ENGINE
-// ═══════════════════════════════════════════════════════════════════════════
-const chatEl = document.getElementById("chat");
-const msgsEl = document.getElementById("msgs");
-const inpEl  = document.getElementById("inp");
+// ── ORCHESTRATOR ────────────────────────────────────────────────────────────
+const msgsEl = document.getElementById("msgs"), chatEl = document.getElementById("chat"), inpEl = document.getElementById("inp");
 let typingEl = null;
-
-function scrollBottom(smooth=true) {
-  chatEl.scrollTo({top:chatEl.scrollHeight, behavior:smooth?"smooth":"instant"});
-}
-
-function addMsg(html, isUser, meta="") {
-  const welcomeEl = document.getElementById("welcome");
-  if (welcomeEl) welcomeEl.remove();
-
-  const div = document.createElement("div");
-  div.className = \`msg msg-\${isUser?"user":"crys"}\`;
-  div.innerHTML = isUser
-    ? \`<div class="bubble">\${H(html)}</div>\${meta?\`<div class="msg-meta">\${meta}</div>\":\"\"}\`
-    : \`<div class="bubble">\${html}</div>\${meta?\`<div class="msg-meta">\${meta}</div>\":\"\"}\`;
-  msgsEl.appendChild(div);
-  scrollBottom();
-
-  // Wire up any clickable country items in this message
-  div.querySelectorAll("[data-country]").forEach(el => {
-    el.style.cursor = "pointer";
-    el.addEventListener("click", () => {
-      const c = el.getAttribute("data-country");
-      if (c) submit(c);
-    });
-  });
-  return div;
-}
-
-function showTyping() {
-  if (typingEl) return;
-  const div = document.createElement("div");
-  div.className = "msg msg-crys";
-  div.innerHTML = \`<div class="typing"><span></span><span></span><span></span></div>\`;
-  msgsEl.appendChild(div);
-  typingEl = div;
-  scrollBottom();
-}
-
-function hideTyping() {
-  if (typingEl) { typingEl.remove(); typingEl = null; }
-}
-
-async function submit(raw) {
-  const q = raw.trim();
-  if (!q) return;
-  inpEl.value = "";
-  inpEl.focus();
+function scrollBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+function saveHistory() { const msgs = Array.from(msgsEl.querySelectorAll(".msg:not(.welcome-msg)")).map(m => ({ html: m.querySelector(".bubble")?.innerHTML, isUser: m.classList.contains("msg-user"), meta: m.querySelector(".msg-meta")?.innerText || "" })).slice(-MAX_HISTORY); localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); }
+function loadHistory() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); saved.forEach(m => addMsgRaw(m.html, m.isUser, m.meta)); if (saved.length) { const welcome = msgsEl.querySelector(".welcome"); if (welcome) welcome.style.display = "none"; } } catch(e){} scrollBottom(); }
+function addMsgRaw(html, isUser, meta) { const div = document.createElement("div"); div.className = `msg msg-${isUser ? "user" : "crys"}`; div.innerHTML = `<div class="bubble">${isUser ? escHtml(html) : html}</div>${meta ? `<div class="msg-meta">${meta}</div>` : ""}`; msgsEl.appendChild(div); scrollBottom(); const welcome = msgsEl.querySelector(".welcome"); if (welcome) welcome.style.display = "none"; div.querySelectorAll("[data-country]").forEach(el => { el.style.cursor = "pointer"; el.addEventListener("click", () => submitQuery(el.getAttribute("data-country"))); }); saveHistory(); return div; }
+function addMsg(html, isUser, meta) { return addMsgRaw(html, isUser, meta); }
+function showTyping() { if (typingEl) return; const div = document.createElement("div"); div.className = "msg msg-crys"; div.id = "typing"; div.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`; msgsEl.appendChild(div); typingEl = div; scrollBottom(); }
+function hideTyping() { if (typingEl) { typingEl.remove(); typingEl = null; } }
+async function submitQuery(q) {
+  if (!q.trim()) return;
   addMsg(q, true, "you");
+  inpEl.value = "";
   showTyping();
   const t0 = Date.now();
+  let html = "", meta = "";
   try {
-    const html = await respond(q);
-    hideTyping();
-    addMsg(html, false, \`CRYS · \${Date.now()-t0}ms\`);
-  } catch (err) {
-    console.error(err);
-    hideTyping();
-    addMsg(
-      \`<span style="color:var(--red)">❌ \${H(err.message)}</span>
-       <div style="font-size:.72rem;color:var(--t3);margin-top:.3rem">
-         Try: <em>"Somalia"</em> · <em>"compare Sudan and Yemen"</em> · <em>"top 5"</em> · <em>"Africa ranked"</em> · <em>"worst food crisis"</em>
-       </div>\`,
-      false, "error"
-    );
-  }
+    const intent = parseIntent(q);
+    switch (intent.type) {
+      case "country": html = await handleCountry(intent.country); meta = "CRYS · live data"; break;
+      case "compare": html = await handleCompare(intent.a, intent.b); meta = "CRYS · comparison"; break;
+      case "why_not_highest": html = await handleWhyNotHighest(intent.country); meta = "CRYS · analysis"; break;
+      case "why_not_lowest": html = await handleWhyNotLowest(intent.country); meta = "CRYS · analysis"; break;
+      case "top_n": html = await handleTopN(intent.n); meta = `CRYS · top ${intent.n}`; break;
+      case "region": html = await handleRegion(intent.region); meta = `CRYS · ${intent.region}`; break;
+      case "threshold": html = await handleThreshold(intent.value); meta = `CRYS · score ≥${intent.value}`; break;
+      case "trend_filter": html = await handleTrendFilter(intent.trend); meta = `CRYS · ${intent.trend}`; break;
+      case "worst_dimension": html = await handleWorstDimension(intent.dim); meta = `CRYS · ${intent.dim}`; break;
+      default: html = await handleCountry(intent.country); meta = "CRYS · live data";
+    }
+    meta += ` · ${Date.now()-t0}ms`;
+  } catch (err) { console.error(err); html = `<span style="color:var(--red);">❌ ${escHtml(err.message)}</span><br><span style="font-size:.75rem;">Try "Somalia", "compare Sudan and Yemen", "top 5", "Africa ranked".</span>`; meta = "error"; }
+  hideTyping();
+  addMsg(html, false, meta);
+  if (typeof window.updateUrlHash === "function") window.updateUrlHash(q);
 }
-
-function resetChat() {
-  msgsEl.innerHTML = \`<div class="welcome" id="welcome">
-    <div class="welcome-mark">🌐</div>
-    <h2>Ask CRYS anything about crisis.</h2>
-    <p>Type a country name, a question, or a comparison.<br>
-      <em>CRYS does not guess. The data shows.</em></p>
-    <div class="welcome-examples">
-      <div class="welcome-ex" data-q="Somalia">🇸🇴 Somalia</div>
-      <div class="welcome-ex" data-q="Yemen">🇾🇪 Yemen</div>
-      <div class="welcome-ex" data-q="compare Sudan and Yemen">📊 Compare Sudan vs Yemen</div>
-      <div class="welcome-ex" data-q="top 5 crises">🔝 Top 5 crises</div>
-      <div class="welcome-ex" data-q="worst food crisis">🍚 Worst food crisis</div>
-      <div class="welcome-ex" data-q="what is escalating">📈 What's escalating</div>
-    </div>
-  </div>\`;
-  wireWelcome();
+function clearChat() {
+  const welcome = msgsEl.querySelector(".welcome");
+  if (welcome) welcome.style.display = "flex";
+  msgsEl.querySelectorAll(".msg").forEach(m => { if (!m.classList.contains("welcome")) m.remove(); });
+  localStorage.removeItem(STORAGE_KEY);
+  if (welcome) welcome.style.display = "flex";
 }
+function shareChat() { const url = new URL(window.location.href); url.searchParams.set("q", inpEl.value || "Somalia"); navigator.clipboard.writeText(url.toString()); const ind = document.getElementById("urlIndicator"); ind.innerText = "✓ Copied"; setTimeout(() => ind.innerText = "", 2000); }
+function updateUrlHash(q) { if (q) window.history.replaceState(null, "", `#${encodeURIComponent(q)}`); else window.history.replaceState(null, "", window.location.pathname); }
+function loadFromHash() { const hash = decodeURIComponent(window.location.hash.slice(1)); if (hash) { inpEl.value = hash; submitQuery(hash); } }
+window.updateUrlHash = updateUrlHash;
 
-function wireWelcome() {
-  document.querySelectorAll(".welcome-ex,[data-q]").forEach(el => {
-    el.addEventListener("click", () => submit(el.getAttribute("data-q")));
-  });
-}
-
-// Boot
-document.getElementById("sendBtn").addEventListener("click", () => submit(inpEl.value));
-inpEl.addEventListener("keypress", e => { if (e.key==="Enter") submit(inpEl.value); });
-document.querySelectorAll(".chip").forEach(el => el.addEventListener("click", () => submit(el.getAttribute("data-q"))));
-wireWelcome();
+document.getElementById("sendBtn").addEventListener("click", () => submitQuery(inpEl.value));
+inpEl.addEventListener("keypress", e => { if (e.key === "Enter") submitQuery(inpEl.value); });
+document.getElementById("clearBtn").addEventListener("click", clearChat);
+document.getElementById("shareBtn").addEventListener("click", shareChat);
+document.getElementById("exampleBtn").addEventListener("click", () => { const examples = ["Somalia", "compare Sudan and Yemen", "top 5", "Africa ranked", "worst food crisis", "why is Palestine not highest?"]; let i = 0; function showNext() { if (i < examples.length) { inpEl.value = examples[i]; submitQuery(examples[i]); i++; setTimeout(showNext, 3000); } } showNext(); });
+document.querySelectorAll(".chip").forEach(chip => chip.addEventListener("click", () => submitQuery(chip.getAttribute("data-q"))));
+loadHistory();
+loadFromHash();
 </script>
 </body>
-</html>`;
-
-fs.writeFileSync("/mnt/user-data/outputs/crys.html", html, "utf8");
-const lines = html.split("\n").length;
-console.log("Lines:", lines);
-console.log("Size:", (html.length/1024).toFixed(1)+"kb");
-
-// Verify all intent types handled
-const intents = ["country","compare","why_not_highest","why_not_lowest","top_n","region","threshold","trend","worst_dim","alert"];
-for (const i of intents) {
-  const ok = html.includes(\`case "\${i}"\`) && html.includes(\`respond\${i.split("_").map(w=>w[0].toUpperCase()+w.slice(1)).join("")}\`);
-  console.log((ok?"✅":"❌"), i);
-}
-BUILDEOF
-node /tmp/crys-build.js
-Output
-
-/tmp/crys-build.js:603
-    \${escalating?\`<span style="color:var(--red);font-size:.68rem;">⚠ escalating</span>`:``}
-                                                                                         ^
-
-SyntaxError: Unexpected token ':'
-    at wrapSafe (node:internal/modules/cjs/loader:1637:18)
-    at Module._compile (node:internal/modules/cjs/loader:1679:20)
-    at Object..js (node:internal/modules/cjs/loader:1838:10)
-    at Module.load (node:internal/modules/cjs/loader:1441:32)
-    at Function._load (node:internal/modules/cjs/loader:1263:12)
-    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
-    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
-    at node:internal/main/run_main_module:36:49
-
-Node.js v22.22.2
-Done
+</html>
