@@ -895,17 +895,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="ticker-bar"><div class="ticker-label">⚡ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
   <aside class="sidebar">
-    <!-- NEW: Google Search Box -->
-    <div class="sb-block">
-      <div class="sb-heading">Ask Global Crisis Index <span style="font-size: 11px; font-weight: normal; color: var(--tm);">🔍 powered by Google</span></div>
-      <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <input type="text" id="crisisSearch" placeholder="e.g., sudan drought, japan earthquake, yemen famine..." 
-               style="flex: 1; background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; outline: none; transition: all 0.2s;"
-               onkeypress="if(event.key === 'Enter') searchGoogleCrisis()">
-        <button id="searchGoogleBtn" onclick="searchGoogleCrisis()"
-                style="background: linear-gradient(135deg, #1a73e8, #0d47a1); border: none; border-radius: 8px; padding: 0 16px; color: white; font-weight: 600; font-size: 13px; cursor: pointer; transition: opacity 0.2s;">
-          🔍 Ask
-        </button>
+    <!-- CRYS Chat Block -->
+    <div class="sb-block" id="crysChatBlock" style="display:flex;flex-direction:column;padding:0;border-bottom:1px solid var(--b1);height:340px;min-height:220px;max-height:340px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px 6px;border-bottom:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-family:var(--fd);font-size:13px;font-weight:900;background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em;">CRYS</span>
+          <span style="font-family:var(--fm);font-size:6px;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);color:var(--cyan);padding:1px 6px;border-radius:99px;letter-spacing:.08em;">CRISIS AI</span>
+        </div>
+        <button onclick="crysClear()" style="background:none;border:none;color:var(--tm);font-family:var(--fm);font-size:7px;cursor:pointer;padding:2px 5px;border-radius:3px;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--tm)'">↺ clear</button>
+      </div>
+      <div id="crysChat" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;"></div>
+      <div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap;">
+          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
+          <button class="crys-chip" onclick="crysSubmit('top 5')">🔥 Top 5</button>
+          <button class="crys-chip" onclick="crysSubmit('what is escalating')">📈 Escalating</button>
+          <button class="crys-chip" onclick="crysSubmit('compare Sudan and Yemen')">⚖️ Compare</button>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <input id="crysInp" type="text" placeholder="Somalia · top 5 · compare Sudan vs Yemen…"
+            style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:99px;padding:5px 11px;font-size:10px;color:var(--tp);font-family:var(--fb);outline:none;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--b2)'"
+            onkeypress="if(event.key==='Enter')crysSubmit(this.value)">
+          <button onclick="crysSubmit(document.getElementById('crysInp').value)"
+            style="background:var(--cyan);color:#030b18;border:none;border-radius:99px;padding:5px 12px;font-family:var(--fm);font-size:8px;font-weight:800;cursor:pointer;flex-shrink:0;transition:background .13s;"
+            onmouseover="this.style.background='#74c0fc'" onmouseout="this.style.background='var(--cyan)'">Ask ↵</button>
+        </div>
       </div>
     </div>
 
@@ -2282,27 +2297,326 @@ if (window.innerWidth <= 900) {
   }
 }
 
-// Google Search function for crisis queries
-function searchGoogleCrisis() {
-  const input = document.getElementById('crisisSearch');
-  const query = input.value.trim();
-  
-  if (!query) {
-    toast('❓ Please enter a crisis question first');
-    return;
-  }
-  
-  // Build the branded search: "global crisis index" + user query
-  const brandedQuery = `global crisis index score: ${query}`;
-  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(brandedQuery)}`;
-  
-  // Open in new tab
-  window.open(googleUrl, '_blank');
-  
-  // Optional: show feedback
-  toast(`🔍 Searching: "global crisis index" ${query}`);
-}
+// ============================================================================
+// CRYS — Crisis Intelligence Chat (embedded in sidebar)
+// ============================================================================
+(function() {
+  const CRYS_API    = "https://www.globalcrisisindex.com/api/top-story";
+  const CRYS_TTL    = 300_000;
+  const _CC         = new Map();
 
+  async function crysApi(params) {
+    const key = JSON.stringify(params);
+    const hit = _CC.get(key);
+    if (hit && Date.now() - hit.t < CRYS_TTL) return hit.d;
+    const url = new URL(CRYS_API);
+    for (const [k,v] of Object.entries(params)) if (v!=null) url.searchParams.set(k,String(v));
+    const r = await fetch(url.toString());
+    if (!r.ok) throw new Error("API " + r.status);
+    const d = await r.json();
+    _CC.set(key, {t:Date.now(), d});
+    return d;
+  }
+
+  const crysEsc  = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const crysEscA = s => String(s??"").replace(/"/g,"&quot;");
+
+  function crysScoreColor(s){return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";}
+  function crysDimColor(v){return v>=80?"#ff6b6b":v>=65?"#ffa94d":v>=50?"#ffe066":v>=35?"#74c0fc":"#4a6a8a";}
+
+  const CRYS_NAME_ALIASES = {
+    "dr congo":"COD","congo":"COD","drc":"COD","central african republic":"CAF","car":"CAF",
+    "south sudan":"SSD","burkina faso":"BFA","us":"USA","united states":"USA","america":"USA",
+    "uk":"GBR","britain":"GBR","england":"GBR","myanmar":"MMR","burma":"MMR",
+    "iran":"IRN","persia":"IRN","north korea":"PRK","nk":"PRK","south korea":"KOR","sk":"KOR",
+    "uae":"ARE","emirates":"ARE",
+  };
+
+  function crysResolveName(raw){
+    const l=(raw||"").toLowerCase().trim();
+    return CRYS_NAME_ALIASES[l]||l;
+  }
+
+  const CRYS_REGION_KW={
+    africa:["africa","african"],asia:["asia","asian","southeast asia","south asia","east asia"],
+    europe:["europe","european"],middleeast:["middle east","middleeast","mena","arab","gulf"],
+    americas:["americas","america","latin america","latam","caribbean"],
+  };
+  function crysDetectRegion(text){
+    const l=text.toLowerCase();
+    for(const[r,kws]of Object.entries(CRYS_REGION_KW))if(kws.some(k=>l.includes(k)))return r;
+    return null;
+  }
+
+  const CRYS_DIM_KW={
+    food:["food","hunger","famine","starvation","ipc","nutrition"],
+    displacement:["displacement","displaced","refugee","refugees","idp","idps"],
+    health:["health","disease","outbreak","epidemic","cholera","ebola"],
+    conflict:["conflict","war","fighting","combat","violence","armed"],
+    economic:["economic","economy","gdp","poverty","financial"],
+    climate:["climate","heat","flood","drought","weather"],
+  };
+  function crysDetectDim(text){
+    const l=text.toLowerCase();
+    for(const[d,kws]of Object.entries(CRYS_DIM_KW))if(kws.some(k=>l.includes(k)))return d;
+    return null;
+  }
+
+  function crysParseIntent(raw){
+    const t=raw.trim(),l=t.toLowerCase();
+    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i)||l.match(/(.+?)\s+(?:vs?\.?|versus)\s+(.+)/i);
+    if(cmp)return{type:"compare",a:crysResolveName(cmp[1].trim()),b:crysResolveName(cmp[2].trim())};
+    const nh=l.match(/why\s+(?:is\s+|isn'?t\s+)?(.+?)\s+not\s+(?:the\s+)?(?:#1|number\s+one|highest|first|top)/i);
+    if(nh)return{type:"why_not_highest",country:crysResolveName(nh[1].trim())};
+    const topN=l.match(/top\s+(\d+)/i);
+    if(topN)return{type:"top_n",n:Math.min(20,Math.max(1,parseInt(topN[1])))};
+    const worst=l.match(/worst\s+(.+?)(?:\s+crisis|\s+situation|\s+countries?)?\s*$/i);
+    if(worst){const dim=crysDetectDim(worst[1]);if(dim)return{type:"worst_dim",dim};}
+    if(/\b(improv|getting better|going down|falling|declining)\w*/.test(l))return{type:"trend",trend:"improving"};
+    if(/\b(escalat|worsening|getting worse|going up|rising|surging)\w*/.test(l))return{type:"trend",trend:"escalating"};
+    const thr=l.match(/(?:above|over|at least|[≥>=]+)\s*(\d{2,3})/i)||l.match(/(\d{2,3})\s*(?:[+]|or (?:more|higher|above))/i);
+    if(thr)return{type:"threshold",value:parseInt(thr[1])};
+    const region=crysDetectRegion(l);
+    if(region&&t.split(" ").length<=5)return{type:"region",region};
+    const sit=l.match(/(?:situation|status|update|what(?:'?s)?\s+happening|how\s+(?:bad|severe|is)|tell\s+me\s+about)\s+(?:in\s+)?(.+)/i);
+    if(sit)return{type:"country",country:crysResolveName(sit[1].trim())};
+    return{type:"country",country:crysResolveName(t)};
+  }
+
+  function crysSev(s){
+    const cls={CATASTROPHIC:"#ff6b6b",CRITICAL:"#ffa94d",HIGH:"#ffe066",ELEVATED:"#69db7c",MODERATE:"#74c0fc"}[s]||"#74c0fc";
+    return`<span style="font-size:6px;font-family:var(--fm);background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;letter-spacing:.06em;font-weight:700;">${s}</span>`;
+  }
+
+  function crysDims(dimensions){
+    const ORDER=["conflict","displacement","food","health","economic","climate","access","political"];
+    let out='<div style="display:flex;flex-direction:column;gap:3px;margin:4px 0;">';
+    for(const k of ORDER){
+      const d=dimensions[k];if(!d)continue;
+      const v=d.value,col=crysDimColor(v);
+      out+=`<div style="display:flex;align-items:center;gap:4px;">`;
+      out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--ts);width:56px;flex-shrink:0;text-transform:uppercase;">${crysEsc(d.label)}</div>`;
+      out+=`<div style="flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${v}%;background:${col};border-radius:99px;"></div></div>`;
+      out+=`<div style="font-family:var(--fm);font-size:7px;color:${col};width:18px;text-align:right;">${v}</div>`;
+      out+='</div>';
+    }
+    return out+'</div>';
+  }
+
+  function crysEvidence(ev){
+    if(!ev)return'<span style="font-size:8px;color:var(--tm);font-style:italic;">No live signals.</span>';
+    const items=[];
+    if(ev.earthquake)items.push(`🌍 M${ev.earthquake.magnitude.toFixed(1)} — ${crysEsc(ev.earthquake.location)} <span style="color:var(--tm);font-size:7px;">USGS</span>`);
+    if(ev.food_security){const pop=ev.food_security.population_affected>0?" — "+(ev.food_security.population_affected/1e6).toFixed(1)+"M":"";items.push(`🌾 IPC Phase ${ev.food_security.phase}${pop} <span style="color:var(--tm);font-size:7px;">IPC</span>`);}
+    (ev.disease_outbreaks||[]).slice(0,2).forEach(ob=>{items.push(`🦠 ${crysEsc(ob.disease)} — ${ob.severity} <span style="color:var(--tm);font-size:7px;">WHO</span>`);});
+    if(ev.displacement&&ev.displacement.total>0)items.push(`🚶 ${(ev.displacement.total/1e6).toFixed(1)}M displaced <span style="color:var(--tm);font-size:7px;">UNHCR</span>`);
+    if(ev.heat&&ev.heat.max_temp_c>0)items.push(`🥵 ${ev.heat.max_temp_c}°C heat <span style="color:var(--tm);font-size:7px;">Open-Meteo</span>`);
+    if(!items.length)return'<span style="font-size:8px;color:var(--tm);font-style:italic;">No live signals.</span>';
+    return'<div style="display:flex;flex-direction:column;gap:2px;">'+items.map(t=>`<div style="font-size:8px;color:var(--ts);">${t}</div>`).join('')+'</div>';
+  }
+
+  function crysRec(rec){
+    if(!rec)return"";
+    const cols={IMMEDIATE:"#ff6b6b",URGENT:"#ffa94d",HIGH:"#ffe066",MONITOR:"#69db7c",WATCH:"#74c0fc"};
+    const col=cols[rec.tier]||"#74c0fc";
+    return`<div style="border-left:2px solid ${col};padding:3px 7px;background:${col}08;border-radius:0 4px 4px 0;font-size:8px;color:var(--ts);margin-top:4px;">${crysEsc(rec.text)}</div>`;
+  }
+
+  function crysCountryCard(s){
+    const col=crysScoreColor(s.score);
+    let out='';
+    out+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`;
+    out+=`<span style="font-size:16px;">${s.flag}</span>`;
+    out+=`<div style="flex:1;"><div style="font-size:11px;font-weight:800;color:var(--tp);">${crysEsc(s.name)}</div>`;
+    out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries}</div></div>`;
+    out+=`<div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};line-height:1;">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div>`;
+    out+='</div>';
+    if(s.dimensions)out+=crysDims(s.dimensions);
+    if(s.trend){
+      const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";
+      const tcol=dir==="escalating"?"#ff6b6b":dir==="improving"?"#69db7c":"var(--tm)";
+      out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d} · fc: ${s.trend.forecast_7d}</div>`;
+    }
+    out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);margin:3px 0 2px;">LIVE SIGNALS</div>`;
+    out+=crysEvidence(s.live_evidence);
+    out+=crysRec(s.recommendation);
+    return out;
+  }
+
+  function crysRankList(countries,limit){
+    return'<div style="display:flex;flex-direction:column;gap:3px;">'+countries.slice(0,limit||20).map((c,i)=>{
+      const col=crysScoreColor(c.score);
+      const dir=c.trend?.direction;
+      const arr=dir==="escalating"?'<span style="color:#ff6b6b">↑</span>':dir==="improving"?'<span style="color:#69db7c">↓</span>':'<span style="color:var(--tm)">→</span>';
+      return`<div style="display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.015);cursor:pointer;" onclick="selCountry('${crysEscA(c.iso||c.name)}')" onmouseover="this.style.background='rgba(0,200,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.015)'">
+        <span style="font-family:var(--fm);font-size:7px;color:var(--tm);width:16px;">#${c.rank||i+1}</span>
+        <span style="font-size:10px;">${c.flag}</span>
+        <span style="flex:1;font-size:9px;font-weight:500;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${crysEsc(c.name)}</span>
+        <div style="width:36px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;flex-shrink:0;"><div style="height:100%;width:${c.score}%;background:${col};border-radius:99px;"></div></div>
+        <span style="font-family:var(--fm);font-size:8px;font-weight:700;color:${col};width:20px;text-align:right;">${c.score}</span>
+        <span style="font-size:8px;">${arr}</span>
+      </div>`;
+    }).join('')+'</div>';
+  }
+
+  async function crysRespond(raw){
+    const intent=crysParseIntent(raw);
+    switch(intent.type){
+      case"country":{
+        const d=await crysApi({q:intent.country});
+        if(!d.top_story)throw new Error(`No data for "${intent.country}"`);
+        return crysCountryCard(d.top_story);
+      }
+      case"top_n":{
+        const d=await crysApi({top:intent.n});
+        const cs=d.countries||(d.top_story?[d.top_story]:[]);
+        if(!cs.length)throw new Error("Rankings unavailable");
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>Top ${intent.n}</strong> by urgency</div>`+crysRankList(cs,intent.n);
+      }
+      case"compare":{
+        const[dA,dB]=await Promise.all([crysApi({q:intent.a}),crysApi({q:intent.b})]);
+        const sA=dA.top_story,sB=dB.top_story;
+        if(!sA||!sB)throw new Error("Could not find one or both countries");
+        const colA=crysScoreColor(sA.score),colB=crysScoreColor(sB.score);
+        let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">`;
+        out+=`<span style="font-size:13px;">${sA.flag}</span><div style="flex:1;"><div style="font-size:10px;font-weight:700;">${crysEsc(sA.name)}</div><div style="font-family:var(--fm);font-size:8px;color:${colA};">${sA.score}/100 ${crysSev(sA.severity)}</div></div>`;
+        out+=`<span style="font-size:9px;color:var(--tm);">vs</span>`;
+        out+=`<div style="flex:1;text-align:right;"><div style="font-size:10px;font-weight:700;">${crysEsc(sB.name)}</div><div style="font-family:var(--fm);font-size:8px;color:${colB};">${sB.score}/100 ${crysSev(sB.severity)}</div></div><span style="font-size:13px;">${sB.flag}</span>`;
+        out+='</div>';
+        const DIM_ORDER=["conflict","displacement","food","health","economic","climate"];
+        out+='<div style="display:flex;flex-direction:column;gap:2px;">';
+        for(const k of DIM_ORDER){
+          const av=sA.dimensions?.[k]?.value??0,bv=sB.dimensions?.[k]?.value??0;
+          const lbl=sA.dimensions?.[k]?.label??k;
+          const winner=av>bv?"A":bv>av?"B":"tie";
+          out+=`<div style="display:flex;align-items:center;gap:3px;font-size:7px;font-family:var(--fm);">`;
+          out+=`<span style="color:${winner==="A"?"var(--cyan)":"var(--tm)"};width:22px;text-align:right;">${av}</span>`;
+          out+=`<div style="flex:1;text-align:center;color:var(--tm);">${lbl}</div>`;
+          out+=`<span style="color:${winner==="B"?"var(--cyan)":"var(--tm)"};width:22px;">${bv}</span>`;
+          out+='</div>';
+        }
+        out+='</div>';
+        const gap=Math.abs(sA.score-sB.score);
+        const winner=sA.score>sB.score?sA:sB;
+        out+=`<div style="margin-top:5px;padding:4px 7px;background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.12);border-radius:4px;font-size:8px;color:var(--ts);">`;
+        out+=`<strong>${winner.flag} ${crysEsc(winner.name)}</strong> leads by ${gap} pts.`;
+        out+='</div>';
+        return out;
+      }
+      case"why_not_highest":{
+        const[dT,dTop]=await Promise.all([crysApi({q:intent.country}),crysApi({top:1})]);
+        const target=dT.top_story,highest=dTop.top_story;
+        if(!target||!highest)throw new Error("Could not fetch data");
+        if(target.iso===highest.iso)return`${target.flag} <strong>${crysEsc(target.name)}</strong> IS the highest — #${target.rank} at ${target.score}/100 ${crysSev(target.severity)}`;
+        const gap=highest.score-target.score;
+        let out=`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;">${target.flag} <strong>${crysEsc(target.name)}</strong> (${target.score}) is <span style="color:#ffa94d;font-family:var(--fm);">+${gap} pts</span> behind ${highest.flag} <strong>${crysEsc(highest.name)}</strong> (${highest.score}).</div>`;
+        const keyDims=["conflict","displacement","food","health"].filter(k=>(highest.dimensions?.[k]?.value??0)-(target.dimensions?.[k]?.value??0)>=7);
+        if(keyDims.length){
+          out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);margin:3px 0 2px;">WHERE ${crysEsc(highest.name).toUpperCase()} LEADS</div>`;
+          keyDims.forEach(k=>{
+            const hv=highest.dimensions[k].value,tv=target.dimensions[k]?.value??0,lbl=highest.dimensions[k].label;
+            const col=crysDimColor(hv);
+            out+=`<div style="display:flex;align-items:center;gap:4px;font-size:8px;"><span style="color:var(--ts);width:56px;flex-shrink:0;font-family:var(--fm);font-size:7px;">${lbl}</span><div style="flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${hv}%;background:${col};border-radius:99px;"></div></div><span style="color:${col};font-family:var(--fm);font-size:7px;width:18px;text-align:right;">${hv}</span><span style="color:#ffa94d;font-family:var(--fm);font-size:7px;">+${hv-tv}</span></div>`;
+          });
+        }
+        return out;
+      }
+      case"region":{
+        const d=await crysApi({region:intent.region});
+        const countries=d.countries||[];
+        if(!countries.length)throw new Error("No data for region");
+        const label=intent.region==="middleeast"?"Middle East":intent.region.charAt(0).toUpperCase()+intent.region.slice(1);
+        const avg=Math.round(countries.reduce((s,c)=>s+c.score,0)/countries.length);
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${label}</strong> · ${countries.length} countries · avg ${avg}</div>`+crysRankList(countries,20);
+      }
+      case"threshold":{
+        const d=await crysApi({threshold:intent.value});
+        const cs=d.countries||(d.top_story?[d.top_story]:[]);
+        if(!cs.length)return`<span style="font-size:8px;color:var(--tm);">No countries scoring ≥${intent.value}.</span>`;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${cs.length}</strong> countries scoring ≥${intent.value}</div>`+crysRankList(cs,20);
+      }
+      case"trend":{
+        const d=await crysApi({top:20});
+        const cs=(d.countries||[]).filter(c=>c.trend?.direction===intent.trend);
+        if(!cs.length)return`<span style="font-size:8px;color:var(--tm);">No countries currently <strong>${intent.trend}</strong> in top 20.</span>`;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${cs.length}</strong> countries ${intent.trend}</div>`+crysRankList(cs,20);
+      }
+      case"worst_dim":{
+        const d=await crysApi({top:20});
+        const cs=(d.countries||[]).slice().sort((a,b)=>(b.dimensions?.[intent.dim]?.value??0)-(a.dimensions?.[intent.dim]?.value??0));
+        const dimLabel=cs[0]?.dimensions?.[intent.dim]?.label??intent.dim;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;">Worst <strong>${crysEsc(dimLabel)}</strong></div>`+crysRankList(cs,12);
+      }
+      default:{
+        const d=await crysApi({q:intent.country});
+        if(!d.top_story)throw new Error(`No data for "${raw}"`);
+        return crysCountryCard(d.top_story);
+      }
+    }
+  }
+
+  function crysRenderMsg(html, isUser, meta){
+    const chat=document.getElementById('crysChat');
+    if(!chat)return;
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;flex-direction:column;gap:2px;max-width:94%;animation:crysRise .14s ease-out;'+(isUser?'align-self:flex-end':'align-self:flex-start');
+    const bubble=document.createElement('div');
+    bubble.style.cssText='padding:5px 9px;border-radius:10px;word-break:break-word;font-size:9px;line-height:1.55;'+(isUser?'background:#1a3d65;color:#fff;border-bottom-right-radius:2px;':'background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);color:var(--tp);border-bottom-left-radius:2px;');
+    bubble.innerHTML=isUser?crysEsc(html):html;
+    div.appendChild(bubble);
+    if(meta){const m=document.createElement('div');m.style.cssText='font-size:6px;color:var(--td);font-family:var(--fm);padding:0 3px;';m.textContent=meta;div.appendChild(m);}
+    chat.appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
+  }
+
+  function crysShowTyping(){
+    const chat=document.getElementById('crysChat');if(!chat)return null;
+    const div=document.createElement('div');
+    div.id='crysTyping';
+    div.style.cssText='align-self:flex-start;';
+    div.innerHTML='<div style="display:flex;gap:4px;align-items:center;padding:5px 9px;background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);border-radius:10px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out .13s infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out .26s infinite;display:inline-block;"></span></div>';
+    chat.appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
+    return div;
+  }
+
+  if(!document.getElementById('crysStyles')){
+    const st=document.createElement('style');
+    st.id='crysStyles';
+    st.textContent=`
+      @keyframes crysRise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes crysTyp{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+      .crys-chip{font-size:7px;font-family:var(--fm);background:rgba(255,255,255,.02);border:1px solid var(--b1);color:var(--ts);padding:2px 7px;border-radius:99px;cursor:pointer;transition:all .12s;white-space:nowrap;}
+      .crys-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);}
+      #crysChat{scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+    `;
+    document.head.appendChild(st);
+  }
+
+  window.crysSubmit = async function(raw){
+    const q=(raw||"").trim();
+    const inp=document.getElementById('crysInp');
+    if(!q)return;
+    if(inp)inp.value="";
+    crysRenderMsg(q,true,"you");
+    const tyDiv=crysShowTyping();
+    const t0=Date.now();
+    try{
+      const html=await crysRespond(q);
+      if(tyDiv)tyDiv.remove();
+      crysRenderMsg(html,false,"CRYS · "+(Date.now()-t0)+"ms");
+    }catch(err){
+      if(tyDiv)tyDiv.remove();
+      crysRenderMsg(`<span style="color:#ff6b6b;">✕ ${crysEsc(err.message)}</span><div style="font-size:7px;color:var(--tm);margin-top:2px;">Try: "Somalia" · "top 5" · "compare Sudan vs Yemen"</div>`,false,"error");
+    }
+  };
+
+  window.crysClear = function(){
+    const chat=document.getElementById('crysChat');
+    if(chat)chat.innerHTML='';
+  };
+
+})();
 
 </script>
 
@@ -2310,3 +2624,5 @@ function searchGoogleCrisis() {
 </div>
 </body>
 </html>
+
+
