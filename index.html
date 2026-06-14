@@ -289,13 +289,37 @@ function buildUrgencyNarrative(iso) {
     );
   }
 
+  // ── IPC FOOD SECURITY — ACCURATE PHASE-SPECIFIC LANGUAGE ────────────────
   const ipc = (ipcClassifications || [])
     .find(i => i.country.toLowerCase().includes(nameLower));
   if (ipc && ipc.phase >= 3) {
     const pop = Math.round(ipc.population / 1e6);
-    liveSignals.push(
-      `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
-    );
+    const isPhase4 = ipc.phase === 4;
+    const isYemen = nameLower === 'yemen';
+    const isSudan = nameLower === 'sudan';
+    
+    // For Yemen and Sudan Phase 4, the population figure is total acute (Phase 3+4+5)
+    if (isPhase4 && (isYemen || isSudan)) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger (IPC Phase 3+)`
+      );
+    } else if (ipc.phase === 4) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 3) {
+      liveSignals.push(
+        `IPC Phase 3 (Crisis) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 5) {
+      liveSignals.push(
+        `IPC Phase 5 (Famine) — ${pop}M people at immediate risk of starvation`
+      );
+    } else {
+      liveSignals.push(
+        `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
+      );
+    }
   }
 
   const fews = (foodSecurityAlerts || [])
@@ -322,16 +346,13 @@ function buildUrgencyNarrative(iso) {
     : '';
 
   // ── 6. ANOMALY FLAG ────────────────────────────────────────────────────
-// Only flag if z-score is genuinely exceptional (>3.5) AND the raw
-// 28-day swing is large enough to be meaningful (>12 pts), otherwise
-// seeded history trends cause near-universal false positives.
-const histSwing = hist.length >= 4
-  ? Math.max(...hist) - Math.min(...hist)
-  : 0;
-const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
-  ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
-    ` indicating an unusual spike relative to the 28-day baseline.`
-  : '';
+  const histSwing = hist.length >= 4
+    ? Math.max(...hist) - Math.min(...hist)
+    : 0;
+  const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
+    ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
+      ` indicating an unusual spike relative to the 28-day baseline.`
+    : '';
 
   // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
   const parts = [];
@@ -444,7 +465,8 @@ function showTopUrgentStory() {
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
         (isEventBacked ? "live event confirmed" : "score threshold"));
-}  window.dataLayer = window.dataLayer || [];
+}
+window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-0LR42BR1B9');
