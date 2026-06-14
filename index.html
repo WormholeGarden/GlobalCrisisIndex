@@ -1921,16 +1921,23 @@ async function refresh() {
   const urlParams = new URLSearchParams(window.location.search);
   const urlCountry = urlParams.get('country');
   
-  if (urlCountry && store[urlCountry]) {
-    selectedIso = urlCountry;
-    renderPanel(selectedIso, urlParams.get('crisis'));
-    if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
-  } else if (selectedIso && store[selectedIso]) {
-    renderPanel(selectedIso);
-  } else if (ranked.length) {
-    selectedIso = ranked[0];
-    renderPanel(selectedIso);
-  }
+  const resolvePanel = (attempt) => {
+    const urlParams2 = new URLSearchParams(window.location.search);
+    const urlCountry2 = urlParams2.get('country');
+    if (urlCountry2 && store[urlCountry2]) {
+      selectedIso = urlCountry2;
+      renderPanel(selectedIso, urlParams2.get('crisis'));
+      if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
+    } else if (urlCountry2 && attempt < 5) {
+      setTimeout(() => resolvePanel(attempt + 1), 200);
+    } else if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso);
+    } else if (ranked.length) {
+      selectedIso = ranked[0];
+      renderPanel(selectedIso);
+    }
+  };
+  resolvePanel(0);
 }
 
 // ============================================================================
@@ -1939,7 +1946,43 @@ async function refresh() {
 function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path').data(countries.features).enter().append('path').attr('class','country-path').attr('d',pathGen).attr('fill','#0c1c30').on('mousemove',(ev,d)=>{const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');if(iso&&store[iso]){const c=store[iso],col=sc(c.score);document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;tt.style.left=Math.min(x+16,W-210)+'px';tt.style.top=Math.max(8,y-85)+'px';tt.classList.add('vis');}else tt.classList.remove('vis');}).on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis')).on('click',(ev,d)=>{const iso=NUM_ISO[String(d.id)];if(iso&&store[iso])selCountry(iso);});zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));svgEl.call(zoom);document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);window.addEventListener('resize',()=>{const W2=stage.clientWidth,H2=stage.clientHeight;svgEl.attr('width',W2).attr('height',H2);proj.scale(W2/4.3).translate([W2/2,H2/2]);pathGen=d3.geoPath().projection(proj);mapGroup.selectAll('path').attr('d',pathGen);addPulseMarkers();});}
 function paintMap(){if(!mapGroup)return;mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{const iso=NUM_ISO[String(d.id)];if(!iso||!store[iso])return '#0c1c30';return sc(store[iso].score)+'99';});}
 function addPulseMarkers(){if(!mapGroup||!proj)return;mapGroup.selectAll('.pulse-marker').remove();const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);hotspots.forEach((iso,idx)=>{const c=store[iso];const col=sc(c.score);const dotsList=[];if(apiResults.usgs_weekly?.features){apiResults.usgs_weekly.features.slice(0,80).forEach(q=>{const place=(q.properties.place||'').toLowerCase();if(place.includes(c.name.toLowerCase()))dotsList.push(q.geometry.coordinates.slice(0,2));});}if(dotsList.length===0&&CENTROIDS[iso])dotsList.push(CENTROIDS[iso]);dotsList.slice(0,2).forEach((coords,pi)=>{const[px,py]=proj(coords);if(!isFinite(px)||!isFinite(py))return;const g=mapGroup.append('g').attr('class','pulse-marker');const dur=2.4+(idx%6)*0.3+pi*0.25;const dotR=c.score>=80?4:c.score>=70?3:2.5;for(let ring=0;ring<2;ring++){g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0).append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');}g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);});});}
-function zoomToCountry(iso){if(!mapGroup||!proj||!ISO_NUM[iso])return;const isoNum=ISO_NUM[iso];let feature=null;mapGroup.selectAll('.country-path').each(function(d){if(String(d.id)===isoNum)feature=d;});if(!feature)return;const centroid=pathGen.centroid(feature);if(!centroid||!isFinite(centroid[0])||!isFinite(centroid[1]))return;const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;const scale=Math.min(6,Math.max(2.5,store[iso]?.score>70?4:3));svgEl.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-centroid[0],-centroid[1]));}
+function zoomToCountry(iso){
+  if(!svgEl||!proj||!zoom)return;
+  const stage=document.getElementById('mapStage');
+  if(!stage)return;
+  const W=stage.clientWidth,H=stage.clientHeight;
+  const scale=Math.min(6,Math.max(2.5,(store[iso]?.score||50)>70?4:3));
+
+  // Always use CENTROIDS as the primary method — most reliable across all countries
+  if(CENTROIDS[iso]){
+    const projected=proj(CENTROIDS[iso]);
+    if(projected&&isFinite(projected[0])&&isFinite(projected[1])){
+      svgEl.transition().duration(600).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-projected[0],-projected[1])
+      );
+      return;
+    }
+  }
+
+  // Fallback: try TopoJSON path centroid
+  if(mapGroup&&pathGen&&ISO_NUM[iso]){
+    const isoNum=ISO_NUM[iso];
+    let feature=null;
+    mapGroup.selectAll('.country-path').each(function(d){
+      if(String(d.id)===String(parseInt(isoNum,10)))feature=d;
+    });
+    if(feature){
+      const c=pathGen.centroid(feature);
+      if(c&&isFinite(c[0])&&isFinite(c[1])){
+        svgEl.transition().duration(600).call(
+          zoom.transform,
+          d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-c[0],-c[1])
+        );
+      }
+    }
+  }
+}
 function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip${prefs.filters.includes(k)?' on':''}" data-f="${k}">${a.i} ${a.l}</div>`).join('');document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value)}));}
 
 // ============================================================================
@@ -3032,5 +3075,7 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
+
+
 
 
