@@ -1120,6 +1120,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   // Prepend emoji only for catastrophic cases
   if (emoji) headline = `${emoji} ${headline}`;
   
+  // Add flag at the beginning
+  if (flag) headline = `${flag} ${headline}`;
+  
   return headline;
 }
     
