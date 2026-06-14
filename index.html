@@ -1059,58 +1059,68 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     
     // Generate the exact headline phrase (dynamic, not hardcoded)
     function generateHeadline(country) {
-  const severity = country.severity || (country.score >= 85 ? "CATASTROPHIC" : country.score >= 75 ? "CRITICAL" : "HIGH");
-  const severityEmoji = country.score >= 85 ? "🔴" : country.score >= 75 ? "🟠" : "🟡";
+  const name = country.name;
+  const flag = country.flag || "";
+  const score = country.score;
   
-  // Build the friction phrase dynamically
-  let friction = "";
+  // Emoji only for extreme severity
+  const emoji = score >= 85 ? "🔴" : "";
+  
+  // Extract the single most important metric (short, punchy)
+  let crisis = "";
+  let number = "";
   
   if (country.live_evidence?.food_security?.phase >= 3) {
-    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(1);
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
     const phase = country.live_evidence.food_security.phase;
-    const phaseLabel = phase === 4 ? "Emergency" : phase === 5 ? "Famine" : "Crisis";
-    friction = `⚠️ ${pop}M facing ${phaseLabel} hunger`;
-  } 
+    if (phase >= 4) crisis = "Famine";
+    else crisis = "Hunger";
+    number = `${pop}M`;
+  }
   else if (country.live_evidence?.displacement?.total > 0) {
-    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(1);
-    friction = `🚶 ${disp}M displaced`;
-  } 
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+    crisis = "Displaced";
+    number = `${disp}M`;
+  }
   else if (country.live_evidence?.disease_outbreaks?.length) {
     const outbreak = country.live_evidence.disease_outbreaks[0];
-    friction = `🦠 ${outbreak.disease.toUpperCase()} outbreak (${outbreak.severity})`;
-  } 
-  else if (country.live_evidence?.heat && country.live_evidence.heat.max_temp_c >= 45) {
-    friction = `🥵 EXTREME HEAT: ${country.live_evidence.heat.max_temp_c}°C`;
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
+  }
+  else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+    crisis = "Heat";
+    number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
   }
   else {
-    const trend = country.trend?.direction === "escalating" ? "rapidly deteriorating" : "critical";
-    friction = `📊 Statistical anomaly: ${trend}`;
+    crisis = "Crisis";
+    number = `${score}/100`;
   }
   
-  // Viral headline templates by severity
-  const templates = {
-    CATASTROPHIC: [
-      `${severityEmoji} **BREAKING:** ${country.flag} ${country.name} hits ${country.score}/100 — highest crisis score on Earth. ${friction}.`,
-      `${severityEmoji} **${country.name} is collapsing.** Global Crisis Index: ${country.score}/100 (CATASTROPHIC). ${friction}.`,
-      `${severityEmoji} **URGENT:** ${country.flag} ${country.name} tops global crisis ranking at ${country.score}/100. ${friction}.`
-    ],
-    CRITICAL: [
-      `🟠 ${country.flag} ${country.name} reaches ${country.score}/100 — now 2nd most urgent crisis globally. ${friction}.`,
-      `🟠 ${country.name} crisis worsens: Index hits ${country.score}/100 (CRITICAL). ${friction}.`,
-      `🟠 ${country.flag} ${country.name} alert: ${country.score}/100 — ${friction}. Live data shows accelerating collapse.`
-    ],
-    HIGH: [
-      `🟡 ${country.flag} ${country.name} at ${country.score}/100 — enters HIGH urgency tier. ${friction}.`,
-      `🟡 ${country.name} crisis escalates: ${country.score}/100. ${friction}.`,
-      `🟡 ${country.flag} ${country.name} warning: ${country.score}/100. ${friction}. Media underreporting.`
-    ]
-  };
+  // Trend direction — single word, past tense
+  let action = "Worsens";
+  if (country.trend?.direction === "improving") action = "Eases";
+  else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
+  else if (country.trend?.delta_7d > 3) action = "Surges";
+  else if (country.trend?.delta_7d < 0) action = "Improves";
   
-  const severityKey = severity === "CATASTROPHIC" ? "CATASTROPHIC" : severity === "CRITICAL" ? "CRITICAL" : "HIGH";
-  const selectedTemplates = templates[severityKey];
-  const randomIndex = Math.floor(Math.random() * selectedTemplates.length);
+  // NYT-style headline templates (short, factual, no markdown)
+  const templates = [
+    `${name} ${action} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis}`,
+    `${crisis} Worsens in ${name}`,
+    `${name} Crisis Deepens: ${number} Affected`,
+    `${name} Slides to ${score}`,
+    `${number} Face ${crisis} in ${name}`
+  ];
   
-  return selectedTemplates[randomIndex];
+  // Deterministic selection (same country = same headline style)
+  const index = name.length % templates.length;
+  let headline = templates[index];
+  
+  // Prepend emoji only for catastrophic cases
+  if (emoji) headline = `${emoji} ${headline}`;
+  
+  return headline;
 }
     
     // Main loader
