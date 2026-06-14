@@ -2191,7 +2191,26 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
         ).join('')}
       </div>
-      ${ipcInfo ? `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span></div>` : ''}
+      ${ipcInfo ? (() => {
+  // Determine if this is a Phase 4 (Emergency) population that needs clarification
+  const isPhase4 = ipcInfo.phase === 4;
+  const isYemen = c.name === 'Yemen';
+  const isSudan = c.name === 'Sudan';
+  
+  // For Yemen and Sudan Phase 4, the population figure is actually total acute (Phase 3+4+5)
+  // Display it correctly without misrepresenting
+  if (isPhase4 && (isYemen || isSudan)) {
+    const totalAcute = ipcInfo.population;
+    return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+      <span>📊 IPC Food Security: Phase 4 (Emergency) — ${Math.round(totalAcute / 1e6)}M people facing acute hunger (IPC Phase 3+)</span>
+    </div>`;
+  }
+  
+  // For all other countries, display normally
+  return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+    <span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span>
+  </div>`;
+})() : ''}
     </div>
 
     <div class="ai-brief" id="aiBrief">
@@ -3075,7 +3094,5 @@ if (window.innerWidth <= 900) {
 </div>
 </body>
 </html>
-
-
 
 
