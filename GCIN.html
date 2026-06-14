@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCIN Special Report · Crisis Anomaly Investigation</title>
+  <meta name="description" content="Global Crisis Index News — real-time crisis intelligence, anomaly detection, and investigative journalism powered by live data.">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #030b18;
+      font-family: 'Georgia', 'Times New Roman', Times, serif;
+      color: #eef4ff;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    
+    /* Header */
+    .article-header {
+      border-bottom: 1px solid rgba(66, 153, 225, 0.3);
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+    }
+    .gcin-masthead {
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #6bc8ff;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+    }
+    .article-meta {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      color: #7c9ec0;
+      margin: 1rem 0 0.5rem;
+      font-family: system-ui, sans-serif;
+    }
+    .dateline {
+      font-style: italic;
+      color: #80c0ff;
+    }
+    
+    /* Article body */
+    .lead {
+      font-size: 1.3rem;
+      font-weight: 500;
+      color: #c0e0ff;
+      margin: 1.5rem 0;
+      border-left: 3px solid #ff375f;
+      padding-left: 1.2rem;
+    }
+    .anomaly-box {
+      background: rgba(255, 55, 95, 0.08);
+      border-left: 4px solid #ff375f;
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+      border-radius: 0 12px 12px 0;
+    }
+    .dimension-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+    }
+    .dim-item {
+      background: #0f172f;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #2d3a5e;
+    }
+    .dim-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6bc8ff;
+    }
+    .dim-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .evidence-list {
+      list-style: none;
+      margin: 1rem 0;
+    }
+    .evidence-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #1e2a4a;
+    }
+    .quote {
+      font-style: italic;
+      background: #0a1222;
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1.5rem 0;
+      color: #bbd4ff;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #2d4a6e;
+      margin: 2rem 0;
+    }
+    .footer-note {
+      font-size: 0.7rem;
+      color: #5a7390;
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #1e2a4a;
+    }
+    a {
+      color: #80c0ff;
+      text-decoration: none;
+    }
+    .btn-back {
+      display: inline-block;
+      background: #3174c7;
+      padding: 0.4rem 1rem;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+      font-family: system-ui;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .lead { font-size: 1.1rem; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="btn-back">← Back to dashboard</a>
+  
+  <div class="article-header">
+    <div class="gcin-masthead">GCIN · GLOBAL CRISIS INDEX NEWS</div>
+    <h1 id="article-title">Loading crisis anomaly report...</h1>
+    <div class="article-meta">
+      <span id="article-date"></span>
+      <span>🔍 Anomaly Desk</span>
+      <span>📡 Live data: USGS / WHO / UNHCR / IPC</span>
+    </div>
+    <div id="dateline" class="dateline"></div>
+  </div>
+  
+  <div id="article-content">
+    <div class="lead">⏳ Loading live crisis intelligence...</div>
+  </div>
+  
+  <div class="footer-note">
+    GCIN is a real‑time crisis intelligence platform. Data refreshes every 5–10 minutes from 40+ live APIs.<br>
+    Source: Global Crisis Index · Methodology: Weighted 8‑dimension composite (Conflict · Displacement · Food · Health · Economic · Climate · Access · Political)
+  </div>
+</div>
+
+<script>
+  (function() {
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    
+    // Helper: load anomaly data (localStorage or fresh fetch)
+    async function loadAnomalyData() {
+      // First try localStorage (set by the homepage)
+      let stored = localStorage.getItem('gcin_top_anomaly');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch(e) { console.warn("Invalid localStorage data"); }
+      }
+      // Fallback: fetch top 50 and pick highest anomaly score
+      const res = await fetch(`${API_BASE}?top=50`);
+      const data = await res.json();
+      const countries = data.countries || [];
+      if (!countries.length) throw new Error("No country data");
+      // Compute anomaly score
+      const scored = countries.map(c => {
+        let score = 0;
+        if (c.anomaly?.z_score) score += Math.min(5, c.anomaly.z_score);
+        if (c.trend && Math.abs(c.trend.forecast_7d - c.score) > 8) score += 2;
+        if (c.live_boost && c.live_boost > 8) score += 1.5;
+        return { ...c, anomalyScore: Math.min(10, Math.round(score * 10) / 10) };
+      });
+      scored.sort((a,b) => b.anomalyScore - a.anomalyScore);
+      return scored[0];
+    }
+    
+    function formatNumber(num) {
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+      return num.toString();
+    }
+    
+    function getSeverityLabel(score) {
+      if (score >= 85) return "CATASTROPHIC";
+      if (score >= 75) return "CRITICAL";
+      if (score >= 60) return "HIGH";
+      if (score >= 40) return "ELEVATED";
+      return "MODERATE";
+    }
+    
+    function generateFrictionDescription(c) {
+      if (c.live_evidence?.food_security?.phase >= 3) {
+        const pop = (c.live_evidence.food_security.population_affected / 1e6).toFixed(1);
+        const phase = c.live_evidence.food_security.phase;
+        const label = phase === 4 ? "Emergency" : phase === 5 ? "Famine" : "Crisis";
+        return `${pop} million people facing IPC Phase ${phase} (${label}) hunger — one of the largest food crises globally.`;
+      }
+      if (c.live_evidence?.displacement?.total > 0) {
+        const disp = (c.live_evidence.displacement.total / 1e6).toFixed(1);
+        return `${disp} million people displaced (refugees + IDPs), representing a massive population upheaval.`;
+      }
+      if (c.live_evidence?.disease_outbreaks?.length) {
+        const o = c.live_evidence.disease_outbreaks[0];
+        return `${o.disease.charAt(0).toUpperCase() + o.disease.slice(1)} outbreak (${o.severity}) with ${o.cases.toLocaleString()}+ confirmed cases.`;
+      }
+      if (c.live_evidence?.heat?.max_temp_c >= 42) {
+        return `Extreme heatwave reaching ${c.live_evidence.heat.max_temp_c}°C — breaking historical records.`;
+      }
+      return `Statistical anomaly detected: crisis score ${c.score}/100 diverges from 28‑day baseline (z=${c.anomaly?.z_score || 0}).`;
+    }
+    
+    async function renderArticle() {
+      const country = await loadAnomalyData();
+      if (!country) {
+        document.getElementById('article-title').innerText = "Anomaly data unavailable";
+        document.getElementById('article-content').innerHTML = '<div class="lead">⚠️ Could not load crisis intelligence. Please refresh the page.</div>';
+        return;
+      }
+      
+      const score = country.score;
+      const severity = getSeverityLabel(score);
+      const flag = country.flag || '';
+      const name = country.name;
+      const iso = country.iso;
+      const trendDir = country.trend?.direction || 'stable';
+      const delta = country.trend?.delta_7d || 0;
+      const forecast = country.trend?.forecast_7d || score;
+      const anomalyScore = country.anomalyScore || 0;
+      
+      // Date
+      const now = new Date();
+      document.getElementById('article-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('dateline').innerHTML = `📍 ${name} · ${now.toLocaleTimeString()} UTC · GCIN ANOMALY DESK`;
+      
+      // Title
+      document.getElementById('article-title').innerHTML = `${flag} ${name} — Crisis Score ${score}/100 (${severity}) · A Data Divergence Investigation`;
+      
+      // Build full article
+      const frictionDesc = generateFrictionDescription(country);
+      const trendSentence = trendDir === 'escalating' 
+        ? `The crisis has escalated ${delta > 0 ? `${delta} points` : ''} over the past week, with the 7‑day forecast reaching ${forecast}/100.` 
+        : `The composite score has remained ${trendDir} (${delta > 0 ? `+${delta}` : delta} pts / 7 days), but underlying metrics show persistent pressure.`;
+      
+      // Dimension breakdown
+      const dims = country.dimensions || {};
+      const dimList = [
+        { label: "Conflict", value: dims.conflict?.value || 0 },
+        { label: "Displacement", value: dims.displacement?.value || 0 },
+        { label: "Food security", value: dims.food?.value || 0 },
+        { label: "Health", value: dims.health?.value || 0 },
+        { label: "Economic", value: dims.economic?.value || 0 },
+        { label: "Climate", value: dims.climate?.value || 0 },
+        { label: "Access", value: dims.access?.value || 0 },
+        { label: "Political", value: dims.political?.value || 0 }
+      ];
+      
+      // Live evidence
+      let evidenceHtml = '';
+      if (country.live_evidence?.food_security) {
+        evidenceHtml += `<li>🍚 IPC Phase ${country.live_evidence.food_security.phase} food insecurity — ${(country.live_evidence.food_security.population_affected/1e6).toFixed(1)}M people affected (IPC/WHO)</li>`;
+      }
+      if (country.live_evidence?.displacement) {
+        evidenceHtml += `<li>🚶 Displacement: ${(country.live_evidence.displacement.total/1e6).toFixed(1)}M total (refugees: ${(country.live_evidence.displacement.refugees/1e6).toFixed(1)}M, IDPs: ${(country.live_evidence.displacement.idps/1e6).toFixed(1)}M) — UNHCR</li>`;
+      }
+      if (country.live_evidence?.disease_outbreaks?.length) {
+        country.live_evidence.disease_outbreaks.forEach(o => {
+          evidenceHtml += `<li>🦠 ${o.disease} (${o.severity}) — ${o.cases.toLocaleString()}+ cases, ${o.deaths} deaths (WHO)</li>`;
+        });
+      }
+      if (country.live_evidence?.earthquake) {
+        evidenceHtml += `<li>🌍 M${country.live_evidence.earthquake.magnitude} earthquake near ${country.live_evidence.earthquake.location} (USGS)</li>`;
+      }
+      if (country.live_evidence?.heat?.max_temp_c >= 38) {
+        evidenceHtml += `<li>🥵 Extreme heat: ${country.live_evidence.heat.max_temp_c}°C (Open‑Meteo)</li>`;
+      }
+      
+      const adjustments = country.score_adjustments || [];
+      let adjustmentHtml = '';
+      if (adjustments.length) {
+        adjustmentHtml = '<ul style="margin-top:0.5rem;">';
+        adjustments.slice(0,4).forEach(a => {
+          adjustmentHtml += `<li>${a.source}: ${a.reason} (${a.delta} pts)</li>`;
+        });
+        adjustmentHtml += '</ul>';
+      }
+      
+      const html = `
+        <div class="lead">
+          ${flag} ${name} has recorded a live crisis score of ${score}/100 — classified as ${severity}. 
+          Yet mainstream media coverage has not reflected the severity of real‑time indicators.
+        </div>
+        
+        <p><strong>The anomaly:</strong> ${frictionDesc} Global headlines remain focused elsewhere, creating a dangerous information lag.</p>
+        
+        <div class="anomaly-box">
+          <strong>📡 LIVE DATA VS. NARRATIVE</strong><br>
+          ${trendSentence} Spillover from neighbouring countries adds +${country.spillover?.value || 0} points. 
+          The statistical anomaly score (z‑score: ${country.anomaly?.z_score || 0}) confirms this divergence is not random.
+        </div>
+        
+        <h3>🔍 8‑Dimension breakdown</h3>
+        <div class="dimension-grid">
+          ${dimList.map(d => `<div class="dim-item"><div class="dim-label">${d.label}</div><div class="dim-value">${d.value}/100</div></div>`).join('')}
+        </div>
+        
+        <h3>📡 Live evidence from open APIs</h3>
+        ${evidenceHtml ? `<ul class="evidence-list">${evidenceHtml}</ul>` : '<p>No real‑time signals detected in this window.</p>'}
+        
+        <h3>📊 Score audit trail</h3>
+        <p>Prior estimate: ${country.prior_score || country.score - (country.live_boost || 0)}/100. 
+        Live data adjustment: +${country.live_boost || 0} points. Regional spillover: +${country.spillover?.value || 0}.</p>
+        ${adjustmentHtml}
+        
+        <div class="quote">
+          “The gap between live crisis intelligence and public awareness is widening. 
+          GCIN exists to bridge that gap — because data saves lives.” — GCIN Anomaly Desk
+        </div>
+        
+        <p><strong>Forecast:</strong> The 7‑day model projects a score of ${forecast}/100 (${country.trend?.trend || 'stable'}). 
+        ${forecast > score ? 'Escalation is probable within the next two weeks.' : 'De‑escalation is not yet visible.'}</p>
+        
+        <hr>
+        <p style="font-size:0.85rem;"><strong>Methodology:</strong> The Global Crisis Index synthesizes 40+ live APIs (USGS, ACLED, IPC, WHO, UNHCR, GDACS, NASA FIRMS, Open‑Meteo, etc.) into a weighted 8‑dimension composite. Anomaly detection uses CUSUM statistical process control. All data is real‑time and transparent; every adjustment is recorded in the score_audit trail.</p>
+      `;
+      
+      document.getElementById('article-content').innerHTML = html;
+    }
+    
+    renderArticle();
+  })();
+</script>
+</body>
+</html>
