@@ -90,137 +90,67 @@
     }
     
     function generateHeadline(country) {
-  // Severity tier and emoji
-  let severity = country.severity;
-  if (!severity) {
-    if (country.score >= 85) severity = "CATASTROPHIC";
-    else if (country.score >= 75) severity = "CRITICAL";
-    else if (country.score >= 60) severity = "HIGH";
-    else severity = "ELEVATED";
-  }
-  
-  const severityEmoji = country.score >= 85 ? "🔴" : country.score >= 75 ? "🟠" : "🟡";
-  const flag = country.flag || "";
   const name = country.name;
+  const flag = country.flag || "";
   const score = country.score;
   
-  // ========== FRICTION PHRASE (most newsworthy element) ==========
-  let friction = "";
-  let frictionType = "";
-  let frictionValue = "";
+  // Severity emoji (only for extreme cases)
+  const emoji = score >= 85 ? "🔴" : score >= 75 ? "🟠" : "";
   
-  // Priority 1: Food security (highest human impact)
+  // Extract the single most important metric
+  let crisis = "";
+  let number = "";
+  
   if (country.live_evidence?.food_security?.phase >= 3) {
-    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(1);
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
     const phase = country.live_evidence.food_security.phase;
-    let phaseLabel = "";
-    if (phase === 5) phaseLabel = "Famine";
-    else if (phase === 4) phaseLabel = "Emergency";
-    else if (phase === 3) phaseLabel = "Crisis";
-    else phaseLabel = `Phase ${phase}`;
-    friction = `⚠️ ${pop}M people in ${phaseLabel} hunger`;
-    frictionType = "FOOD";
-    frictionValue = pop;
+    if (phase >= 4) crisis = "Famine";
+    else crisis = "Hunger";
+    number = `${pop}M`;
   }
-  // Priority 2: Displacement (mass population movement)
   else if (country.live_evidence?.displacement?.total > 0) {
-    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(1);
-    friction = `🚶 ${disp}M people displaced — the size of ${disp === "5.0" ? "Norway" : disp === "3.0" ? "Jamaica" : "a major city"}`;
-    frictionType = "DISPLACEMENT";
-    frictionValue = disp;
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+    crisis = "Displaced";
+    number = `${disp}M`;
   }
-  // Priority 3: Disease outbreak (epidemic risk)
   else if (country.live_evidence?.disease_outbreaks?.length) {
     const outbreak = country.live_evidence.disease_outbreaks[0];
-    const diseaseName = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
-    const severityBadge = outbreak.severity === "critical" ? "EMERGENCY" : outbreak.severity.toUpperCase();
-    friction = `🦠 ${diseaseName} outbreak (${severityBadge}) — ${outbreak.cases.toLocaleString()}+ cases reported`;
-    frictionType = "HEALTH";
-    frictionValue = outbreak.cases;
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    number = `${outbreak.cases.toLocaleString()}+`;
   }
-  // Priority 4: Extreme heat (climate crisis)
   else if (country.live_evidence?.heat?.max_temp_c >= 42) {
-    const temp = country.live_evidence.heat.max_temp_c;
-    friction = `🥵 RECORD HEAT: ${temp}°C — hottest in ${country.name} history`;
-    frictionType = "CLIMATE";
-    frictionValue = temp;
+    crisis = "Heat";
+    number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
   }
-  // Priority 5: Statistical anomaly (data-driven hook)
-  else if (country.anomaly?.z_score >= 1.5) {
-    const trend = country.trend?.direction === "escalating" ? "rapidly deteriorating" : "critical";
-    friction = `📊 DATA ANOMALY: Crisis score ${score}/100 — ${trend} beyond statistical norms`;
-    frictionType = "ANOMALY";
-    frictionValue = country.anomaly.z_score;
-  }
-  // Default: score-based urgency
   else {
-    const direction = country.trend?.direction === "escalating" ? "escalating" : "critical";
-    friction = `📈 ${score}/100 — ${direction} crisis level`;
-    frictionType = "SCORE";
-    frictionValue = score;
+    crisis = "Crisis";
+    number = `${score}/100`;
   }
   
-  // ========== TREND PHRASE (adds urgency and direction) ==========
-  let trendPhrase = "";
-  if (country.trend?.direction === "escalating" && country.trend?.delta_7d >= 3) {
-    trendPhrase = ` Up ${country.trend.delta_7d} points this week.`;
-  } else if (country.trend?.direction === "escalating") {
-    trendPhrase = ` Escalating.`;
-  } else if (country.trend?.forecast_7d > score + 5) {
-    trendPhrase = ` Forecast: ${country.trend.forecast_7d}/100 in 7 days.`;
-  } else {
-    trendPhrase = ``;
-  }
+  // Trend direction (single word)
+  const trend = country.trend?.direction === "escalating" ? "Worsens" : 
+                country.trend?.direction === "improving" ? "Eases" : "Critical";
   
-  // ========== VIRAL HEADLINE TEMPLATES (A/B tested for CTR) ==========
-  // Each template is optimized for search, social sharing, and mobile visibility
-  const templates = {
-    CATASTROPHIC: [
-      `${severityEmoji} BREAKING: ${flag} ${name} hits ${score}/100 — #1 most urgent crisis on Earth. ${friction}.${trendPhrase}`,
-      `${severityEmoji} ${name} is collapsing: Global Crisis Index raises alarm at ${score}/100 (CATASTROPHIC). ${friction}.${trendPhrase}`,
-      `${severityEmoji} URGENT: ${flag} ${name} tops global crisis ranking at ${score}/100. ${friction}.${trendPhrase} The world is not prepared.`,
-      `${severityEmoji} ${score}/100 for ${name} — worst crisis level since tracking began. ${friction}.${trendPhrase} Humanitarian response critical.`
-    ],
-    CRITICAL: [
-      `🟠 ${flag} ${name} reaches ${score}/100 — now #2 most urgent crisis worldwide. ${friction}.${trendPhrase}`,
-      `🟠 ${name} crisis worsens: Index hits ${score}/100 (CRITICAL). ${friction}.${trendPhrase} Governments silent.`,
-      `🟠 ${flag} ${name} alert: ${score}/100 — ${friction}.${trendPhrase} Live data shows accelerating collapse.`,
-      `🟠 ${score}/100 for ${name} — why is no one talking about this? ${friction}.${trendPhrase}`
-    ],
-    HIGH: [
-      `🟡 ${flag} ${name} at ${score}/100 — enters HIGH urgency tier. ${friction}.${trendPhrase}`,
-      `🟡 ${name} crisis escalates: ${score}/100. ${friction}.${trendPhrase} Media underreporting.`,
-      `🟡 ${flag} ${name} warning: ${score}/100 — ${friction}.${trendPhrase} Prepare response.`,
-      `🟡 ${score}/100 for ${name}: Crisis threshold breached. ${friction}.${trendPhrase}`
-    ]
-  };
+  // NYT-style templates — short, factual, no emojis, no markdown
+  const templates = [
+    `${name} ${trend} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis} as Score Reaches ${score}`,
+    `${crisis} Worsens in ${name}; Index Now ${score}`,
+    `${name} Crisis Deepens: ${number} Affected`,
+    `${name} Slides to ${score} as ${crisis} Spreads`,
+    `${number} Face ${crisis} in ${name}; Global Alarm Raised`,
+    `${name} Tops Crisis Index at ${score}`
+  ];
   
-  // Select severity tier
-  let tier = "HIGH";
-  if (score >= 85) tier = "CATASTROPHIC";
-  else if (score >= 75) tier = "CRITICAL";
+  // Pick one deterministically based on country name (avoids randomness in cache)
+  const index = name.length % templates.length;
+  let headline = templates[index];
   
-  const headlinePool = templates[tier];
-  const selectedIndex = Math.floor(Math.random() * headlinePool.length);
-  let headline = headlinePool[selectedIndex];
-  
-  // ========== SPECIAL HOOKS FOR EXTREME CASES (adds urgency spike) ==========
-  if (score >= 90 && frictionType === "FOOD") {
-    headline = `🔴🔴 MASS FAMINE ALERT: ${flag} ${name} at ${score}/100 — ${friction}. Starvation imminent.${trendPhrase}`;
-  }
-  else if (score >= 90 && frictionType === "DISPLACEMENT") {
-    headline = `🔴🔴 EXODUS CRISIS: ${flag} ${name} hits ${score}/100 — ${friction}. Refugee wave accelerating.${trendPhrase}`;
-  }
-  else if (frictionType === "HEALTH" && frictionValue >= 10000) {
-    headline = `🦠 EPIDEMIC ALERT: ${flag} ${name} — ${friction}. Health system overwhelmed.${trendPhrase}`;
-  }
-  else if (frictionType === "CLIMATE" && frictionValue >= 48) {
-    headline = `🥵 CLIMATE EMERGENCY: ${flag} ${name} hits ${score}/100 — ${friction}. Deadly heatwave.${trendPhrase}`;
-  }
+  // Add emoji only for catastrophic (front, subtle)
+  if (emoji) headline = `${emoji} ${headline}`;
   
   return headline;
-}
-    
+}    
     async function loadBreakingHeadline() {
       const headlineEl = document.getElementById("breaking-headline");
       if (!headlineEl) return;
