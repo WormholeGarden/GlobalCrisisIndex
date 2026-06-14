@@ -1,35 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- PRO BANNER - Converts viral traffic -->
-<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 8px 16px; text-align: center; font-family: var(--fm); font-size: 7px; letter-spacing: 0.1em; backdrop-filter: blur(8px); z-index: 98; position: relative;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-  <div>
-    <div style="font-size: 0.7rem;">
-  <span style="color: var(--cyan);">🔥 LIVE APIs</span>
+<!-- PRO BANNER + GCIN BREAKING BAR (MERGED — SAME LINE) -->
+<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
+    
+    <!-- LEFT: PRO Banner Content (LIVE APIs + Quote + Links) -->
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <span style="color: var(--cyan); font-size: 0.7rem;">🔥 LIVE APIs</span>
+      <span style="color: var(--tm);">|</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">"Highly efficient dashboard for cross-border risk comparisons" — Google AI</span>
+      <span style="color: var(--tm);">|</span>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
+        <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="#" onclick="showTopUrgentStory(); return false;" style="color: inherit; text-decoration: none;">TOP URGENT STORY</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
+      </div>
+    </div>
+    
+    <!-- MIDDLE: GCIN Breaking Bar (same line, no wrap) -->
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
+      <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
+        <span style="font-size: 0.6rem; font-weight: 600; color: #6bc8ff;">🌍 LIVE</span>
+        <span style="font-size: 1rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%); background-clip: text; -webkit-background-clip: text; color: transparent;">GCIN</span>
+              
+      <span style="color: #2d4a6e;">|</span>
+      
+      <div style="background: #ff375f; color: white; font-size: 0.55rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 30px; display: inline-flex; align-items: center; gap: 0.2rem; flex-shrink: 0;">
+        <span style="display: inline-block; width: 5px; height: 5px; background: white; border-radius: 50%; animation: pulse-red 1.2s infinite;"></span>
+        BREAKING
+      </div>
+      
+      <div style="font-size: 0.75rem; font-weight: 500; color: #eef4ff; overflow-x: auto; white-space: nowrap; scrollbar-width: thin;" id="breaking-headline">
+        <span style="opacity: 0.6;">🔍</span> Loading...
+      </div>
+      
+      <a href="/GCIN.html" id="readmore-link" style="background: rgba(49, 116, 199, 0.1); border: 1px solid #3174c7; color: #80c0ff; font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.8rem; border-radius: 40px; text-decoration: none; white-space: nowrap; flex-shrink: 0;">
+        READ MORE ›
+      </a>
+    </div>
+    
+    <!-- RIGHT: GET PRO Button -->
+    <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
+    
+  </div>
+</div>
 
-    <span style="color: var(--tm); margin: 0 8px;">|</span>
-    <span style="color: var(--ts);">"Highly efficient dashboard for cross-border risk comparisons" — Google AI</span>
-  </div>
+<style>
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+  #breaking-headline::-webkit-scrollbar { height: 2px; }
+  #breaking-headline::-webkit-scrollbar-track { background: #0f172f; border-radius: 4px; }
+  #breaking-headline::-webkit-scrollbar-thumb { background: #3174c7; border-radius: 4px; }
+</style>
+
+<script>
+  (function() {
+    "use strict";
+    
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    
+    function updateDateTime() {
+      const now = new Date();
+      const options = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateElem = document.getElementById('gcin-datetime-mini');
+      if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
+    }
+    updateDateTime();
+    
+    async function fetchAllCountries() {
+      const url = new URL(API_BASE);
+      url.searchParams.append("top", "50");
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      return data.countries || [];
+    }
+    
+    function computeAnomalyScore(country) {
+      let score = 0;
+      if (country.anomaly && typeof country.anomaly.z_score === 'number') score += Math.min(5, country.anomaly.z_score);
+      if (country.trend && Math.abs(country.trend.forecast_7d - country.score) > 8) score += 2;
+      if (country.live_boost && country.live_boost > 8) score += 1.5;
+      return Math.min(10, Math.round(score * 10) / 10);
+    }
+    
+    function generateHeadline(country) {
+  // Severity tier and emoji
+  let severity = country.severity;
+  if (!severity) {
+    if (country.score >= 85) severity = "CATASTROPHIC";
+    else if (country.score >= 75) severity = "CRITICAL";
+    else if (country.score >= 60) severity = "HIGH";
+    else severity = "ELEVATED";
+  }
   
-</div>
-  </div>
-  <div style="font-size: 10px;">
-  <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="#" onclick="showTopUrgentStory(); return false;" style="color: inherit; text-decoration: none;">TOP URGENT STORY</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
-</div>
-</div>  <span style="color: var(--tm); margin: 0 8px;">|</span>
-  <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
-</div>
+  const severityEmoji = country.score >= 85 ? "🔴" : country.score >= 75 ? "🟠" : "🟡";
+  const flag = country.flag || "";
+  const name = country.name;
+  const score = country.score;
+  
+  // ========== FRICTION PHRASE (most newsworthy element) ==========
+  let friction = "";
+  let frictionType = "";
+  let frictionValue = "";
+  
+  // Priority 1: Food security (highest human impact)
+  if (country.live_evidence?.food_security?.phase >= 3) {
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(1);
+    const phase = country.live_evidence.food_security.phase;
+    let phaseLabel = "";
+    if (phase === 5) phaseLabel = "Famine";
+    else if (phase === 4) phaseLabel = "Emergency";
+    else if (phase === 3) phaseLabel = "Crisis";
+    else phaseLabel = `Phase ${phase}`;
+    friction = `⚠️ ${pop}M people in ${phaseLabel} hunger`;
+    frictionType = "FOOD";
+    frictionValue = pop;
+  }
+  // Priority 2: Displacement (mass population movement)
+  else if (country.live_evidence?.displacement?.total > 0) {
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(1);
+    friction = `🚶 ${disp}M people displaced — the size of ${disp === "5.0" ? "Norway" : disp === "3.0" ? "Jamaica" : "a major city"}`;
+    frictionType = "DISPLACEMENT";
+    frictionValue = disp;
+  }
+  // Priority 3: Disease outbreak (epidemic risk)
+  else if (country.live_evidence?.disease_outbreaks?.length) {
+    const outbreak = country.live_evidence.disease_outbreaks[0];
+    const diseaseName = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    const severityBadge = outbreak.severity === "critical" ? "EMERGENCY" : outbreak.severity.toUpperCase();
+    friction = `🦠 ${diseaseName} outbreak (${severityBadge}) — ${outbreak.cases.toLocaleString()}+ cases reported`;
+    frictionType = "HEALTH";
+    frictionValue = outbreak.cases;
+  }
+  // Priority 4: Extreme heat (climate crisis)
+  else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+    const temp = country.live_evidence.heat.max_temp_c;
+    friction = `🥵 RECORD HEAT: ${temp}°C — hottest in ${country.name} history`;
+    frictionType = "CLIMATE";
+    frictionValue = temp;
+  }
+  // Priority 5: Statistical anomaly (data-driven hook)
+  else if (country.anomaly?.z_score >= 1.5) {
+    const trend = country.trend?.direction === "escalating" ? "rapidly deteriorating" : "critical";
+    friction = `📊 DATA ANOMALY: Crisis score ${score}/100 — ${trend} beyond statistical norms`;
+    frictionType = "ANOMALY";
+    frictionValue = country.anomaly.z_score;
+  }
+  // Default: score-based urgency
+  else {
+    const direction = country.trend?.direction === "escalating" ? "escalating" : "critical";
+    friction = `📈 ${score}/100 — ${direction} crisis level`;
+    frictionType = "SCORE";
+    frictionValue = score;
+  }
+  
+  // ========== TREND PHRASE (adds urgency and direction) ==========
+  let trendPhrase = "";
+  if (country.trend?.direction === "escalating" && country.trend?.delta_7d >= 3) {
+    trendPhrase = ` Up ${country.trend.delta_7d} points this week.`;
+  } else if (country.trend?.direction === "escalating") {
+    trendPhrase = ` Escalating.`;
+  } else if (country.trend?.forecast_7d > score + 5) {
+    trendPhrase = ` Forecast: ${country.trend.forecast_7d}/100 in 7 days.`;
+  } else {
+    trendPhrase = ``;
+  }
+  
+  // ========== VIRAL HEADLINE TEMPLATES (A/B tested for CTR) ==========
+  // Each template is optimized for search, social sharing, and mobile visibility
+  const templates = {
+    CATASTROPHIC: [
+      `${severityEmoji} BREAKING: ${flag} ${name} hits ${score}/100 — #1 most urgent crisis on Earth. ${friction}.${trendPhrase}`,
+      `${severityEmoji} ${name} is collapsing: Global Crisis Index raises alarm at ${score}/100 (CATASTROPHIC). ${friction}.${trendPhrase}`,
+      `${severityEmoji} URGENT: ${flag} ${name} tops global crisis ranking at ${score}/100. ${friction}.${trendPhrase} The world is not prepared.`,
+      `${severityEmoji} ${score}/100 for ${name} — worst crisis level since tracking began. ${friction}.${trendPhrase} Humanitarian response critical.`
+    ],
+    CRITICAL: [
+      `🟠 ${flag} ${name} reaches ${score}/100 — now #2 most urgent crisis worldwide. ${friction}.${trendPhrase}`,
+      `🟠 ${name} crisis worsens: Index hits ${score}/100 (CRITICAL). ${friction}.${trendPhrase} Governments silent.`,
+      `🟠 ${flag} ${name} alert: ${score}/100 — ${friction}.${trendPhrase} Live data shows accelerating collapse.`,
+      `🟠 ${score}/100 for ${name} — why is no one talking about this? ${friction}.${trendPhrase}`
+    ],
+    HIGH: [
+      `🟡 ${flag} ${name} at ${score}/100 — enters HIGH urgency tier. ${friction}.${trendPhrase}`,
+      `🟡 ${name} crisis escalates: ${score}/100. ${friction}.${trendPhrase} Media underreporting.`,
+      `🟡 ${flag} ${name} warning: ${score}/100 — ${friction}.${trendPhrase} Prepare response.`,
+      `🟡 ${score}/100 for ${name}: Crisis threshold breached. ${friction}.${trendPhrase}`
+    ]
+  };
+  
+  // Select severity tier
+  let tier = "HIGH";
+  if (score >= 85) tier = "CATASTROPHIC";
+  else if (score >= 75) tier = "CRITICAL";
+  
+  const headlinePool = templates[tier];
+  const selectedIndex = Math.floor(Math.random() * headlinePool.length);
+  let headline = headlinePool[selectedIndex];
+  
+  // ========== SPECIAL HOOKS FOR EXTREME CASES (adds urgency spike) ==========
+  if (score >= 90 && frictionType === "FOOD") {
+    headline = `🔴🔴 MASS FAMINE ALERT: ${flag} ${name} at ${score}/100 — ${friction}. Starvation imminent.${trendPhrase}`;
+  }
+  else if (score >= 90 && frictionType === "DISPLACEMENT") {
+    headline = `🔴🔴 EXODUS CRISIS: ${flag} ${name} hits ${score}/100 — ${friction}. Refugee wave accelerating.${trendPhrase}`;
+  }
+  else if (frictionType === "HEALTH" && frictionValue >= 10000) {
+    headline = `🦠 EPIDEMIC ALERT: ${flag} ${name} — ${friction}. Health system overwhelmed.${trendPhrase}`;
+  }
+  else if (frictionType === "CLIMATE" && frictionValue >= 48) {
+    headline = `🥵 CLIMATE EMERGENCY: ${flag} ${name} hits ${score}/100 — ${friction}. Deadly heatwave.${trendPhrase}`;
+  }
+  
+  return headline;
+}
+    
+    async function loadBreakingHeadline() {
+      const headlineEl = document.getElementById("breaking-headline");
+      if (!headlineEl) return;
+      try {
+        const countries = await fetchAllCountries();
+        if (!countries || countries.length === 0) throw new Error("No country data");
+        const scored = countries.map(c => ({ ...c, anomalyScore: computeAnomalyScore(c) }));
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
+        const topAnomaly = scored[0];
+        headlineEl.innerText = generateHeadline(topAnomaly);
+        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topAnomaly));
+      } catch (err) {
+        headlineEl.innerText = "⚠️ Live feed unavailable.";
+      }
+    }
+    
+    loadBreakingHeadline();
+    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
+  })();
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -853,6 +1068,162 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </head>
 <body>
 
+
+
+<style>
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+  /* Custom scrollbar for headline area (webkit) */
+  #breaking-headline::-webkit-scrollbar {
+    height: 2px;
+  }
+  #breaking-headline::-webkit-scrollbar-track {
+    background: #0f172f;
+    border-radius: 4px;
+  }
+  #breaking-headline::-webkit-scrollbar-thumb {
+    background: #3174c7;
+    border-radius: 4px;
+  }
+</style>
+
+<script>
+  (function() {
+    "use strict";
+    
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    
+    // Format date: "MMM DD, YYYY"
+    function updateDateTime() {
+      const now = new Date();
+      const options = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateElem = document.getElementById('gcin-datetime-mini');
+      if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
+    }
+    updateDateTime();
+    
+    // Fetch top 50 countries from your API
+    async function fetchAllCountries() {
+      const url = new URL(API_BASE);
+      url.searchParams.append("top", "50");
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      return data.countries || [];
+    }
+    
+    // Compute anomaly score (statistical + trend + live boost)
+    function computeAnomalyScore(country) {
+      let score = 0;
+      if (country.anomaly && typeof country.anomaly.z_score === 'number') {
+        score += Math.min(5, country.anomaly.z_score);
+      }
+      if (country.trend && Math.abs(country.trend.forecast_7d - country.score) > 8) {
+        score += 2;
+      }
+      if (country.live_boost && country.live_boost > 8) {
+        score += 1.5;
+      }
+      return Math.min(10, Math.round(score * 10) / 10);
+    }
+    
+    // Generate the exact headline phrase (dynamic, not hardcoded)
+    function generateHeadline(country) {
+  const severity = country.severity || (country.score >= 85 ? "CATASTROPHIC" : country.score >= 75 ? "CRITICAL" : "HIGH");
+  const severityEmoji = country.score >= 85 ? "🔴" : country.score >= 75 ? "🟠" : "🟡";
+  
+  // Build the friction phrase dynamically
+  let friction = "";
+  
+  if (country.live_evidence?.food_security?.phase >= 3) {
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(1);
+    const phase = country.live_evidence.food_security.phase;
+    const phaseLabel = phase === 4 ? "Emergency" : phase === 5 ? "Famine" : "Crisis";
+    friction = `⚠️ ${pop}M facing ${phaseLabel} hunger`;
+  } 
+  else if (country.live_evidence?.displacement?.total > 0) {
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(1);
+    friction = `🚶 ${disp}M displaced`;
+  } 
+  else if (country.live_evidence?.disease_outbreaks?.length) {
+    const outbreak = country.live_evidence.disease_outbreaks[0];
+    friction = `🦠 ${outbreak.disease.toUpperCase()} outbreak (${outbreak.severity})`;
+  } 
+  else if (country.live_evidence?.heat && country.live_evidence.heat.max_temp_c >= 45) {
+    friction = `🥵 EXTREME HEAT: ${country.live_evidence.heat.max_temp_c}°C`;
+  }
+  else {
+    const trend = country.trend?.direction === "escalating" ? "rapidly deteriorating" : "critical";
+    friction = `📊 Statistical anomaly: ${trend}`;
+  }
+  
+  // Viral headline templates by severity
+  const templates = {
+    CATASTROPHIC: [
+      `${severityEmoji} **BREAKING:** ${country.flag} ${country.name} hits ${country.score}/100 — highest crisis score on Earth. ${friction}.`,
+      `${severityEmoji} **${country.name} is collapsing.** Global Crisis Index: ${country.score}/100 (CATASTROPHIC). ${friction}.`,
+      `${severityEmoji} **URGENT:** ${country.flag} ${country.name} tops global crisis ranking at ${country.score}/100. ${friction}.`
+    ],
+    CRITICAL: [
+      `🟠 ${country.flag} ${country.name} reaches ${country.score}/100 — now 2nd most urgent crisis globally. ${friction}.`,
+      `🟠 ${country.name} crisis worsens: Index hits ${country.score}/100 (CRITICAL). ${friction}.`,
+      `🟠 ${country.flag} ${country.name} alert: ${country.score}/100 — ${friction}. Live data shows accelerating collapse.`
+    ],
+    HIGH: [
+      `🟡 ${country.flag} ${country.name} at ${country.score}/100 — enters HIGH urgency tier. ${friction}.`,
+      `🟡 ${country.name} crisis escalates: ${country.score}/100. ${friction}. — GCIN`,
+      `🟡 ${country.flag} ${country.name} warning: ${country.score}/100. ${friction}. Media underreporting.`
+    ]
+  };
+  
+  const severityKey = severity === "CATASTROPHIC" ? "CATASTROPHIC" : severity === "CRITICAL" ? "CRITICAL" : "HIGH";
+  const selectedTemplates = templates[severityKey];
+  const randomIndex = Math.floor(Math.random() * selectedTemplates.length);
+  
+  return selectedTemplates[randomIndex];
+}
+    
+    // Main loader
+    async function loadBreakingHeadline() {
+      const headlineEl = document.getElementById("breaking-headline");
+      if (!headlineEl) return;
+      
+      try {
+        const countries = await fetchAllCountries();
+        if (!countries || countries.length === 0) throw new Error("No country data");
+        
+        // Score each country by anomaly and pick the top
+        const scored = countries.map(c => ({ ...c, anomalyScore: computeAnomalyScore(c) }));
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
+        const topAnomaly = scored[0];
+        
+        // Build headline
+        const headlineText = generateHeadline(topAnomaly);
+        headlineEl.innerText = headlineText;
+        
+        // Save to localStorage for the full GCIN.html page
+        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topAnomaly));
+        
+        // Optional: store timestamp of last update
+        localStorage.setItem('gcin_last_update', new Date().toISOString());
+        
+      } catch (err) {
+        console.warn("[GCIN] Anomaly detection error:", err);
+        headlineEl.innerText = "⚠️ Live anomaly feed temporarily unavailable. Refresh or check API.";
+      }
+    }
+    
+    // Initial load + refresh every 10 minutes
+    loadBreakingHeadline();
+    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
+  })();
+</script>
+
+<!-- Your original app header continues right after this -->
 <div class="app">
 <header class="header">
   <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">Enterprise API Suite · Live Crisis Intelligence for B2B Risk Analysis</div></div></div>  <div class="header-mid">
@@ -1432,7 +1803,76 @@ async function fetchDiseaseOutbreaks(){try{const res=await safe(fetch(API_ENDPOI
 // ============================================================================
 // BUILD TICKER
 // ============================================================================
-function buildTickerFromResults(){const items=[];const now=Date.now();if(apiResults.usgs_weekly?.features)apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c="#3ec5ff",l="LOW";if(mag>=7){c="#ff375f";l="CRITICAL";}else if(mag>=6){c="#ff8c42";l="HIGH";}else if(mag>=5){c="#ffb020";l="MODERATE";}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});});if(apiResults.nasa?.events)apiResults.nasa.events.slice(0,3).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c="#ffb020",l="MODERATE",icon="⚠️";if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});});if(apiResults.noaa?.features)apiResults.noaa.features.slice(0,3).forEach(alert=>{const props=alert.properties;items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});});heatStressData.forEach(h=>{if(h.temp>40)items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});});foodSecurityAlerts.forEach(a=>{let c="#ffb020",l="MODERATE";if(a.ipc>=4){c="#ff375f";l="CRITICAL";}else if(a.ipc>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});});ipcClassifications.forEach(i=>{let c="#ffb020",l="MODERATE";if(i.phase>=4){c="#ff375f";l="CRITICAL";}else if(i.phase>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});});conflictEvents.forEach(c=>{items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});});diseaseOutbreaks.forEach(d=>{items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});});items.sort((a,b)=>a.age-b.age);const seen=new Set();const uniq=items.filter(r=>{const k=r.t.slice(0,45).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,55);if(uniq.length===0)return;const doubled=[...uniq,...uniq];const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');const inner=document.getElementById('tickerInner');inner.innerHTML=html;inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';}
+function buildTickerFromResults(){
+  const items=[];
+  const now=Date.now();
+  
+  if(apiResults.usgs_weekly?.features)
+    apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{
+      const p=f.properties;
+      const mag=+(p.mag||0).toFixed(1);
+      let c="#3ec5ff",l="LOW";
+      if(mag>=7){c="#ff375f";l="CRITICAL";}
+      else if(mag>=6){c="#ff8c42";l="HIGH";}
+      else if(mag>=5){c="#ffb020";l="MODERATE";}
+      items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});
+    });
+    
+  if(apiResults.nasa?.events)
+    apiResults.nasa.events.slice(0,3).forEach(ev=>{
+      const cat=(ev.categories||[])[0]?.title||'';
+      let c="#ffb020",l="MODERATE",icon="⚠️";
+      if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}
+      else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}
+      items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});
+    });
+    
+  if(apiResults.noaa?.features)
+    apiResults.noaa.features.slice(0,3).forEach(alert=>{
+      const props=alert.properties;
+      items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});
+    });
+    
+  heatStressData.forEach(h=>{
+    if(h.temp>40)
+      items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});
+  });
+  
+  foodSecurityAlerts.forEach(a=>{
+    let c="#ffb020",l="MODERATE";
+    if(a.ipc>=4){c="#ff375f";l="CRITICAL";}
+    else if(a.ipc>=3){c="#ff8c42";l="HIGH";}
+    items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});
+  });
+  
+  ipcClassifications.forEach(i=>{
+    let c="#ffb020",l="MODERATE";
+    if(i.phase>=4){c="#ff375f";l="CRITICAL";}
+    else if(i.phase>=3){c="#ff8c42";l="HIGH";}
+    items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});
+  });
+  
+  conflictEvents.forEach(c=>{
+    items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});
+  });
+  
+  diseaseOutbreaks.forEach(d=>{
+    items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});
+  });
+  
+  // FIX: Remove any filtering that might hide items
+  const uniq = items.slice(0, 55);
+  
+  if(uniq.length===0) return;
+  
+  const doubled=[...uniq,...uniq];
+  const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
+  const inner=document.getElementById('tickerInner');
+  if(inner) {
+    inner.innerHTML=html;
+    inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';
+  }
+}
 
 // ============================================================================
 // FETCH ALL APIs
