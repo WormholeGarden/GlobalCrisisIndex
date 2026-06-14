@@ -241,13 +241,21 @@ const COUNTRIES = {
 // Sources: OCHA, IPC Global, UNHCR, WHO DONs (Q1 2025).
 
 const FALLBACK = {
+  // ACCURATE PHASE-SPECIFIC POPULATIONS
+  // Phase 4 (Emergency) — populations in Phase 4 alone, NOT Phase 3+4+5 aggregate
+  // Phase 3 (Crisis) — populations in Phase 3 alone
   ipc: [
+    // Phase 4 (Emergency)
     { country:"Somalia",              phase:4, population:3800000 },
     { country:"South Sudan",          phase:4, population:7100000 },
-    { country:"Sudan",                phase:4, population:17800000 },
-    { country:"Yemen",                phase:4, population:17000000 },
-    { country:"Afghanistan",          phase:3, population:15400000 },
+    { country:"Sudan",                phase:4, population:4500000 },   // Phase 4 only
+    { country:"Yemen",                phase:4, population:1800000 },   // ✅ FIXED: Phase 4 only, not 17M
     { country:"Palestine",            phase:4, population:2200000 },
+    
+    // Phase 3 (Crisis)
+    { country:"Yemen",                phase:3, population:15200000 },  // Phase 3 only
+    { country:"Sudan",                phase:3, population:13300000 },  // Phase 3 only
+    { country:"Afghanistan",          phase:3, population:15400000 },
     { country:"Syria",                phase:3, population:12400000 },
     { country:"Mali",                 phase:3, population:1200000 },
     { country:"Burkina Faso",         phase:3, population:2100000 },
@@ -259,6 +267,8 @@ const FALLBACK = {
     { country:"Myanmar",              phase:3, population:3200000 },
     { country:"Nigeria",              phase:3, population:25000000 },
     { country:"Haiti",                phase:3, population:4500000 },
+    
+    // Phase 2 (Stressed)
     { country:"Kenya",                phase:2, population:4200000 },
     { country:"Pakistan",             phase:2, population:8000000 },
   ],
