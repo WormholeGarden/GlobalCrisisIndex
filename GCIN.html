@@ -23,7 +23,6 @@
       padding: 2rem 1.5rem;
     }
     
-    /* Header */
     .article-header {
       border-bottom: 1px solid rgba(66, 153, 225, 0.3);
       margin-bottom: 2rem;
@@ -50,13 +49,13 @@
       color: #7c9ec0;
       margin: 1rem 0 0.5rem;
       font-family: system-ui, sans-serif;
+      flex-wrap: wrap;
     }
     .dateline {
       font-style: italic;
       color: #80c0ff;
     }
     
-    /* Article body */
     .lead {
       font-size: 1.3rem;
       font-weight: 500;
@@ -136,6 +135,12 @@
       margin-bottom: 1rem;
       font-family: system-ui;
     }
+    .wiki-attribution {
+      font-size: 0.65rem;
+      color: #3a5a7a;
+      margin-top: 0.25rem;
+      display: inline-block;
+    }
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
       .lead { font-size: 1.1rem; }
@@ -171,22 +176,101 @@
 <script>
   (function() {
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    const WIKI_API = "https://en.wikipedia.org/api/rest_v1/page/summary/";
     
-    // Helper: load anomaly data (localStorage or fresh fetch)
+    function sanitizeWikiTitle(title) {
+      return title.trim().replace(/ /g, '_');
+    }
+    
+    async function fetchWikipediaExtract(pageTitle) {
+      const encodedTitle = encodeURIComponent(sanitizeWikiTitle(pageTitle));
+      const url = `${WIKI_API}${encodedTitle}`;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) return null;
+        const data = await response.json();
+        let extract = data.extract || '';
+        if (extract) {
+          const splitIndex = extract.indexOf('\n\n');
+          if (splitIndex > 0) extract = extract.substring(0, splitIndex);
+        }
+        return {
+          extract: extract || null,
+          title: data.title || pageTitle,
+          url: data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodedTitle}`,
+          exists: !!extract
+        };
+      } catch (err) {
+        console.warn(err);
+        return null;
+      }
+    }
+    
+    function getWikipediaTopic(countryName, crisisTypes, score) {
+      const name = countryName.toLowerCase();
+      if (name === 'yemen') return score >= 75 ? "Yemeni crisis" : "Yemen";
+      if (name === 'sudan') return score >= 70 ? "Sudanese civil war" : "Sudan";
+      if (name === 'somalia') return score >= 70 ? "Somali Civil War" : "Somalia";
+      if (name === 'palestine') return "Israeli–Palestinian conflict";
+      if (name === 'syria') return "Syrian Civil War";
+      if (name === 'ukraine') return "Russo-Ukrainian War";
+      if (name === 'afghanistan') return score >= 70 ? "Afghanistan conflict" : "Afghanistan";
+      if (name === 'south sudan') return "South Sudanese Civil War";
+      if (name === 'dr congo' || name === 'congo') return "Kivu conflict";
+      return countryName;
+    }
+    
+    async function fetchAndPrependWikipedia(countryName, crisisTypes, score, targetElementId) {
+      const topic = getWikipediaTopic(countryName, crisisTypes, score);
+      const article = await fetchWikipediaExtract(topic);
+      const container = document.getElementById(targetElementId);
+      if (!container) return;
+      
+      if (article && article.extract) {
+        // Prepend the Wikipedia paragraph as the very first paragraph after the lead
+        const leadDiv = container.querySelector('.lead');
+        const wikiParagraph = document.createElement('p');
+        wikiParagraph.style.marginBottom = '1rem';
+        wikiParagraph.style.fontSize = '1rem';
+        wikiParagraph.style.lineHeight = '1.6';
+        wikiParagraph.style.color = '#d0e4ff';
+        wikiParagraph.innerHTML = `${escapeHtml(article.extract)} <span class="wiki-attribution">[Source: Wikipedia · <a href="${article.url}" target="_blank" style="color:#80c0ff;">${article.title}</a>]</span>`;
+        
+        if (leadDiv) {
+          leadDiv.insertAdjacentElement('afterend', wikiParagraph);
+        } else {
+          container.insertBefore(wikiParagraph, container.firstChild);
+        }
+      } else {
+        // Silent fallback — no Wikipedia content, no error message
+        console.log(`No Wikipedia extract available for "${topic}"`);
+      }
+    }
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+    
     async function loadAnomalyData() {
-      // First try localStorage (set by the homepage)
       let stored = localStorage.getItem('gcin_top_anomaly');
       if (stored) {
         try {
           return JSON.parse(stored);
         } catch(e) { console.warn("Invalid localStorage data"); }
       }
-      // Fallback: fetch top 50 and pick highest anomaly score
       const res = await fetch(`${API_BASE}?top=50`);
       const data = await res.json();
       const countries = data.countries || [];
       if (!countries.length) throw new Error("No country data");
-      // Compute anomaly score
       const scored = countries.map(c => {
         let score = 0;
         if (c.anomaly?.z_score) score += Math.min(5, c.anomaly.z_score);
@@ -196,12 +280,6 @@
       });
       scored.sort((a,b) => b.anomalyScore - a.anomalyScore);
       return scored[0];
-    }
-    
-    function formatNumber(num) {
-      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-      if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
-      return num.toString();
     }
     
     function getSeverityLabel(score) {
@@ -249,23 +327,17 @@
       const trendDir = country.trend?.direction || 'stable';
       const delta = country.trend?.delta_7d || 0;
       const forecast = country.trend?.forecast_7d || score;
-      const anomalyScore = country.anomalyScore || 0;
       
-      // Date
       const now = new Date();
-      document.getElementById('article-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('article-date').innerHTML = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       document.getElementById('dateline').innerHTML = `📍 ${name} · ${now.toLocaleTimeString()} UTC · GCIN ANOMALY DESK`;
-      
-      // Title
       document.getElementById('article-title').innerHTML = `${flag} ${name} — Crisis Score ${score}/100 (${severity}) · A Data Divergence Investigation`;
       
-      // Build full article
       const frictionDesc = generateFrictionDescription(country);
       const trendSentence = trendDir === 'escalating' 
         ? `The crisis has escalated ${delta > 0 ? `${delta} points` : ''} over the past week, with the 7‑day forecast reaching ${forecast}/100.` 
         : `The composite score has remained ${trendDir} (${delta > 0 ? `+${delta}` : delta} pts / 7 days), but underlying metrics show persistent pressure.`;
       
-      // Dimension breakdown
       const dims = country.dimensions || {};
       const dimList = [
         { label: "Conflict", value: dims.conflict?.value || 0 },
@@ -278,7 +350,6 @@
         { label: "Political", value: dims.political?.value || 0 }
       ];
       
-      // Live evidence
       let evidenceHtml = '';
       if (country.live_evidence?.food_security) {
         evidenceHtml += `<li>🍚 IPC Phase ${country.live_evidence.food_security.phase} food insecurity — ${(country.live_evidence.food_security.population_affected/1e6).toFixed(1)}M people affected (IPC/WHO)</li>`;
@@ -348,6 +419,9 @@
       `;
       
       document.getElementById('article-content').innerHTML = html;
+      
+      // Inject Wikipedia paragraph as the FIRST paragraph after the lead (without separate box)
+      await fetchAndPrependWikipedia(country.name, country.crisis_types || [], country.score, 'article-content');
     }
     
     renderArticle();
