@@ -22,7 +22,6 @@
       margin: 0 auto;
       padding: 2rem 1.5rem;
     }
-    
     .article-header {
       border-bottom: 1px solid rgba(66, 153, 225, 0.3);
       margin-bottom: 2rem;
@@ -55,7 +54,6 @@
       font-style: italic;
       color: #80c0ff;
     }
-    
     .lead {
       font-size: 1.3rem;
       font-weight: 500;
@@ -141,6 +139,10 @@
       margin-top: 0.25rem;
       display: inline-block;
     }
+    .wiki-sentence {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
       .lead { font-size: 1.1rem; }
@@ -176,77 +178,331 @@
 <script>
   (function() {
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
-    const WIKI_API = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+    const WIKI_FULL_API = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=";
+    const WIKI_SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*";
     
-    function sanitizeWikiTitle(title) {
-      return title.trim().replace(/ /g, '_');
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. SPLIT INTO SENTENCES (intelligent sentence boundary detection)
+    // ─────────────────────────────────────────────────────────────────────────
+    function splitIntoSentences(text) {
+      if (!text) return [];
+      // Split on periods, exclamation points, question marks followed by space or newline
+      // But preserve abbreviations like "e.g.", "i.e.", "Mr.", "Dr.", "vs.", "etc."
+      const sentenceEndings = /(?<![A-Z][a-z]\.)(?<=\.|\!|\?)\s+(?=[A-Z])/;
+      let sentences = text.split(sentenceEndings);
+      if (sentences.length === 1) {
+        sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+      }
+      return sentences.filter(s => s.trim().length > 30);
     }
     
-    async function fetchWikipediaExtract(pageTitle) {
-      const encodedTitle = encodeURIComponent(sanitizeWikiTitle(pageTitle));
-      const url = `${WIKI_API}${encodedTitle}`;
+    // Score a sentence for relevance to the crisis context
+    function scoreSentence(sentence, countryName, crisisTypes, score, hasIp4) {
+      const lowerSent = sentence.toLowerCase();
+      let scoreVal = 0;
+      
+      // Country mention (highest weight)
+      if (lowerSent.includes(countryName.toLowerCase())) scoreVal += 20;
+      
+      // Crisis type keywords
+      const crisisKeywords = {
+        'CW': ['civil war', 'conflict', 'fighting', 'war', 'rebel', 'insurgent', 'violence'],
+        'CE': ['complex emergency', 'humanitarian crisis', 'collapse', 'crisis'],
+        'FN': ['famine', 'hunger', 'food insecurity', 'starvation', 'malnutrition', 'food secure'],
+        'DR': ['drought', 'water scarcity', 'water crisis', 'groundwater', 'irrigation'],
+        'EP': ['outbreak', 'epidemic', 'disease', 'cholera', 'health crisis', 'medical'],
+        'REF': ['refugee', 'displaced', 'displacement', 'flee', 'migration', 'internally displaced'],
+        'ECON': ['economy', 'poverty', 'unemployment', 'inflation', 'economic collapse']
+      };
+      
+      if (crisisTypes && Array.isArray(crisisTypes)) {
+        for (const type of crisisTypes) {
+          const keywords = crisisKeywords[type] || [];
+          for (const kw of keywords) {
+            if (lowerSent.includes(kw)) {
+              scoreVal += 12;
+              break;
+            }
+          }
+        }
+      }
+      
+      // General crisis indicators
+      const crisisIndicators = ['crisis', 'emergency', 'catastrophic', 'severe', 'critical', 'collapse', 'devastating'];
+      for (const ind of crisisIndicators) {
+        if (lowerSent.includes(ind)) scoreVal += 5;
+      }
+      
+      // Numbers (specificity)
+      if (/\d+/.test(sentence)) scoreVal += 8;
+      if (/\d+(\.\d+)?%/.test(sentence)) scoreVal += 10;
+      if (/million|billion/.test(lowerSent)) scoreVal += 10;
+      
+      // Length preference (substantive sentences)
+      if (sentence.length > 80 && sentence.length < 400) scoreVal += 3;
+      if (sentence.length < 40) scoreVal -= 5;
+      
+      // Penalize obvious non-content sentences
+      if (lowerSent.startsWith('the ') && sentence.length < 60) scoreVal -= 3;
+      
+      return scoreVal;
+    }
+    
+    // Select the most relevant 2-3 sentences from a paragraph
+    function selectMostRelevantSentences(paragraph, countryName, crisisTypes, score) {
+      if (!paragraph) return [];
+      
+      const sentences = splitIntoSentences(paragraph);
+      if (sentences.length === 0) return [];
+      
+      const scoredSentences = sentences.map(sent => ({
+        text: sent.trim(),
+        score: scoreSentence(sent, countryName, crisisTypes, score)
+      }));
+      
+      scoredSentences.sort((a, b) => b.score - a.score);
+      
+      // Take top 2-3 sentences that have meaningful scores
+      const topSentences = scoredSentences.filter(s => s.score > 5);
+      const selectedCount = Math.min(3, Math.max(2, topSentences.length));
+      
+      return topSentences.slice(0, selectedCount).map(s => s.text);
+    }
+    
+    // Format selected sentences as journalistic excerpt
+    function formatJournalisticExcerpt(sentences, articleTitle, articleUrl) {
+      if (!sentences.length) return null;
+      
+      let html = '<div style="margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(107, 200, 255, 0.05); border-left: 2px solid #6bc8ff; border-radius: 0 12px 12px 0;">';
+      html += '<div style="font-family: system-ui; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #6bc8ff; margin-bottom: 0.5rem;">CONTEXT · WIKIPEDIA</div>';
+      
+      for (const sent of sentences) {
+        html += `<div class="wiki-sentence">${escapeHtml(sent)}</div>`;
+      }
+      
+      html += `<div class="wiki-attribution" style="display: block; margin-top: 0.5rem;">— <a href="${articleUrl}" target="_blank" style="color:#80c0ff;">${articleTitle}</a> on Wikipedia</div>`;
+      html += '</div>';
+      
+      return html;
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. WIKIPEDIA SEARCH WITH TEMPORAL RELEVANCE
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    function extractYearFromText(text) {
+      if (!text) return null;
+      const yearMatch = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/);
+      if (yearMatch) return parseInt(yearMatch[1]);
+      return null;
+    }
+    
+    function isHistoricalConflict(title, extract) {
+      const lowerTitle = (title || '').toLowerCase();
+      const lowerExtract = (extract || '').toLowerCase();
+      
+      const colonialKeywords = [
+        'british', 'colonial', 'crown colony', 'protectorate', 'empire', 'imperial',
+        'ottoman', 'britain', 'french colonial', 'aden emergency', '1948 war',
+        '1967', 'six day war', 'yom kippur', 'suez'
+      ];
+      
+      for (const kw of colonialKeywords) {
+        if (lowerTitle.includes(kw) || lowerExtract.includes(kw)) return true;
+      }
+      
+      if (/18[0-9]{2}|19[0-8][0-9]|1990/.test(lowerTitle)) return true;
+      
+      return false;
+    }
+    
+    function isContemporaryCrisis(title, extract) {
+      const lowerExtract = (extract || '').toLowerCase();
+      const contemporaryKeywords = ['ongoing', 'current', 'present day', 'since 2014', 'recent years'];
+      for (const kw of contemporaryKeywords) {
+        if (lowerExtract.includes(kw)) return true;
+      }
+      
+      const recentYears = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+      for (const year of recentYears) {
+        if (lowerExtract.includes(year.toString())) return true;
+      }
+      return false;
+    }
+    
+    function calculateRecencyScore(title, extract) {
+      let score = 0;
+      const years = [];
+      const yearMatches = (extract || '').match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
+      if (yearMatches) {
+        yearMatches.forEach(y => years.push(parseInt(y)));
+      }
+      
+      if (years.length > 0) {
+        const latestYear = Math.max(...years);
+        const currentYear = new Date().getFullYear();
+        if (latestYear >= currentYear - 3) score += 50;
+        else if (latestYear >= 2020) score += 30;
+        else if (latestYear >= 2010) score += 15;
+        else if (latestYear >= 2000) score += 5;
+        else if (latestYear < 1990) score -= 100;
+      }
+      
+      const lowerTitle = title.toLowerCase();
+      if (lowerTitle.includes('present') || lowerTitle.includes('ongoing')) score += 40;
+      if (lowerTitle.match(/20[1-2][0-9]/)) score += 25;
+      if (lowerTitle.includes('war')) score += 10;
+      
+      return score;
+    }
+    
+    async function searchWikipediaPage(query, countryName, score) {
+      let searchQuery = `${query} crisis`;
+      if (score >= 70) searchQuery = `${query} civil war crisis ongoing`;
+      
+      const url = `${WIKI_SEARCH}&srsearch=${encodeURIComponent(searchQuery)}&srlimit=10`;
+      
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
         if (!response.ok) return null;
+        
         const data = await response.json();
-        let extract = data.extract || '';
-        if (extract) {
-          const splitIndex = extract.indexOf('\n\n');
-          if (splitIndex > 0) extract = extract.substring(0, splitIndex);
+        const searchResults = data.query?.search || [];
+        if (!searchResults.length) return null;
+        
+        const candidates = [];
+        for (const result of searchResults.slice(0, 5)) {
+          const article = await fetchFullArticle(result.title);
+          if (article && article.extract) {
+            const recencyScore = calculateRecencyScore(result.title, article.extract);
+            const isHistorical = isHistoricalConflict(result.title, article.extract);
+            const isContemporary = isContemporaryCrisis(result.title, article.extract);
+            
+            let finalScore = recencyScore;
+            if (isContemporary) finalScore += 30;
+            if (isHistorical) finalScore -= 200;
+            
+            candidates.push({ title: result.title, extract: article.extract, score: finalScore });
+          }
         }
-        return {
-          extract: extract || null,
-          title: data.title || pageTitle,
-          url: data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodedTitle}`,
-          exists: !!extract
-        };
+        
+        if (!candidates.length) return searchResults[0]?.title || null;
+        candidates.sort((a, b) => b.score - a.score);
+        return candidates[0].title;
+        
       } catch (err) {
-        console.warn(err);
+        console.warn("Wikipedia search failed:", err);
         return null;
       }
     }
     
-    function getWikipediaTopic(countryName, crisisTypes, score) {
-      const name = countryName.toLowerCase();
-      if (name === 'yemen') return score >= 75 ? "Yemeni crisis" : "Yemen";
-      if (name === 'sudan') return score >= 70 ? "Sudanese civil war" : "Sudan";
-      if (name === 'somalia') return score >= 70 ? "Somali Civil War" : "Somalia";
-      if (name === 'palestine') return "Israeli–Palestinian conflict";
-      if (name === 'syria') return "Syrian Civil War";
-      if (name === 'ukraine') return "Russo-Ukrainian War";
-      if (name === 'afghanistan') return score >= 70 ? "Afghanistan conflict" : "Afghanistan";
-      if (name === 'south sudan') return "South Sudanese Civil War";
-      if (name === 'dr congo' || name === 'congo') return "Kivu conflict";
-      return countryName;
+    async function fetchFullArticle(title) {
+      const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
+      const url = `${WIKI_FULL_API}${encodedTitle}`;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) return null;
+        const data = await response.json();
+        const pages = data.query?.pages;
+        if (!pages) return null;
+        const pageId = Object.keys(pages)[0];
+        if (pageId === '-1') return null;
+        const page = pages[pageId];
+        return { title: page.title, extract: page.extract || '', pageId: pageId };
+      } catch (err) {
+        console.warn("Full article fetch failed:", err);
+        return null;
+      }
     }
     
-    async function fetchAndPrependWikipedia(countryName, crisisTypes, score, targetElementId) {
-      const topic = getWikipediaTopic(countryName, crisisTypes, score);
-      const article = await fetchWikipediaExtract(topic);
+    function scoreParagraphRelevance(paragraph, countryName, crisisTypes, score) {
+      const lowerPara = paragraph.toLowerCase();
+      let scoreVal = 0;
+      if (lowerPara.includes(countryName.toLowerCase())) scoreVal += 20;
+      
+      const historicalPhrases = ['aden emergency', 'british colonial', 'crown colony', 'protectorate', '1963', '1964', '1965', '1966', '1967', 'ottoman', 'empire'];
+      for (const phrase of historicalPhrases) {
+        if (lowerPara.includes(phrase)) { scoreVal -= 200; break; }
+      }
+      
+      const recentYears = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+      for (const year of recentYears) {
+        if (lowerPara.includes(year.toString())) { scoreVal += 30; break; }
+      }
+      
+      const contemporaryMarkers = ['ongoing', 'current', 'present day', 'since 2014'];
+      for (const marker of contemporaryMarkers) {
+        if (lowerPara.includes(marker)) { scoreVal += 25; break; }
+      }
+      
+      const crisisKeywords = {
+        'CW': ['civil war', 'conflict', 'fighting', 'war'], 'FN': ['famine', 'hunger', 'food insecurity', 'starvation'],
+        'DR': ['drought', 'water scarcity', 'groundwater'], 'REF': ['refugee', 'displaced', 'displacement']
+      };
+      if (crisisTypes && Array.isArray(crisisTypes)) {
+        for (const type of crisisTypes) {
+          const keywords = crisisKeywords[type] || [];
+          for (const kw of keywords) {
+            if (lowerPara.includes(kw)) { scoreVal += 15; break; }
+          }
+        }
+      }
+      
+      if (paragraph.length > 200) scoreVal += 5;
+      if (paragraph.length < 100) scoreVal -= 10;
+      return scoreVal;
+    }
+    
+    function findMostRelevantParagraph(extract, countryName, crisisTypes, score) {
+      if (!extract) return null;
+      let paragraphs = extract.split(/\n\s*\n/);
+      if (paragraphs.length === 1) paragraphs = extract.split(/\n/);
+      paragraphs = paragraphs.filter(p => p.trim().length > 80);
+      if (paragraphs.length === 0) return null;
+      
+      const scored = paragraphs.map(para => ({ text: para.trim(), score: scoreParagraphRelevance(para, countryName, crisisTypes, score) }));
+      scored.sort((a, b) => b.score - a.score);
+      return scored[0]?.text || paragraphs[0]?.trim() || null;
+    }
+    
+    async function getRelevantWikipediaContent(countryName, crisisTypes, score) {
+      const pageTitle = await searchWikipediaPage(countryName, countryName, score);
+      if (!pageTitle) return null;
+      const article = await fetchFullArticle(pageTitle);
+      if (!article || !article.extract) return null;
+      if (isHistoricalConflict(article.title, article.extract)) return null;
+      
+      const relevantParagraph = findMostRelevantParagraph(article.extract, countryName, crisisTypes, score);
+      if (!relevantParagraph) return null;
+      
+      const topSentences = selectMostRelevantSentences(relevantParagraph, countryName, crisisTypes, score);
+      if (!topSentences.length) return null;
+      
+      return {
+        sentences: topSentences,
+        title: article.title,
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title.replace(/ /g, '_'))}`
+      };
+    }
+    
+    async function fetchAndInjectWikipediaSentences(countryName, crisisTypes, score, targetElementId) {
       const container = document.getElementById(targetElementId);
       if (!container) return;
       
-      if (article && article.extract) {
-        // Prepend the Wikipedia paragraph as the very first paragraph after the lead
+      const wikiContent = await getRelevantWikipediaContent(countryName, crisisTypes, score);
+      
+      if (wikiContent && wikiContent.sentences.length) {
+        const excerptHtml = formatJournalisticExcerpt(wikiContent.sentences, wikiContent.title, wikiContent.url);
         const leadDiv = container.querySelector('.lead');
-        const wikiParagraph = document.createElement('p');
-        wikiParagraph.style.marginBottom = '1rem';
-        wikiParagraph.style.fontSize = '1rem';
-        wikiParagraph.style.lineHeight = '1.6';
-        wikiParagraph.style.color = '#d0e4ff';
-        wikiParagraph.innerHTML = `${escapeHtml(article.extract)} <span class="wiki-attribution">[Source: Wikipedia · <a href="${article.url}" target="_blank" style="color:#80c0ff;">${article.title}</a>]</span>`;
-        
         if (leadDiv) {
-          leadDiv.insertAdjacentElement('afterend', wikiParagraph);
-        } else {
-          container.insertBefore(wikiParagraph, container.firstChild);
+          leadDiv.insertAdjacentHTML('afterend', excerptHtml);
         }
-      } else {
-        // Silent fallback — no Wikipedia content, no error message
-        console.log(`No Wikipedia extract available for "${topic}"`);
       }
     }
     
@@ -263,9 +519,7 @@
     async function loadAnomalyData() {
       let stored = localStorage.getItem('gcin_top_anomaly');
       if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch(e) { console.warn("Invalid localStorage data"); }
+        try { return JSON.parse(stored); } catch(e) { console.warn("Invalid localStorage data"); }
       }
       const res = await fetch(`${API_BASE}?top=50`);
       const data = await res.json();
@@ -420,8 +674,7 @@
       
       document.getElementById('article-content').innerHTML = html;
       
-      // Inject Wikipedia paragraph as the FIRST paragraph after the lead (without separate box)
-      await fetchAndPrependWikipedia(country.name, country.crisis_types || [], country.score, 'article-content');
+      await fetchAndInjectWikipediaSentences(country.name, country.crisis_types || [], country.score, 'article-content');
     }
     
     renderArticle();
