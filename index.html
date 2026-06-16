@@ -243,6 +243,98 @@ function buildUrgencyNarrative(iso) {
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
 
+  // ── 0. FETCH WIKIPEDIA SENTENCES (FIRST SENTENCES OF NARRATIVE) ─────────
+  let wikipediaPrefix = '';
+  try {
+    // Use synchronous XMLHttpRequest to keep function signature unchanged
+    const searchQuery = `${name} crisis`;
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
+    const searchReq = new XMLHttpRequest();
+    searchReq.open('GET', searchUrl, false);
+    searchReq.send();
+    if (searchReq.status === 200) {
+      const searchData = JSON.parse(searchReq.responseText);
+      const results = searchData.query?.search || [];
+      if (results.length) {
+        const pageTitle = results[0].title;
+        const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+        const pageReq = new XMLHttpRequest();
+        pageReq.open('GET', pageUrl, false);
+        pageReq.send();
+        if (pageReq.status === 200) {
+          const pageData = JSON.parse(pageReq.responseText);
+          const pages = pageData.query?.pages;
+          if (pages) {
+            const pageId = Object.keys(pages)[0];
+            if (pageId !== '-1') {
+              const extract = pages[pageId].extract || '';
+              if (extract) {
+                // Intelligent sentence splitting
+                let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
+                if (sentences.length < 3) {
+                  sentences = extract.split(/\n/);
+                }
+                // Filter out very short or obviously non-substantive sentences
+                sentences = sentences.filter(s => s.trim().length > 50 && !s.toLowerCase().startsWith('the ') && !s.toLowerCase().startsWith('a '));
+                
+                // Score each sentence for relevance to this crisis
+                const scored = sentences.map(sent => {
+                  let score = 0;
+                  const lower = sent.toLowerCase();
+                  const lowerName = name.toLowerCase();
+                  
+                  // Country name (highest weight)
+                  if (lower.includes(lowerName)) score += 25;
+                  
+                  // Crisis type keywords based on country's crisis types
+                  const crisisKw = [];
+                  if (c.types) {
+                    if (c.types.includes('CW')) crisisKw.push('war', 'conflict', 'fighting', 'rebel', 'insurgent');
+                    if (c.types.includes('FN')) crisisKw.push('famine', 'hunger', 'starvation', 'food');
+                    if (c.types.includes('DR')) crisisKw.push('drought', 'water', 'dry');
+                    if (c.types.includes('REF')) crisisKw.push('refugee', 'displaced', 'displacement');
+                    if (c.types.includes('EP')) crisisKw.push('outbreak', 'disease', 'epidemic');
+                    if (c.types.includes('CE')) crisisKw.push('emergency', 'humanitarian', 'collapse');
+                  }
+                  for (const kw of crisisKw) {
+                    if (lower.includes(kw)) { score += 15; break; }
+                  }
+                  
+                  // General urgency indicators
+                  if (lower.includes('crisis')) score += 8;
+                  if (lower.includes('emergency')) score += 10;
+                  if (/covid|pandemic|outbreak/.test(lower)) score += 12;
+                  
+                  // Numbers (specificity)
+                  if (/\d+/.test(sent)) score += 5;
+                  if (/\d+(\.\d+)?%/.test(sent)) score += 8;
+                  if (/million|billion/.test(lower)) score += 10;
+                  
+                  // Length preference (substantive but not too long)
+                  if (sent.length > 80 && sent.length < 350) score += 5;
+                  if (sent.length > 400) score -= 5;
+                  if (sent.length < 60) score -= 10;
+                  
+                  return { text: sent.trim(), score };
+                });
+                
+                scored.sort((a, b) => b.score - a.score);
+                const topSentences = scored.filter(s => s.score > 10).slice(0, 3);
+                if (topSentences.length) {
+                  wikipediaPrefix = topSentences.map(s => s.text).join(' ');
+                  // Add Wikipedia attribution (subtle, journalistic)
+                  wikipediaPrefix += ` — ${pageTitle}`;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch(e) {
+    // Silent fail — proceed without Wikipedia content
+  }
+
   // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
   const rank = ranked.indexOf(iso) + 1;
   const totalCountries = ranked.length;
@@ -295,7 +387,6 @@ function buildUrgencyNarrative(iso) {
     );
   }
 
-  // ── IPC FOOD SECURITY — ACCURATE PHASE-SPECIFIC LANGUAGE ────────────────
   const ipc = (ipcClassifications || [])
     .find(i => i.country.toLowerCase().includes(nameLower));
   if (ipc && ipc.phase >= 3) {
@@ -304,7 +395,6 @@ function buildUrgencyNarrative(iso) {
     const isYemen = nameLower === 'yemen';
     const isSudan = nameLower === 'sudan';
     
-    // For Yemen and Sudan Phase 4, the population figure is total acute (Phase 3+4+5)
     if (isPhase4 && (isYemen || isSudan)) {
       liveSignals.push(
         `IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger (IPC Phase 3+)`
@@ -363,6 +453,11 @@ function buildUrgencyNarrative(iso) {
   // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
   const parts = [];
 
+  // ── SENTENCE 0 — WIKIPEDIA PREFIX (if available) ───────────────────────
+  if (wikipediaPrefix) {
+    parts.push(wikipediaPrefix);
+  }
+
   // Sentence 1 — score + rank
   parts.push(
     `${flag} ${name} ranks #${rank} globally with a ${severityLabel} ` +
@@ -402,7 +497,6 @@ function buildUrgencyNarrative(iso) {
 
   return parts.join(' ');
 }
-
 
 // ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
 function showTopUrgentStory() {
