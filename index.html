@@ -1663,49 +1663,50 @@ const API_ENDPOINTS = {
   emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
 
   // ── NATURAL EVENTS ──────────────────────────────────────────────────────
-  nasa: '/api/proxy?source=nasa', // Changed to proxy for potential 503 handling
-  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters', // ✅ 410 fix via proxy
-  reliefweb_reports: '/api/proxy?source=reliefweb_reports', // ✅ 410 fix via proxy
+  // NASA EONET — currently 503, removed
+  // ReliefWeb — v2 endpoints fixed
+  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters',
+  reliefweb_reports: '/api/proxy?source=reliefweb_reports',
   gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
 
   // ── FIRES ────────────────────────────────────────────────────────────────
-  firms: '/api/proxy?source=firms', // ✅ CORS fix
-  gfw: '/api/proxy?source=gfw', // Changed to proxy for 404 handling
+  // firms: removed (400 error)
+  // gfw: removed (400 error)
 
   // ── WEATHER ──────────────────────────────────────────────────────────────
-  noaa: 'https://api.weather.gov/alerts?status=actual&limit=20',
+  noaa: 'https://api.weather.gov/alerts?status=actual&limit=20', // ✅ Working
   openmeteo: null,
   openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
 
   // ── CONFLICT ─────────────────────────────────────────────────────────────
-  acled: '/api/proxy?source=acled', // ✅ CORS / DNS fix
-  gdelt: '/api/proxy?source=gdelt', // ✅ CORS fix
+  // acled: removed (500 error)
+  gdelt: '/api/proxy?source=gdelt',
 
   // ── HEALTH ───────────────────────────────────────────────────────────────
   who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
   who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
-  opendisease: '/api/proxy?source=opendisease', // ✅ DNS fix
+  // opendisease: removed (500 error)
 
   // ── FOOD SECURITY ──────────────────────────────────────────────────────
-  ipc_current: '/api/proxy?source=ipc', // ✅ CORS fix
-  ipc_population: '/api/proxy?source=ipc_populations', // ✅ CORS fix
-  fewsnet: '/api/proxy?source=fews', // ✅ CORS fix
-  wfp_vam: '/api/proxy?source=wfp', // ✅ CORS fix
-  fao_giews: '/api/proxy?source=fao', // ✅ CORS fix
+  // ipc_current: removed (404 error)
+  // ipc_population: removed (404 error)
+  // fewsnet: removed (404 error)
+  // wfp_vam: removed (404 error)
+  // fao_giews: removed (404 error)
 
   // ── ECONOMIC ─────────────────────────────────────────────────────────────
-  wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
-  wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
-  wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
-  wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
-  imf_gdp: '/api/proxy?source=imf_ngdp', // ✅ CORS fix
-  imf_inflation: '/api/proxy?source=imf_pcpi', // ✅ CORS fix
+  wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1', // ✅ Working
+  wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1', // ✅ Working
+  wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3', // ✅ Working
+  wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1', // ✅ Working
+  // imf_gdp: removed (403 error)
+  // imf_inflation: removed (403 error)
 
   // ── DISPLACEMENT ────────────────────────────────────────────────────────
-  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`, // ✅ Fixed URL via proxy
+  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`,
 
   // ── AIR QUALITY ─────────────────────────────────────────────────────────
-  openaq: '/api/proxy?source=openaq', // ✅ CORS fix
+  // openaq: removed (410 error)
 };
 
 // ============================================================================
