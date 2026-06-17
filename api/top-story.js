@@ -15,7 +15,7 @@
 //      → comparison payload (two or more countries, side-by-side diff)
 //
 //  GET /api/top-story?top=5
-//      → top N countries (max 20)
+//      → top N countries (max 50)
 //
 //  GET /api/top-story?q=somalia
 //      → fuzzy name search → resolves to ISO, returns that country
@@ -52,11 +52,11 @@
 const CFG = {
   SEED_INTERVAL_MS:  300_000,   // scores drift every 5 min (matches front-end)
   FETCH_TIMEOUT_MS:  7_000,
-  MAX_TOP_N:         20,
-  SPILLOVER_RATE:    0.13,      // how much avg neighbour score bleeds over
-  SPILLOVER_FLOOR:   50,        // only neighbours above this score cause pressure
-  PRIOR_JITTER:      4,         // ±pts of micro-variation per seed cycle
-  PRIOR_CAP:         85,        // priors are capped; live data pushes above
+  MAX_TOP_N:         50,
+  SPILLOVER_RATE:    0.13,
+  SPILLOVER_FLOOR:   50,
+  PRIOR_JITTER:      4,
+  PRIOR_CAP:         85,
 };
 
 const CORS = {
@@ -86,9 +86,6 @@ const ARC = {
 };
 
 // ─── DIMENSION WEIGHTS ───────────────────────────────────────────────────────
-// Weights encode humanitarian prioritisation doctrine.
-// Conflict + displacement dominate because they drive all other crises downstream.
-// Sum = 1.0 exactly.
 
 const DIMS = [
   { k: "conflict",     l: "Conflict",      w: 0.28 },
@@ -102,159 +99,651 @@ const DIMS = [
 ];
 
 // ─── COUNTRY TABLE ───────────────────────────────────────────────────────────
-// `prior` = informed baseline score BEFORE live data is applied.
-//    Source: OCHA, ACAPS, ReliefWeb country pages (mid-2024 baseline).
-//    This is a prior, not a measurement. Live data adjusts it — see applyLiveAdjustments().
-// `adj`   = ISO codes of geographic neighbours (for spillover calculation)
-// `cent`  = [lon, lat] centroid for weather API calls
-// `region`= continent/region for ?region= filtering
+// All countries from the GCIS Fusion front-end, with matching priors,
+// crisis types, adjacency lists, centroids, and region tags.
 
 const COUNTRIES = {
-  // ── CATASTROPHIC TIER (prior 60+) ────────────────────────────────────────
-  SOM: { name:"Somalia",              flag:"🇸🇴", prior:72, region:"africa",
-         types:["CE","CW","DR","FN","REF","HEAT"],
-         adj:["ETH","KEN","DJI"],                                           cent:[45.3,  5.2] },
-  SSD: { name:"South Sudan",          flag:"🇸🇸", prior:70, region:"africa",
-         types:["CE","CW","FL","FN","REF"],
-         adj:["SDN","ETH","UGA","KEN","COD"],                               cent:[31.3,  6.9] },
-  SDN: { name:"Sudan",                flag:"🇸🇩", prior:68, region:"africa",
-         types:["CE","CW","DR","FL","REF"],
-         adj:["EGY","ETH","SSD","LBY","TCD"],                              cent:[29.9, 12.9] },
-  YEM: { name:"Yemen",                flag:"🇾🇪", prior:68, region:"middleeast",
-         types:["CE","CW","FN","DR","REF"],
-         adj:["SAU","OMN"],                                                 cent:[47.6, 15.6] },
-  AFG: { name:"Afghanistan",          flag:"🇦🇫", prior:67, region:"asia",
-         types:["CE","CW","DR","FN","REF"],
-         adj:["PAK","IRN","TJK","UZB"],                                    cent:[67.7, 33.9] },
-  SYR: { name:"Syria",                flag:"🇸🇾", prior:66, region:"middleeast",
-         types:["CE","CW","REF","EP","HEAT"],
-         adj:["LBN","JOR","TUR","IRQ","ISR"],                              cent:[38.3, 34.8] },
+
+  // ══ MIDDLE EAST / LEVANT ═══════════════════════════════════════════════════
   PSE: { name:"Palestine",            flag:"🇵🇸", prior:65, region:"middleeast",
          types:["CE","CW","REF","HEAT"],
          adj:["LBN","JOR","ISR"],                                           cent:[35.3, 31.9] },
-  MLI: { name:"Mali",                 flag:"🇲🇱", prior:62, region:"africa",
-         types:["CE","CW","DR","FN","REF","HEAT"],
-         adj:["DZA","NER","BFA","SEN","CIV"],                              cent:[-2.0, 17.6] },
-  BFA: { name:"Burkina Faso",         flag:"🇧🇫", prior:60, region:"africa",
-         types:["CE","CW","DR","EP","REF","HEAT"],
-         adj:["MLI","NER","GHA","CIV","BEN"],                              cent:[-1.7, 12.4] },
-  COD: { name:"DR Congo",             flag:"🇨🇩", prior:59, region:"africa",
-         types:["CE","CW","EP","FL","REF"],
-         adj:["SDN","SSD","CAF","UGA","RWA","BDI","TZA","ZMB","COG"],     cent:[23.7, -2.9] },
-
-  // ── HIGH TIER (prior 48–59) ───────────────────────────────────────────────
-  HTI: { name:"Haiti",                flag:"🇭🇹", prior:58, region:"americas",
-         types:["CE","EQ","EP","ST","REF"],
-         adj:["DOM"],                                                        cent:[-72.3,18.9] },
-  ETH: { name:"Ethiopia",             flag:"🇪🇹", prior:57, region:"africa",
-         types:["CE","CW","DR","FN","REF"],
-         adj:["SDN","SSD","SOM","ERI","DJI","KEN"],                        cent:[40.5,  9.1] },
-  NER: { name:"Niger",                flag:"🇳🇪", prior:56, region:"africa",
-         types:["DR","FN","CE","HEAT","FL"],
-         adj:["DZA","TCD","NGA","MLI","BFA"],                              cent:[ 8.1, 17.6] },
-  TCD: { name:"Chad",                 flag:"🇹🇩", prior:55, region:"africa",
-         types:["CE","CW","DR","REF","HEAT"],
-         adj:["LBY","SDN","CAF","CMR","NGA","NER"],                        cent:[18.7, 15.5] },
-  CAF: { name:"Central African Rep.", flag:"🇨🇫", prior:54, region:"africa",
-         types:["CE","CW","EP","FL","REF"],
-         adj:["CMR","TCD","COD","SDN","SSD"],                              cent:[20.9,  6.6] },
-  MMR: { name:"Myanmar",              flag:"🇲🇲", prior:53, region:"asia",
-         types:["CE","CW","FL","REF","EP"],
-         adj:["BGD","IND","THA","CHN","LAO"],                              cent:[95.9, 21.9] },
-  UKR: { name:"Ukraine",              flag:"🇺🇦", prior:52, region:"europe",
-         types:["CE","CW","REF","HEAT"],
-         adj:["RUS","POL","HUN","ROU","SVK","BLR"],                        cent:[31.2, 49.0] },
-  NGA: { name:"Nigeria",              flag:"🇳🇬", prior:51, region:"africa",
-         types:["CE","CW","FL","EP","REF"],
-         adj:["CMR","NER","BEN","TCD"],                                    cent:[ 8.7,  9.1] },
-
-  // ── ELEVATED TIER (prior 35–50) ───────────────────────────────────────────
-  PAK: { name:"Pakistan",             flag:"🇵🇰", prior:48, region:"asia",
-         types:["FL","EQ","DR","REF","HEAT","LS"],
-         adj:["AFG","IRN","IND","CHN"],                                    cent:[69.3, 30.4] },
-  LBN: { name:"Lebanon",              flag:"🇱🇧", prior:47, region:"middleeast",
-         types:["CE","REF","EP","HEAT"],
-         adj:["SYR","ISR"],                                                 cent:[35.5, 33.9] },
+  SYR: { name:"Syria",                flag:"🇸🇾", prior:66, region:"middleeast",
+         types:["CE","CW","REF","EP","HEAT"],
+         adj:["LBN","JOR","TUR","IRQ","ISR"],                              cent:[38.3, 34.8] },
+  YEM: { name:"Yemen",                flag:"🇾🇪", prior:68, region:"middleeast",
+         types:["CE","CW","FN","DR","REF"],
+         adj:["SAU","OMN"],                                                 cent:[47.6, 15.6] },
   IRQ: { name:"Iraq",                 flag:"🇮🇶", prior:46, region:"middleeast",
          types:["CE","CW","REF","HEAT"],
          adj:["SYR","IRN","SAU","TUR","JOR","KWT"],                        cent:[43.7, 33.2] },
-  VEN: { name:"Venezuela",            flag:"🇻🇪", prior:44, region:"americas",
-         types:["CE","REF","DR","HEAT"],
-         adj:["COL","BRA","GUY"],                                           cent:[-66.6, 8.0] },
-  ISR: { name:"Israel",               flag:"🇮🇱", prior:44, region:"middleeast",
-         types:["CW","WF","HEAT"],
-         adj:["LBN","SYR","JOR","PSE"],                                    cent:[34.9, 31.5] },
-  COL: { name:"Colombia",             flag:"🇨🇴", prior:43, region:"americas",
-         types:["CE","CW","FL","REF","LS"],
-         adj:["VEN","PER","ECU","PAN","BRA"],                              cent:[-74.3, 4.6] },
-  BGD: { name:"Bangladesh",           flag:"🇧🇩", prior:42, region:"asia",
-         types:["FL","TC","REF","EP","LS","HEAT"],
-         adj:["MMR","IND"],                                                 cent:[90.4, 23.7] },
-  KEN: { name:"Kenya",                flag:"🇰🇪", prior:40, region:"africa",
-         types:["DR","FL","EP","REF","HEAT"],
-         adj:["ETH","SOM","UGA","TZA","SSD"],                              cent:[37.9,  0.0] },
-  IDN: { name:"Indonesia",            flag:"🇮🇩", prior:40, region:"asia",
-         types:["EQ","TSU","VLC","FL","LS","TC"],
-         adj:[],                                                             cent:[106.8,-6.2] },
-  PHL: { name:"Philippines",          flag:"🇵🇭", prior:39, region:"asia",
-         types:["TC","FL","EQ","VLC","TSU","LS"],
-         adj:[],                                                             cent:[121.8,12.9] },
   IRN: { name:"Iran",                 flag:"🇮🇷", prior:38, region:"middleeast",
          types:["EQ","DR","REF","HEAT","LS"],
          adj:["AFG","PAK","IRQ","TUR","AZE","TKM"],                        cent:[53.7, 32.4] },
-  MOZ: { name:"Mozambique",           flag:"🇲🇿", prior:34, region:"africa",
-         types:["TC","FL","HEAT"],
-         adj:["TZA","MWI","ZMB","ZWE","ZAF","SWZ"],                       cent:[35.5,-18.7] },
+  LBN: { name:"Lebanon",              flag:"🇱🇧", prior:47, region:"middleeast",
+         types:["CE","REF","EP","HEAT"],
+         adj:["SYR","ISR"],                                                 cent:[35.5, 33.9] },
+  JOR: { name:"Jordan",               flag:"🇯🇴", prior:28, region:"middleeast",
+         types:["REF","DR","HEAT"],
+         adj:["PSE","SYR","IRQ","SAU","ISR"],                              cent:[36.2, 31.2] },
+  ISR: { name:"Israel",               flag:"🇮🇱", prior:44, region:"middleeast",
+         types:["CW","WF","HEAT"],
+         adj:["LBN","SYR","JOR","PSE"],                                    cent:[34.9, 31.5] },
+  SAU: { name:"Saudi Arabia",         flag:"🇸🇦", prior:22, region:"middleeast",
+         types:["DR","ST","HEAT","REF"],
+         adj:["YEM","JOR","IRQ","KWT","QAT","ARE","OMN"],                  cent:[44.5, 24.7] },
+  KWT: { name:"Kuwait",               flag:"🇰🇼", prior:18, region:"middleeast",
+         types:["DR","HEAT","ST"],
+         adj:["IRQ","SAU"],                                                 cent:[47.5, 29.3] },
+  OMN: { name:"Oman",                 flag:"🇴🇲", prior:15, region:"middleeast",
+         types:["TC","DR","HEAT","ST"],
+         adj:["SAU","ARE","YEM"],                                           cent:[57.6, 21.5] },
+  ARE: { name:"United Arab Emirates", flag:"🇦🇪", prior:14, region:"middleeast",
+         types:["DR","HEAT","ST"],
+         adj:["SAU","OMN","QAT"],                                           cent:[53.8, 23.4] },
+  QAT: { name:"Qatar",                flag:"🇶🇦", prior:12, region:"middleeast",
+         types:["DR","HEAT"],
+         adj:["SAU","ARE"],                                                 cent:[51.2, 25.4] },
+  BHR: { name:"Bahrain",              flag:"🇧🇭", prior:22, region:"middleeast",
+         types:["DR","HEAT"],
+         adj:["SAU"],                                                        cent:[50.6, 26.0] },
+  CYP: { name:"Cyprus",               flag:"🇨🇾", prior:19, region:"middleeast",
+         types:["DR","WF","HEAT"],
+         adj:[],                                                              cent:[33.1, 35.1] },
 
-  // ── MODERATE / LOW TIER (prior < 35) ─────────────────────────────────────
+  // ══ CENTRAL ASIA ══════════════════════════════════════════════════════════
+  AFG: { name:"Afghanistan",          flag:"🇦🇫", prior:67, region:"asia",
+         types:["CE","CW","DR","FN","REF"],
+         adj:["PAK","IRN","TJK","UZB","TKM"],                              cent:[67.7, 33.9] },
+  PAK: { name:"Pakistan",             flag:"🇵🇰", prior:48, region:"asia",
+         types:["FL","EQ","DR","REF","HEAT","LS"],
+         adj:["AFG","IRN","IND","CHN"],                                    cent:[69.3, 30.4] },
+  TJK: { name:"Tajikistan",           flag:"🇹🇯", prior:42, region:"asia",
+         types:["EQ","FL","LS","DR","HEAT"],
+         adj:["UZB","KGZ","CHN","AFG"],                                    cent:[71.3, 38.8] },
+  UZB: { name:"Uzbekistan",           flag:"🇺🇿", prior:32, region:"asia",
+         types:["DR","HEAT","FL","EQ"],
+         adj:["KAZ","KGZ","TJK","AFG","TKM"],                             cent:[63.1, 41.4] },
+  TKM: { name:"Turkmenistan",         flag:"🇹🇲", prior:38, region:"asia",
+         types:["DR","HEAT","FL"],
+         adj:["KAZ","UZB","AFG","IRN"],                                    cent:[59.6, 40.5] },
+  KGZ: { name:"Kyrgyzstan",           flag:"🇰🇬", prior:34, region:"asia",
+         types:["EQ","FL","LS","DR","HEAT"],
+         adj:["KAZ","CHN","TJK","UZB"],                                    cent:[74.6, 41.2] },
+  KAZ: { name:"Kazakhstan",           flag:"🇰🇿", prior:22, region:"asia",
+         types:["FL","DR","WF","HEAT"],
+         adj:["RUS","CHN","KGZ","UZB","TKM"],                             cent:[66.9, 48.0] },
+  MNG: { name:"Mongolia",             flag:"🇲🇳", prior:18, region:"asia",
+         types:["DR","ST","HEAT","FL"],
+         adj:["RUS","CHN"],                                                 cent:[103.8,46.9] },
+
+  // ══ SOUTH ASIA ════════════════════════════════════════════════════════════
   IND: { name:"India",                flag:"🇮🇳", prior:35, region:"asia",
          types:["FL","TC","DR","EQ","HEAT","LS"],
          adj:["PAK","BGD","CHN","NPL","MMR","BTN"],                        cent:[78.0, 20.6] },
+  BGD: { name:"Bangladesh",           flag:"🇧🇩", prior:42, region:"asia",
+         types:["FL","TC","REF","EP","LS","HEAT"],
+         adj:["MMR","IND"],                                                 cent:[90.4, 23.7] },
+  NPL: { name:"Nepal",                flag:"🇳🇵", prior:38, region:"asia",
+         types:["EQ","LS","FL","HEAT"],
+         adj:["IND","CHN"],                                                 cent:[84.2, 28.4] },
+  LKA: { name:"Sri Lanka",            flag:"🇱🇰", prior:34, region:"asia",
+         types:["FL","TC","DR","EP","HEAT"],
+         adj:["IND"],                                                        cent:[80.7,  7.9] },
+  BTN: { name:"Bhutan",               flag:"🇧🇹", prior:14, region:"asia",
+         types:["FL","LS","EQ","HEAT"],
+         adj:["IND","CHN"],                                                 cent:[90.4, 27.5] },
+  MDV: { name:"Maldives",             flag:"🇲🇻", prior:12, region:"asia",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[73.2,  3.2] },
+
+  // ══ EAST / SOUTHEAST ASIA ════════════════════════════════════════════════
   CHN: { name:"China",                flag:"🇨🇳", prior:32, region:"asia",
          types:["FL","EQ","TC","LS","TSU","HEAT"],
          adj:["IND","RUS","KAZ","VNM","PRK","MNG","NPL","MMR"],            cent:[104.2,35.9] },
-  BRA: { name:"Brazil",               flag:"🇧🇷", prior:30, region:"americas",
-         types:["FL","WF","DR","EP","LS","HEAT"],
-         adj:["VEN","COL","PER","BOL","ARG","GUY"],                        cent:[-52.0,-10.0]},
-  EGY: { name:"Egypt",                flag:"🇪🇬", prior:28, region:"africa",
-         types:["DR","REF","HEAT"],
-         adj:["LBY","SDN","ISR","PSE"],                                    cent:[30.8, 26.8] },
-  JPN: { name:"Japan",                flag:"🇯🇵", prior:26, region:"asia",
+  JPN: { name:"Japan",                flag:"🇯🇵", prior:46, region:"asia",
          types:["EQ","TSU","TC","VLC","FL","HEAT"],
-         adj:[],                                                             cent:[138.3,36.2] },
-  TUR: { name:"Turkey",               flag:"🇹🇷", prior:25, region:"europe",
-         types:["EQ","FL","REF","HEAT"],
-         adj:["SYR","IRQ","IRN","ARM","GEO","BGR","GRC"],                  cent:[35.2, 38.9] },
-  RUS: { name:"Russia",               flag:"🇷🇺", prior:24, region:"europe",
-         types:["WF","FL","CW","ST","HEAT"],
-         adj:["UKR","CHN","KAZ"],                                           cent:[97.7, 56.8] },
-  ZAF: { name:"South Africa",         flag:"🇿🇦", prior:18, region:"africa",
+         adj:[],                                                              cent:[138.3,36.2] },
+  KOR: { name:"South Korea",          flag:"🇰🇷", prior:22, region:"asia",
+         types:["ST","FL","HEAT","EQ"],
+         adj:["PRK"],                                                         cent:[127.8,36.5] },
+  PRK: { name:"North Korea",          flag:"🇰🇵", prior:52, region:"asia",
+         types:["DR","FL","HEAT","ST"],
+         adj:["CHN","RUS","KOR"],                                            cent:[127.5,40.3] },
+  TWN: { name:"Taiwan",               flag:"🇹🇼", prior:24, region:"asia",
+         types:["TC","EQ","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[120.9,23.7] },
+  HKG: { name:"Hong Kong",            flag:"🇭🇰", prior:12, region:"asia",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[114.2,22.3] },
+  MAC: { name:"Macau",                flag:"🇲🇴", prior:10, region:"asia",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[113.5,22.2] },
+  MMR: { name:"Myanmar",              flag:"🇲🇲", prior:53, region:"asia",
+         types:["CE","CW","FL","REF","EP"],
+         adj:["BGD","IND","THA","CHN","LAO"],                              cent:[95.9, 21.9] },
+  THA: { name:"Thailand",             flag:"🇹🇭", prior:29, region:"asia",
+         types:["FL","DR","HEAT","EP"],
+         adj:["MMR","LAO","KHM","MYS"],                                    cent:[101.0,15.9] },
+  VNM: { name:"Vietnam",              flag:"🇻🇳", prior:26, region:"asia",
+         types:["FL","TC","DR","LS","HEAT","EP"],
+         adj:["CHN","LAO","KHM"],                                           cent:[108.3,14.1] },
+  LAO: { name:"Laos",                 flag:"🇱🇦", prior:28, region:"asia",
+         types:["FL","DR","LS","HEAT"],
+         adj:["CHN","VNM","KHM","THA","MMR"],                             cent:[102.5,17.9] },
+  KHM: { name:"Cambodia",             flag:"🇰🇭", prior:32, region:"asia",
+         types:["FL","DR","HEAT","EP"],
+         adj:["THA","LAO","VNM"],                                           cent:[104.9,12.6] },
+  MYS: { name:"Malaysia",             flag:"🇲🇾", prior:18, region:"asia",
+         types:["FL","LS","HEAT","EP"],
+         adj:["THA","IDN","BRN"],                                           cent:[109.7, 3.8] },
+  SGP: { name:"Singapore",            flag:"🇸🇬", prior:9,  region:"asia",
+         types:["HEAT","FL"],
+         adj:[],                                                              cent:[103.8, 1.4] },
+  IDN: { name:"Indonesia",            flag:"🇮🇩", prior:50, region:"asia",
+         types:["EQ","TSU","VLC","FL","LS","TC","HEAT"],
+         adj:[],                                                              cent:[106.8,-6.2] },
+  PHL: { name:"Philippines",          flag:"🇵🇭", prior:48, region:"asia",
+         types:["TC","FL","EQ","VLC","TSU","LS","HEAT"],
+         adj:[],                                                              cent:[121.8,12.9] },
+  TLS: { name:"Timor-Leste",          flag:"🇹🇱", prior:38, region:"asia",
+         types:["FL","DR","EP","HEAT"],
+         adj:[],                                                              cent:[125.7,-8.9] },
+  BRN: { name:"Brunei",               flag:"🇧🇳", prior:10, region:"asia",
+         types:["FL","HEAT"],
+         adj:["MYS"],                                                         cent:[114.7, 4.5] },
+  ARM: { name:"Armenia",              flag:"🇦🇲", prior:38, region:"asia",
+         types:["EQ","DR","CW","HEAT"],
+         adj:["TUR","GEO","AZE","IRN"],                                    cent:[44.9, 40.1] },
+  AZE: { name:"Azerbaijan",           flag:"🇦🇿", prior:32, region:"asia",
+         types:["EQ","FL","CW","HEAT"],
+         adj:["RUS","GEO","ARM","IRN","TUR"],                              cent:[47.6, 40.1] },
+  GEO: { name:"Georgia",              flag:"🇬🇪", prior:30, region:"asia",
+         types:["EQ","FL","LS","CW","HEAT"],
+         adj:["RUS","TUR","ARM","AZE"],                                    cent:[43.4, 42.3] },
+
+  // ══ AFRICA — HORN / EAST ══════════════════════════════════════════════════
+  SOM: { name:"Somalia",              flag:"🇸🇴", prior:72, region:"africa",
+         types:["CE","CW","DR","FN","REF","HEAT"],
+         adj:["ETH","KEN","DJI"],                                           cent:[45.3,  5.2] },
+  ETH: { name:"Ethiopia",             flag:"🇪🇹", prior:57, region:"africa",
+         types:["CE","CW","DR","FN","REF"],
+         adj:["SDN","SSD","SOM","ERI","DJI","KEN"],                        cent:[40.5,  9.1] },
+  SSD: { name:"South Sudan",          flag:"🇸🇸", prior:70, region:"africa",
+         types:["CE","CW","FL","FN","REF"],
+         adj:["SDN","ETH","UGA","KEN","COD","CAF"],                        cent:[31.3,  6.9] },
+  SDN: { name:"Sudan",                flag:"🇸🇩", prior:68, region:"africa",
+         types:["CE","CW","DR","FL","REF"],
+         adj:["EGY","ETH","SSD","LBY","TCD","ERI","CAF"],                 cent:[29.9, 12.9] },
+  ERI: { name:"Eritrea",              flag:"🇪🇷", prior:48, region:"africa",
+         types:["CE","DR","REF","HEAT"],
+         adj:["ETH","SDN","DJI"],                                           cent:[39.5, 15.2] },
+  DJI: { name:"Djibouti",             flag:"🇩🇯", prior:38, region:"africa",
+         types:["DR","HEAT","REF","FL"],
+         adj:["ERI","ETH","SOM"],                                           cent:[42.6, 11.8] },
+  KEN: { name:"Kenya",                flag:"🇰🇪", prior:32, region:"africa",
+         types:["DR","FL","EP","REF","HEAT"],
+         adj:["ETH","SOM","UGA","TZA","SSD"],                              cent:[37.9,  0.0] },
+  UGA: { name:"Uganda",               flag:"🇺🇬", prior:38, region:"africa",
+         types:["FL","EP","REF","LS"],
+         adj:["KEN","TZA","RWA","BDI","COD","SSD"],                        cent:[32.3,  1.4] },
+  TZA: { name:"Tanzania",             flag:"🇹🇿", prior:32, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["KEN","UGA","RWA","BDI","MOZ","ZMB","MWI","COD"],           cent:[34.9, -6.4] },
+  RWA: { name:"Rwanda",               flag:"🇷🇼", prior:32, region:"africa",
+         types:["FL","LS","EP","REF"],
+         adj:["BDI","COD","UGA","TZA"],                                    cent:[29.9, -1.9] },
+  BDI: { name:"Burundi",              flag:"🇧🇮", prior:52, region:"africa",
+         types:["CE","CW","EP","FL","REF"],
+         adj:["RWA","COD","TZA"],                                           cent:[29.9, -3.4] },
+  MDG: { name:"Madagascar",           flag:"🇲🇬", prior:44, region:"africa",
+         types:["TC","FL","DR","EP","HEAT"],
+         adj:[],                                                              cent:[46.9,-20.3] },
+  COM: { name:"Comoros",              flag:"🇰🇲", prior:30, region:"africa",
+         types:["TC","FL","EP","HEAT"],
+         adj:[],                                                              cent:[43.9,-11.6] },
+  MUS: { name:"Mauritius",            flag:"🇲🇺", prior:12, region:"africa",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[57.6,-20.3] },
+  SYC: { name:"Seychelles",           flag:"🇸🇨", prior:10, region:"africa",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[55.5, -4.6] },
+  MOZ: { name:"Mozambique",           flag:"🇲🇿", prior:34, region:"africa",
+         types:["TC","FL","HEAT"],
+         adj:["TZA","MWI","ZMB","ZWE","ZAF","SWZ"],                       cent:[35.5,-18.7] },
+  MWI: { name:"Malawi",               flag:"🇲🇼", prior:40, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["TZA","MOZ","ZMB"],                                           cent:[34.3,-13.3] },
+  ZMB: { name:"Zambia",               flag:"🇿🇲", prior:36, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["COD","TZA","MWI","MOZ","ZWE","BWA","NAM","AGO"],           cent:[27.8,-13.1] },
+  ZWE: { name:"Zimbabwe",             flag:"🇿🇼", prior:46, region:"africa",
+         types:["DR","FL","EP","HEAT"],
+         adj:["MOZ","ZMB","BWA","ZAF"],                                    cent:[29.9,-19.0] },
+  AGO: { name:"Angola",               flag:"🇦🇴", prior:36, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["COD","ZMB","NAM"],                                           cent:[17.9,-11.2] },
+  BWA: { name:"Botswana",             flag:"🇧🇼", prior:16, region:"africa",
+         types:["DR","HEAT","FL"],
+         adj:["ZAF","ZMB","NAM","ZWE"],                                    cent:[24.7,-22.3] },
+  NAM: { name:"Namibia",              flag:"🇳🇦", prior:18, region:"africa",
+         types:["DR","HEAT","FL"],
+         adj:["ZAF","BWA","ZMB","AGO"],                                    cent:[18.5,-22.0] },
+  ZAF: { name:"South Africa",         flag:"🇿🇦", prior:28, region:"africa",
          types:["DR","FL","EP","HEAT"],
          adj:["MOZ","ZWE","BWA","NAM","LSO","SWZ"],                        cent:[25.1,-29.0] },
-  USA: { name:"United States",        flag:"🇺🇸", prior:15, region:"americas",
+  LSO: { name:"Lesotho",              flag:"🇱🇸", prior:28, region:"africa",
+         types:["DR","FL","HEAT"],
+         adj:["ZAF"],                                                         cent:[28.2,-29.6] },
+  SWZ: { name:"Eswatini",             flag:"🇸🇿", prior:26, region:"africa",
+         types:["DR","FL","EP","HEAT"],
+         adj:["ZAF","MOZ"],                                                  cent:[31.5,-26.5] },
+
+  // ══ AFRICA — WEST ═════════════════════════════════════════════════════════
+  NGA: { name:"Nigeria",              flag:"🇳🇬", prior:51, region:"africa",
+         types:["CE","CW","FL","EP","REF"],
+         adj:["CMR","NER","BEN","TCD"],                                    cent:[ 8.7,  9.1] },
+  NER: { name:"Niger",                flag:"🇳🇪", prior:56, region:"africa",
+         types:["DR","FN","CE","HEAT","FL"],
+         adj:["DZA","TCD","NGA","MLI","BFA"],                              cent:[ 8.1, 17.6] },
+  MLI: { name:"Mali",                 flag:"🇲🇱", prior:62, region:"africa",
+         types:["CE","CW","DR","FN","REF","HEAT"],
+         adj:["DZA","NER","BFA","SEN","CIV","GIN","MRT"],                 cent:[-2.0, 17.6] },
+  BFA: { name:"Burkina Faso",         flag:"🇧🇫", prior:60, region:"africa",
+         types:["CE","CW","DR","EP","REF","HEAT"],
+         adj:["MLI","NER","GHA","CIV","BEN","TGO"],                       cent:[-1.7, 12.4] },
+  MRT: { name:"Mauritania",           flag:"🇲🇷", prior:42, region:"africa",
+         types:["DR","FN","HEAT","FL"],
+         adj:["DZA","MAR","MLI","SEN"],                                    cent:[-10.9,20.3] },
+  SEN: { name:"Senegal",              flag:"🇸🇳", prior:28, region:"africa",
+         types:["DR","FL","EP","HEAT"],
+         adj:["MRT","MLI","GIN","GNB","GMB"],                             cent:[-14.5,14.5] },
+  GMB: { name:"Gambia",               flag:"🇬🇲", prior:28, region:"africa",
+         types:["DR","HEAT","FL"],
+         adj:["SEN"],                                                         cent:[-15.3,13.4] },
+  GNB: { name:"Guinea-Bissau",        flag:"🇬🇼", prior:42, region:"africa",
+         types:["FL","EP","DR","HEAT"],
+         adj:["SEN","GIN"],                                                 cent:[-15.2,12.0] },
+  GIN: { name:"Guinea",               flag:"🇬🇳", prior:42, region:"africa",
+         types:["FL","EP","LS","HEAT"],
+         adj:["GNB","SEN","MLI","CIV","LBR","SLE"],                       cent:[-11.8,11.0] },
+  SLE: { name:"Sierra Leone",         flag:"🇸🇱", prior:40, region:"africa",
+         types:["FL","EP","LS","HEAT"],
+         adj:["GIN","LBR"],                                                 cent:[-11.8, 8.6] },
+  LBR: { name:"Liberia",              flag:"🇱🇷", prior:40, region:"africa",
+         types:["FL","EP","CE","HEAT"],
+         adj:["SLE","GIN","CIV"],                                           cent:[-9.5,  6.4] },
+  CIV: { name:"Côte d'Ivoire",        flag:"🇨🇮", prior:42, region:"africa",
+         types:["FL","EP","CE","HEAT"],
+         adj:["LBR","GIN","MLI","BFA","GHA"],                             cent:[-5.5,  7.5] },
+  GHA: { name:"Ghana",                flag:"🇬🇭", prior:26, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["CIV","BFA","TGO"],                                           cent:[-1.0,  7.9] },
+  TGO: { name:"Togo",                 flag:"🇹🇬", prior:34, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["GHA","BFA","BEN"],                                           cent:[ 1.2,  8.6] },
+  BEN: { name:"Benin",                flag:"🇧🇯", prior:34, region:"africa",
+         types:["FL","DR","EP","HEAT"],
+         adj:["TGO","NGA","BFA","NER"],                                    cent:[ 2.3,  9.3] },
+  CPV: { name:"Cape Verde",           flag:"🇨🇻", prior:12, region:"africa",
+         types:["DR","HEAT","ST"],
+         adj:[],                                                              cent:[-24.0,16.0] },
+
+  // ══ AFRICA — CENTRAL ══════════════════════════════════════════════════════
+  COD: { name:"DR Congo",             flag:"🇨🇩", prior:59, region:"africa",
+         types:["CE","CW","EP","FL","REF"],
+         adj:["SDN","SSD","CAF","UGA","RWA","BDI","TZA","ZMB","COG","AGO"],cent:[23.7,-2.9] },
+  CAF: { name:"Central African Rep.", flag:"🇨🇫", prior:54, region:"africa",
+         types:["CE","CW","EP","FL","REF"],
+         adj:["CMR","TCD","COD","SDN","SSD","COG"],                        cent:[20.9,  6.6] },
+  TCD: { name:"Chad",                 flag:"🇹🇩", prior:55, region:"africa",
+         types:["CE","CW","DR","REF","HEAT"],
+         adj:["LBY","SDN","CAF","CMR","NGA","NER"],                        cent:[18.7, 15.5] },
+  CMR: { name:"Cameroon",             flag:"🇨🇲", prior:46, region:"africa",
+         types:["CE","CW","FL","EP","REF"],
+         adj:["NGA","TCD","CAF","COG","GNQ","GAB"],                        cent:[12.3,  5.7] },
+  COG: { name:"Republic of Congo",    flag:"🇨🇬", prior:36, region:"africa",
+         types:["FL","EP","CE","HEAT"],
+         adj:["COD","GAB","CMR","CAF"],                                    cent:[15.2, -0.2] },
+  GAB: { name:"Gabon",                flag:"🇬🇦", prior:22, region:"africa",
+         types:["FL","EP","HEAT"],
+         adj:["CMR","COG","GNQ"],                                           cent:[11.6, -0.8] },
+  GNQ: { name:"Equatorial Guinea",    flag:"🇬🇶", prior:26, region:"africa",
+         types:["FL","EP","HEAT"],
+         adj:["CMR","GAB"],                                                  cent:[10.3,  1.7] },
+  STP: { name:"São Tomé and Príncipe",flag:"🇸🇹", prior:14, region:"africa",
+         types:["FL","EP","HEAT"],
+         adj:[],                                                              cent:[ 6.6,  0.2] },
+
+  // ══ AFRICA — NORTH ════════════════════════════════════════════════════════
+  EGY: { name:"Egypt",                flag:"🇪🇬", prior:34, region:"africa",
+         types:["DR","REF","HEAT"],
+         adj:["LBY","SDN","ISR","PSE"],                                    cent:[30.8, 26.8] },
+  LBY: { name:"Libya",                flag:"🇱🇾", prior:54, region:"africa",
+         types:["CE","CW","REF","HEAT"],
+         adj:["TUN","DZA","NER","SDN","EGY","TCD"],                        cent:[17.2, 26.3] },
+  DZA: { name:"Algeria",              flag:"🇩🇿", prior:28, region:"africa",
+         types:["DR","WF","HEAT","EP"],
+         adj:["MAR","TUN","LBY","NER","MLI","MRT"],                        cent:[ 2.6, 28.0] },
+  MAR: { name:"Morocco",              flag:"🇲🇦", prior:24, region:"africa",
+         types:["EQ","DR","HEAT","FL"],
+         adj:["DZA","MRT"],                                                  cent:[-7.1, 31.8] },
+  TUN: { name:"Tunisia",              flag:"🇹🇳", prior:30, region:"africa",
+         types:["DR","HEAT","FL"],
+         adj:["DZA","LBY"],                                                  cent:[ 9.5, 33.9] },
+
+  // ══ EUROPE ════════════════════════════════════════════════════════════════
+  UKR: { name:"Ukraine",              flag:"🇺🇦", prior:52, region:"europe",
+         types:["CE","CW","REF","HEAT"],
+         adj:["RUS","POL","HUN","ROU","SVK","BLR","MDA"],                  cent:[31.2, 49.0] },
+  RUS: { name:"Russia",               flag:"🇷🇺", prior:34, region:"europe",
+         types:["WF","FL","CW","ST","HEAT"],
+         adj:["UKR","CHN","KAZ","BLR","FIN","NOR","EST","LVA","LTU","POL"],cent:[97.7,56.8] },
+  TUR: { name:"Turkey",               flag:"🇹🇷", prior:42, region:"europe",
+         types:["EQ","FL","REF","CW","LS","HEAT"],
+         adj:["SYR","IRQ","IRN","ARM","GEO","AZE","BGR","GRC"],            cent:[35.2, 38.9] },
+  GRC: { name:"Greece",               flag:"🇬🇷", prior:36, region:"europe",
+         types:["EQ","VLC","WF","FL","HEAT","REF"],
+         adj:["BGR","MKD","ALB","TUR"],                                    cent:[21.8, 39.1] },
+  ITA: { name:"Italy",                flag:"🇮🇹", prior:32, region:"europe",
+         types:["EQ","VLC","WF","FL","TSU","HEAT"],
+         adj:["FRA","CHE","AUT","SVN"],                                    cent:[12.6, 42.5] },
+  ESP: { name:"Spain",                flag:"🇪🇸", prior:20, region:"europe",
+         types:["WF","DR","ST","HEAT"],
+         adj:["PRT","FRA","AND"],                                           cent:[-3.7, 40.5] },
+  PRT: { name:"Portugal",             flag:"🇵🇹", prior:16, region:"europe",
+         types:["WF","FL","HEAT"],
+         adj:["ESP"],                                                         cent:[-8.2, 39.6] },
+  FRA: { name:"France",               flag:"🇫🇷", prior:18, region:"europe",
+         types:["WF","ST","HEAT"],
+         adj:["ESP","ITA","CHE","BEL","LUX","DEU","AND","MCO"],            cent:[ 2.2, 46.2] },
+  DEU: { name:"Germany",              flag:"🇩🇪", prior:15, region:"europe",
+         types:["FL","ST","HEAT"],
+         adj:["FRA","CHE","AUT","CZE","POL","NLD","BEL","LUX","DNK"],     cent:[10.0, 51.2] },
+  GBR: { name:"United Kingdom",       flag:"🇬🇧", prior:16, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:[],                                                              cent:[-3.4, 55.4] },
+  IRL: { name:"Ireland",              flag:"🇮🇪", prior:12, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:[],                                                              cent:[-8.2, 53.2] },
+  NLD: { name:"Netherlands",          flag:"🇳🇱", prior:10, region:"europe",
+         types:["FL","ST","HEAT"],
+         adj:["DEU","BEL"],                                                  cent:[ 5.3, 52.1] },
+  BEL: { name:"Belgium",              flag:"🇧🇪", prior:9,  region:"europe",
+         types:["FL","ST","HEAT"],
+         adj:["FRA","NLD","DEU","LUX"],                                    cent:[ 4.5, 50.5] },
+  CHE: { name:"Switzerland",          flag:"🇨🇭", prior:8,  region:"europe",
+         types:["FL","LS","ST","HEAT"],
+         adj:["DEU","FRA","ITA","AUT","LIE"],                              cent:[ 8.2, 46.8] },
+  AUT: { name:"Austria",              flag:"🇦🇹", prior:9,  region:"europe",
+         types:["FL","LS","ST","HEAT"],
+         adj:["DEU","CHE","ITA","SVN","HUN","SVK","CZE"],                  cent:[13.2, 47.6] },
+  POL: { name:"Poland",               flag:"🇵🇱", prior:16, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["DEU","CZE","SVK","UKR","BLR","RUS","LTU"],                  cent:[19.1, 51.9] },
+  CZE: { name:"Czechia",              flag:"🇨🇿", prior:12, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["DEU","AUT","SVK","POL"],                                    cent:[15.5, 49.8] },
+  SVK: { name:"Slovakia",             flag:"🇸🇰", prior:12, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["CZE","POL","UKR","HUN","AUT"],                              cent:[19.5, 48.7] },
+  HUN: { name:"Hungary",              flag:"🇭🇺", prior:15, region:"europe",
+         types:["FL","ST","HEAT","WF"],
+         adj:["AUT","SVK","UKR","ROU","SRB","HRV","SVN"],                  cent:[19.5, 47.2] },
+  SWE: { name:"Sweden",               flag:"🇸🇪", prior:12, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["NOR","FIN","DNK"],                                           cent:[15.5, 60.1] },
+  NOR: { name:"Norway",               flag:"🇳🇴", prior:11, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["SWE","FIN","RUS"],                                           cent:[10.5, 59.9] },
+  FIN: { name:"Finland",              flag:"🇫🇮", prior:10, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["SWE","NOR","RUS"],                                           cent:[26.1, 62.0] },
+  DNK: { name:"Denmark",              flag:"🇩🇰", prior:9,  region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:["DEU","SWE"],                                                  cent:[ 9.6, 55.7] },
+  ISL: { name:"Iceland",              flag:"🇮🇸", prior:14, region:"europe",
+         types:["VLC","FL","ST","HEAT"],
+         adj:[],                                                              cent:[-18.5,64.9] },
+  BLR: { name:"Belarus",              flag:"🇧🇾", prior:42, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["RUS","UKR","POL","LTU","LVA"],                              cent:[28.0, 53.5] },
+  MDA: { name:"Moldova",              flag:"🇲🇩", prior:34, region:"europe",
+         types:["FL","DR","HEAT"],
+         adj:["ROU","UKR"],                                                  cent:[28.4, 47.0] },
+  ROU: { name:"Romania",              flag:"🇷🇴", prior:24, region:"europe",
+         types:["EQ","FL","DR","HEAT"],
+         adj:["UKR","MDA","BGR","SRB","HUN"],                              cent:[24.9, 45.9] },
+  BGR: { name:"Bulgaria",             flag:"🇧🇬", prior:20, region:"europe",
+         types:["FL","WF","ST","HEAT"],
+         adj:["ROU","SRB","MKD","GRC","TUR"],                              cent:[25.5, 42.7] },
+  SRB: { name:"Serbia",               flag:"🇷🇸", prior:24, region:"europe",
+         types:["FL","ST","WF","HEAT"],
+         adj:["HUN","ROU","BGR","MKD","MNE","BIH","HRV","XKX"],           cent:[21.0, 44.0] },
+  HRV: { name:"Croatia",              flag:"🇭🇷", prior:16, region:"europe",
+         types:["EQ","FL","ST","HEAT"],
+         adj:["SVN","HUN","SRB","BIH","MNE"],                              cent:[15.2, 45.1] },
+  BIH: { name:"Bosnia and Herzegovina",flag:"🇧🇦", prior:30, region:"europe",
+         types:["FL","LS","ST","HEAT"],
+         adj:["HRV","SRB","MNE"],                                           cent:[17.7, 44.2] },
+  MNE: { name:"Montenegro",           flag:"🇲🇪", prior:20, region:"europe",
+         types:["EQ","FL","WF","HEAT"],
+         adj:["HRV","BIH","SRB","ALB","XKX"],                             cent:[19.3, 42.8] },
+  ALB: { name:"Albania",              flag:"🇦🇱", prior:28, region:"europe",
+         types:["EQ","FL","LS","HEAT"],
+         adj:["MNE","SRB","MKD","GRC","XKX"],                             cent:[20.2, 41.2] },
+  MKD: { name:"North Macedonia",      flag:"🇲🇰", prior:26, region:"europe",
+         types:["EQ","FL","WF","HEAT"],
+         adj:["SRB","BGR","GRC","ALB","XKX"],                             cent:[21.7, 41.6] },
+  XKX: { name:"Kosovo",               flag:"🇽🇰", prior:34, region:"europe",
+         types:["FL","ST","HEAT"],
+         adj:["SRB","MKD","ALB","MNE"],                                    cent:[20.9, 42.6] },
+  SVN: { name:"Slovenia",             flag:"🇸🇮", prior:10, region:"europe",
+         types:["EQ","FL","LS","HEAT"],
+         adj:["ITA","AUT","HUN","HRV"],                                    cent:[14.8, 46.1] },
+  EST: { name:"Estonia",              flag:"🇪🇪", prior:12, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:["RUS","LVA"],                                                  cent:[25.0, 58.6] },
+  LVA: { name:"Latvia",               flag:"🇱🇻", prior:12, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:["RUS","EST","BLR","LTU"],                                    cent:[24.9, 56.9] },
+  LTU: { name:"Lithuania",            flag:"🇱🇹", prior:12, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:["RUS","LVA","BLR","POL"],                                    cent:[23.9, 55.9] },
+  LUX: { name:"Luxembourg",           flag:"🇱🇺", prior:6,  region:"europe",
+         types:["FL","ST","HEAT"],
+         adj:["FRA","DEU","BEL"],                                           cent:[ 6.1, 49.8] },
+  LIE: { name:"Liechtenstein",        flag:"🇱🇮", prior:6,  region:"europe",
+         types:["FL","LS","HEAT"],
+         adj:["CHE","AUT"],                                                  cent:[ 9.5, 47.2] },
+  MLT: { name:"Malta",                flag:"🇲🇹", prior:10, region:"europe",
+         types:["DR","HEAT","ST"],
+         adj:[],                                                              cent:[14.4, 35.9] },
+  AND: { name:"Andorra",              flag:"🇦🇩", prior:6,  region:"europe",
+         types:["LS","HEAT"],
+         adj:["ESP","FRA"],                                                  cent:[ 1.6, 42.5] },
+  SMR: { name:"San Marino",           flag:"🇸🇲", prior:6,  region:"europe",
+         types:["HEAT","FL"],
+         adj:["ITA"],                                                         cent:[12.4, 43.9] },
+  GRL: { name:"Greenland",            flag:"🇬🇱", prior:10, region:"europe",
+         types:["ST","FL","HEAT"],
+         adj:[],                                                              cent:[-42.0,72.0] },
+
+  // ══ AMERICAS — NORTH ══════════════════════════════════════════════════════
+  USA: { name:"United States",        flag:"🇺🇸", prior:18, region:"americas",
          types:["WF","ST","EQ","TC","TSU","HEAT"],
          adj:["CAN","MEX"],                                                  cent:[-95.7,37.1] },
+  CAN: { name:"Canada",               flag:"🇨🇦", prior:12, region:"americas",
+         types:["WF","FL","ST","HEAT"],
+         adj:["USA"],                                                         cent:[-96.0,55.0] },
+  MEX: { name:"Mexico",               flag:"🇲🇽", prior:36, region:"americas",
+         types:["EQ","ST","VLC","FL","TSU","HEAT"],
+         adj:["USA","GTM","BLZ"],                                           cent:[-102.5,23.0]},
+
+  // ══ AMERICAS — CENTRAL ════════════════════════════════════════════════════
+  GTM: { name:"Guatemala",            flag:"🇬🇹", prior:46, region:"americas",
+         types:["EQ","FL","LS","ST","DR","HEAT"],
+         adj:["MEX","BLZ","HND","SLV"],                                    cent:[-90.2,15.8] },
+  BLZ: { name:"Belize",               flag:"🇧🇿", prior:28, region:"americas",
+         types:["TC","FL","ST","HEAT"],
+         adj:["MEX","GTM"],                                                  cent:[-88.5,17.2] },
+  HND: { name:"Honduras",             flag:"🇭🇳", prior:48, region:"americas",
+         types:["ST","FL","DR","LS","HEAT"],
+         adj:["GTM","SLV","NIC"],                                           cent:[-86.6,15.0] },
+  SLV: { name:"El Salvador",          flag:"🇸🇻", prior:44, region:"americas",
+         types:["EQ","FL","DR","ST","HEAT"],
+         adj:["GTM","HND"],                                                  cent:[-88.9,13.8] },
+  NIC: { name:"Nicaragua",            flag:"🇳🇮", prior:38, region:"americas",
+         types:["ST","FL","DR","EQ","HEAT"],
+         adj:["HND","CRI"],                                                  cent:[-85.0,12.9] },
+  CRI: { name:"Costa Rica",           flag:"🇨🇷", prior:16, region:"americas",
+         types:["EQ","FL","LS","TC","HEAT"],
+         adj:["NIC","PAN"],                                                  cent:[-84.0, 9.9] },
+  PAN: { name:"Panama",               flag:"🇵🇦", prior:24, region:"americas",
+         types:["FL","LS","ST","HEAT"],
+         adj:["CRI","COL"],                                                  cent:[-80.0, 8.6] },
+
+  // ══ AMERICAS — CARIBBEAN ══════════════════════════════════════════════════
+  HTI: { name:"Haiti",                flag:"🇭🇹", prior:58, region:"americas",
+         types:["CE","EQ","EP","ST","REF"],
+         adj:["DOM"],                                                         cent:[-72.3,18.9] },
+  DOM: { name:"Dominican Republic",   flag:"🇩🇴", prior:34, region:"americas",
+         types:["TC","FL","EQ","ST","HEAT"],
+         adj:["HTI"],                                                         cent:[-70.2,18.7] },
+  CUB: { name:"Cuba",                 flag:"🇨🇺", prior:38, region:"americas",
+         types:["TC","FL","ST","HEAT"],
+         adj:["HTI"],                                                         cent:[-79.5,21.5] },
+  JAM: { name:"Jamaica",              flag:"🇯🇲", prior:32, region:"americas",
+         types:["TC","FL","ST","HEAT"],
+         adj:[],                                                              cent:[-77.3,18.1] },
+  ATG: { name:"Antigua and Barbuda",  flag:"🇦🇬", prior:12, region:"americas",
+         types:["TC","ST","HEAT"],
+         adj:[],                                                              cent:[-61.8,17.1] },
+  BHS: { name:"Bahamas",              flag:"🇧🇸", prior:16, region:"americas",
+         types:["TC","ST","FL","HEAT"],
+         adj:[],                                                              cent:[-77.4,25.0] },
+  BRB: { name:"Barbados",             flag:"🇧🇧", prior:10, region:"americas",
+         types:["TC","ST","HEAT"],
+         adj:[],                                                              cent:[-59.6,13.2] },
+  DMA: { name:"Dominica",             flag:"🇩🇲", prior:16, region:"americas",
+         types:["TC","VLC","ST","HEAT"],
+         adj:[],                                                              cent:[-61.4,15.4] },
+  GRD: { name:"Grenada",              flag:"🇬🇩", prior:12, region:"americas",
+         types:["TC","ST","HEAT"],
+         adj:[],                                                              cent:[-61.7,12.1] },
+  KNA: { name:"Saint Kitts and Nevis",flag:"🇰🇳", prior:10, region:"americas",
+         types:["TC","VLC","ST","HEAT"],
+         adj:[],                                                              cent:[-62.7,17.3] },
+  LCA: { name:"Saint Lucia",          flag:"🇱🇨", prior:12, region:"americas",
+         types:["TC","VLC","ST","HEAT"],
+         adj:[],                                                              cent:[-60.9,13.9] },
+  VCT: { name:"Saint Vincent and the Grenadines",flag:"🇻🇨", prior:14, region:"americas",
+         types:["TC","VLC","FL","HEAT"],
+         adj:[],                                                              cent:[-61.2,13.3] },
+  TTO: { name:"Trinidad and Tobago",  flag:"🇹🇹", prior:26, region:"americas",
+         types:["FL","ST","HEAT"],
+         adj:[],                                                              cent:[-61.2,10.7] },
+
+  // ══ AMERICAS — SOUTH ══════════════════════════════════════════════════════
+  COL: { name:"Colombia",             flag:"🇨🇴", prior:43, region:"americas",
+         types:["CE","CW","FL","REF","LS"],
+         adj:["VEN","PER","ECU","PAN","BRA"],                              cent:[-74.3, 4.6] },
+  VEN: { name:"Venezuela",            flag:"🇻🇪", prior:44, region:"americas",
+         types:["CE","REF","DR","HEAT"],
+         adj:["COL","BRA","GUY"],                                           cent:[-66.6, 8.0] },
+  BRA: { name:"Brazil",               flag:"🇧🇷", prior:40, region:"americas",
+         types:["FL","WF","DR","EP","LS","HEAT"],
+         adj:["VEN","COL","PER","BOL","ARG","GUY","SUR","PRY","URY"],      cent:[-52.0,-10.0]},
+  ARG: { name:"Argentina",            flag:"🇦🇷", prior:28, region:"americas",
+         types:["FL","DR","ST","HEAT"],
+         adj:["CHL","BOL","PRY","BRA","URY"],                              cent:[-64.0,-34.0]},
+  CHL: { name:"Chile",                flag:"🇨🇱", prior:46, region:"americas",
+         types:["EQ","VLC","TSU","WF","HEAT"],
+         adj:["PER","BOL","ARG"],                                           cent:[-71.5,-35.7]},
+  PER: { name:"Peru",                 flag:"🇵🇪", prior:36, region:"americas",
+         types:["EQ","FL","LS","VLC","TSU","HEAT"],
+         adj:["ECU","COL","BRA","BOL","CHL"],                              cent:[-76.0,-10.0]},
+  ECU: { name:"Ecuador",              flag:"🇪🇨", prior:36, region:"americas",
+         types:["EQ","VLC","FL","TSU","HEAT"],
+         adj:["COL","PER"],                                                  cent:[-77.8, -1.8]},
+  BOL: { name:"Bolivia",              flag:"🇧🇴", prior:36, region:"americas",
+         types:["FL","DR","LS","HEAT"],
+         adj:["PER","BRA","PRY","ARG","CHL"],                              cent:[-64.9,-16.3]},
+  PRY: { name:"Paraguay",             flag:"🇵🇾", prior:30, region:"americas",
+         types:["FL","DR","HEAT"],
+         adj:["BOL","BRA","ARG"],                                           cent:[-58.4,-23.4]},
+  URY: { name:"Uruguay",              flag:"🇺🇾", prior:14, region:"americas",
+         types:["FL","DR","ST","HEAT"],
+         adj:["BRA","ARG"],                                                  cent:[-56.0,-33.0]},
+  GUY: { name:"Guyana",               flag:"🇬🇾", prior:28, region:"americas",
+         types:["FL","ST","HEAT"],
+         adj:["VEN","BRA","SUR"],                                           cent:[-59.0, 4.9] },
+  SUR: { name:"Suriname",             flag:"🇸🇷", prior:24, region:"americas",
+         types:["FL","ST","HEAT"],
+         adj:["GUY","BRA"],                                                  cent:[-56.0, 4.0] },
+
+  // ══ OCEANIA ═══════════════════════════════════════════════════════════════
+  AUS: { name:"Australia",            flag:"🇦🇺", prior:22, region:"oceania",
+         types:["WF","FL","TC","DR","HEAT"],
+         adj:[],                                                              cent:[134.5,-25.0]},
+  NZL: { name:"New Zealand",          flag:"🇳🇿", prior:40, region:"oceania",
+         types:["EQ","TSU","VLC","FL","HEAT"],
+         adj:[],                                                              cent:[172.5,-41.3]},
+  PNG: { name:"Papua New Guinea",     flag:"🇵🇬", prior:44, region:"oceania",
+         types:["EQ","TSU","VLC","FL","HEAT"],
+         adj:[],                                                              cent:[143.9, -6.3]},
+  FJI: { name:"Fiji",                 flag:"🇫🇯", prior:34, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[178.1,-17.7]},
+  SLB: { name:"Solomon Islands",      flag:"🇸🇧", prior:40, region:"oceania",
+         types:["EQ","TSU","TC","HEAT"],
+         adj:[],                                                              cent:[160.2, -9.0]},
+  VUT: { name:"Vanuatu",              flag:"🇻🇺", prior:28, region:"oceania",
+         types:["TC","EQ","TSU","VLC","FL","HEAT"],
+         adj:[],                                                              cent:[166.6,-15.4]},
+  TON: { name:"Tonga",                flag:"🇹🇴", prior:22, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[-175.2,-21.2]},
+  WSM: { name:"Samoa",                flag:"🇼🇸", prior:20, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[-172.1,-13.8]},
+  KIR: { name:"Kiribati",             flag:"🇰🇮", prior:32, region:"oceania",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[-157.4, 1.9]},
+  FSM: { name:"Micronesia",           flag:"🇫🇲", prior:24, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[158.2, 6.9]},
+  MHL: { name:"Marshall Islands",     flag:"🇲🇭", prior:28, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[171.2, 7.1]},
+  PLW: { name:"Palau",                flag:"🇵🇼", prior:16, region:"oceania",
+         types:["TC","TSU","FL","HEAT"],
+         adj:[],                                                              cent:[134.5, 7.5]},
+  NRU: { name:"Nauru",                flag:"🇳🇷", prior:18, region:"oceania",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[166.9, -0.5]},
+  TUV: { name:"Tuvalu",               flag:"🇹🇻", prior:30, region:"oceania",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[179.2, -8.5]},
+  COK: { name:"Cook Islands",         flag:"🇨🇰", prior:16, region:"oceania",
+         types:["TC","FL","HEAT"],
+         adj:[],                                                              cent:[-159.8,-21.2]},
+  ESH: { name:"Western Sahara",       flag:"🇪🇭", prior:28, region:"africa",
+         types:["DR","HEAT","CE"],
+         adj:["MAR","DZA","MRT"],                                           cent:[-13.0,24.2] },
 };
 
 // ─── CURATED FALLBACK DATA ────────────────────────────────────────────────────
-// Used when live APIs are unavailable. Clearly labelled in responses.
-// Sources: OCHA, IPC Global, UNHCR, WHO DONs (Q1 2025).
 
 const FALLBACK = {
-  // ACCURATE PHASE-SPECIFIC POPULATIONS
-  // Phase 4 (Emergency) — populations in Phase 4 alone, NOT Phase 3+4+5 aggregate
-  // Phase 3 (Crisis) — populations in Phase 3 alone
   ipc: [
-    // Phase 4 (Emergency)
     { country:"Somalia",              phase:4, population:3800000 },
     { country:"South Sudan",          phase:4, population:7100000 },
-    { country:"Sudan",                phase:4, population:4500000 },   // Phase 4 only
-    { country:"Yemen",                phase:4, population:1800000 },   // ✅ FIXED: Phase 4 only, not 17M
+    { country:"Sudan",                phase:4, population:4500000 },
+    { country:"Yemen",                phase:4, population:1800000 },
     { country:"Palestine",            phase:4, population:2200000 },
-    
-    // Phase 3 (Crisis)
-    { country:"Yemen",                phase:3, population:15200000 },  // Phase 3 only
-    { country:"Sudan",                phase:3, population:13300000 },  // Phase 3 only
+    { country:"Yemen",                phase:3, population:15200000 },
+    { country:"Sudan",                phase:3, population:13300000 },
     { country:"Afghanistan",          phase:3, population:15400000 },
     { country:"Syria",                phase:3, population:12400000 },
     { country:"Mali",                 phase:3, population:1200000 },
@@ -267,23 +756,31 @@ const FALLBACK = {
     { country:"Myanmar",              phase:3, population:3200000 },
     { country:"Nigeria",              phase:3, population:25000000 },
     { country:"Haiti",                phase:3, population:4500000 },
-    
-    // Phase 2 (Stressed)
     { country:"Kenya",                phase:2, population:4200000 },
     { country:"Pakistan",             phase:2, population:8000000 },
+    { country:"Libya",                phase:2, population:800000 },
+    { country:"Venezuela",            phase:2, population:5000000 },
+    { country:"Colombia",             phase:2, population:3000000 },
+    { country:"Mozambique",           phase:2, population:2100000 },
+    { country:"Zimbabwe",             phase:2, population:3800000 },
   ],
 
   who: [
-    { country:"DR Congo",   disease:"mpox",        cases:20000, deaths:500, severity:"critical" },
-    { country:"DR Congo",   disease:"Ebola",       cases:15,    deaths:8,   severity:"critical" },
-    { country:"Haiti",      disease:"cholera",     cases:50000, deaths:800, severity:"high"     },
-    { country:"Somalia",    disease:"cholera",     cases:5000,  deaths:80,  severity:"high"     },
-    { country:"Nigeria",    disease:"Lassa fever", cases:1000,  deaths:150, severity:"high"     },
-    { country:"Sudan",      disease:"dengue",      cases:3000,  deaths:50,  severity:"medium"   },
-    { country:"Ethiopia",   disease:"measles",     cases:8000,  deaths:100, severity:"medium"   },
-    { country:"Myanmar",    disease:"malaria",     cases:150000,deaths:500, severity:"medium"   },
-    { country:"Burkina Faso",disease:"dengue",     cases:2000,  deaths:30,  severity:"medium"   },
-    { country:"Pakistan",   disease:"polio",       cases:10,    deaths:0,   severity:"low"      },
+    { country:"DR Congo",       disease:"mpox",        cases:20000,  deaths:500, severity:"critical" },
+    { country:"DR Congo",       disease:"Ebola",       cases:15,     deaths:8,   severity:"critical" },
+    { country:"Haiti",          disease:"cholera",     cases:50000,  deaths:800, severity:"high"     },
+    { country:"Somalia",        disease:"cholera",     cases:5000,   deaths:80,  severity:"high"     },
+    { country:"Nigeria",        disease:"Lassa fever", cases:1000,   deaths:150, severity:"high"     },
+    { country:"Sudan",          disease:"dengue",      cases:3000,   deaths:50,  severity:"medium"   },
+    { country:"Ethiopia",       disease:"measles",     cases:8000,   deaths:100, severity:"medium"   },
+    { country:"Myanmar",        disease:"malaria",     cases:150000, deaths:500, severity:"medium"   },
+    { country:"Burkina Faso",   disease:"dengue",      cases:2000,   deaths:30,  severity:"medium"   },
+    { country:"Pakistan",       disease:"polio",       cases:10,     deaths:0,   severity:"low"      },
+    { country:"Yemen",          disease:"cholera",     cases:12000,  deaths:220, severity:"high"     },
+    { country:"South Sudan",    disease:"cholera",     cases:8000,   deaths:130, severity:"high"     },
+    { country:"Central African Rep.", disease:"measles",cases:3000,  deaths:40,  severity:"medium"   },
+    { country:"Cameroon",       disease:"polio",       cases:20,     deaths:1,   severity:"low"      },
+    { country:"Uganda",         disease:"Ebola",       cases:8,      deaths:4,   severity:"critical" },
   ],
 
   unhcr: {
@@ -308,45 +805,54 @@ const FALLBACK = {
     "Colombia":             { refugees:100000,   idps:4900000, asylum_seekers:30000  },
     "Iraq":                 { refugees:300000,   idps:1200000, asylum_seekers:40000  },
     "Lebanon":              { refugees:1500000,  idps:300000,  asylum_seekers:20000  },
+    "Libya":                { refugees:200000,   idps:100000,  asylum_seekers:50000  },
+    "Venezuela":            { refugees:100000,   idps:100000,  asylum_seekers:50000  },
+    "Pakistan":             { refugees:1400000,  idps:500000,  asylum_seekers:50000  },
+    "Bangladesh":           { refugees:900000,   idps:50000,   asylum_seekers:10000  },
+    "Iran":                 { refugees:800000,   idps:0,       asylum_seekers:20000  },
+    "Turkey":               { refugees:3500000,  idps:0,       asylum_seekers:100000 },
+    "Jordan":               { refugees:700000,   idps:0,       asylum_seekers:50000  },
+    "Uganda":               { refugees:1500000,  idps:50000,   asylum_seekers:30000  },
+    "Kenya":                { refugees:500000,   idps:100000,  asylum_seekers:30000  },
+    "Mozambique":           { refugees:50000,    idps:700000,  asylum_seekers:10000  },
+    "Cameroon":             { refugees:400000,   idps:500000,  asylum_seekers:20000  },
+    "North Korea":          { refugees:0,        idps:100000,  asylum_seekers:0      },
+    "Myanmar":              { refugees:1300000,  idps:1500000, asylum_seekers:50000  },
   },
 };
 
 // ─── REGION ALIASES ──────────────────────────────────────────────────────────
-// Maps query strings to region keys used in COUNTRIES table
 
 const REGION_ALIASES = {
   africa:     ["africa"],
   asia:       ["asia"],
   europe:     ["europe"],
   middleeast: ["middleeast","middle east","mena"],
-  americas:   ["americas","latin america","latam"],
+  americas:   ["americas","latin america","latam","caribbean"],
+  oceania:    ["oceania","pacific"],
 };
 
 // ─── MATH UTILITIES ──────────────────────────────────────────────────────────
 
-// LCG — always returns [0, 1), no sign bug
 function lcg(seed) {
   return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000;
 }
 
-// Stable string → u32 hash
 function strHash(str) {
   return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0;
 }
 
 const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
 
-// Weighted composite of all 8 dimensions → single score
 function composite(dims) {
   return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
 }
 
-// CUSUM change-point detector
 function cusum(arr) {
   if (arr.length < 6) return { det: false, z: 0 };
   const base = arr.slice(0, -3);
-  const mu  = base.reduce((a, b) => a + b, 0) / base.length;
-  const std = Math.sqrt(base.reduce((s, v) => s + (v - mu) ** 2, 0) / base.length) || 1;
+  const mu   = base.reduce((a, b) => a + b, 0) / base.length;
+  const std  = Math.sqrt(base.reduce((s, v) => s + (v - mu) ** 2, 0) / base.length) || 1;
   let sP = 0, sN = 0;
   arr.forEach(x => {
     sP = Math.max(0, sP + (x - mu) - 0.5 * std);
@@ -358,7 +864,6 @@ function cusum(arr) {
   };
 }
 
-// Least-squares trend + 7-day forecast
 function trendForecast(hist, current) {
   if (hist.length < 5) return { fc: current, trend: "stable", esc: false, slope: 0 };
   const w    = hist.slice(-10);
@@ -377,8 +882,6 @@ function trendForecast(hist, current) {
   };
 }
 
-// Deterministic 28-day history (mean-reverting walk toward current score)
-// This is a plausible backstory, not real historical data — clearly labelled as such.
 function seedHistory(iso, current) {
   const seed = strHash(iso);
   let v = clamp(current + Math.round((lcg(seed) - 0.5) * 20), 5, 99);
@@ -392,8 +895,6 @@ function seedHistory(iso, current) {
 }
 
 // ─── PRIOR DIMENSION BUILDER ─────────────────────────────────────────────────
-// Converts base score + crisis type list → 8 dimension values.
-// These are PRIORS. Live data adjustments happen separately in applyLiveAdjustments().
 
 function buildPriorDims(base, types) {
   const has = t => types.includes(t);
@@ -411,14 +912,11 @@ function buildPriorDims(base, types) {
 }
 
 // ─── LIVE ADJUSTMENTS ────────────────────────────────────────────────────────
-// Live data sources each have a bounded, documented impact.
-// Every adjustment is recorded in an audit trail returned in the response.
 
 function applyLiveAdjustments(priorDims, signals) {
-  const dims     = { ...priorDims };
-  const audit    = [];
+  const dims  = { ...priorDims };
+  const audit = [];
 
-  // IPC food security: +8 per phase above 1
   if (signals.ipcPhase >= 2) {
     const boost = Math.min(32, (signals.ipcPhase - 1) * 8);
     dims.food = clamp(dims.food + boost);
@@ -427,7 +925,6 @@ function applyLiveAdjustments(priorDims, signals) {
       population_affected: signals.ipcPopulation });
   }
 
-  // WHO outbreaks: +3–20 per outbreak, capped at +30 total
   if (signals.whoOutbreaks.length > 0) {
     const SEVERITY_BOOST = { critical:20, high:12, medium:6, low:2 };
     let total = 0;
@@ -444,7 +941,6 @@ function applyLiveAdjustments(priorDims, signals) {
       outbreaks: signals.whoOutbreaks });
   }
 
-  // USGS earthquake: +5 per magnitude point above 4.0, split across displacement+health
   if (signals.quakeMag >= 4.5) {
     const boost = Math.min(25, Math.round((signals.quakeMag - 4.0) * 5));
     dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
@@ -454,7 +950,6 @@ function applyLiveAdjustments(priorDims, signals) {
       magnitude: signals.quakeMag });
   }
 
-  // UNHCR displacement: tiered boost to displacement dimension
   if (signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
     const boost = m >= 10 ? 30 : m >= 5 ? 25 : m >= 3 ? 20 : m >= 1.5 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
@@ -466,7 +961,6 @@ function applyLiveAdjustments(priorDims, signals) {
     }
   }
 
-  // Open-Meteo heat: +1.5 per degree above 30°C, split climate+health
   if (signals.maxTempC >= 35) {
     const boost = Math.min(20, Math.round((signals.maxTempC - 30) * 1.5));
     dims.climate = clamp(dims.climate + Math.ceil(boost * 0.6));
@@ -497,7 +991,6 @@ async function fetchUSGS() {
 }
 
 async function fetchIPC() {
-  // Try live API first, fall back to curated data
   try {
     const analyses = await safeFetch(fetch("https://api.ipcinfo.org/analyses").then(r => r.json()));
     if (analyses.ok && analyses.data?.length) {
@@ -537,7 +1030,6 @@ async function fetchWHO() {
           text.includes("death") || text.includes("fatal") ? "high" : "medium";
         parsed.push({ country, disease: item.title.split("—")[0].trim().slice(0, 50), severity, date: item.pubDate, cases: 0, deaths: 0 });
       }
-      // Deduplicate on country+disease
       const seen = new Set();
       const unique = parsed.filter(o => { const k = `${o.country}|${o.disease}`; if (seen.has(k)) return false; seen.add(k); return true; });
       return { data: unique.slice(0, 20), live: true };
@@ -582,7 +1074,6 @@ async function fetchWeatherBatch(isos) {
   return results;
 }
 
-// Fetch all sources in parallel
 async function fetchAllLive(isos) {
   const [usgs, ipc, who, unhcr, weatherMap] = await Promise.all([
     fetchUSGS(),
@@ -595,29 +1086,22 @@ async function fetchAllLive(isos) {
 }
 
 // ─── SIGNAL EXTRACTION ────────────────────────────────────────────────────────
-// Per-country: pull relevant signals from the global live data fetch
 
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
 
-  // USGS — biggest quake mentioning this country
   const quakes = (live.usgs.data || []).filter(f =>
     (f.properties?.place || "").toLowerCase().includes(name)
   );
   const topQuake = quakes.length ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
 
-  // IPC — worst phase entry for this country
   const ipcRows  = (live.ipc.data || []).filter(i => (i.country || "").toLowerCase().includes(name));
   const topIPC   = ipcRows.length ? ipcRows.reduce((a, b) => b.phase > a.phase ? b : a) : null;
 
-  // WHO — all outbreaks matching this country
   const whoRows  = (live.who.data || []).filter(o => o.country.toLowerCase().includes(name));
 
-  // UNHCR — displacement stats
-  let displacement = null;
   const unhcrMap = live.unhcr.data || {};
-  // Try exact match first, then partial
-  displacement = unhcrMap[COUNTRIES[iso].name]
+  let displacement = unhcrMap[COUNTRIES[iso].name]
     || Object.entries(unhcrMap).find(([k]) => k.toLowerCase().includes(name) || name.includes(k.toLowerCase()))?.[1]
     || null;
 
@@ -645,16 +1129,15 @@ function buildStore(liveData) {
   const seed  = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
 
-  // Pass 1: individual scores with live adjustments
   for (const [iso, country] of Object.entries(COUNTRIES)) {
-    const jitter    = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * CFG.PRIOR_JITTER);
-    const base      = clamp(country.prior + jitter, 5, CFG.PRIOR_CAP);
-    const priorDims = buildPriorDims(base, country.types);
+    const jitter     = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * CFG.PRIOR_JITTER);
+    const base       = clamp(country.prior + jitter, 5, CFG.PRIOR_CAP);
+    const priorDims  = buildPriorDims(base, country.types);
     const priorScore = clamp(composite(priorDims));
 
     let dims, score, audit;
     if (liveData) {
-      const signals = extractSignals(iso, liveData);
+      const signals  = extractSignals(iso, liveData);
       const adjusted = applyLiveAdjustments(priorDims, signals);
       dims  = adjusted.dims;
       score = adjusted.score;
@@ -667,7 +1150,7 @@ function buildStore(liveData) {
     }
   }
 
-  // Pass 2: regional spillover
+  // Regional spillover pass
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
@@ -680,11 +1163,42 @@ function buildStore(liveData) {
 }
 
 // ─── NAME RESOLUTION ─────────────────────────────────────────────────────────
-// Fuzzy match a query string to an ISO code
+
+const NAME_ALIASES = {
+  "us": "USA", "united states": "USA", "america": "USA",
+  "uk": "GBR", "britain": "GBR", "england": "GBR", "great britain": "GBR",
+  "dr congo": "COD", "drc": "COD", "congo": "COD", "democratic republic of congo": "COD",
+  "central african republic": "CAF", "car": "CAF",
+  "south sudan": "SSD",
+  "myanmar": "MMR", "burma": "MMR",
+  "iran": "IRN", "persia": "IRN",
+  "north korea": "PRK", "nk": "PRK", "dprk": "PRK",
+  "south korea": "KOR", "sk": "KOR", "republic of korea": "KOR",
+  "uae": "ARE", "emirates": "ARE", "united arab emirates": "ARE",
+  "russia": "RUS",
+  "czechia": "CZE", "czech republic": "CZE",
+  "eswatini": "SWZ", "swaziland": "SWZ",
+  "east timor": "TLS", "timor leste": "TLS",
+  "ivory coast": "CIV", "cote d ivoire": "CIV",
+  "republic of congo": "COG", "congo republic": "COG",
+  "sao tome": "STP",
+  "northern ireland": "GBR",
+  "taiwan": "TWN",
+  "hong kong": "HKG",
+  "macau": "MAC",
+  "kosovo": "XKX",
+  "western sahara": "ESH",
+  "palestine": "PSE", "west bank": "PSE", "gaza": "PSE",
+  "kyrgyzstan": "KGZ", "kirghizstan": "KGZ",
+  "turkey": "TUR", "turkiye": "TUR",
+  "north macedonia": "MKD", "macedonia": "MKD",
+};
 
 function resolveQuery(q) {
   if (!q) return null;
   const lower = q.toLowerCase().trim();
+  // Alias lookup
+  if (NAME_ALIASES[lower]) return NAME_ALIASES[lower];
   // Exact ISO match
   const exact = Object.keys(COUNTRIES).find(iso => iso.toLowerCase() === lower);
   if (exact) return exact;
@@ -692,7 +1206,9 @@ function resolveQuery(q) {
   const byName = Object.entries(COUNTRIES).find(([, d]) => d.name.toLowerCase() === lower);
   if (byName) return byName[0];
   // Partial name match
-  const partial = Object.entries(COUNTRIES).find(([, d]) => d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase()));
+  const partial = Object.entries(COUNTRIES).find(([, d]) =>
+    d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase())
+  );
   return partial ? partial[0] : null;
 }
 
@@ -715,7 +1231,19 @@ function recommendation(score) {
 }
 
 // ─── NARRATIVE BUILDER ────────────────────────────────────────────────────────
-// Produces CRYS-voice plain English. Clinical. Cited. No fluff.
+
+function buildDimContext(iso, dimKey, val, signals) {
+  if (!signals) return "";
+  if (dimKey === "displacement" && signals.totalDisplaced > 0)
+    return ` (${(signals.totalDisplaced/1e6).toFixed(1)}M people — refugees, IDPs, asylum-seekers)`;
+  if (dimKey === "food" && signals.ipcPhase >= 3)
+    return ` (IPC Phase ${signals.ipcPhase}${signals.ipcPopulation > 0 ? `, ${(signals.ipcPopulation/1e6).toFixed(1)}M people` : ""})`;
+  if (dimKey === "health" && signals.whoOutbreaks?.length)
+    return ` (${signals.whoOutbreaks[0].disease} outbreak${signals.whoOutbreaks.length > 1 ? `, +${signals.whoOutbreaks.length - 1} more` : ""})`;
+  if (dimKey === "conflict" && val >= 70)
+    return ` (active conflict)`;
+  return "";
+}
 
 function buildNarrative(iso, store, ranked) {
   const c     = store[iso];
@@ -727,13 +1255,11 @@ function buildNarrative(iso, store, ranked) {
   const sev   = severityLabel(c.score);
   const sEmoji= severityEmoji(c.score);
 
-  // Top 3 dimensions
   const topDims = [...DIMS]
     .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
     .sort((a, b) => b.val - a.val)
     .slice(0, 3);
 
-  // 7-day trend
   const delta  = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
   const dAbs   = Math.abs(Math.round(delta));
   const trendPhrase =
@@ -743,44 +1269,35 @@ function buildNarrative(iso, store, ranked) {
     delta < -2 ? `Improving slightly (−${dAbs} pts)` :
                  `Stable (±${dAbs} pts)`;
 
-  // Live evidence lines
   const evidence = [];
   const s = c.signals || {};
 
   if (s.quakeMag >= 4.5)
     evidence.push(`🌍 M${s.quakeMag.toFixed(1)} earthquake near ${s.quakePlace} (USGS)`);
-
   if (s.ipcPhase >= 3)
     evidence.push(`🍚 IPC Phase ${s.ipcPhase} food insecurity${s.ipcPopulation > 0 ? ` — ${(s.ipcPopulation/1e6).toFixed(1)}M people` : ""}`);
   else if (s.ipcPhase === 2)
     evidence.push(`🌾 IPC Phase 2 (Stressed) food situation`);
-
   for (const ob of (s.whoOutbreaks || []).slice(0, 2))
     evidence.push(`🦠 ${ob.disease} outbreak — ${ob.severity} severity (WHO)`);
-
   if (s.totalDisplaced > 0)
     evidence.push(`🚶 ${(s.totalDisplaced/1e6).toFixed(1)}M displaced (UNHCR)`);
-
   if (s.maxTempC >= 42) evidence.push(`🥵 Extreme heatwave — ${s.maxTempC}°C (Open-Meteo)`);
   else if (s.maxTempC >= 38) evidence.push(`🌡️ Severe heat — ${s.maxTempC}°C (Open-Meteo)`);
 
-  // Spillover
   const hotNb = (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 60).map(n => store[n].name);
   const spillLine = hotNb.length >= 1
     ? `🌐 Regional pressure from ${hotNb.slice(0, 2).join(" and ")} adds +${c.spillover.toFixed(1)} pts.`
     : null;
 
-  // Anomaly
   const anomLine = anom.z >= 1.5
     ? `⚠️ Score is ${anom.z}σ from 28-day baseline${anom.det ? " — STATISTICAL ANOMALY DETECTED" : ""}.`
     : null;
 
-  // Forecast line
   const fcLine = fc.esc
     ? `📈 Forecast: ${fc.fc}/100 in 7 days (escalating).`
     : `📊 Forecast: ${fc.fc}/100 in 7 days (${fc.trend}).`;
 
-  // Assemble
   const parts = [];
   parts.push(`${c.flag} **${c.name}** is at **${c.score}/100** — ${sEmoji} **${sev}**`);
   parts.push(`Ranks #${rank} of ${ranked.length} tracked countries (top ${pct}%).`);
@@ -796,28 +1313,13 @@ function buildNarrative(iso, store, ranked) {
   if (anomLine)  parts.push(anomLine);
   parts.push(`\n${fcLine}`);
   if (c.liveBoost !== 0)
-    parts.push(`\n📊 The data adjusted this score ${c.liveBoost > 0 ? `+${c.liveBoost}` : c.liveBoost} pts from the prior estimate of ${c.priorScore}/100.`);
+    parts.push(`\n📊 Live data adjusted this score ${c.liveBoost > 0 ? `+${c.liveBoost}` : c.liveBoost} pts from the prior estimate of ${c.priorScore}/100.`);
   parts.push(`\n**Recommendation:** ${recommendation(c.score).text}`);
 
   return parts.join("\n");
 }
 
-// Returns a short parenthetical context for a dimension value
-function buildDimContext(iso, dimKey, val, signals) {
-  if (!signals) return "";
-  if (dimKey === "displacement" && signals.totalDisplaced > 0)
-    return ` (${(signals.totalDisplaced/1e6).toFixed(1)}M people — refugees, IDPs, asylum-seekers)`;
-  if (dimKey === "food" && signals.ipcPhase >= 3)
-    return ` (IPC Phase ${signals.ipcPhase}${signals.ipcPopulation > 0 ? `, ${(signals.ipcPopulation/1e6).toFixed(1)}M people` : ""})`;
-  if (dimKey === "health" && signals.whoOutbreaks?.length)
-    return ` (${signals.whoOutbreaks[0].disease} outbreak${signals.whoOutbreaks.length > 1 ? `, +${signals.whoOutbreaks.length - 1} more` : ""})`;
-  if (dimKey === "conflict" && val >= 70)
-    return ` (active conflict)`;
-  return "";
-}
-
 // ─── COMPARISON BUILDER ───────────────────────────────────────────────────────
-// When 2+ ISOs are requested, returns a structured diff
 
 function buildComparison(isos, store, ranked) {
   const rows = isos.map(iso => {
@@ -835,7 +1337,6 @@ function buildComparison(isos, store, ranked) {
     };
   });
 
-  // Find which dimensions differ most between the two
   const differentiators = [];
   if (rows.length === 2) {
     const [a, b] = rows;
@@ -856,8 +1357,7 @@ function buildComparison(isos, store, ranked) {
     });
   }
 
-  // Verdict
-  const sorted = [...rows].sort((a, b) => b.score - a.score);
+  const sorted  = [...rows].sort((a, b) => b.score - a.score);
   const verdict = rows.length === 2
     ? `${sorted[0].flag} ${sorted[0].name} is more severe overall (${sorted[0].score} vs ${sorted[1].score}). Key difference: ${differentiators[0] ? `${sorted[0].name} is higher on ${differentiators[0].dimension}` : "scores are broadly similar"}.`
     : `${sorted[0].flag} ${sorted[0].name} ranks highest of the ${rows.length} countries compared.`;
@@ -866,7 +1366,6 @@ function buildComparison(isos, store, ranked) {
 }
 
 // ─── PAYLOAD BUILDER ──────────────────────────────────────────────────────────
-// Assembles the full response object for a single country
 
 function buildPayload(iso, store, ranked) {
   const c    = store[iso];
@@ -878,46 +1377,41 @@ function buildPayload(iso, store, ranked) {
 
   return {
     iso,
-    name:          c.name,
-    flag:          c.flag,
-    score:         c.score,
-    severity:      severityLabel(c.score),
-    severity_emoji:severityEmoji(c.score),
+    name:           c.name,
+    flag:           c.flag,
+    score:          c.score,
+    severity:       severityLabel(c.score),
+    severity_emoji: severityEmoji(c.score),
     rank,
     total_countries: ranked.length,
-    percentile:    Math.round((1 - rank / ranked.length) * 100),
+    percentile:     Math.round((1 - rank / ranked.length) * 100),
 
-    // The 8 scored dimensions — this is what CRYS's "What's driving this" uses
     dimensions: Object.fromEntries(
       DIMS.map(d => [d.k, {
-        value: c.dims[d.k] || 0,
-        label: d.l,
-        weight: d.w,
+        value:   c.dims[d.k] || 0,
+        label:   d.l,
+        weight:  d.w,
         context: buildDimContext(iso, d.k, c.dims[d.k] || 0, c.signals),
       }])
     ),
 
-    // Crisis type classification
     crisis_types: c.types.map(t => ({ code: t, label: ARC[t]?.l || t, icon: ARC[t]?.i || "⚠️" })),
     needs:        [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
 
-    // Trend and forecast
     trend: {
-      delta_7d:   delta7,
-      direction:  fc.trend,
-      slope:      fc.slope,
-      forecast_7d:fc.fc,
-      escalating: fc.esc,
+      delta_7d:    delta7,
+      direction:   fc.trend,
+      slope:       fc.slope,
+      forecast_7d: fc.fc,
+      escalating:  fc.esc,
     },
 
-    // Statistical anomaly detection
     anomaly: {
       detected: anom.det,
       z_score:  anom.z,
       note:     anom.z >= 1.5 ? "Score deviates from 28-day simulated baseline" : null,
     },
 
-    // Regional pressure
     spillover: {
       value: c.spillover,
       from:  (COUNTRIES[iso].adj || [])
@@ -925,7 +1419,6 @@ function buildPayload(iso, store, ranked) {
         .map(n => ({ iso: n, name: store[n].name, score: store[n].score })),
     },
 
-    // Typed live evidence signals
     live_evidence: {
       earthquake:    c.signals?.quakeMag >= 4.5
         ? { magnitude: c.signals.quakeMag, location: c.signals.quakePlace, source: "USGS" }
@@ -942,19 +1435,16 @@ function buildPayload(iso, store, ranked) {
         : null,
     },
 
-    // Score audit trail — how we got from prior to final
     score_audit: {
-      prior_score:  c.priorScore,
-      adjustments:  c.audit || [],
-      spillover:    c.spillover,
-      final_score:  c.score,
-      live_boost:   c.liveBoost,
+      prior_score: c.priorScore,
+      adjustments: c.audit || [],
+      spillover:   c.spillover,
+      final_score: c.score,
+      live_boost:  c.liveBoost,
     },
 
     recommendation: recommendation(c.score),
     region: c.region,
-
-    // The CRYS-voice narrative — ready to display directly
     narrative: buildNarrative(iso, store, ranked),
   };
 }
@@ -971,14 +1461,13 @@ export default async function handler(req, res) {
     res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return;
   }
 
-  // ── Parse query params ──────────────────────────────────────────────────────
   let params;
   try {
     const url = new URL(req.url ?? "/", "https://x");
     params = {
-      iso:       url.searchParams.get("iso")?.toUpperCase().trim() || null,  // "SOM" or "SOM,YEM"
+      iso:       url.searchParams.get("iso")?.toUpperCase().trim() || null,
       top:       parseInt(url.searchParams.get("top") || "1", 10),
-      q:         url.searchParams.get("q")?.trim() || null,                  // fuzzy name search
+      q:         url.searchParams.get("q")?.trim() || null,
       region:    url.searchParams.get("region")?.toLowerCase().trim() || null,
       threshold: parseInt(url.searchParams.get("threshold") || "0", 10),
     };
@@ -989,43 +1478,54 @@ export default async function handler(req, res) {
     res.writeHead(400, CORS); res.end(JSON.stringify({ error: "Bad request URL" })); return;
   }
 
-  // Resolve ?q= fuzzy search to an ISO
+  // Resolve ?region= alias
+  if (params.region) {
+    for (const [canonical, aliases] of Object.entries(REGION_ALIASES)) {
+      if (aliases.includes(params.region)) { params.region = canonical; break; }
+    }
+  }
+
+  // Resolve ?q= fuzzy search
   if (params.q && !params.iso) {
     const resolved = resolveQuery(params.q);
     if (!resolved) {
       res.writeHead(404, CORS);
-      res.end(JSON.stringify({ error: `Could not resolve "${params.q}" to a tracked country`, available: Object.keys(COUNTRIES).sort() }));
+      res.end(JSON.stringify({
+        error: `Could not resolve "${params.q}" to a tracked country`,
+        hint:  "Try the ISO-3166-1 alpha-3 code (e.g. SOM, YEM) or full country name",
+        available: Object.entries(COUNTRIES).map(([iso, d]) => `${iso} (${d.name})`).sort(),
+      }));
       return;
     }
     params.iso = resolved;
   }
 
-  // Parse comma-separated ISOs (for comparison mode)
   const isoList = params.iso
     ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s])
     : [];
 
-  // Validate ISOs
   const invalidISOs = params.iso
     ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s])
     : [];
   if (invalidISOs.length) {
     res.writeHead(404, CORS);
-    res.end(JSON.stringify({ error: `Unknown ISO codes: ${invalidISOs.join(", ")}`, available: Object.keys(COUNTRIES).sort() }));
+    res.end(JSON.stringify({
+      error:     `Unknown ISO codes: ${invalidISOs.join(", ")}`,
+      available: Object.keys(COUNTRIES).sort(),
+    }));
     return;
   }
 
   try {
-    // ── Step 1: build prior-only store to determine which countries to fetch live data for ──
+    // Build prior store to determine targets
     const priorStore  = buildStore(null);
     const priorRanked = Object.keys(priorStore).sort((a, b) => priorStore[b].score - priorStore[a].score);
 
-    // ── Step 2: determine target ISOs ──────────────────────────────────────────
     let targetIsos;
-    if (isoList.length)      targetIsos = isoList;
-    else if (params.region)  targetIsos = priorRanked.filter(iso => COUNTRIES[iso].region === params.region);
+    if (isoList.length)       targetIsos = isoList;
+    else if (params.region)   targetIsos = priorRanked.filter(iso => COUNTRIES[iso].region === params.region);
     else if (params.threshold > 0) targetIsos = priorRanked.filter(iso => priorStore[iso].score >= params.threshold);
-    else                     targetIsos = priorRanked.slice(0, params.top);
+    else                      targetIsos = priorRanked.slice(0, params.top);
 
     if (!targetIsos.length) {
       res.writeHead(404, CORS);
@@ -1033,36 +1533,27 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ── Step 3: fetch live data for all targets in parallel ────────────────────
     const liveData = await fetchAllLive(targetIsos);
+    const store    = buildStore(liveData);
+    const ranked   = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
 
-    // ── Step 4: build final store with live adjustments ────────────────────────
-    const store  = buildStore(liveData);
-    const ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-
-    // Re-resolve target ISOs by final ranking (scores may have shifted vs prior)
     let finalIsos;
-    if (isoList.length)      finalIsos = isoList;
-    else if (params.region)  finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
+    if (isoList.length)       finalIsos = isoList;
+    else if (params.region)   finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
     else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
-    else                     finalIsos = ranked.slice(0, params.top);
+    else                      finalIsos = ranked.slice(0, params.top);
 
-    // ── Step 5: build payloads ─────────────────────────────────────────────────
-    const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked));
+    const payloads    = finalIsos.map(iso => buildPayload(iso, store, ranked));
+    const comparison  = finalIsos.length >= 2 ? buildComparison(finalIsos, store, ranked) : null;
 
-    // ── Step 6: add comparison block if 2+ ISOs ────────────────────────────────
-    const comparison = finalIsos.length >= 2 ? buildComparison(finalIsos, store, ranked) : null;
-
-    // ── Step 7: source transparency ────────────────────────────────────────────
     const sources = {
       usgs:    { live: liveData.usgs.live,  events:          liveData.usgs.data?.length ?? 0,  label: "USGS Earthquake Hazards Program" },
       ipc:     { live: liveData.ipc.live,   classifications: liveData.ipc.data?.length ?? 0,   label: "IPC Global — Food Security Phases" },
       who:     { live: liveData.who.live,   outbreaks:       liveData.who.data?.length ?? 0,   label: "WHO Disease Outbreak News" },
       unhcr:   { live: liveData.unhcr.live, countries:       Object.keys(liveData.unhcr.data || {}).length, label: "UNHCR Global Refugee Statistics" },
-      weather: { live: Object.values(liveData.weatherMap).some(v => v !== null),               label: "Open-Meteo Weather Forecast" },
+      weather: { live: Object.values(liveData.weatherMap).some(v => v !== null), label: "Open-Meteo Weather Forecast" },
     };
 
-    // ── Step 8: assemble response ──────────────────────────────────────────────
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
 
     const body = {
@@ -1076,15 +1567,13 @@ export default async function handler(req, res) {
           (Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS
         ).toISOString(),
         sources,
-        methodology: "Weighted 8-dimension composite. Priors from OCHA/ACAPS (mid-2024). Live data from USGS/IPC/WHO/UNHCR/Open-Meteo adjusts scores upward. See score_audit on each country.",
+        methodology: "Weighted 8-dimension composite. Priors from OCHA/ACAPS. Live data from USGS/IPC/WHO/UNHCR/Open-Meteo adjusts scores. See score_audit on each country.",
       },
-      // Response key depends on mode
-      ...(mode === "single"     ? { top_story:   payloads[0] } : {}),
-      ...(mode === "list"       ? { countries:   payloads    } : {}),
+      ...(mode === "single"     ? { top_story:  payloads[0] } : {}),
+      ...(mode === "list"       ? { countries:  payloads    } : {}),
       ...(mode === "comparison" ? { comparison, countries: payloads } : {}),
     };
 
-    // Cache expires at next seed boundary — no point caching longer
     const secsUntilNextSeed = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNextSeed}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
