@@ -8,21 +8,20 @@ const API_CONFIG = {
     buildUrl: () => {
       return 'https://api.reliefweb.int/v2/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status';
     },
-    headers: { 'Accept': 'application/json' }
+    // Remove Accept header to avoid 406
   },
   reliefweb_reports: {
     base: 'https://api.reliefweb.int/v2/reports',
     buildUrl: () => {
       return 'https://api.reliefweb.int/v2/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format';
-    },
-    headers: { 'Accept': 'application/json' }
+    }
   },
 
   // ── GDELT ───────────────────────────────────────────────────────────────
   gdelt: {
     base: 'https://api.gdeltproject.org/api/v2/geo/geo',
     buildUrl: () => {
-      return 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+crisis+humanitarian+emergency+disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d';
+      return 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict%20crisis%20humanitarian%20emergency%20disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d';
     },
     headers: { 'Accept': 'application/json' }
   },
@@ -39,6 +38,7 @@ const API_CONFIG = {
 };
 
 export default async function handler(req, res) {
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -80,13 +80,14 @@ export default async function handler(req, res) {
     console.log(`[Proxy] Fetching ${source}: ${url}`);
 
     const response = await fetch(url, {
-      headers: config.headers || { 'Accept': 'application/json' },
+      headers: config.headers || {},
       signal: AbortSignal.timeout(15000)
     });
 
     if (!response.ok) {
+      console.error(`[Proxy] ${source} error: ${response.status} - ${response.statusText}`);
       return res.status(response.status).json({
-        error: `External API returned ${response.status}`,
+        error: `External API returned ${response.status} ${response.statusText}`,
         source,
         url
       });
