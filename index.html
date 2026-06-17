@@ -8,7 +8,7 @@
     
     <!-- LEFT: PRO Banner Content (LIVE APIs + Quote + Links) -->
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-      <span style="color: var(--cyan); font-size: 0.7rem;">48 HuggingFace global-crisis-index datasets downloaded</span>
+      <span style="color: var(--cyan); font-size: 0.7rem;">🔥 LIVE APIs</span>
       <span style="color: var(--tm);">|</span>
       <span style="color: var(--ts); font-size: 0.7rem;">The official publisher of the Global Crisis Index Urgency Rankings</span>
       <span style="color: var(--tm);">|</span>
@@ -44,7 +44,7 @@
     </div>
     
     <!-- RIGHT: GET PRO Button -->
-    <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
+    <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">UPGRADE TO PRO</a>
     
   </div>
 </div>
@@ -1663,14 +1663,9 @@ const API_ENDPOINTS = {
   emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
 
   // ── NATURAL EVENTS ──────────────────────────────────────────────────────
-  nasa: '/api/proxy?source=nasa', // Changed to proxy for potential 503 handling
-  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters', // ✅ 410 fix via proxy
-  reliefweb_reports: '/api/proxy?source=reliefweb_reports', // ✅ 410 fix via proxy
+  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters',
+  reliefweb_reports: '/api/proxy?source=reliefweb_reports',
   gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
-
-  // ── FIRES ────────────────────────────────────────────────────────────────
-  firms: '/api/proxy?source=firms', // ✅ CORS fix
-  gfw: '/api/proxy?source=gfw', // Changed to proxy for 404 handling
 
   // ── WEATHER ──────────────────────────────────────────────────────────────
   noaa: 'https://api.weather.gov/alerts?status=actual&limit=20',
@@ -1678,34 +1673,20 @@ const API_ENDPOINTS = {
   openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
 
   // ── CONFLICT ─────────────────────────────────────────────────────────────
-  acled: '/api/proxy?source=acled', // ✅ CORS / DNS fix
-  gdelt: '/api/proxy?source=gdelt', // ✅ CORS fix
+  gdelt: '/api/proxy?source=gdelt',
 
   // ── HEALTH ───────────────────────────────────────────────────────────────
   who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
   who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
-  opendisease: '/api/proxy?source=opendisease', // ✅ DNS fix
-
-  // ── FOOD SECURITY ──────────────────────────────────────────────────────
-  ipc_current: '/api/proxy?source=ipc', // ✅ CORS fix
-  ipc_population: '/api/proxy?source=ipc_populations', // ✅ CORS fix
-  fewsnet: '/api/proxy?source=fews', // ✅ CORS fix
-  wfp_vam: '/api/proxy?source=wfp', // ✅ CORS fix
-  fao_giews: '/api/proxy?source=fao', // ✅ CORS fix
 
   // ── ECONOMIC ─────────────────────────────────────────────────────────────
   wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
   wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
   wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
   wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
-  imf_gdp: '/api/proxy?source=imf_ngdp', // ✅ CORS fix
-  imf_inflation: '/api/proxy?source=imf_pcpi', // ✅ CORS fix
 
   // ── DISPLACEMENT ────────────────────────────────────────────────────────
-  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`, // ✅ Fixed URL via proxy
-
-  // ── AIR QUALITY ─────────────────────────────────────────────────────────
-  openaq: '/api/proxy?source=openaq', // ✅ CORS fix
+  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`,
 };
 
 // ============================================================================
