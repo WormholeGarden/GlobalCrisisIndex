@@ -1,41 +1,5 @@
 // /api/proxy.js
-// Unified proxy for Global Crisis Index — fetches external APIs, bypasses CORS
-
-const API_CONFIG = {
-  // ── RELIEFWEB ───────────────────────────────────────────────────────────
-  reliefweb_disasters: {
-    base: 'https://api.reliefweb.int/v2/disasters',
-    buildUrl: () => {
-      return 'https://api.reliefweb.int/v2/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status';
-    },
-    // Remove Accept header to avoid 406
-  },
-  reliefweb_reports: {
-    base: 'https://api.reliefweb.int/v2/reports',
-    buildUrl: () => {
-      return 'https://api.reliefweb.int/v2/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format';
-    }
-  },
-
-  // ── GDELT ───────────────────────────────────────────────────────────────
-  gdelt: {
-    base: 'https://api.gdeltproject.org/api/v2/geo/geo',
-    buildUrl: () => {
-      return 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict%20crisis%20humanitarian%20emergency%20disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d';
-    },
-    headers: { 'Accept': 'application/json' }
-  },
-
-  // ── UNHCR ───────────────────────────────────────────────────────────────
-  unhcr: {
-    base: 'https://api.unhcr.org/refugee-statistics/v1/population',
-    buildUrl: (params) => {
-      const year = params.year || '2025';
-      return `https://api.unhcr.org/refugee-statistics/v1/population?year=${year}`;
-    },
-    headers: { 'Accept': 'application/json' }
-  }
-};
+// Final working version — handles all sources correctly
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -50,33 +14,43 @@ export default async function handler(req, res) {
 
   const { source, ...queryParams } = req.query;
 
-  if (!source) {
-    return res.status(400).json({
-      error: 'Missing "source" parameter',
-      available: Object.keys(API_CONFIG)
-    });
-  }
+  // ── CONFIGURATION FOR EACH SOURCE ────────────────────────────────────────
+  const configs = {
+    // ── RELIEFWEB ──────────────────────────────────────────────────────────
+    // FIXED: No Accept header — avoids 406 Not Acceptable
+    reliefweb_disasters: {
+      url: 'https://api.reliefweb.int/v2/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status',
+    },
+    reliefweb_reports: {
+      url: 'https://api.reliefweb.int/v2/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format',
+    },
 
-  const config = API_CONFIG[source];
-  if (!config) {
-    return res.status(400).json({
-      error: `Unknown source: "${source}"`,
-      available: Object.keys(API_CONFIG)
-    });
-  }
+    // ── GDELT ──────────────────────────────────────────────────────────────
+    // FIXED: Proper URL encoding
+    gdelt: {
+      url: `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodeURIComponent('conflict crisis humanitarian emergency disaster')}&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d`,
+      headers: { 'Accept': 'application/json' }
+    },
 
-  let url;
-  try {
-    if (config.buildUrl) {
-      url = config.buildUrl(queryParams);
-    } else {
-      url = config.base;
-      const params = new URLSearchParams(queryParams);
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
+    // ── UNHCR ──────────────────────────────────────────────────────────────
+    unhcr: {
+      url: `https://api.unhcr.org/refugee-statistics/v1/population?year=${queryParams.year || '2025'}`,
+      headers: { 'Accept': 'application/json' }
     }
+  };
 
+  // ── VALIDATE SOURCE ──────────────────────────────────────────────────────
+  if (!source) {
+    return res.status(400).json({ error: 'Missing "source" parameter', available: Object.keys(configs) });
+  }
+
+  const config = configs[source];
+  if (!config) {
+    return res.status(400).json({ error: `Unknown source: "${source}"`, available: Object.keys(configs) });
+  }
+
+  try {
+    const url = config.url;
     console.log(`[Proxy] Fetching ${source}: ${url}`);
 
     const response = await fetch(url, {
@@ -85,9 +59,9 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error(`[Proxy] ${source} error: ${response.status} - ${response.statusText}`);
+      console.error(`[Proxy] ${source} error: ${response.status}`);
       return res.status(response.status).json({
-        error: `External API returned ${response.status} ${response.statusText}`,
+        error: `External API returned ${response.status}`,
         source,
         url
       });
@@ -111,7 +85,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       error: `Failed to fetch ${source}`,
       message: error.message,
-      url
+      source
     });
   }
 }
