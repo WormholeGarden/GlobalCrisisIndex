@@ -17,18 +17,18 @@ export default async function handler(req, res) {
   // ── CONFIGURATION FOR EACH SOURCE ────────────────────────────────────────
   const configs = {
     // ── RELIEFWEB ──────────────────────────────────────────────────────────
-    // FIXED: No Accept header — avoids 406 Not Acceptable
+    // FIXED: No Accept header, simplified URL format
     reliefweb_disasters: {
-      url: 'https://api.reliefweb.int/v2/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status',
+      url: 'https://api.reliefweb.int/v2/disasters?appname=gcis-fusion&limit=30&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type',
     },
     reliefweb_reports: {
-      url: 'https://api.reliefweb.int/v2/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format',
+      url: 'https://api.reliefweb.int/v2/reports?appname=gcis-fusion&limit=25&fields[include][]=title&fields[include][]=country&fields[include][]=date',
     },
 
     // ── GDELT ──────────────────────────────────────────────────────────────
-    // FIXED: Proper URL encoding
+    // FIXED: Simpler request to avoid 500
     gdelt: {
-      url: `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodeURIComponent('conflict crisis humanitarian emergency disaster')}&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d`,
+      url: 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict%20crisis&mode=pointdata&maxrows=100&format=GeoJSON&TIMESPAN=7d',
       headers: { 'Accept': 'application/json' }
     },
 
@@ -59,11 +59,14 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error(`[Proxy] ${source} error: ${response.status}`);
+      console.error(`[Proxy] ${source} error: ${response.status} - ${response.statusText}`);
+      // Return the actual error response for debugging
+      const errorText = await response.text();
       return res.status(response.status).json({
         error: `External API returned ${response.status}`,
         source,
-        url
+        url,
+        details: errorText.substring(0, 200) // Include first 200 chars of error
       });
     }
 
