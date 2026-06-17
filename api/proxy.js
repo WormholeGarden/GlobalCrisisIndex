@@ -59,8 +59,6 @@ const API_CONFIG = {
   },
 
   // ── FAO (Food and Agriculture Organization) ────────────────────────────
-  // Note: The FAO GIEWS API endpoint may require an API key or may have changed.
-  // If this continues to fail, check the FAO Developer Portal for the current URL.
   fao: {
     base: 'https://api.fao.org/giews/country-alerts/latest',
     headers: { 'Accept': 'application/json' }
@@ -83,17 +81,6 @@ const API_CONFIG = {
     headers: { 'Accept': 'application/json' }
   },
 
-  // ── NOAA Weather Alerts ────────────────────────────────────────────────
-  noaa: {
-    base: 'https://api.weather.gov/alerts',
-    buildUrl: (params) => {
-      const status = params.status || 'actual';
-      const limit = params.limit || '20';
-      return `https://api.weather.gov/alerts?status=${status}&limit=${limit}`;
-    },
-    headers: { 'Accept': 'application/json' }
-  },
-
   // ── ACLED (Armed Conflict Location & Event Data) ──────────────────────
   acled: {
     base: 'https://api.acleddata.com/acled/read',
@@ -101,12 +88,13 @@ const API_CONFIG = {
       const terms = params.terms || 'accept';
       const limit = params.limit || '50';
       const eventDate = params.event_date || '2024-01-01';
-      return `https://api.acleddata.com/acled/read?terms=${terms}&limit=${limit}&event_date=${eventDate}&event_date_where=>`;
+      const where = params.event_date_where || '>';
+      return `https://api.acleddata.com/acled/read?terms=${terms}&limit=${limit}&event_date=${eventDate}&event_date_where=${encodeURIComponent(where)}`;
     },
     headers: { 'Accept': 'application/json' }
   },
 
-  // ── OpenDisease (Disease Outbreaks) ────────────────────────────────────
+  // ── OpenDisease ────────────────────────────────────────────────────────
   opendisease: {
     base: 'https://api.opendiseasedata.org/v1/outbreaks',
     buildUrl: (params) => {
@@ -116,24 +104,37 @@ const API_CONFIG = {
     headers: { 'Accept': 'application/json' }
   },
 
-  // ── ReliefWeb (Disasters) ─────────────────────────────────────────────
+  // ── ReliefWeb ──────────────────────────────────────────────────────────
   reliefweb_disasters: {
     base: 'https://api.reliefweb.int/v1/disasters',
     buildUrl: (params) => {
       const appname = params.appname || 'gcis-fusion';
       const limit = params.limit || '30';
-      return `https://api.reliefweb.int/v1/disasters?appname=${appname}&limit=${limit}&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status`;
+      const sort = params.sort || 'date:desc';
+      const fields = params.fields || 'name,country,date,type,status';
+      return `https://api.reliefweb.int/v1/disasters?appname=${appname}&limit=${limit}&sort[]=${sort}&fields[include][]=${fields.replace(/,/g,'&fields[include][]=')}`;
     },
     headers: { 'Accept': 'application/json' }
   },
-
-  // ── ReliefWeb (Reports) ────────────────────────────────────────────────
   reliefweb_reports: {
     base: 'https://api.reliefweb.int/v1/reports',
     buildUrl: (params) => {
       const appname = params.appname || 'gcis-fusion';
       const limit = params.limit || '25';
-      return `https://api.reliefweb.int/v1/reports?appname=${appname}&limit=${limit}&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format`;
+      const sort = params.sort || 'date:desc';
+      const fields = params.fields || 'title,country,date,format';
+      return `https://api.reliefweb.int/v1/reports?appname=${appname}&limit=${limit}&sort[]=${sort}&fields[include][]=${fields.replace(/,/g,'&fields[include][]=')}`;
+    },
+    headers: { 'Accept': 'application/json' }
+  },
+
+  // ── NOAA Weather Alerts ───────────────────────────────────────────────
+  noaa: {
+    base: 'https://api.weather.gov/alerts',
+    buildUrl: (params) => {
+      const status = params.status || 'actual';
+      const limit = params.limit || '20';
+      return `https://api.weather.gov/alerts?status=${status}&limit=${limit}`;
     },
     headers: { 'Accept': 'application/json' }
   }
@@ -145,11 +146,13 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
 
+  // Handle preflight (OPTIONS) requests
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
+  // ── PARSE REQUEST ────────────────────────────────────────────────────
   const { source, ...queryParams } = req.query;
 
   if (!source) {
@@ -170,6 +173,7 @@ export default async function handler(req, res) {
   let url;
 
   try {
+    // ── BUILD URL ──────────────────────────────────────────────────────
     if (config.buildUrl) {
       url = config.buildUrl(queryParams);
     } else {
@@ -182,9 +186,10 @@ export default async function handler(req, res) {
 
     console.log(`[Proxy] Fetching ${source}: ${url}`);
 
+    // ── FETCH ──────────────────────────────────────────────────────────
     const response = await fetch(url, {
       headers: config.headers || { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(15000) // 15-second timeout
     });
 
     if (!response.ok) {
@@ -196,6 +201,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── HANDLE RESPONSE ──────────────────────────────────────────────
     const contentType = response.headers.get('content-type') || '';
     const textData = await response.text();
 
@@ -212,6 +218,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error(`[Proxy] Error fetching ${source}:`, error);
 
+    // ── HANDLE TIMEOUT SPECIFICALLY ────────────────────────────────
     if (error.name === 'TimeoutError' || error.name === 'AbortError') {
       return res.status(504).json({
         error: `Timeout fetching ${source}`,
