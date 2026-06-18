@@ -1,60 +1,238 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- PRO BANNER - Converts viral traffic -->
-<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 8px 16px; text-align: center; font-family: var(--fm); font-size: 7px; letter-spacing: 0.1em; backdrop-filter: blur(8px); z-index: 98; position: relative;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-  <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-  <div>
-    <div style="font-size: 0.7rem;">
-  <span style="color: var(--cyan);">🔥 LIVE APIs</span>
 
-    <span style="color: var(--tm); margin: 0 8px;">|</span>
-    <span style="color: var(--ts);">"Highly efficient dashboard for cross-border risk comparisons" — Google AI</span>
+<!-- PRO BANNER + GCIN BREAKING BAR (MERGED — SAME LINE) -->
+<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
+    
+    <!-- LEFT: PRO Banner Content (LIVE APIs + Quote + Links) -->
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">
+  48 downloads on Hugging Face
+</a>
+      <span style="color: var(--tm);">|</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">The official publisher of the Global Crisis Index Urgency Rankings</span>
+      <span style="color: var(--tm);">|</span>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
+        <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="#" onclick="showTopUrgentStory(); return false;" style="color: inherit; text-decoration: none;">TOP URGENT STORY</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
+      </div>
+    </div>
+    
+    <!-- MIDDLE: GCIN Breaking Bar (same line, no wrap) -->
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
+      <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
+        <span style="font-size: 1rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%); background-clip: text; -webkit-background-clip: text; color: transparent;">GCIN</span>
+              
+      <span style="color: #2d4a6e;">|</span>
+      
+      <!-- No redundant badge — the headline is the alert -->
+      
+      <div style="font-size: 0.75rem; font-weight: 500; color: #eef4ff; overflow-x: auto; white-space: nowrap; scrollbar-width: thin;" id="breaking-headline">
+        <span style="opacity: 0.6;">🔍</span> Loading...
+      </div>
+      
+      <a href="/GCIN.html" id="readmore-link" style="background: rgba(49, 116, 199, 0.1); border: 1px solid #3174c7; color: #80c0ff; font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.8rem; border-radius: 40px; text-decoration: none; white-space: nowrap; flex-shrink: 0;">
+        READ MORE ›
+      </a>
+    </div>
+    
+    <!-- RIGHT: GET PRO Button -->
+    <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">UPGRADE TO PRO</a>
+    
   </div>
+</div>
+
+<style>
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+  #breaking-headline::-webkit-scrollbar { height: 2px; }
+  #breaking-headline::-webkit-scrollbar-track { background: #0f172f; border-radius: 4px; }
+  #breaking-headline::-webkit-scrollbar-thumb { background: #3174c7; border-radius: 4px; }
+</style>
+
+<script>
+  (function() {
+    "use strict";
+    
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    
+    function updateDateTime() {
+      const now = new Date();
+      const options = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateElem = document.getElementById('gcin-datetime-mini');
+      if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
+    }
+    updateDateTime();
+    
+    async function fetchAllCountries() {
+      const url = new URL(API_BASE);
+      url.searchParams.append("top", "50");
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      return data.countries || [];
+    }
+    
+    function computeAnomalyScore(country) {
+      let score = 0;
+      if (country.anomaly && typeof country.anomaly.z_score === 'number') score += Math.min(5, country.anomaly.z_score);
+      if (country.trend && Math.abs(country.trend.forecast_7d - country.score) > 8) score += 2;
+      if (country.live_boost && country.live_boost > 8) score += 1.5;
+      return Math.min(10, Math.round(score * 10) / 10);
+    }
+    
+    function generateHeadline(country) {
+  const name = country.name;
+  const flag = country.flag || "";
+  const score = country.score;
   
-</div>
-  </div>
-  <div style="font-size: 10px;">
-  <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="#" onclick="showTopUrgentStory(); return false;" style="color: inherit; text-decoration: none;">TOP URGENT STORY</a>
-  <span style="opacity: 0.3;">|</span>
-  <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
-</div>
-</div>  <span style="color: var(--tm); margin: 0 8px;">|</span>
-  <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">⚡ GET PRO → $29/mo</a>
-</div>
+  // Severity emoji (only for extreme cases)
+  const emoji = score >= 85 ? "🔴" : score >= 75 ? "🟠" : "";
+  
+  // Extract the single most important metric
+  let crisis = "";
+  let number = "";
+  
+  if (country.live_evidence?.food_security?.phase >= 3) {
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
+    const phase = country.live_evidence.food_security.phase;
+    if (phase >= 4) crisis = "Famine";
+    else crisis = "Hunger";
+    number = `${pop}M`;
+  }
+  else if (country.live_evidence?.displacement?.total > 0) {
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+    crisis = "Displaced";
+    number = `${disp}M`;
+  }
+  else if (country.live_evidence?.disease_outbreaks?.length) {
+    const outbreak = country.live_evidence.disease_outbreaks[0];
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    number = `${outbreak.cases.toLocaleString()}+`;
+  }
+  else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+    crisis = "Heat";
+    number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
+  }
+  else {
+    crisis = "Crisis";
+    number = `${score}/100`;
+  }
+  
+  // Trend direction (single word)
+  const trend = country.trend?.direction === "escalating" ? "Worsens" : 
+                country.trend?.direction === "improving" ? "Eases" : "Critical";
+  
+  // NYT-style templates — short, factual, no emojis, no markdown
+  const templates = [
+    `${name} ${trend} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis} as Score Reaches ${score}`,
+    `${crisis} Worsens in ${name}; Index Now ${score}`,
+    `${name} Crisis Deepens: ${number} Affected`,
+    `${name} Slides to ${score} as ${crisis} Spreads`,
+    `${number} Face ${crisis} in ${name}; Global Alarm Raised`,
+    `${name} Tops Crisis Index at ${score}`
+  ];
+  
+  // Pick one deterministically based on country name (avoids randomness in cache)
+  const index = name.length % templates.length;
+  let headline = templates[index];
+  
+  // Add emoji only for catastrophic (front, subtle)
+  if (emoji) headline = `${emoji} ${headline}`;
+  
+  return headline;
+}    
+    async function loadBreakingHeadline() {
+      const headlineEl = document.getElementById("breaking-headline");
+      if (!headlineEl) return;
+      try {
+        const countries = await fetchAllCountries();
+        if (!countries || countries.length === 0) throw new Error("No country data");
+        const scored = countries.map(c => ({ ...c, anomalyScore: computeAnomalyScore(c) }));
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
+        const topAnomaly = scored[0];
+        headlineEl.innerText = generateHeadline(topAnomaly);
+        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topAnomaly));
+      } catch (err) {
+        headlineEl.innerText = "⚠️ Live feed unavailable.";
+      }
+    }
+    
+    loadBreakingHeadline();
+    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
+  })();
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "GCIS Fusion",
-  "description": "Real-time global crisis intelligence dashboard with live APIs for earthquakes, conflicts, weather, and food security.",
+  "@type": "SoftwareApplication",
+  "name": "Global Crisis Index",
+  "description": "Enterprise B2B crisis intelligence platform. Live APIs for risk analysis, hazard monitoring, and vulnerability assessment. Cited by Google AI.",
   "url": "https://globalcrisisindex.com",
-  "applicationCategory": "Utility",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "All",
   "offers": {
     "@type": "Offer",
     "price": "0",
-    "priceCurrency": "USD"
+    "priceCurrency": "USD",
+    "description": "Free tier available. Enterprise pricing starting at $499/month."
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "ratingCount": "127"
   }
-} <meta name="description" content="Real-time global crisis intelligence dashboard. Track earthquakes, conflicts, floods, food security, and disease outbreaks from live APIs.">
-<meta name="keywords" content="crisis map, humanitarian, disaster tracking, real-time alerts, global monitoring">
+}
 </script>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Crisis Index: Live Earthquakes, Conflicts, Food Security & Disease Outbreaks | Real-time Crisis Map</title>
-<meta name="description" content="Real-time global crisis intelligence dashboard. Track earthquakes, conflicts, floods, food security, and disease outbreaks from live APIs.">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Crisis Index — Live Crisis Intelligence · 83 Score · 53M Affected · 55 Anomalies | Real-time API</title>
+  <meta name="description" content="🔴 LIVE: Global Crisis Index score 83 (Critical) · 53M affected · 55 statistical anomalies · 916 active events · IPC Phase 4 (Emergency). 40+ live APIs: USGS earthquakes, ACLED conflict, UNHCR displacement, WHO outbreaks. Real-time data cited by Google AI. Updated every 5 minutes. Free tier available. — GCIS Fusion">
+  <meta name="keywords" content="global crisis index, live crisis data, real-time risk analysis, enterprise crisis API, B2B threat intelligence, humanitarian data API, conflict tracking, famine early warning, disaster monitoring, geopolitical risk, OSINT platform, crisis intelligence, GCIS Fusion, anomaly detection, polycrisis tracking">
+  <meta name="author" content="GCIS Fusion · Global Crisis Index">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
+  
+  <!-- Favicon for all devices -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+
+<!-- Open Graph / Social Media -->
+<meta property="og:title" content="Global Crisis Index — Enterprise B2B Crisis Intelligence API">
+<meta property="og:description" content="Live APIs for risk analysis, hazard monitoring, and vulnerability assessment. Cited by Google AI.">
+<meta property="og:url" content="https://globalcrisisindex.com">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://globalcrisisindex.com/og-image.jpg">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Global Crisis Index — Enterprise B2B Crisis Intelligence">
+<meta name="twitter:description" content="Live APIs for risk analysis, hazard monitoring, and vulnerability assessment. Cited by Google AI.">
+
+<meta name="description" content="GCIS Fusion is the world's first independent open-source intelligence service — providing real-time threat intelligence on geopolitical conflicts, humanitarian crises, and security risks. Live data from 40+ APIs. Cited by Google AI.">  
+  
+
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0LR42BR1B9"></script>
 <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-0LR42BR1B9');
+</script><script>
 
 /**
  * buildUrgencyNarrative(iso)
@@ -66,6 +244,300 @@ function buildUrgencyNarrative(iso) {
   const c = store[iso];
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
+
+  // ── 0. FETCH WIKIPEDIA SENTENCES (FIRST SENTENCES OF NARRATIVE) ─────────
+  let wikipediaPrefix = '';
+  
+  // Helper: fetch extract from a Wikipedia page title (synchronous)
+  function fetchExtract(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  // Helper: extract all years from a sentence
+  function extractYears(text) {
+    const years = [];
+    const matches = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
+    if (matches) {
+      matches.forEach(y => years.push(parseInt(y)));
+    }
+    return years;
+  }
+  
+  // Helper: get recency bonus for a sentence (higher = more recent)
+  function getRecencyBonus(sent) {
+    const years = extractYears(sent);
+    if (years.length === 0) return 0;
+    
+    const currentYear = new Date().getFullYear();
+    const latestYear = Math.max(...years);
+    
+    if (latestYear === currentYear) return 50;
+    if (latestYear === currentYear - 1) return 40;
+    if (latestYear === currentYear - 2) return 30;
+    if (latestYear === currentYear - 3) return 25;
+    if (latestYear >= 2020) return 20;
+    if (latestYear >= 2010) return 10;
+    if (latestYear >= 2000) return 5;
+    if (latestYear < 1990) return -100;
+    return 0;
+  }
+  
+  // Helper: check if sentence contains contemporary indicators
+  function hasContemporaryIndicators(sent) {
+    const lower = sent.toLowerCase();
+    const contemporaryTerms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
+                               'since 202', 'since 201', 'as of 202', 'in recent years'];
+    for (const term of contemporaryTerms) {
+      if (lower.includes(term)) return true;
+    }
+    return false;
+  }
+  
+  // ── DISAMBIGUATION FILTER ───────────────────────────────────────────────
+  // This filters out Wikipedia articles that are about the band "China Crisis"
+  // rather than the country. It checks both the article title and the content.
+  function isBandChinaCrisis(pageTitle, extract) {
+    // Only apply to China
+    if (name.toLowerCase() !== 'china') return false;
+    
+    const lowerTitle = pageTitle.toLowerCase();
+    const lowerExtract = extract.toLowerCase();
+    
+    // Check title for band indicators
+    if (lowerTitle.includes('band') || lowerTitle.includes('album') || 
+        lowerTitle.includes('singer') || lowerTitle.includes('musician')) {
+      return true;
+    }
+    
+    // Check extract for band-specific keywords
+    const bandKeywords = [
+      'cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 
+      'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde',
+      'difficult shapes', 'passive rhythms', 'flaunt the imperfection',
+      'what price paradise', 'diary of a hollow horse', 'warped by success',
+      'autumn in the neighbourhood', 'opening act', 'greatest hits tour',
+      '40th anniversary', 'headlining tour', 'cd', 'vinyl', 'remix', 'band members',
+      'eddie lundon', 'gary daly', 'kevin wilkinson', 'walter becker',
+      'china crisis contributed', 'extended remix', 'toyah', 'martika'
+    ];
+    
+    for (const kw of bandKeywords) {
+      if (lowerExtract.includes(kw)) return true;
+    }
+    
+    return false;
+  }
+  
+  // Helper: score sentences based on dimension weights + recency
+  function scoreSentences(sentences, weights) {
+    return sentences.map(sent => {
+      let score = 0;
+      let hasDimensionMatch = false;
+      const lower = sent.toLowerCase();
+      const lowerName = name.toLowerCase();
+      
+      // Reject band content immediately
+      if (name.toLowerCase() === 'china' && isBandChinaCrisis('', sent)) {
+        return { text: sent.trim(), score: -1000, hasDimensionMatch: false, recencyBonus: 0, years: [] };
+      }
+      
+      if (lower.includes(lowerName)) score += 20;
+      
+      const recencyBonus = getRecencyBonus(sent);
+      score += recencyBonus;
+      
+      if (hasContemporaryIndicators(sent)) score += 15;
+      
+      // Food security dimension
+      if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') || 
+          lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
+          lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
+        score += weights.food;
+        hasDimensionMatch = true;
+      }
+      
+      // Climate dimension
+      if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') || 
+          lower.includes('weather') || lower.includes('crop') || lower.includes('agriculture') || 
+          lower.includes('rainfall') || lower.includes('temperature') || lower.includes('heatwave'))) {
+        score += weights.climate;
+        hasDimensionMatch = true;
+      }
+      
+      // Conflict dimension
+      if (weights.conflict && (lower.includes('war') || lower.includes('missile') || lower.includes('nuclear') || 
+          lower.includes('military') || lower.includes('weapon') || lower.includes('conflict') || 
+          lower.includes('tension') || lower.includes('threat') || lower.includes('diplomacy') ||
+          lower.includes('foreign') || lower.includes('policy') || lower.includes('government'))) {
+        score += weights.conflict;
+        hasDimensionMatch = true;
+      }
+      
+      // Economic dimension
+      if (weights.economic && (lower.includes('economy') || lower.includes('trade') || lower.includes('sanctions') || 
+          lower.includes('poverty') || lower.includes('gdp') || lower.includes('inflation'))) {
+        score += weights.economic;
+        hasDimensionMatch = true;
+      }
+      
+      // General urgency indicators
+      if (lower.includes('crisis')) score += 10;
+      if (lower.includes('emergency')) score += 12;
+      if (/\d+/.test(sent)) score += 5;
+      if (/\d+(\.\d+)?%/.test(sent)) score += 8;
+      if (/million|billion/.test(lower)) score += 10;
+      
+      if (sent.length > 80 && sent.length < 400) score += 5;
+      if (sent.length < 50) score -= 10;
+      if (sent.length > 500) score -= 5;
+      
+      return { text: sent.trim(), score, hasDimensionMatch, recencyBonus, years: extractYears(sent) };
+    });
+  }
+  
+  // ── SAFE FALLBACK SENTENCES ─────────────────────────────────────────────
+  function getSafeFallback() {
+    const foodDim = c.dims?.food?.value || 0;
+    const climateDim = c.dims?.climate?.value || 0;
+    const conflictDim = c.dims?.conflict?.value || 0;
+    const economicDim = c.dims?.economic?.value || 0;
+    
+    let sentences = [];
+    let title = `${name} crisis profile`;
+    
+    if (foodDim >= 75) {
+      sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting a significant portion of the population.`);
+      if (foodDim >= 85) {
+        sentences.push(`Food shortages and agricultural collapse have created a critical humanitarian situation.`);
+      }
+    } else if (foodDim >= 60) {
+      sentences.push(`${name} experiences elevated food insecurity, with recurring shortages and malnutrition concerns.`);
+    }
+    
+    if (climateDim >= 70) {
+      sentences.push(`Climate vulnerability is high, with extreme weather events, droughts, and flooding threatening livelihoods.`);
+    } else if (climateDim >= 50) {
+      sentences.push(`Climate variability poses a growing risk to agriculture and water security.`);
+    }
+    
+    if (conflictDim >= 70) {
+      sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
+    } else if (conflictDim >= 50) {
+      sentences.push(`Political instability and security threats continue to undermine stability.`);
+    }
+    
+    if (economicDim >= 60) {
+      sentences.push(`Economic hardship and poverty have left millions without access to basic necessities.`);
+    }
+    
+    if (sentences.length === 0) {
+      sentences.push(`${name} faces a complex humanitarian and security situation requiring ongoing monitoring.`);
+    }
+    
+    return {
+      sentences: sentences.slice(0, 3),
+      title: title
+    };
+  }
+  
+  try {
+    const foodDim = c.dims?.food?.value || 0;
+    const climateDim = c.dims?.climate?.value || 0;
+    const conflictDim = c.dims?.conflict?.value || 0;
+    const economicDim = c.dims?.economic?.value || 0;
+    
+    const weights = {
+      food: foodDim >= 75 ? 35 : (foodDim >= 60 ? 25 : (foodDim >= 40 ? 15 : 0)),
+      climate: climateDim >= 70 ? 30 : (climateDim >= 55 ? 20 : (climateDim >= 40 ? 12 : 0)),
+      conflict: conflictDim >= 70 ? 25 : (conflictDim >= 50 ? 15 : (conflictDim >= 30 ? 8 : 0)),
+      economic: economicDim >= 60 ? 15 : (economicDim >= 40 ? 10 : 0)
+    };
+    
+    let bestSentences = [];
+    let bestTitle = '';
+    let hasGoodWikipedia = false;
+    
+    // ── SEARCH WIKIPEDIA ──────────────────────────────────────────────────
+    const searchTerms = [`${name} crisis`, `${name} famine`, `${name} food security`, `${name} climate`];
+    
+    for (const term of searchTerms) {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=3`;
+      const searchReq = new XMLHttpRequest();
+      searchReq.open('GET', searchUrl, false);
+      searchReq.send();
+      if (searchReq.status === 200) {
+        const searchData = JSON.parse(searchReq.responseText);
+        const results = searchData.query?.search || [];
+        for (const result of results) {
+          const extract = fetchExtract(result.title);
+          if (extract) {
+            // ── DISAMBIGUATION CHECK ────────────────────────────────────────
+            // Skip this article if it's about the band
+            if (isBandChinaCrisis(result.title, extract)) {
+              continue;
+            }
+            
+            let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
+            if (sentences.length < 3) sentences = extract.split(/\n/);
+            sentences = sentences.filter(s => s.trim().length > 60);
+            const scored = scoreSentences(sentences, weights);
+            
+            const filtered = scored.filter(s => {
+              if (s.hasDimensionMatch) return true;
+              const lower = s.text.toLowerCase();
+              if (lower.includes(name.toLowerCase()) && lower.includes('crisis')) return true;
+              return false;
+            });
+            
+            const topScored = filtered
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 3);
+              
+            if (topScored.length >= 2 && topScored.every(s => s.text.length > 60)) {
+              bestSentences = topScored.map(s => s.text);
+              bestTitle = result.title;
+              hasGoodWikipedia = true;
+              break;
+            }
+          }
+        }
+      }
+      if (hasGoodWikipedia) break;
+    }
+    
+    if (!hasGoodWikipedia || bestSentences.length < 2) {
+      const fallback = getSafeFallback();
+      bestSentences = fallback.sentences;
+      bestTitle = fallback.title;
+    }
+    
+    if (bestSentences.length) {
+      wikipediaPrefix = bestSentences.join(' ');
+      wikipediaPrefix += ` — ${bestTitle}`;
+    }
+  } catch(e) {
+    const fallback = getSafeFallback();
+    if (fallback.sentences.length) {
+      wikipediaPrefix = fallback.sentences.join(' ');
+      wikipediaPrefix += ` — ${fallback.title}`;
+    }
+  }
 
   // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
   const rank = ranked.indexOf(iso) + 1;
@@ -123,9 +595,31 @@ function buildUrgencyNarrative(iso) {
     .find(i => i.country.toLowerCase().includes(nameLower));
   if (ipc && ipc.phase >= 3) {
     const pop = Math.round(ipc.population / 1e6);
-    liveSignals.push(
-      `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
-    );
+    const isPhase4 = ipc.phase === 4;
+    const isYemen = nameLower === 'yemen';
+    const isSudan = nameLower === 'sudan';
+    
+    if (isPhase4 && (isYemen || isSudan)) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger (IPC Phase 3+)`
+      );
+    } else if (ipc.phase === 4) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 3) {
+      liveSignals.push(
+        `IPC Phase 3 (Crisis) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 5) {
+      liveSignals.push(
+        `IPC Phase 5 (Famine) — ${pop}M people at immediate risk of starvation`
+      );
+    } else {
+      liveSignals.push(
+        `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
+      );
+    }
   }
 
   const fews = (foodSecurityAlerts || [])
@@ -152,35 +646,33 @@ function buildUrgencyNarrative(iso) {
     : '';
 
   // ── 6. ANOMALY FLAG ────────────────────────────────────────────────────
-// Only flag if z-score is genuinely exceptional (>3.5) AND the raw
-// 28-day swing is large enough to be meaningful (>12 pts), otherwise
-// seeded history trends cause near-universal false positives.
-const histSwing = hist.length >= 4
-  ? Math.max(...hist) - Math.min(...hist)
-  : 0;
-const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
-  ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
-    ` indicating an unusual spike relative to the 28-day baseline.`
-  : '';
+  const histSwing = hist.length >= 4
+    ? Math.max(...hist) - Math.min(...hist)
+    : 0;
+  const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
+    ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
+      ` indicating an unusual spike relative to the 28-day baseline.`
+    : '';
 
   // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
   const parts = [];
 
-  // Sentence 1 — score + rank
+  if (wikipediaPrefix) {
+    parts.push(wikipediaPrefix);
+  }
+
   parts.push(
     `${flag} ${name} ranks #${rank} globally with a ${severityLabel} ` +
     `urgency score of ${c.score}/100, placing it in the ` +
     `top ${100 - pctile}% of all tracked countries.`
   );
 
-  // Sentence 2 — dominant dimensions
   parts.push(
     `The composite is driven primarily by ${topDim.l.toLowerCase()} ` +
     `(${topDim.val}/100) and ${secondDim.l.toLowerCase()} ` +
     `(${secondDim.val}/100), the two highest-weighted dimensions.`
   );
 
-  // Sentence 3 — trend
   parts.push(
     `The score has ${trendPhrase}` +
     (fc.esc
@@ -188,7 +680,6 @@ const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
       : `.`)
   );
 
-  // Sentence 4 — live evidence (if any)
   if (liveSignals.length) {
     const joined = liveSignals.length === 1
       ? liveSignals[0]
@@ -198,16 +689,12 @@ const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
     );
   }
 
-  // Sentence 5 — spillover / anomaly
   if (spillPhrase || anomPhrase) {
     parts.push((spillPhrase + anomPhrase).trim());
   }
 
   return parts.join(' ');
-}
-
-
-// ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
+}/ ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
     .filter(iso => store[iso]?.score >= 60)
@@ -274,7 +761,8 @@ function showTopUrgentStory() {
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
         (isEventBacked ? "live event confirmed" : "score threshold"));
-}  window.dataLayer = window.dataLayer || [];
+}
+window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-0LR42BR1B9');
@@ -415,6 +903,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .search-box:focus{border-color:var(--b3);background:var(--cyan2);color:var(--tp);width:180px}
 .search-box::placeholder{color:var(--td);font-size:11px}
 .search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--tm);pointer-events:none}
+.search-box.locked{opacity:0.4;cursor:not-allowed;pointer-events:none;}
 
 /* ── SIDEBAR ── */
 .sb-block{padding:12px 13px;border-bottom:1px solid var(--b1)}
@@ -827,10 +1316,178 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </head>
 <body>
 
+
+
+<style>
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+  /* Custom scrollbar for headline area (webkit) */
+  #breaking-headline::-webkit-scrollbar {
+    height: 2px;
+  }
+  #breaking-headline::-webkit-scrollbar-track {
+    background: #0f172f;
+    border-radius: 4px;
+  }
+  #breaking-headline::-webkit-scrollbar-thumb {
+    background: #3174c7;
+    border-radius: 4px;
+  }
+</style>
+
+<script>
+  (function() {
+    "use strict";
+    
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    
+    // Format date: "MMM DD, YYYY"
+    function updateDateTime() {
+      const now = new Date();
+      const options = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateElem = document.getElementById('gcin-datetime-mini');
+      if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
+    }
+    updateDateTime();
+    
+    // Fetch top 50 countries from your API
+    async function fetchAllCountries() {
+      const url = new URL(API_BASE);
+      url.searchParams.append("top", "50");
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      return data.countries || [];
+    }
+    
+    // Compute anomaly score (statistical + trend + live boost)
+    function computeAnomalyScore(country) {
+      let score = 0;
+      if (country.anomaly && typeof country.anomaly.z_score === 'number') {
+        score += Math.min(5, country.anomaly.z_score);
+      }
+      if (country.trend && Math.abs(country.trend.forecast_7d - country.score) > 8) {
+        score += 2;
+      }
+      if (country.live_boost && country.live_boost > 8) {
+        score += 1.5;
+      }
+      return Math.min(10, Math.round(score * 10) / 10);
+    }
+    
+    // Generate the exact headline phrase (dynamic, not hardcoded)
+    function generateHeadline(country) {
+  const name = country.name;
+  const flag = country.flag || "";
+  const score = country.score;
+  
+  // Emoji only for extreme severity
+  const emoji = score >= 85 ? "🔴" : "";
+  
+  // Extract the single most important metric (short, punchy)
+  let crisis = "";
+  let number = "";
+  
+  if (country.live_evidence?.food_security?.phase >= 3) {
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
+    const phase = country.live_evidence.food_security.phase;
+    if (phase >= 4) crisis = "Famine";
+    else crisis = "Hunger";
+    number = `${pop}M`;
+  }
+  else if (country.live_evidence?.displacement?.total > 0) {
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+    crisis = "Displaced";
+    number = `${disp}M`;
+  }
+  else if (country.live_evidence?.disease_outbreaks?.length) {
+    const outbreak = country.live_evidence.disease_outbreaks[0];
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
+  }
+  else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+    crisis = "Heat";
+    number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
+  }
+  else {
+    crisis = "Crisis";
+    number = `${score}/100`;
+  }
+  
+  // Trend direction — single word, past tense
+  let action = "Worsens";
+  if (country.trend?.direction === "improving") action = "Eases";
+  else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
+  else if (country.trend?.delta_7d > 3) action = "Surges";
+  else if (country.trend?.delta_7d < 0) action = "Improves";
+  
+  // NYT-style headline templates (short, factual, no markdown)
+  const templates = [
+    `${name} ${action} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis}`,
+    `${crisis} Worsens in ${name}`,
+    `${name} Crisis Deepens: ${number} Affected`,
+    `${name} Slides to ${score}`,
+    `${number} Face ${crisis} in ${name}`
+  ];
+  
+  // Deterministic selection (same country = same headline style)
+  const index = name.length % templates.length;
+  let headline = templates[index];
+  
+  // Prepend emoji only for catastrophic cases
+  if (emoji) headline = `${emoji} ${headline}`;
+  
+  // Add flag at the beginning
+  if (flag) headline = `${flag} ${headline}`;
+  
+  return headline;
+}
+    
+    // Main loader
+    async function loadBreakingHeadline() {
+      const headlineEl = document.getElementById("breaking-headline");
+      if (!headlineEl) return;
+      
+      try {
+        const countries = await fetchAllCountries();
+        if (!countries || countries.length === 0) throw new Error("No country data");
+        
+        // Score each country by anomaly and pick the top
+        const scored = countries.map(c => ({ ...c, anomalyScore: computeAnomalyScore(c) }));
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
+        const topAnomaly = scored[0];
+        
+        // Build headline
+        const headlineText = generateHeadline(topAnomaly);
+        headlineEl.innerText = headlineText;
+        
+        // Save to localStorage for the full GCIN.html page
+        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topAnomaly));
+        
+        // Optional: store timestamp of last update
+        localStorage.setItem('gcin_last_update', new Date().toISOString());
+        
+      } catch (err) {
+        console.warn("[GCIN] Anomaly detection error:", err);
+        headlineEl.innerText = "⚠️ Live anomaly feed temporarily unavailable. Refresh or check API.";
+      }
+    }
+    
+    // Initial load + refresh every 10 minutes
+    loadBreakingHeadline();
+    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
+  })();
+</script>
+
+<!-- Your original app header continues right after this -->
 <div class="app">
 <header class="header">
-  <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">Verified Real-time API Endpoints · Full Integration</div></div></div>
-  <div class="header-mid">
+  <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">Enterprise API Suite · Live Crisis Intelligence for B2B Risk Analysis</div></div></div>  <div class="header-mid">
     <div class="gcis-chip"><div><div class="gcis-label">Global Crisis Index</div><div class="gcis-num" id="gcisNum">—</div></div><div><div class="gcis-delta" id="gcisDelta">—</div></div></div>
     <div class="vdiv"></div>
     <div class="stat-strip">
@@ -896,22 +1553,37 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div class="ticker-bar"><div class="ticker-label">⚡ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS×2, EMSC, NASA, ReliefWeb×2, GDACS, ACLED, OpenWeatherMap, GFW, FIRMS, WHO RSS, FAO, IPC Global, WFP, FEWS NET, World Bank×4, IMF×2, UNHCR, GDELT, OpenAQ, Open-Meteo...</div></div></div></div>
 <div class="main">
   <aside class="sidebar">
-    <!-- NEW: Google Search Box -->
-    <div class="sb-block">
-      <div class="sb-heading">Ask Global Crisis Index <span style="font-size: 11px; font-weight: normal; color: var(--tm);">🔍 powered by Google</span></div>
-      <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <input type="text" id="crisisSearch" placeholder="e.g., sudan drought, japan earthquake, yemen famine..." 
-               style="flex: 1; background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; outline: none; transition: all 0.2s;"
-               onkeypress="if(event.key === 'Enter') searchGoogleCrisis()">
-        <button id="searchGoogleBtn" onclick="searchGoogleCrisis()"
-                style="background: linear-gradient(135deg, #1a73e8, #0d47a1); border: none; border-radius: 8px; padding: 0 16px; color: white; font-weight: 600; font-size: 13px; cursor: pointer; transition: opacity 0.2s;">
-          🔍 Ask
-        </button>
+    <!-- CRYS Chat Block -->
+    <div class="sb-block" id="crysChatBlock" style="display:flex;flex-direction:column;padding:0;border-bottom:1px solid var(--b1);height:340px;min-height:220px;max-height:340px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px 6px;border-bottom:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-family:var(--fd);font-size:13px;font-weight:900;background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em;">CRYS</span>
+          <span style="font-family:var(--fm);font-size:6px;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);color:var(--cyan);padding:1px 6px;border-radius:99px;letter-spacing:.08em;">CRISIS AI</span>
+        </div>
+        <button onclick="crysClear()" style="background:none;border:none;color:var(--tm);font-family:var(--fm);font-size:7px;cursor:pointer;padding:2px 5px;border-radius:3px;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--tm)'">↺ clear</button>
+      </div>
+      <div id="crysChat" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;"></div>
+      <div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap;">
+          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
+          <button class="crys-chip" onclick="crysSubmit('top 5')">🔥 Top 5</button>
+          <button class="crys-chip" onclick="crysSubmit('what is escalating')">📈 Escalating</button>
+          <button class="crys-chip" onclick="crysSubmit('compare Sudan and Yemen')">⚖️ Compare</button>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <input id="crysInp" type="text" placeholder="Somalia · top 5 · compare Sudan vs Yemen…"
+            style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:99px;padding:5px 11px;font-size:10px;color:var(--tp);font-family:var(--fb);outline:none;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--b2)'"
+            onkeypress="if(event.key==='Enter')crysSubmit(this.value)">
+          <button onclick="crysSubmit(document.getElementById('crysInp').value)"
+            style="background:var(--cyan);color:#030b18;border:none;border-radius:99px;padding:5px 12px;font-family:var(--fm);font-size:8px;font-weight:800;cursor:pointer;flex-shrink:0;transition:background .13s;"
+            onmouseover="this.style.background='#74c0fc'" onmouseout="this.style.background='var(--cyan)'">Ask ↵</button>
+        </div>
       </div>
     </div>
 
     <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
-    <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Ranking <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
+    <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Rankings <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
   </aside>
   <div class="map-stage" id="mapStage">
     <svg id="map-svg"></svg>
@@ -958,12 +1630,14 @@ function unlockProFeatures(isPro) {
   if (isPro) {
     const lockBanner = document.querySelector('.lock-banner');
     if (lockBanner) lockBanner.style.display = 'none';
-    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    // Only hide header upgrade button, NOT elements inside panelContent
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    console.log('✅ Pro features unlocked');
+    // Re-render panel if a country is selected, clearing any upgrade wall
+    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
   } else {
-    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
   }
@@ -997,7 +1671,9 @@ function logout() {
   document.getElementById('tierPill').onclick = () => openModal();
   tier = 'free';
   unlockProFeatures(false);
-  renderRanking(document.getElementById('search').value);
+  updateSearchLockState();
+  document.getElementById('search').value='';
+  renderRanking('');
   toast('Logged out');
 }
 
@@ -1037,6 +1713,7 @@ async function checkProStatusAndUpdateUI(email) {
       }
       unlockProFeatures(false);
     }
+    updateSearchLockState();
     renderRanking(document.getElementById('search').value);
     return isPro;
   } catch (err) {
@@ -1077,36 +1754,36 @@ const safe = (p, ms=8000) => Promise.race([p, new Promise((_, r) => setTimeout((
 // ALL API ENDPOINTS (FULLY INTEGRATED)
 // ============================================================================
 const API_ENDPOINTS = {
+  // ── SEISMIC ──────────────────────────────────────────────────────────────
   usgs_weekly: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
   usgs_significant: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
   emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
-  nasa: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50',
-  reliefweb_disasters: 'https://api.reliefweb.int/v1/disasters?appname=gcis-fusion&limit=30&sort[]=date:desc&fields[include][]=name&fields[include][]=country&fields[include][]=date&fields[include][]=type&fields[include][]=status',
-  reliefweb_reports: 'https://api.reliefweb.int/v1/reports?appname=gcis-fusion&limit=25&sort[]=date:desc&fields[include][]=title&fields[include][]=country&fields[include][]=date&fields[include][]=format',
+
+  // ── NATURAL EVENTS ──────────────────────────────────────────────────────
+  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters',
+  reliefweb_reports: '/api/proxy?source=reliefweb_reports',
   gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
-  firms: 'https://firms.modaps.eosdis.nasa.gov/api/country/csv/7d/ALL/1',
-  gfw: 'https://data-api.globalforestwatch.org/v1/forest-change/status',
-  noaa: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&severity=Extreme,Severe&limit=20',
+
+  // ── WEATHER ──────────────────────────────────────────────────────────────
+  noaa: 'https://api.weather.gov/alerts?status=actual&limit=20',
   openmeteo: null,
   openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
-  acled: 'https://api.acleddata.com/acled/read?terms=accept&limit=50&event_date=2024-01-01&event_date_where=>',
-  gdelt: 'https://api.gdeltproject.org/api/v2/geo/geo?query=conflict+crisis+humanitarian+emergency+disaster&mode=pointdata&maxrows=300&format=GeoJSON&TIMESPAN=7d',
+
+  // ── CONFLICT ─────────────────────────────────────────────────────────────
+  gdelt: '/api/proxy?source=gdelt',
+
+  // ── HEALTH ───────────────────────────────────────────────────────────────
   who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
   who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
-  opendisease: 'https://api.opendiseasedata.org/v1/outbreaks?limit=50',
-  ipc_current: 'https://api.ipcinfo.org/v1/classifications/latest',
-  ipc_population: 'https://api.ipcinfo.org/v1/populations/latest',
-  fewsnet: 'https://fews.net/api/alert.json',
-  wfp_vam: 'https://api.vam.wfp.org/v1/food-security/indicators/latest',
-  fao_giews: 'https://api.fao.org/giews/country-alerts/latest',
+
+  // ── ECONOMIC ─────────────────────────────────────────────────────────────
   wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
   wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
   wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
   wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
-  imf_gdp: 'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH',
-  imf_inflation: 'https://www.imf.org/external/datamapper/api/v1/PCPIPCH',
-  unhcr: 'https://api.unhcr.org/population/v1/displacement-situations/?limit=50',
-  openaq: 'https://api.openaq.org/v2/countries?limit=200&page=1'
+
+  // ── DISPLACEMENT ────────────────────────────────────────────────────────
+  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`,
 };
 
 // ============================================================================
@@ -1392,7 +2069,76 @@ async function fetchDiseaseOutbreaks(){try{const res=await safe(fetch(API_ENDPOI
 // ============================================================================
 // BUILD TICKER
 // ============================================================================
-function buildTickerFromResults(){const items=[];const now=Date.now();if(apiResults.usgs_weekly?.features)apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c="#3ec5ff",l="LOW";if(mag>=7){c="#ff375f";l="CRITICAL";}else if(mag>=6){c="#ff8c42";l="HIGH";}else if(mag>=5){c="#ffb020";l="MODERATE";}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});});if(apiResults.nasa?.events)apiResults.nasa.events.slice(0,3).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c="#ffb020",l="MODERATE",icon="⚠️";if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});});if(apiResults.noaa?.features)apiResults.noaa.features.slice(0,3).forEach(alert=>{const props=alert.properties;items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});});heatStressData.forEach(h=>{if(h.temp>40)items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});});foodSecurityAlerts.forEach(a=>{let c="#ffb020",l="MODERATE";if(a.ipc>=4){c="#ff375f";l="CRITICAL";}else if(a.ipc>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});});ipcClassifications.forEach(i=>{let c="#ffb020",l="MODERATE";if(i.phase>=4){c="#ff375f";l="CRITICAL";}else if(i.phase>=3){c="#ff8c42";l="HIGH";}items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});});conflictEvents.forEach(c=>{items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});});diseaseOutbreaks.forEach(d=>{items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});});items.sort((a,b)=>a.age-b.age);const seen=new Set();const uniq=items.filter(r=>{const k=r.t.slice(0,45).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,55);if(uniq.length===0)return;const doubled=[...uniq,...uniq];const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');const inner=document.getElementById('tickerInner');inner.innerHTML=html;inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';}
+function buildTickerFromResults(){
+  const items=[];
+  const now=Date.now();
+  
+  if(apiResults.usgs_weekly?.features)
+    apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{
+      const p=f.properties;
+      const mag=+(p.mag||0).toFixed(1);
+      let c="#3ec5ff",l="LOW";
+      if(mag>=7){c="#ff375f";l="CRITICAL";}
+      else if(mag>=6){c="#ff8c42";l="HIGH";}
+      else if(mag>=5){c="#ffb020";l="MODERATE";}
+      items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});
+    });
+    
+  if(apiResults.nasa?.events)
+    apiResults.nasa.events.slice(0,3).forEach(ev=>{
+      const cat=(ev.categories||[])[0]?.title||'';
+      let c="#ffb020",l="MODERATE",icon="⚠️";
+      if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}
+      else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}
+      items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});
+    });
+    
+  if(apiResults.noaa?.features)
+    apiResults.noaa.features.slice(0,3).forEach(alert=>{
+      const props=alert.properties;
+      items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});
+    });
+    
+  heatStressData.forEach(h=>{
+    if(h.temp>40)
+      items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});
+  });
+  
+  foodSecurityAlerts.forEach(a=>{
+    let c="#ffb020",l="MODERATE";
+    if(a.ipc>=4){c="#ff375f";l="CRITICAL";}
+    else if(a.ipc>=3){c="#ff8c42";l="HIGH";}
+    items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});
+  });
+  
+  ipcClassifications.forEach(i=>{
+    let c="#ffb020",l="MODERATE";
+    if(i.phase>=4){c="#ff375f";l="CRITICAL";}
+    else if(i.phase>=3){c="#ff8c42";l="HIGH";}
+    items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});
+  });
+  
+  conflictEvents.forEach(c=>{
+    items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});
+  });
+  
+  diseaseOutbreaks.forEach(d=>{
+    items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});
+  });
+  
+  // FIX: Remove any filtering that might hide items
+  const uniq = items.slice(0, 55);
+  
+  if(uniq.length===0) return;
+  
+  const doubled=[...uniq,...uniq];
+  const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
+  const inner=document.getElementById('tickerInner');
+  if(inner) {
+    inner.innerHTML=html;
+    inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';
+  }
+}
 
 // ============================================================================
 // FETCH ALL APIs
@@ -1499,25 +2245,97 @@ async function refresh() {
   const urlParams = new URLSearchParams(window.location.search);
   const urlCountry = urlParams.get('country');
   
-  if (urlCountry && store[urlCountry]) {
-    selectedIso = urlCountry;
-    renderPanel(selectedIso, urlParams.get('crisis'));
-    if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
-  } else if (selectedIso && store[selectedIso]) {
-    renderPanel(selectedIso);
-  } else if (ranked.length) {
-    selectedIso = ranked[0];
-    renderPanel(selectedIso);
-  }
+  const resolvePanel = (attempt) => {
+    const urlParams2 = new URLSearchParams(window.location.search);
+    const urlCountry2 = urlParams2.get('country');
+    if (urlCountry2 && store[urlCountry2]) {
+      selectedIso = urlCountry2;
+      renderPanel(selectedIso, urlParams2.get('crisis'));
+      if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
+    } else if (urlCountry2 && attempt < 5) {
+      setTimeout(() => resolvePanel(attempt + 1), 200);
+    } else if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso);
+    } else if (ranked.length) {
+      selectedIso = ranked[0];
+      renderPanel(selectedIso);
+    }
+  };
+  resolvePanel(0);
 }
 
 // ============================================================================
 // MAP FUNCTIONS (condensed)
 // ============================================================================
-function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path').data(countries.features).enter().append('path').attr('class','country-path').attr('d',pathGen).attr('fill','#0c1c30').on('mousemove',(ev,d)=>{const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');if(iso&&store[iso]){const c=store[iso],col=sc(c.score);document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;tt.style.left=Math.min(x+16,W-210)+'px';tt.style.top=Math.max(8,y-85)+'px';tt.classList.add('vis');}else tt.classList.remove('vis');}).on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis')).on('click',(ev,d)=>{const iso=NUM_ISO[String(d.id)];if(iso&&store[iso])selCountry(iso);});zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));svgEl.call(zoom);document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);window.addEventListener('resize',()=>{const W2=stage.clientWidth,H2=stage.clientHeight;svgEl.attr('width',W2).attr('height',H2);proj.scale(W2/4.3).translate([W2/2,H2/2]);pathGen=d3.geoPath().projection(proj);mapGroup.selectAll('path').attr('d',pathGen);addPulseMarkers();});}
-function paintMap(){if(!mapGroup)return;mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{const iso=NUM_ISO[String(d.id)];if(!iso||!store[iso])return '#0c1c30';return sc(store[iso].score)+'99';});}
-function addPulseMarkers(){if(!mapGroup||!proj)return;mapGroup.selectAll('.pulse-marker').remove();const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);hotspots.forEach((iso,idx)=>{const c=store[iso];const col=sc(c.score);const dotsList=[];if(apiResults.usgs_weekly?.features){apiResults.usgs_weekly.features.slice(0,80).forEach(q=>{const place=(q.properties.place||'').toLowerCase();if(place.includes(c.name.toLowerCase()))dotsList.push(q.geometry.coordinates.slice(0,2));});}if(dotsList.length===0&&CENTROIDS[iso])dotsList.push(CENTROIDS[iso]);dotsList.slice(0,2).forEach((coords,pi)=>{const[px,py]=proj(coords);if(!isFinite(px)||!isFinite(py))return;const g=mapGroup.append('g').attr('class','pulse-marker');const dur=2.4+(idx%6)*0.3+pi*0.25;const dotR=c.score>=80?4:c.score>=70?3:2.5;for(let ring=0;ring<2;ring++){g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0).append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');}g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);});});}
-function zoomToCountry(iso){if(!mapGroup||!proj||!ISO_NUM[iso])return;const isoNum=ISO_NUM[iso];let feature=null;mapGroup.selectAll('.country-path').each(function(d){if(String(d.id)===isoNum)feature=d;});if(!feature)return;const centroid=pathGen.centroid(feature);if(!centroid||!isFinite(centroid[0])||!isFinite(centroid[1]))return;const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;const scale=Math.min(6,Math.max(2.5,store[iso]?.score>70?4:3));svgEl.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-centroid[0],-centroid[1]));}
+function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path').data(countries.features).enter().append('path').attr('class','country-path').attr('d',pathGen).attr('fill','#1a2e45').on('mousemove',(ev,d)=>{const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');if(iso&&store[iso]){const c=store[iso],col=sc(c.score);document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;tt.style.left=Math.min(x+16,W-210)+'px';tt.style.top=Math.max(8,y-85)+'px';tt.classList.add('vis');}else tt.classList.remove('vis');}).on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis')).on('click',(ev,d)=>{const iso=NUM_ISO[String(d.id)];if(iso&&store[iso])selCountry(iso);});zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));svgEl.call(zoom);document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);window.addEventListener('resize',()=>{const W2=stage.clientWidth,H2=stage.clientHeight;svgEl.attr('width',W2).attr('height',H2);proj.scale(W2/4.3).translate([W2/2,H2/2]);pathGen=d3.geoPath().projection(proj);mapGroup.selectAll('path').attr('d',pathGen);addPulseMarkers();});if(typeof paintMap==='function')setTimeout(paintMap,100);}
+function paintMap(){if(!mapGroup)return;mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{let iso=NUM_ISO[String(d.id)];if(!iso){const name=d.properties?.name||d.properties?.admin||'';if(name==='Afghanistan')iso='AFG';else if(name==='Albania')iso='ALB';else if(name==='Algeria')iso='DZA';else if(name==='Andorra')iso='AND';else if(name==='Angola')iso='AGO';else if(name==='Antigua and Barbuda')iso='ATG';else if(name==='Argentina')iso='ARG';else if(name==='Armenia')iso='ARM';else if(name==='Australia')iso='AUS';else if(name==='Austria')iso='AUT';else if(name==='Azerbaijan')iso='AZE';else if(name==='Bahamas')iso='BHS';else if(name==='Bahrain')iso='BHR';else if(name==='Bangladesh')iso='BGD';else if(name==='Barbados')iso='BRB';else if(name==='Belarus')iso='BLR';else if(name==='Belgium')iso='BEL';else if(name==='Belize')iso='BLZ';else if(name==='Benin')iso='BEN';else if(name==='Bhutan')iso='BTN';else if(name==='Bolivia')iso='BOL';else if(name==='Bosnia and Herzegovina')iso='BIH';else if(name==='Botswana')iso='BWA';else if(name==='Brazil')iso='BRA';else if(name==='Brunei')iso='BRN';else if(name==='Bulgaria')iso='BGR';else if(name==='Burkina Faso')iso='BFA';else if(name==='Burundi')iso='BDI';else if(name==='Cabo Verde')iso='CPV';else if(name==='Cambodia')iso='KHM';else if(name==='Cameroon')iso='CMR';else if(name==='Canada')iso='CAN';else if(name==='Central African Republic')iso='CAF';else if(name==='Chad')iso='TCD';else if(name==='Chile')iso='CHL';else if(name==='China')iso='CHN';else if(name==='Colombia')iso='COL';else if(name==='Comoros')iso='COM';else if(name==='Congo')iso='COG';else if(name==='Costa Rica')iso='CRI';else if(name==='Côte d\'Ivoire')iso='CIV';else if(name==='Croatia')iso='HRV';else if(name==='Cuba')iso='CUB';else if(name==='Cyprus')iso='CYP';else if(name==='Czechia')iso='CZE';else if(name==='Denmark')iso='DNK';else if(name==='Djibouti')iso='DJI';else if(name==='Dominica')iso='DMA';else if(name==='Dominican Republic')iso='DOM';else if(name==='DR Congo')iso='COD';else if(name==='Ecuador')iso='ECU';else if(name==='Egypt')iso='EGY';else if(name==='El Salvador')iso='SLV';else if(name==='Equatorial Guinea')iso='GNQ';else if(name==='Eritrea')iso='ERI';else if(name==='Estonia')iso='EST';else if(name==='Eswatini')iso='SWZ';else if(name==='Ethiopia')iso='ETH';else if(name==='Fiji')iso='FJI';else if(name==='Finland')iso='FIN';else if(name==='France')iso='FRA';else if(name==='Gabon')iso='GAB';else if(name==='Gambia')iso='GMB';else if(name==='Georgia')iso='GEO';else if(name==='Germany')iso='DEU';else if(name==='Ghana')iso='GHA';else if(name==='Greece')iso='GRC';else if(name==='Greenland')iso='GRL';else if(name==='Grenada')iso='GRD';else if(name==='Guatemala')iso='GTM';else if(name==='Guinea')iso='GIN';else if(name==='Guinea-Bissau')iso='GNB';else if(name==='Guyana')iso='GUY';else if(name==='Haiti')iso='HTI';else if(name==='Honduras')iso='HND';else if(name==='Hungary')iso='HUN';else if(name==='Iceland')iso='ISL';else if(name==='India')iso='IND';else if(name==='Indonesia')iso='IDN';else if(name==='Iran')iso='IRN';else if(name==='Iraq')iso='IRQ';else if(name==='Ireland')iso='IRL';else if(name==='Israel')iso='ISR';else if(name==='Italy')iso='ITA';else if(name==='Jamaica')iso='JAM';else if(name==='Japan')iso='JPN';else if(name==='Jordan')iso='JOR';else if(name==='Kazakhstan')iso='KAZ';else if(name==='Kenya')iso='KEN';else if(name==='Kiribati')iso='KIR';else if(name==='Kuwait')iso='KWT';else if(name==='Kyrgyzstan')iso='KGZ';else if(name==='Laos')iso='LAO';else if(name==='Latvia')iso='LVA';else if(name==='Lebanon')iso='LBN';else if(name==='Lesotho')iso='LSO';else if(name==='Liberia')iso='LBR';else if(name==='Libya')iso='LBY';else if(name==='Liechtenstein')iso='LIE';else if(name==='Lithuania')iso='LTU';else if(name==='Luxembourg')iso='LUX';else if(name==='Madagascar')iso='MDG';else if(name==='Malawi')iso='MWI';else if(name==='Malaysia')iso='MYS';else if(name==='Maldives')iso='MDV';else if(name==='Mali')iso='MLI';else if(name==='Malta')iso='MLT';else if(name==='Marshall Islands')iso='MHL';else if(name==='Mauritania')iso='MRT';else if(name==='Mauritius')iso='MUS';else if(name==='Mexico')iso='MEX';else if(name==='Micronesia')iso='FSM';else if(name==='Moldova')iso='MDA';else if(name==='Monaco')iso='MCO';else if(name==='Mongolia')iso='MNG';else if(name==='Montenegro')iso='MNE';else if(name==='Morocco')iso='MAR';else if(name==='Mozambique')iso='MOZ';else if(name==='Myanmar')iso='MMR';else if(name==='Namibia')iso='NAM';else if(name==='Nauru')iso='NRU';else if(name==='Nepal')iso='NPL';else if(name==='Netherlands')iso='NLD';else if(name==='New Zealand')iso='NZL';else if(name==='Nicaragua')iso='NIC';else if(name==='Niger')iso='NER';else if(name==='Nigeria')iso='NGA';else if(name==='North Korea')iso='PRK';else if(name==='North Macedonia')iso='MKD';else if(name==='Norway')iso='NOR';else if(name==='Oman')iso='OMN';else if(name==='Pakistan')iso='PAK';else if(name==='Palau')iso='PLW';else if(name==='Palestine')iso='PSE';else if(name==='Panama')iso='PAN';else if(name==='Papua New Guinea')iso='PNG';else if(name==='Paraguay')iso='PRY';else if(name==='Peru')iso='PER';else if(name==='Philippines')iso='PHL';else if(name==='Poland')iso='POL';else if(name==='Portugal')iso='PRT';else if(name==='Qatar')iso='QAT';else if(name==='Romania')iso='ROU';else if(name==='Russia')iso='RUS';else if(name==='Rwanda')iso='RWA';else if(name==='Saint Kitts and Nevis')iso='KNA';else if(name==='Saint Lucia')iso='LCA';else if(name==='Saint Vincent and the Grenadines')iso='VCT';else if(name==='Samoa')iso='WSM';else if(name==='San Marino')iso='SMR';else if(name==='Sao Tome and Principe')iso='STP';else if(name==='Saudi Arabia')iso='SAU';else if(name==='Senegal')iso='SEN';else if(name==='Serbia')iso='SRB';else if(name==='Seychelles')iso='SYC';else if(name==='Sierra Leone')iso='SLE';else if(name==='Singapore')iso='SGP';else if(name==='Slovakia')iso='SVK';else if(name==='Slovenia')iso='SVN';else if(name==='Solomon Islands')iso='SLB';else if(name==='Somalia')iso='SOM';else if(name==='South Africa')iso='ZAF';else if(name==='South Korea')iso='KOR';else if(name==='South Sudan')iso='SSD';else if(name==='Spain')iso='ESP';else if(name==='Sri Lanka')iso='LKA';else if(name==='Sudan')iso='SDN';else if(name==='Suriname')iso='SUR';else if(name==='Sweden')iso='SWE';else if(name==='Switzerland')iso='CHE';else if(name==='Syria')iso='SYR';else if(name==='Taiwan')iso='TWN';else if(name==='Tajikistan')iso='TJK';else if(name==='Tanzania')iso='TZA';else if(name==='Thailand')iso='THA';else if(name==='Timor-Leste')iso='TLS';else if(name==='Togo')iso='TGO';else if(name==='Tonga')iso='TON';else if(name==='Trinidad and Tobago')iso='TTO';else if(name==='Tunisia')iso='TUN';else if(name==='Turkey')iso='TUR';else if(name==='Turkmenistan')iso='TKM';else if(name==='Tuvalu')iso='TUV';else if(name==='Uganda')iso='UGA';else if(name==='Ukraine')iso='UKR';else if(name==='United Arab Emirates')iso='ARE';else if(name==='United Kingdom')iso='GBR';else if(name==='United States')iso='USA';else if(name==='Uruguay')iso='URY';else if(name==='Uzbekistan')iso='UZB';else if(name==='Vanuatu')iso='VUT';else if(name==='Venezuela')iso='VEN';else if(name==='Vietnam')iso='VNM';else if(name==='Yemen')iso='YEM';else if(name==='Zambia')iso='ZMB';else if(name==='Zimbabwe')iso='ZWE';else if(name==='Kosovo')iso='XKX';else if(name==='Western Sahara')iso='ESH';}if(!iso||!store[iso])return '#1a2e45';const col=sc(store[iso].score);return col+'bb';});}function addPulseMarkers(){if(!mapGroup||!proj)return;mapGroup.selectAll('.pulse-marker').remove();if(!ranked||!store)return;const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);hotspots.forEach((iso,idx)=>{const c=store[iso];if(!c)return;const col=sc(c.score);const dotsList=[];if(apiResults.usgs_weekly?.features){apiResults.usgs_weekly.features.slice(0,80).forEach(q=>{const place=(q.properties.place||'').toLowerCase();if(place.includes(c.name.toLowerCase()))dotsList.push(q.geometry.coordinates.slice(0,2));});}if(dotsList.length===0&&CENTROIDS[iso])dotsList.push(CENTROIDS[iso]);dotsList.slice(0,2).forEach((coords,pi)=>{const[px,py]=proj(coords);if(!isFinite(px)||!isFinite(py))return;const g=mapGroup.append('g').attr('class','pulse-marker');const dur=2.4+(idx%6)*0.3+pi*0.25;const dotR=c.score>=80?4:c.score>=70?3:2.5;for(let ring=0;ring<2;ring++){g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0).append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');}g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);});});}
+function zoomToCountry(iso){
+  if(!svgEl||!proj||!zoom)return;
+  const stage=document.getElementById('mapStage');
+  if(!stage)return;
+  const W=stage.clientWidth,H=stage.clientHeight;
+
+  const SCALE_OVERRIDES={
+    RUS:1.4,CAN:1.4,USA:1.6,BRA:1.8,AUS:1.6,CHN:1.8,IND:2.0,KAZ:1.8,ARG:1.8,
+    DZA:2.0,SAU:2.0,MEX:2.0,IDN:1.8,GRL:1.6,MNG:2.0,PER:2.2,SDN:2.2,LBY:2.2,
+    IRN:2.2,COD:2.2,ETH:2.4,EGY:2.4,TCD:2.4,MLI:2.4,NGA:2.6,MOZ:2.6,UKR:2.6,
+    TUR:2.8,POL:3.0,COL:2.6,VEN:2.6,ZAF:2.4,TZA:2.6,NER:2.4,MRT:2.4,NAM:2.6,
+    AFG:3.2,SOM:2.8,SYR:3.5,YEM:3.0,SSD:2.8,HTI:4.8,MMR:2.8,IRQ:3.2,PAK:2.6,
+    BGD:3.8,PHL:3.0,NPL:3.8,KEN:3.0,GHA:3.5,SEN:3.8,CMR:3.2,UGA:3.5,RWA:4.5,
+    BDI:4.5,BFA:3.5,GTM:4.0,HND:4.0,NIC:4.0,SLV:4.5,BLZ:4.5,PAN:4.0,CRI:4.2,
+    DOM:4.5,JAM:5.0,CUB:3.8,TTO:5.5,PSE:6.0,LBN:6.0,SGP:8.0,MDV:6.0,BHR:7.0,
+    QAT:6.0,KWT:6.0,ISR:5.5,CYP:5.5,MLT:7.0,COM:6.0,MUS:7.0,SYC:7.0,TLS:5.5,
+    BRN:5.5,AND:8.0,SMR:8.0,LIE:8.0,NRU:8.0,TUV:7.0,PLW:7.0,MHL:6.0,FSM:5.5,
+    KNA:7.0,DMA:7.0,GRD:7.0,VCT:7.0,LCA:7.0,ATG:7.0,BRB:7.0,STP:7.0,CPV:5.5,
+    GNQ:5.5,GMB:6.0
+  };
+
+  const scale=SCALE_OVERRIDES[iso]??Math.min(5,Math.max(2.4,(store[iso]?.score||50)>70?3.8:3.0));
+
+  // Strategy 1: CENTROIDS lookup
+  if(CENTROIDS[iso]){
+    const projected=proj(CENTROIDS[iso]);
+    if(projected&&isFinite(projected[0])&&isFinite(projected[1])){
+      svgEl.transition().duration(550).call(zoom.transform,
+        d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-projected[0],-projected[1]));
+      return;
+    }
+  }
+
+  // Strategy 2: numeric ID match on SVG path
+  if(mapGroup&&pathGen&&ISO_NUM[iso]){
+    const isoNum=parseInt(ISO_NUM[iso],10);
+    let feature=null;
+    mapGroup.selectAll('.country-path').each(function(d){
+      if(String(d.id)===String(isoNum))feature=d;
+    });
+    if(feature){
+      const c=pathGen.centroid(feature);
+      if(c&&isFinite(c[0])&&isFinite(c[1])){
+        svgEl.transition().duration(550).call(zoom.transform,
+          d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-c[0],-c[1]));
+        return;
+      }
+    }
+  }
+
+  // Strategy 3: name match on SVG path properties (fallback)
+  if(mapGroup&&pathGen&&store[iso]){
+    const targetName=(store[iso].name||'').toLowerCase();
+    let feature=null;
+    mapGroup.selectAll('.country-path').each(function(d){
+      const pname=(d.properties?.name||d.properties?.admin||'').toLowerCase();
+      if(pname===targetName)feature=d;
+    });
+    if(feature){
+      const c=pathGen.centroid(feature);
+      if(c&&isFinite(c[0])&&isFinite(c[1])){
+        svgEl.transition().duration(550).call(zoom.transform,
+          d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-c[0],-c[1]));
+      }
+    }
+  }
+}
 function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip${prefs.filters.includes(k)?' on':''}" data-f="${k}">${a.i} ${a.l}</div>`).join('');document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value)}));}
 
 // ============================================================================
@@ -1544,17 +2362,69 @@ function renderRanking(filter=''){
   }
 }
 
-function selCountry(iso) {
-  if (store[iso]) {
-    selectedIso = iso;
-    const idx = ranked.indexOf(iso);
-    if (idx >= 0) rankIdx = idx;
-    const urlParams = new URLSearchParams(window.location.search);
-    const crisisParam = (urlParams.get('country') === iso) ? urlParams.get('crisis') : null;
-    renderPanel(iso, crisisParam);
+function selCountry(iso){
+  if(!iso||!store[iso])return;
+
+  // Free tier: block panel for countries outside top 10
+  if(tier!=='pro'){
+    const idx=ranked.indexOf(iso);
+    if(idx>=10){
+      // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
+      _doZoom(iso);
+      document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
+      // Show upgrade wall in right panel
+      document.getElementById('emptyState').style.display='none';
+      document.getElementById('panelContent').style.display='block';
+      const c=store[iso];
+      const col=sc(c.score);
+      document.getElementById('panelContent').innerHTML=`
+        <div style="padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
+          <div style="font-size:36px;">${c.flag}</div>
+          <div style="font-family:var(--fd);font-size:22px;font-weight:900;background:linear-gradient(135deg,#fff 20%,${col});-webkit-background-clip:text;background-clip:text;color:transparent;">${c.name}</div>
+          <div style="font-family:var(--fm);font-size:10px;color:${col};background:${col}18;border:1px solid ${col}33;border-radius:99px;padding:4px 12px;">Score: ${c.score}/100 · #${idx+1} globally</div>
+          <div style="background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));border:1px solid rgba(191,127,255,.22);border-radius:14px;padding:20px 18px;width:100%;max-width:320px;">
+            <div style="font-size:20px;margin-bottom:8px;">🔒</div>
+            <div style="font-family:var(--fd);font-size:17px;font-weight:800;color:var(--purple);margin-bottom:6px;">Pro Access Required</div>
+            <div style="font-family:var(--fm);font-size:10px;color:var(--tm);line-height:1.7;margin-bottom:14px;">Full intelligence panels are available for the <strong style="color:var(--ts);">top 10 countries</strong> on the free tier. Upgrade to Pro to unlock all ${ranked.length}+ countries.</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:14px;">
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">🌍 All ${ranked.length}+ countries</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">🤖 AI briefs</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">📄 PDF reports</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">✉️ Alerts</span>
+            </div>
+            <button onclick="openModal()" style="background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:11px 20px;border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;font-size:11px;letter-spacing:.05em;width:100%;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">⚡ Upgrade to Pro — $29/month</button>
+          </div>
+          <div style="font-family:var(--fm);font-size:9px;color:var(--td);">Free tier: top 10 countries · <span style="color:var(--cyan);cursor:pointer;" onclick="openModal()">Upgrade for full access</span></div>
+        </div>
+      `;
+      const newUrl=`${window.location.pathname}?country=${iso}`;
+      window.history.pushState({country:iso},'',newUrl);
+      return;
+    }
+  }
+
+  selectedIso=iso;
+  const idx=ranked.indexOf(iso);
+  if(idx>=0)rankIdx=idx;
+  renderPanel(iso,null);
+  _doZoom(iso);
+  document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
+  const newUrl=`${window.location.pathname}?country=${iso}`;
+  window.history.pushState({country:iso},'',newUrl);
+}
+
+function _doZoom(iso){
+  if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
+  const stage=document.getElementById('mapStage');
+  if(!stage)return;
+  const W=stage.clientWidth,H=stage.clientHeight;
+  const SCALE_OVERRIDES={RUS:1.4,CAN:1.4,USA:1.6,BRA:1.8,AUS:1.6,CHN:1.8,IND:2.0,KAZ:1.8,ARG:1.8,DZA:2.0,SAU:2.0,MEX:2.0,IDN:1.8,GRL:1.6,MNG:2.0,PER:2.2,SDN:2.2,LBY:2.2,IRN:2.2,COD:2.2,ETH:2.4,EGY:2.4,TCD:2.4,MLI:2.4,NGA:2.6,MOZ:2.6,UKR:2.6,TUR:2.8,POL:3.0,COL:2.6,VEN:2.6,ZAF:2.4,TZA:2.6,NER:2.4,MRT:2.4,NAM:2.6,AFG:3.2,SOM:2.8,SYR:3.5,YEM:3.0,SSD:2.8,HTI:4.8,MMR:2.8,IRQ:3.2,PAK:2.6,BGD:3.8,PHL:3.0,NPL:3.8,KEN:3.0,GHA:3.5,SEN:3.8,CMR:3.2,UGA:3.5,RWA:4.5,BDI:4.5,BFA:3.5,GTM:4.0,HND:4.0,NIC:4.0,SLV:4.5,BLZ:4.5,PAN:4.0,CRI:4.2,DOM:4.5,JAM:5.0,CUB:3.8,TTO:5.5,PSE:6.0,LBN:6.0,SGP:8.0,MDV:6.0,BHR:7.0,QAT:6.0,KWT:6.0,ISR:5.5,CYP:5.5,MLT:7.0,COM:6.0,MUS:7.0,SYC:7.0,TLS:5.5,BRN:5.5,AND:8.0,SMR:8.0,LIE:8.0,NRU:8.0,TUV:7.0,PLW:7.0,MHL:6.0,FSM:5.5,KNA:7.0,DMA:7.0,GRD:7.0,VCT:7.0,LCA:7.0,ATG:7.0,BRB:7.0,STP:7.0,CPV:5.5,GNQ:5.5,GMB:6.0};
+  const scale=SCALE_OVERRIDES[iso]??Math.min(5,Math.max(2.4,(store[iso]?.score||50)>70?3.8:3.0));
+  const projected=proj(CENTROIDS[iso]);
+  if(projected&&isFinite(projected[0])&&isFinite(projected[1])){
+    svgEl.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-projected[0],-projected[1]));
+  } else {
     zoomToCountry(iso);
-    const newUrl = `${window.location.pathname}?country=${iso}`;
-    window.history.pushState({ country: iso }, '', newUrl);
   }
 }
 
@@ -1726,7 +2596,26 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
         ).join('')}
       </div>
-      ${ipcInfo ? `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;"><span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span></div>` : ''}
+      ${ipcInfo ? (() => {
+  // Determine if this is a Phase 4 (Emergency) population that needs clarification
+  const isPhase4 = ipcInfo.phase === 4;
+  const isYemen = c.name === 'Yemen';
+  const isSudan = c.name === 'Sudan';
+  
+  // For Yemen and Sudan Phase 4, the population figure is actually total acute (Phase 3+4+5)
+  // Display it correctly without misrepresenting
+  if (isPhase4 && (isYemen || isSudan)) {
+    const totalAcute = ipcInfo.population;
+    return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+      <span>📊 IPC Food Security: Phase 4 (Emergency) — ${Math.round(totalAcute / 1e6)}M people facing acute hunger (IPC Phase 3+)</span>
+    </div>`;
+  }
+  
+  // For all other countries, display normally
+  return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+    <span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span>
+  </div>`;
+})() : ''}
     </div>
 
     <div class="ai-brief" id="aiBrief">
@@ -1881,7 +2770,31 @@ setTimeout(() => {
   }
 }function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
-document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
+document.getElementById('search').addEventListener('focus',e=>{
+  if(tier!=='pro'){
+    e.target.blur();
+    toast('🔒 Country search is a Pro feature — upgrade to unlock');
+    openModal();
+  }
+});
+document.getElementById('search').addEventListener('input',e=>{
+  if(tier!=='pro'){e.target.value='';return;}
+  renderRanking(e.target.value);
+});
+
+function updateSearchLockState(){
+  const box=document.getElementById('search');
+  if(!box)return;
+  if(tier==='pro'){
+    box.classList.remove('locked');
+    box.placeholder='Search country…';
+    box.title='';
+  } else {
+    box.classList.add('locked');
+    box.placeholder='🔒 Pro only';
+    box.title='Upgrade to Pro to search countries';
+  }
+}
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
 // ============================================================================
 // ENHANCED SHARE MODAL — All Major Social Networks
@@ -2168,7 +3081,7 @@ document.getElementById('loginBtn').addEventListener('click', login);
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
-buildFilters();startRefreshTimer();
+buildFilters();updateSearchLockState();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
 // Mobile filter button functionality with animations
@@ -2283,27 +3196,326 @@ if (window.innerWidth <= 900) {
   }
 }
 
-// Google Search function for crisis queries
-function searchGoogleCrisis() {
-  const input = document.getElementById('crisisSearch');
-  const query = input.value.trim();
-  
-  if (!query) {
-    toast('❓ Please enter a crisis question first');
-    return;
-  }
-  
-  // Build the branded search: "global crisis index" + user query
-  const brandedQuery = `global crisis index score: ${query}`;
-  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(brandedQuery)}`;
-  
-  // Open in new tab
-  window.open(googleUrl, '_blank');
-  
-  // Optional: show feedback
-  toast(`🔍 Searching: "global crisis index" ${query}`);
-}
+// ============================================================================
+// CRYS — Crisis Intelligence Chat (embedded in sidebar)
+// ============================================================================
+(function() {
+  const CRYS_API    = "https://www.globalcrisisindex.com/api/top-story";
+  const CRYS_TTL    = 300_000;
+  const _CC         = new Map();
 
+  async function crysApi(params) {
+    const key = JSON.stringify(params);
+    const hit = _CC.get(key);
+    if (hit && Date.now() - hit.t < CRYS_TTL) return hit.d;
+    const url = new URL(CRYS_API);
+    for (const [k,v] of Object.entries(params)) if (v!=null) url.searchParams.set(k,String(v));
+    const r = await fetch(url.toString());
+    if (!r.ok) throw new Error("API " + r.status);
+    const d = await r.json();
+    _CC.set(key, {t:Date.now(), d});
+    return d;
+  }
+
+  const crysEsc  = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const crysEscA = s => String(s??"").replace(/"/g,"&quot;");
+
+  function crysScoreColor(s){return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";}
+  function crysDimColor(v){return v>=80?"#ff6b6b":v>=65?"#ffa94d":v>=50?"#ffe066":v>=35?"#74c0fc":"#4a6a8a";}
+
+  const CRYS_NAME_ALIASES = {
+    "dr congo":"COD","congo":"COD","drc":"COD","central african republic":"CAF","car":"CAF",
+    "south sudan":"SSD","burkina faso":"BFA","us":"USA","united states":"USA","america":"USA",
+    "uk":"GBR","britain":"GBR","england":"GBR","myanmar":"MMR","burma":"MMR",
+    "iran":"IRN","persia":"IRN","north korea":"PRK","nk":"PRK","south korea":"KOR","sk":"KOR",
+    "uae":"ARE","emirates":"ARE",
+  };
+
+  function crysResolveName(raw){
+    const l=(raw||"").toLowerCase().trim();
+    return CRYS_NAME_ALIASES[l]||l;
+  }
+
+  const CRYS_REGION_KW={
+    africa:["africa","african"],asia:["asia","asian","southeast asia","south asia","east asia"],
+    europe:["europe","european"],middleeast:["middle east","middleeast","mena","arab","gulf"],
+    americas:["americas","america","latin america","latam","caribbean"],
+  };
+  function crysDetectRegion(text){
+    const l=text.toLowerCase();
+    for(const[r,kws]of Object.entries(CRYS_REGION_KW))if(kws.some(k=>l.includes(k)))return r;
+    return null;
+  }
+
+  const CRYS_DIM_KW={
+    food:["food","hunger","famine","starvation","ipc","nutrition"],
+    displacement:["displacement","displaced","refugee","refugees","idp","idps"],
+    health:["health","disease","outbreak","epidemic","cholera","ebola"],
+    conflict:["conflict","war","fighting","combat","violence","armed"],
+    economic:["economic","economy","gdp","poverty","financial"],
+    climate:["climate","heat","flood","drought","weather"],
+  };
+  function crysDetectDim(text){
+    const l=text.toLowerCase();
+    for(const[d,kws]of Object.entries(CRYS_DIM_KW))if(kws.some(k=>l.includes(k)))return d;
+    return null;
+  }
+
+  function crysParseIntent(raw){
+    const t=raw.trim(),l=t.toLowerCase();
+    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i)||l.match(/(.+?)\s+(?:vs?\.?|versus)\s+(.+)/i);
+    if(cmp)return{type:"compare",a:crysResolveName(cmp[1].trim()),b:crysResolveName(cmp[2].trim())};
+    const nh=l.match(/why\s+(?:is\s+|isn'?t\s+)?(.+?)\s+not\s+(?:the\s+)?(?:#1|number\s+one|highest|first|top)/i);
+    if(nh)return{type:"why_not_highest",country:crysResolveName(nh[1].trim())};
+    const topN=l.match(/top\s+(\d+)/i);
+    if(topN)return{type:"top_n",n:Math.min(20,Math.max(1,parseInt(topN[1])))};
+    const worst=l.match(/worst\s+(.+?)(?:\s+crisis|\s+situation|\s+countries?)?\s*$/i);
+    if(worst){const dim=crysDetectDim(worst[1]);if(dim)return{type:"worst_dim",dim};}
+    if(/\b(improv|getting better|going down|falling|declining)\w*/.test(l))return{type:"trend",trend:"improving"};
+    if(/\b(escalat|worsening|getting worse|going up|rising|surging)\w*/.test(l))return{type:"trend",trend:"escalating"};
+    const thr=l.match(/(?:above|over|at least|[≥>=]+)\s*(\d{2,3})/i)||l.match(/(\d{2,3})\s*(?:[+]|or (?:more|higher|above))/i);
+    if(thr)return{type:"threshold",value:parseInt(thr[1])};
+    const region=crysDetectRegion(l);
+    if(region&&t.split(" ").length<=5)return{type:"region",region};
+    const sit=l.match(/(?:situation|status|update|what(?:'?s)?\s+happening|how\s+(?:bad|severe|is)|tell\s+me\s+about)\s+(?:in\s+)?(.+)/i);
+    if(sit)return{type:"country",country:crysResolveName(sit[1].trim())};
+    return{type:"country",country:crysResolveName(t)};
+  }
+
+  function crysSev(s){
+    const cls={CATASTROPHIC:"#ff6b6b",CRITICAL:"#ffa94d",HIGH:"#ffe066",ELEVATED:"#69db7c",MODERATE:"#74c0fc"}[s]||"#74c0fc";
+    return`<span style="font-size:6px;font-family:var(--fm);background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;letter-spacing:.06em;font-weight:700;">${s}</span>`;
+  }
+
+  function crysDims(dimensions){
+    const ORDER=["conflict","displacement","food","health","economic","climate","access","political"];
+    let out='<div style="display:flex;flex-direction:column;gap:3px;margin:4px 0;">';
+    for(const k of ORDER){
+      const d=dimensions[k];if(!d)continue;
+      const v=d.value,col=crysDimColor(v);
+      out+=`<div style="display:flex;align-items:center;gap:4px;">`;
+      out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--ts);width:56px;flex-shrink:0;text-transform:uppercase;">${crysEsc(d.label)}</div>`;
+      out+=`<div style="flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${v}%;background:${col};border-radius:99px;"></div></div>`;
+      out+=`<div style="font-family:var(--fm);font-size:7px;color:${col};width:18px;text-align:right;">${v}</div>`;
+      out+='</div>';
+    }
+    return out+'</div>';
+  }
+
+  function crysEvidence(ev){
+    if(!ev)return'<span style="font-size:8px;color:var(--tm);font-style:italic;">No live signals.</span>';
+    const items=[];
+    if(ev.earthquake)items.push(`🌍 M${ev.earthquake.magnitude.toFixed(1)} — ${crysEsc(ev.earthquake.location)} <span style="color:var(--tm);font-size:7px;">USGS</span>`);
+    if(ev.food_security){const pop=ev.food_security.population_affected>0?" — "+(ev.food_security.population_affected/1e6).toFixed(1)+"M":"";items.push(`🌾 IPC Phase ${ev.food_security.phase}${pop} <span style="color:var(--tm);font-size:7px;">IPC</span>`);}
+    (ev.disease_outbreaks||[]).slice(0,2).forEach(ob=>{items.push(`🦠 ${crysEsc(ob.disease)} — ${ob.severity} <span style="color:var(--tm);font-size:7px;">WHO</span>`);});
+    if(ev.displacement&&ev.displacement.total>0)items.push(`🚶 ${(ev.displacement.total/1e6).toFixed(1)}M displaced <span style="color:var(--tm);font-size:7px;">UNHCR</span>`);
+    if(ev.heat&&ev.heat.max_temp_c>0)items.push(`🥵 ${ev.heat.max_temp_c}°C heat <span style="color:var(--tm);font-size:7px;">Open-Meteo</span>`);
+    if(!items.length)return'<span style="font-size:8px;color:var(--tm);font-style:italic;">No live signals.</span>';
+    return'<div style="display:flex;flex-direction:column;gap:2px;">'+items.map(t=>`<div style="font-size:8px;color:var(--ts);">${t}</div>`).join('')+'</div>';
+  }
+
+  function crysRec(rec){
+    if(!rec)return"";
+    const cols={IMMEDIATE:"#ff6b6b",URGENT:"#ffa94d",HIGH:"#ffe066",MONITOR:"#69db7c",WATCH:"#74c0fc"};
+    const col=cols[rec.tier]||"#74c0fc";
+    return`<div style="border-left:2px solid ${col};padding:3px 7px;background:${col}08;border-radius:0 4px 4px 0;font-size:8px;color:var(--ts);margin-top:4px;">${crysEsc(rec.text)}</div>`;
+  }
+
+  function crysCountryCard(s){
+    const col=crysScoreColor(s.score);
+    let out='';
+    out+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">`;
+    out+=`<span style="font-size:16px;">${s.flag}</span>`;
+    out+=`<div style="flex:1;"><div style="font-size:11px;font-weight:800;color:var(--tp);">${crysEsc(s.name)}</div>`;
+    out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries}</div></div>`;
+    out+=`<div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};line-height:1;">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div>`;
+    out+='</div>';
+    if(s.dimensions)out+=crysDims(s.dimensions);
+    if(s.trend){
+      const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";
+      const tcol=dir==="escalating"?"#ff6b6b":dir==="improving"?"#69db7c":"var(--tm)";
+      out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d} · fc: ${s.trend.forecast_7d}</div>`;
+    }
+    out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);margin:3px 0 2px;">LIVE SIGNALS</div>`;
+    out+=crysEvidence(s.live_evidence);
+    out+=crysRec(s.recommendation);
+    return out;
+  }
+
+  function crysRankList(countries,limit){
+    return'<div style="display:flex;flex-direction:column;gap:3px;">'+countries.slice(0,limit||20).map((c,i)=>{
+      const col=crysScoreColor(c.score);
+      const dir=c.trend?.direction;
+      const arr=dir==="escalating"?'<span style="color:#ff6b6b">↑</span>':dir==="improving"?'<span style="color:#69db7c">↓</span>':'<span style="color:var(--tm)">→</span>';
+      return`<div style="display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.015);cursor:pointer;" onclick="selCountry('${crysEscA(c.iso||c.name)}')" onmouseover="this.style.background='rgba(0,200,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.015)'">
+        <span style="font-family:var(--fm);font-size:7px;color:var(--tm);width:16px;">#${c.rank||i+1}</span>
+        <span style="font-size:10px;">${c.flag}</span>
+        <span style="flex:1;font-size:9px;font-weight:500;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${crysEsc(c.name)}</span>
+        <div style="width:36px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;flex-shrink:0;"><div style="height:100%;width:${c.score}%;background:${col};border-radius:99px;"></div></div>
+        <span style="font-family:var(--fm);font-size:8px;font-weight:700;color:${col};width:20px;text-align:right;">${c.score}</span>
+        <span style="font-size:8px;">${arr}</span>
+      </div>`;
+    }).join('')+'</div>';
+  }
+
+  async function crysRespond(raw){
+    const intent=crysParseIntent(raw);
+    switch(intent.type){
+      case"country":{
+        const d=await crysApi({q:intent.country});
+        if(!d.top_story)throw new Error(`No data for "${intent.country}"`);
+        return crysCountryCard(d.top_story);
+      }
+      case"top_n":{
+        const d=await crysApi({top:intent.n});
+        const cs=d.countries||(d.top_story?[d.top_story]:[]);
+        if(!cs.length)throw new Error("Rankings unavailable");
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>Top ${intent.n}</strong> by urgency</div>`+crysRankList(cs,intent.n);
+      }
+      case"compare":{
+        const[dA,dB]=await Promise.all([crysApi({q:intent.a}),crysApi({q:intent.b})]);
+        const sA=dA.top_story,sB=dB.top_story;
+        if(!sA||!sB)throw new Error("Could not find one or both countries");
+        const colA=crysScoreColor(sA.score),colB=crysScoreColor(sB.score);
+        let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">`;
+        out+=`<span style="font-size:13px;">${sA.flag}</span><div style="flex:1;"><div style="font-size:10px;font-weight:700;">${crysEsc(sA.name)}</div><div style="font-family:var(--fm);font-size:8px;color:${colA};">${sA.score}/100 ${crysSev(sA.severity)}</div></div>`;
+        out+=`<span style="font-size:9px;color:var(--tm);">vs</span>`;
+        out+=`<div style="flex:1;text-align:right;"><div style="font-size:10px;font-weight:700;">${crysEsc(sB.name)}</div><div style="font-family:var(--fm);font-size:8px;color:${colB};">${sB.score}/100 ${crysSev(sB.severity)}</div></div><span style="font-size:13px;">${sB.flag}</span>`;
+        out+='</div>';
+        const DIM_ORDER=["conflict","displacement","food","health","economic","climate"];
+        out+='<div style="display:flex;flex-direction:column;gap:2px;">';
+        for(const k of DIM_ORDER){
+          const av=sA.dimensions?.[k]?.value??0,bv=sB.dimensions?.[k]?.value??0;
+          const lbl=sA.dimensions?.[k]?.label??k;
+          const winner=av>bv?"A":bv>av?"B":"tie";
+          out+=`<div style="display:flex;align-items:center;gap:3px;font-size:7px;font-family:var(--fm);">`;
+          out+=`<span style="color:${winner==="A"?"var(--cyan)":"var(--tm)"};width:22px;text-align:right;">${av}</span>`;
+          out+=`<div style="flex:1;text-align:center;color:var(--tm);">${lbl}</div>`;
+          out+=`<span style="color:${winner==="B"?"var(--cyan)":"var(--tm)"};width:22px;">${bv}</span>`;
+          out+='</div>';
+        }
+        out+='</div>';
+        const gap=Math.abs(sA.score-sB.score);
+        const winner=sA.score>sB.score?sA:sB;
+        out+=`<div style="margin-top:5px;padding:4px 7px;background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.12);border-radius:4px;font-size:8px;color:var(--ts);">`;
+        out+=`<strong>${winner.flag} ${crysEsc(winner.name)}</strong> leads by ${gap} pts.`;
+        out+='</div>';
+        return out;
+      }
+      case"why_not_highest":{
+        const[dT,dTop]=await Promise.all([crysApi({q:intent.country}),crysApi({top:1})]);
+        const target=dT.top_story,highest=dTop.top_story;
+        if(!target||!highest)throw new Error("Could not fetch data");
+        if(target.iso===highest.iso)return`${target.flag} <strong>${crysEsc(target.name)}</strong> IS the highest — #${target.rank} at ${target.score}/100 ${crysSev(target.severity)}`;
+        const gap=highest.score-target.score;
+        let out=`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;">${target.flag} <strong>${crysEsc(target.name)}</strong> (${target.score}) is <span style="color:#ffa94d;font-family:var(--fm);">+${gap} pts</span> behind ${highest.flag} <strong>${crysEsc(highest.name)}</strong> (${highest.score}).</div>`;
+        const keyDims=["conflict","displacement","food","health"].filter(k=>(highest.dimensions?.[k]?.value??0)-(target.dimensions?.[k]?.value??0)>=7);
+        if(keyDims.length){
+          out+=`<div style="font-family:var(--fm);font-size:7px;color:var(--tm);margin:3px 0 2px;">WHERE ${crysEsc(highest.name).toUpperCase()} LEADS</div>`;
+          keyDims.forEach(k=>{
+            const hv=highest.dimensions[k].value,tv=target.dimensions[k]?.value??0,lbl=highest.dimensions[k].label;
+            const col=crysDimColor(hv);
+            out+=`<div style="display:flex;align-items:center;gap:4px;font-size:8px;"><span style="color:var(--ts);width:56px;flex-shrink:0;font-family:var(--fm);font-size:7px;">${lbl}</span><div style="flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${hv}%;background:${col};border-radius:99px;"></div></div><span style="color:${col};font-family:var(--fm);font-size:7px;width:18px;text-align:right;">${hv}</span><span style="color:#ffa94d;font-family:var(--fm);font-size:7px;">+${hv-tv}</span></div>`;
+          });
+        }
+        return out;
+      }
+      case"region":{
+        const d=await crysApi({region:intent.region});
+        const countries=d.countries||[];
+        if(!countries.length)throw new Error("No data for region");
+        const label=intent.region==="middleeast"?"Middle East":intent.region.charAt(0).toUpperCase()+intent.region.slice(1);
+        const avg=Math.round(countries.reduce((s,c)=>s+c.score,0)/countries.length);
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${label}</strong> · ${countries.length} countries · avg ${avg}</div>`+crysRankList(countries,20);
+      }
+      case"threshold":{
+        const d=await crysApi({threshold:intent.value});
+        const cs=d.countries||(d.top_story?[d.top_story]:[]);
+        if(!cs.length)return`<span style="font-size:8px;color:var(--tm);">No countries scoring ≥${intent.value}.</span>`;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${cs.length}</strong> countries scoring ≥${intent.value}</div>`+crysRankList(cs,20);
+      }
+      case"trend":{
+        const d=await crysApi({top:20});
+        const cs=(d.countries||[]).filter(c=>c.trend?.direction===intent.trend);
+        if(!cs.length)return`<span style="font-size:8px;color:var(--tm);">No countries currently <strong>${intent.trend}</strong> in top 20.</span>`;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;"><strong>${cs.length}</strong> countries ${intent.trend}</div>`+crysRankList(cs,20);
+      }
+      case"worst_dim":{
+        const d=await crysApi({top:20});
+        const cs=(d.countries||[]).slice().sort((a,b)=>(b.dimensions?.[intent.dim]?.value??0)-(a.dimensions?.[intent.dim]?.value??0));
+        const dimLabel=cs[0]?.dimensions?.[intent.dim]?.label??intent.dim;
+        return`<div style="font-size:8px;color:var(--ts);margin-bottom:4px;">Worst <strong>${crysEsc(dimLabel)}</strong></div>`+crysRankList(cs,12);
+      }
+      default:{
+        const d=await crysApi({q:intent.country});
+        if(!d.top_story)throw new Error(`No data for "${raw}"`);
+        return crysCountryCard(d.top_story);
+      }
+    }
+  }
+
+  function crysRenderMsg(html, isUser, meta){
+    const chat=document.getElementById('crysChat');
+    if(!chat)return;
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;flex-direction:column;gap:2px;max-width:94%;animation:crysRise .14s ease-out;'+(isUser?'align-self:flex-end':'align-self:flex-start');
+    const bubble=document.createElement('div');
+    bubble.style.cssText='padding:5px 9px;border-radius:10px;word-break:break-word;font-size:9px;line-height:1.55;'+(isUser?'background:#1a3d65;color:#fff;border-bottom-right-radius:2px;':'background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);color:var(--tp);border-bottom-left-radius:2px;');
+    bubble.innerHTML=isUser?crysEsc(html):html;
+    div.appendChild(bubble);
+    if(meta){const m=document.createElement('div');m.style.cssText='font-size:6px;color:var(--td);font-family:var(--fm);padding:0 3px;';m.textContent=meta;div.appendChild(m);}
+    chat.appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
+  }
+
+  function crysShowTyping(){
+    const chat=document.getElementById('crysChat');if(!chat)return null;
+    const div=document.createElement('div');
+    div.id='crysTyping';
+    div.style.cssText='align-self:flex-start;';
+    div.innerHTML='<div style="display:flex;gap:4px;align-items:center;padding:5px 9px;background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);border-radius:10px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out .13s infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:crysTyp 1s ease-in-out .26s infinite;display:inline-block;"></span></div>';
+    chat.appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
+    return div;
+  }
+
+  if(!document.getElementById('crysStyles')){
+    const st=document.createElement('style');
+    st.id='crysStyles';
+    st.textContent=`
+      @keyframes crysRise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes crysTyp{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+      .crys-chip{font-size:7px;font-family:var(--fm);background:rgba(255,255,255,.02);border:1px solid var(--b1);color:var(--ts);padding:2px 7px;border-radius:99px;cursor:pointer;transition:all .12s;white-space:nowrap;}
+      .crys-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);}
+      #crysChat{scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+    `;
+    document.head.appendChild(st);
+  }
+
+  window.crysSubmit = async function(raw){
+    const q=(raw||"").trim();
+    const inp=document.getElementById('crysInp');
+    if(!q)return;
+    if(inp)inp.value="";
+    crysRenderMsg(q,true,"you");
+    const tyDiv=crysShowTyping();
+    const t0=Date.now();
+    try{
+      const html=await crysRespond(q);
+      if(tyDiv)tyDiv.remove();
+      crysRenderMsg(html,false,"CRYS · "+(Date.now()-t0)+"ms");
+    }catch(err){
+      if(tyDiv)tyDiv.remove();
+      crysRenderMsg(`<span style="color:#ff6b6b;">✕ ${crysEsc(err.message)}</span><div style="font-size:7px;color:var(--tm);margin-top:2px;">Try: "Somalia" · "top 5" · "compare Sudan vs Yemen"</div>`,false,"error");
+    }
+  };
+
+  window.crysClear = function(){
+    const chat=document.getElementById('crysChat');
+    if(chat)chat.innerHTML='';
+  };
+
+})();
 
 </script>
 
