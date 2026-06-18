@@ -646,10 +646,13 @@ function buildUrgencyNarrative(iso) {
     parts.push((spillPhrase + anomPhrase).trim());
   }
 
-  // Join all parts and dynamically convert any ==text== to bold
+  // Join all parts and dynamically convert any ==text== or ===text=== to bold
   let narrative = parts.join(' ');
   
-  // Replace ==text== with <b>text</b>
+  // First handle ===text=== (triple equals)
+  narrative = narrative.replace(/===([^=]+)===/g, '<b>$1</b>');
+  
+  // Then handle ==text== (double equals) - but only if not already processed by triple equals
   narrative = narrative.replace(/==([^=]+)==/g, '<b>$1</b>');
   
   return narrative;
