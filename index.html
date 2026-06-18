@@ -702,36 +702,6 @@ function buildUrgencyNarrative(iso) {
   return parts.join(' ');
 }
 
-function renderAIBrief(iso) {
-  const el = document.getElementById('aiBriefContent');
-  if (!el) return;
-  
-  const c = store[iso];
-  if (!c) { el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; return; }
-  
-  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
-  let narrative = '';
-  try {
-    narrative = buildUrgencyNarrative(iso);
-  } catch(e) {
-    console.warn('buildUrgencyNarrative error:', e);
-  }
-  
-  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
-  if (!narrative || narrative.length < 10) {
-    const activeCrisisData = null;
-    if (activeCrisisData) {
-      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
-    } else {
-      narrative = fetchAIBrief(iso);
-    }
-  }
-  
-  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
-  el.innerHTML =
-    `<div class="ai-brief-text">${narrative}</div>` +
-    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
-}─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
     .filter(iso => store[iso]?.score >= 60)
