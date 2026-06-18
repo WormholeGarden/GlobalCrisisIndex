@@ -903,6 +903,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .search-box:focus{border-color:var(--b3);background:var(--cyan2);color:var(--tp);width:180px}
 .search-box::placeholder{color:var(--td);font-size:11px}
 .search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--tm);pointer-events:none}
+.search-box.locked{opacity:0.4;cursor:not-allowed;pointer-events:none;}
 
 /* ── SIDEBAR ── */
 .sb-block{padding:12px 13px;border-bottom:1px solid var(--b1)}
@@ -1627,14 +1628,22 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
+    // Remove lock banner from sidebar if present
     const lockBanner = document.querySelector('.lock-banner');
     if (lockBanner) lockBanner.style.display = 'none';
-    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    // Hide only the header upgrade button — never touch panelContent
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    console.log('✅ Pro features unlocked');
+    // If an upgrade wall is currently showing in the panel, replace it with the real panel.
+    // Guard: only re-render if store is populated AND a country is selected.
+    const panelContent = document.getElementById('panelContent');
+    const hasUpgradeWall = panelContent && panelContent.querySelector('[onclick="openModal()"]') !== null;
+    if (hasUpgradeWall && selectedIso && store && store[selectedIso]) {
+      try { renderPanel(selectedIso, null); } catch(e) { console.warn('renderPanel on unlock:', e); }
+    }
   } else {
-    document.querySelectorAll('.upgrade, .price-cta, .unlock-btn, .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
   }
@@ -1668,7 +1677,9 @@ function logout() {
   document.getElementById('tierPill').onclick = () => openModal();
   tier = 'free';
   unlockProFeatures(false);
-  renderRanking(document.getElementById('search').value);
+  updateSearchLockState();
+  document.getElementById('search').value='';
+  renderRanking('');
   toast('Logged out');
 }
 
@@ -1708,6 +1719,7 @@ async function checkProStatusAndUpdateUI(email) {
       }
       unlockProFeatures(false);
     }
+    updateSearchLockState();
     renderRanking(document.getElementById('search').value);
     return isPro;
   } catch (err) {
@@ -2764,7 +2776,31 @@ setTimeout(() => {
   }
 }function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
-document.getElementById('search').addEventListener('input',e=>renderRanking(e.target.value));
+document.getElementById('search').addEventListener('focus',e=>{
+  if(tier!=='pro'){
+    e.target.blur();
+    toast('🔒 Country search is a Pro feature — upgrade to unlock');
+    openModal();
+  }
+});
+document.getElementById('search').addEventListener('input',e=>{
+  if(tier!=='pro'){e.target.value='';return;}
+  renderRanking(e.target.value);
+});
+
+function updateSearchLockState(){
+  const box=document.getElementById('search');
+  if(!box)return;
+  if(tier==='pro'){
+    box.classList.remove('locked');
+    box.placeholder='Search country…';
+    box.title='';
+  } else {
+    box.classList.add('locked');
+    box.placeholder='🔒 Pro only';
+    box.title='Upgrade to Pro to search countries';
+  }
+}
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
 // ============================================================================
 // ENHANCED SHARE MODAL — All Major Social Networks
@@ -3051,7 +3087,7 @@ document.getElementById('loginBtn').addEventListener('click', login);
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
-buildFilters();startRefreshTimer();
+buildFilters();updateSearchLockState();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
 // Mobile filter button functionality with animations
