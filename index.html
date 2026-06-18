@@ -2763,11 +2763,17 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
-  const narrative = typeof buildUrgencyNarrative === 'function'
-    ? buildUrgencyNarrative(iso)
-    : (activeCrisisData
-        ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
-        : fetchAIBrief(iso));
+  
+  // Generate the full urgency narrative with Wikipedia integration
+  let narrative = '';
+  if (typeof buildUrgencyNarrative === 'function') {
+    narrative = buildUrgencyNarrative(iso);
+  } else if (activeCrisisData) {
+    narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+  } else {
+    narrative = fetchAIBrief(iso);
+  }
+  
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
