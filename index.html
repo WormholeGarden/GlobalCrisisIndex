@@ -731,7 +731,7 @@ function renderAIBrief(iso) {
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
-}/ ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
+}─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
     .filter(iso => store[iso]?.score >= 60)
