@@ -744,19 +744,31 @@ function showTopUrgentStory() {
 
   // Inject narrative — must beat renderPanel's own 100ms brief timeout
   setTimeout(() => {
-    const briefEl = document.getElementById('aiBriefContent');
-    if (!briefEl) return;
-    const narrative = buildUrgencyNarrative(targetIso);
-    briefEl.innerHTML =
-      `<div class="ai-brief-text">${narrative}</div>` +
-      `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">` +
-      `  <button class="ai-brief-btn" onclick="showTopUrgentStory()">` +
-      `    ↺ Recheck top story</button>` +
-      `  <button class="ai-brief-btn" onclick="selCountry('${targetIso}')">` +
-      `    ↗ Full analysis</button>` +
-      `</div>`;
-  }, 120);
-
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  // ── DIRECTLY CALL buildUrgencyNarrative ──────────────────────────────
+  let narrative = '';
+  try {
+    narrative = buildUrgencyNarrative(iso);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // If narrative is empty, use fallback
+  if (!narrative || narrative.length < 10) {
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = fetchAIBrief(iso);
+    }
+  }
+  
+  // ── FORCE DISPLAY ─────────────────────────────────────────────────────
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
+}, 200);
   const isEventBacked = withEventMatch.includes(targetIso);
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
@@ -2751,31 +2763,15 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
-  
-  // ── DEBUG ──────────────────────────────────────────────────────────────
-  console.log('ISO:', iso);
-  console.log('buildUrgencyNarrative type:', typeof buildUrgencyNarrative);
-  if (typeof buildUrgencyNarrative === 'function') {
-    const test = buildUrgencyNarrative(iso);
-    console.log('Narrative result:', test);
-  }
-  // ─────────────────────────────────────────────────────────────────────
-  
-  let narrative = '';
-  if (typeof buildUrgencyNarrative === 'function') {
-    narrative = buildUrgencyNarrative(iso);
-  }
-  
-  if (!narrative || narrative.length < 50) {
-    narrative = activeCrisisData
-      ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
-      : fetchAIBrief(iso);
-  }
-  
+  const narrative = typeof buildUrgencyNarrative === 'function'
+    ? buildUrgencyNarrative(iso)
+    : (activeCrisisData
+        ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
+        : fetchAIBrief(iso));
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
-}, 200);
+}, 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
