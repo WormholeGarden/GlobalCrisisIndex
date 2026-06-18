@@ -1,4 +1,4 @@
-fix the generated urgencynarrative not being included in the ai sitrep brieifing for each country with the most minimal edit possible. tell me 'replace [full code x] with [full code y] do this by combing functions <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -97,10 +97,10 @@ fix the generated urgencynarrative not being included in the ai sitrep brieifing
   const flag = country.flag || "";
   const score = country.score;
   
-  // Severity emoji (only for extreme cases)
-  const emoji = score >= 85 ? "🔴" : score >= 75 ? "🟠" : "";
+  // Emoji only for extreme severity
+  const emoji = score >= 85 ? "🔴" : "";
   
-  // Extract the single most important metric
+  // Extract the single most important metric (short, punchy)
   let crisis = "";
   let number = "";
   
@@ -119,7 +119,7 @@ fix the generated urgencynarrative not being included in the ai sitrep brieifing
   else if (country.live_evidence?.disease_outbreaks?.length) {
     const outbreak = country.live_evidence.disease_outbreaks[0];
     crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
-    number = `${outbreak.cases.toLocaleString()}+`;
+    number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
   }
   else if (country.live_evidence?.heat?.max_temp_c >= 42) {
     crisis = "Heat";
@@ -130,30 +130,36 @@ fix the generated urgencynarrative not being included in the ai sitrep brieifing
     number = `${score}/100`;
   }
   
-  // Trend direction (single word)
-  const trend = country.trend?.direction === "escalating" ? "Worsens" : 
-                country.trend?.direction === "improving" ? "Eases" : "Critical";
+  // Trend direction — single word, past tense
+  let action = "Worsens";
+  if (country.trend?.direction === "improving") action = "Eases";
+  else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
+  else if (country.trend?.delta_7d > 3) action = "Surges";
+  else if (country.trend?.delta_7d < 0) action = "Improves";
   
-  // NYT-style templates — short, factual, no emojis, no markdown
+  // NYT-style headline templates (short, factual, no markdown)
   const templates = [
-    `${name} ${trend} as ${crisis} Hits ${number}`,
-    `${name}: ${number} in ${crisis} as Score Reaches ${score}`,
-    `${crisis} Worsens in ${name}; Index Now ${score}`,
+    `${name} ${action} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis}`,
+    `${crisis} Worsens in ${name}`,
     `${name} Crisis Deepens: ${number} Affected`,
-    `${name} Slides to ${score} as ${crisis} Spreads`,
-    `${number} Face ${crisis} in ${name}; Global Alarm Raised`,
-    `${name} Tops Crisis Index at ${score}`
+    `${name} Slides to ${score}`,
+    `${number} Face ${crisis} in ${name}`
   ];
   
-  // Pick one deterministically based on country name (avoids randomness in cache)
+  // Deterministic selection (same country = same headline style)
   const index = name.length % templates.length;
   let headline = templates[index];
   
-  // Add emoji only for catastrophic (front, subtle)
+  // Prepend emoji only for catastrophic cases
   if (emoji) headline = `${emoji} ${headline}`;
   
+  // Add flag at the beginning
+  if (flag) headline = `${flag} ${headline}`;
+  
   return headline;
-}    
+}
+    
     async function loadBreakingHeadline() {
       const headlineEl = document.getElementById("breaking-headline");
       if (!headlineEl) return;
@@ -694,6 +700,37 @@ function buildUrgencyNarrative(iso) {
   }
 
   return parts.join(' ');
+}
+
+function renderAIBrief(iso) {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  const c = store[iso];
+  if (!c) { el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; return; }
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
+  let narrative = '';
+  try {
+    narrative = buildUrgencyNarrative(iso);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
+  if (!narrative || narrative.length < 10) {
+    const activeCrisisData = null;
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = fetchAIBrief(iso);
+    }
+  }
+  
+  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
 }/ ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
@@ -743,8 +780,37 @@ function showTopUrgentStory() {
   window.history.pushState({ country: targetIso }, '', url);
 
   // Inject narrative — must beat renderPanel's own 100ms brief timeout
-   // ── AI BRIEF: data-driven narrative ──
-  setTimeout(() => renderAIBrief(iso), 100);window.dataLayer = window.dataLayer || [];
+  setTimeout(() => {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
+  let narrative = '';
+  try {
+    narrative = buildUrgencyNarrative(targetIso);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
+  if (!narrative || narrative.length < 10) {
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = fetchAIBrief(iso);
+    }
+  }
+  
+  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${targetIso}')">↺ Regenerate</button>`;
+}, 100);  const isEventBacked = withEventMatch.includes(targetIso);
+  const badge = c.score >= 80 ? "🔴" : "🟠";
+  toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
+        (isEventBacked ? "live event confirmed" : "score threshold"));
+}
+window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-0LR42BR1B9');
@@ -2232,7 +2298,7 @@ async function refresh() {
     const urlCountry2 = urlParams2.get('country');
     if (urlCountry2 && store[urlCountry2]) {
       selectedIso = urlCountry2;
-      renderPanel(selectedIso, urlParams2.get('crisis'));
+      renderPanel(urlCountry2, urlParams2.get('crisis'));
       if (typeof zoomToCountry === 'function') zoomToCountry(selectedIso);
     } else if (urlCountry2 && attempt < 5) {
       setTimeout(() => resolvePanel(attempt + 1), 200);
@@ -2424,37 +2490,6 @@ function fetchAIBrief(iso){
     : `${c.name} has elevated risk factors requiring attention. ${c.types[0]?ARC[c.types[0]]?.l:''} and ${[...new Set(c.needs)].slice(0,2).join(', ')} needs should be addressed preventively.`;
   
   return fallbackBrief;
-}
-
-function renderAIBrief(iso) {
-  const el = document.getElementById('aiBriefContent');
-  if (!el) return;
-  
-  const c = store[iso];
-  if (!c) { el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; return; }
-  
-  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
-  let narrative = '';
-  try {
-    narrative = buildUrgencyNarrative(iso);
-  } catch(e) {
-    console.warn('buildUrgencyNarrative error:', e);
-  }
-  
-  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
-  if (!narrative || narrative.length < 10) {
-    const activeCrisisData = null;
-    if (activeCrisisData) {
-      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
-    } else {
-      narrative = fetchAIBrief(iso);
-    }
-  }
-  
-  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
-  el.innerHTML =
-    `<div class="ai-brief-text">${narrative}</div>` +
-    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
 }
 // ============================================================================
 // RENDER PANEL
@@ -2761,24 +2796,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   setTimeout(() => calcImpact(iso), 100);
 
  // ── AI BRIEF: data-driven narrative ──
-setTimeout(() => {
-  const el = document.getElementById('aiBriefContent');
-  if (!el) return;
-  
-  // Generate the full urgency narrative with Wikipedia integration
-  let narrative = '';
-  if (typeof buildUrgencyNarrative === 'function') {
-    narrative = buildUrgencyNarrative(iso);
-  } else if (activeCrisisData) {
-    narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
-  } else {
-    narrative = fetchAIBrief(iso);
-  }
-  
-  el.innerHTML =
-    `<div class="ai-brief-text">${narrative}</div>` +
-    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
-}, 100);
+  setTimeout(() => renderAIBrief(iso), 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
@@ -2787,7 +2805,39 @@ setTimeout(() => {
       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
   }
-}function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
+}
+
+function renderAIBrief(iso) {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  const c = store[iso];
+  if (!c) { el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; return; }
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
+  let narrative = '';
+  try {
+    narrative = buildUrgencyNarrative(iso);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
+  if (!narrative || narrative.length < 10) {
+    const activeCrisisData = null;
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = fetchAIBrief(iso);
+    }
+  }
+  
+  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
+}
+function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
 document.getElementById('search').addEventListener('focus',e=>{
   if(tier!=='pro'){
