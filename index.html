@@ -1628,20 +1628,14 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    // Remove lock banner from sidebar if present
     const lockBanner = document.querySelector('.lock-banner');
     if (lockBanner) lockBanner.style.display = 'none';
-    // Hide only the header upgrade button — never touch panelContent
+    // Only hide header upgrade button, NOT elements inside panelContent
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // If an upgrade wall is currently showing in the panel, replace it with the real panel.
-    // Guard: only re-render if store is populated AND a country is selected.
-    const panelContent = document.getElementById('panelContent');
-    const hasUpgradeWall = panelContent && panelContent.querySelector('[onclick="openModal()"]') !== null;
-    if (hasUpgradeWall && selectedIso && store && store[selectedIso]) {
-      try { renderPanel(selectedIso, null); } catch(e) { console.warn('renderPanel on unlock:', e); }
-    }
+    // Re-render panel if a country is selected, clearing any upgrade wall
+    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
   } else {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
