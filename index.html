@@ -2358,29 +2358,55 @@ function renderRanking(filter=''){
 
 function selCountry(iso){
   if(!iso||!store[iso])return;
+
+  // Free tier: block panel for countries outside top 10
+  if(tier!=='pro'){
+    const idx=ranked.indexOf(iso);
+    if(idx>=10){
+      // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
+      _doZoom(iso);
+      document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
+      // Show upgrade wall in right panel
+      document.getElementById('emptyState').style.display='none';
+      document.getElementById('panelContent').style.display='block';
+      const c=store[iso];
+      const col=sc(c.score);
+      document.getElementById('panelContent').innerHTML=`
+        <div style="padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
+          <div style="font-size:36px;">${c.flag}</div>
+          <div style="font-family:var(--fd);font-size:22px;font-weight:900;background:linear-gradient(135deg,#fff 20%,${col});-webkit-background-clip:text;background-clip:text;color:transparent;">${c.name}</div>
+          <div style="font-family:var(--fm);font-size:10px;color:${col};background:${col}18;border:1px solid ${col}33;border-radius:99px;padding:4px 12px;">Score: ${c.score}/100 · #${idx+1} globally</div>
+          <div style="background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));border:1px solid rgba(191,127,255,.22);border-radius:14px;padding:20px 18px;width:100%;max-width:320px;">
+            <div style="font-size:20px;margin-bottom:8px;">🔒</div>
+            <div style="font-family:var(--fd);font-size:17px;font-weight:800;color:var(--purple);margin-bottom:6px;">Pro Access Required</div>
+            <div style="font-family:var(--fm);font-size:10px;color:var(--tm);line-height:1.7;margin-bottom:14px;">Full intelligence panels are available for the <strong style="color:var(--ts);">top 10 countries</strong> on the free tier. Upgrade to Pro to unlock all ${ranked.length}+ countries.</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:14px;">
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">🌍 All ${ranked.length}+ countries</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">🤖 AI briefs</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">📄 PDF reports</span>
+              <span style="font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts);">✉️ Alerts</span>
+            </div>
+            <button onclick="openModal()" style="background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:11px 20px;border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;font-size:11px;letter-spacing:.05em;width:100%;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">⚡ Upgrade to Pro — $29/month</button>
+          </div>
+          <div style="font-family:var(--fm);font-size:9px;color:var(--td);">Free tier: top 10 countries · <span style="color:var(--cyan);cursor:pointer;" onclick="openModal()">Upgrade for full access</span></div>
+        </div>
+      `;
+      const newUrl=`${window.location.pathname}?country=${iso}`;
+      window.history.pushState({country:iso},'',newUrl);
+      return;
+    }
+  }
+
   selectedIso=iso;
   const idx=ranked.indexOf(iso);
   if(idx>=0)rankIdx=idx;
   renderPanel(iso,null);
-  // Zoom: try CENTROIDS first, then brute-force all path features by name
-  if(CENTROIDS[iso]){
-    const stage=document.getElementById('mapStage');
-    if(stage&&svgEl&&proj&&zoom){
-      const W=stage.clientWidth,H=stage.clientHeight;
-      const SCALE_OVERRIDES={RUS:1.4,CAN:1.4,USA:1.6,BRA:1.8,AUS:1.6,CHN:1.8,IND:2.0,KAZ:1.8,ARG:1.8,DZA:2.0,SAU:2.0,MEX:2.0,IDN:1.8,GRL:1.6,MNG:2.0,PER:2.2,SDN:2.2,LBY:2.2,IRN:2.2,COD:2.2,ETH:2.4,EGY:2.4,TCD:2.4,MLI:2.4,NGA:2.6,MOZ:2.6,UKR:2.6,TUR:2.8,POL:3.0,COL:2.6,VEN:2.6,ZAF:2.4,TZA:2.6,NER:2.4,MRT:2.4,NAM:2.6,AFG:3.2,SOM:2.8,SYR:3.5,YEM:3.0,SSD:2.8,HTI:4.8,MMR:2.8,IRQ:3.2,PAK:2.6,BGD:3.8,PHL:3.0,NPL:3.8,KEN:3.0,GHA:3.5,SEN:3.8,CMR:3.2,UGA:3.5,RWA:4.5,BDI:4.5,BFA:3.5,GTM:4.0,HND:4.0,NIC:4.0,SLV:4.5,BLZ:4.5,PAN:4.0,CRI:4.2,DOM:4.5,JAM:5.0,CUB:3.8,TTO:5.5,PSE:6.0,LBN:6.0,SGP:8.0,MDV:6.0,BHR:7.0,QAT:6.0,KWT:6.0,ISR:5.5,CYP:5.5,MLT:7.0,COM:6.0,MUS:7.0,SYC:7.0,TLS:5.5,BRN:5.5,AND:8.0,SMR:8.0,LIE:8.0,NRU:8.0,TUV:7.0,PLW:7.0,MHL:6.0,FSM:5.5,KNA:7.0,DMA:7.0,GRD:7.0,VCT:7.0,LCA:7.0,ATG:7.0,BRB:7.0,STP:7.0,CPV:5.5,GNQ:5.5,GMB:6.0};
-      const scale=SCALE_OVERRIDES[iso]??Math.min(5,Math.max(2.4,(store[iso]?.score||50)>70?3.8:3.0));
-      const projected=proj(CENTROIDS[iso]);
-      if(projected&&isFinite(projected[0])&&isFinite(projected[1])){
-        svgEl.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-projected[0],-projected[1]));
-      }
-    }
-  } else {
-    zoomToCountry(iso);
-  }
+  _doZoom(iso);
   document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
   const newUrl=`${window.location.pathname}?country=${iso}`;
   window.history.pushState({country:iso},'',newUrl);
 }
+
 function _doZoom(iso){
   if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
   const stage=document.getElementById('mapStage');
