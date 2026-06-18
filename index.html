@@ -21,7 +21,7 @@ setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
   
-  // Generate the full urgency narrative with Wikipedia integration
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
   let narrative = '';
   try {
     narrative = buildUrgencyNarrative(iso);
@@ -38,6 +38,7 @@ setTimeout(() => {
     }
   }
   
+  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
