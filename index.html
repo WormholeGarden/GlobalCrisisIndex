@@ -702,6 +702,411 @@ function buildUrgencyNarrative(iso) {
   return parts.join(' ');
 }
 
+// ── GLOBAL URGENCY NARRATIVE BUILDER ──────────────────────────────────────
+function buildUrgencyNarrative(iso) {
+  const c = store[iso];
+  const hist = (history[iso] || []).map(h => h.s);
+  const name = c.name, flag = c.flag;
+
+  // ── 0. FETCH WIKIPEDIA SENTENCES ──────────────────────────────────────
+  let wikipediaPrefix = '';
+  
+  function fetchExtract(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  function extractYears(text) {
+    const years = [];
+    const matches = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
+    if (matches) {
+      matches.forEach(y => years.push(parseInt(y)));
+    }
+    return years;
+  }
+  
+  function getRecencyBonus(sent) {
+    const years = extractYears(sent);
+    if (years.length === 0) return 0;
+    const currentYear = new Date().getFullYear();
+    const latestYear = Math.max(...years);
+    if (latestYear === currentYear) return 50;
+    if (latestYear === currentYear - 1) return 40;
+    if (latestYear === currentYear - 2) return 30;
+    if (latestYear === currentYear - 3) return 25;
+    if (latestYear >= 2020) return 20;
+    if (latestYear >= 2010) return 10;
+    if (latestYear >= 2000) return 5;
+    if (latestYear < 1990) return -100;
+    return 0;
+  }
+  
+  function hasContemporaryIndicators(sent) {
+    const lower = sent.toLowerCase();
+    const contemporaryTerms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
+                               'since 202', 'since 201', 'as of 202', 'in recent years'];
+    for (const term of contemporaryTerms) {
+      if (lower.includes(term)) return true;
+    }
+    return false;
+  }
+  
+  function isBandChinaCrisis(pageTitle, extract) {
+    if (name.toLowerCase() !== 'china') return false;
+    const lowerTitle = pageTitle.toLowerCase();
+    const lowerExtract = extract.toLowerCase();
+    if (lowerTitle.includes('band') || lowerTitle.includes('album') || 
+        lowerTitle.includes('singer') || lowerTitle.includes('musician')) {
+      return true;
+    }
+    const bandKeywords = [
+      'cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 
+      'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde',
+      'difficult shapes', 'passive rhythms', 'flaunt the imperfection',
+      'what price paradise', 'diary of a hollow horse', 'warped by success',
+      'autumn in the neighbourhood', 'opening act', 'greatest hits tour',
+      '40th anniversary', 'headlining tour', 'cd', 'vinyl', 'remix', 'band members',
+      'eddie lundon', 'gary daly', 'kevin wilkinson', 'walter becker',
+      'china crisis contributed', 'extended remix', 'toyah', 'martika'
+    ];
+    for (const kw of bandKeywords) {
+      if (lowerExtract.includes(kw)) return true;
+    }
+    return false;
+  }
+  
+  function scoreSentences(sentences, weights) {
+    return sentences.map(sent => {
+      let score = 0;
+      let hasDimensionMatch = false;
+      const lower = sent.toLowerCase();
+      const lowerName = name.toLowerCase();
+      
+      if (name.toLowerCase() === 'china' && isBandChinaCrisis('', sent)) {
+        return { text: sent.trim(), score: -1000, hasDimensionMatch: false, recencyBonus: 0, years: [] };
+      }
+      
+      if (lower.includes(lowerName)) score += 20;
+      const recencyBonus = getRecencyBonus(sent);
+      score += recencyBonus;
+      if (hasContemporaryIndicators(sent)) score += 15;
+      
+      if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') || 
+          lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
+          lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
+        score += weights.food;
+        hasDimensionMatch = true;
+      }
+      if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') || 
+          lower.includes('weather') || lower.includes('crop') || lower.includes('agriculture') || 
+          lower.includes('rainfall') || lower.includes('temperature') || lower.includes('heatwave'))) {
+        score += weights.climate;
+        hasDimensionMatch = true;
+      }
+      if (weights.conflict && (lower.includes('war') || lower.includes('missile') || lower.includes('nuclear') || 
+          lower.includes('military') || lower.includes('weapon') || lower.includes('conflict') || 
+          lower.includes('tension') || lower.includes('threat') || lower.includes('diplomacy') ||
+          lower.includes('foreign') || lower.includes('policy') || lower.includes('government'))) {
+        score += weights.conflict;
+        hasDimensionMatch = true;
+      }
+      if (weights.economic && (lower.includes('economy') || lower.includes('trade') || lower.includes('sanctions') || 
+          lower.includes('poverty') || lower.includes('gdp') || lower.includes('inflation'))) {
+        score += weights.economic;
+        hasDimensionMatch = true;
+      }
+      if (lower.includes('crisis')) score += 10;
+      if (lower.includes('emergency')) score += 12;
+      if (/\d+/.test(sent)) score += 5;
+      if (/\d+(\.\d+)?%/.test(sent)) score += 8;
+      if (/million|billion/.test(lower)) score += 10;
+      if (sent.length > 80 && sent.length < 400) score += 5;
+      if (sent.length < 50) score -= 10;
+      if (sent.length > 500) score -= 5;
+      
+      return { text: sent.trim(), score, hasDimensionMatch, recencyBonus, years: extractYears(sent) };
+    });
+  }
+  
+  function getSafeFallback() {
+    const foodDim = c.dims?.food?.value || 0;
+    const climateDim = c.dims?.climate?.value || 0;
+    const conflictDim = c.dims?.conflict?.value || 0;
+    const economicDim = c.dims?.economic?.value || 0;
+    let sentences = [];
+    let title = `${name} crisis profile`;
+    if (foodDim >= 75) {
+      sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting a significant portion of the population.`);
+      if (foodDim >= 85) {
+        sentences.push(`Food shortages and agricultural collapse have created a critical humanitarian situation.`);
+      }
+    } else if (foodDim >= 60) {
+      sentences.push(`${name} experiences elevated food insecurity, with recurring shortages and malnutrition concerns.`);
+    }
+    if (climateDim >= 70) {
+      sentences.push(`Climate vulnerability is high, with extreme weather events, droughts, and flooding threatening livelihoods.`);
+    } else if (climateDim >= 50) {
+      sentences.push(`Climate variability poses a growing risk to agriculture and water security.`);
+    }
+    if (conflictDim >= 70) {
+      sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
+    } else if (conflictDim >= 50) {
+      sentences.push(`Political instability and security threats continue to undermine stability.`);
+    }
+    if (economicDim >= 60) {
+      sentences.push(`Economic hardship and poverty have left millions without access to basic necessities.`);
+    }
+    if (sentences.length === 0) {
+      sentences.push(`${name} faces a complex humanitarian and security situation requiring ongoing monitoring.`);
+    }
+    return { sentences: sentences.slice(0, 3), title: title };
+  }
+  
+  try {
+    const foodDim = c.dims?.food?.value || 0;
+    const climateDim = c.dims?.climate?.value || 0;
+    const conflictDim = c.dims?.conflict?.value || 0;
+    const economicDim = c.dims?.economic?.value || 0;
+    
+    const weights = {
+      food: foodDim >= 75 ? 35 : (foodDim >= 60 ? 25 : (foodDim >= 40 ? 15 : 0)),
+      climate: climateDim >= 70 ? 30 : (climateDim >= 55 ? 20 : (climateDim >= 40 ? 12 : 0)),
+      conflict: conflictDim >= 70 ? 25 : (conflictDim >= 50 ? 15 : (conflictDim >= 30 ? 8 : 0)),
+      economic: economicDim >= 60 ? 15 : (economicDim >= 40 ? 10 : 0)
+    };
+    
+    let bestSentences = [];
+    let bestTitle = '';
+    let hasGoodWikipedia = false;
+    
+    const searchTerms = [`${name} crisis`, `${name} famine`, `${name} food security`, `${name} climate`];
+    
+    for (const term of searchTerms) {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=3`;
+      const searchReq = new XMLHttpRequest();
+      searchReq.open('GET', searchUrl, false);
+      searchReq.send();
+      if (searchReq.status === 200) {
+        const searchData = JSON.parse(searchReq.responseText);
+        const results = searchData.query?.search || [];
+        for (const result of results) {
+          const extract = fetchExtract(result.title);
+          if (extract) {
+            if (isBandChinaCrisis(result.title, extract)) continue;
+            let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
+            if (sentences.length < 3) sentences = extract.split(/\n/);
+            sentences = sentences.filter(s => s.trim().length > 60);
+            const scored = scoreSentences(sentences, weights);
+            const filtered = scored.filter(s => {
+              if (s.hasDimensionMatch) return true;
+              const lower = s.text.toLowerCase();
+              if (lower.includes(name.toLowerCase()) && lower.includes('crisis')) return true;
+              return false;
+            });
+            const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
+            if (topScored.length >= 2 && topScored.every(s => s.text.length > 60)) {
+              bestSentences = topScored.map(s => s.text);
+              bestTitle = result.title;
+              hasGoodWikipedia = true;
+              break;
+            }
+          }
+        }
+      }
+      if (hasGoodWikipedia) break;
+    }
+    
+    if (!hasGoodWikipedia || bestSentences.length < 2) {
+      const fallback = getSafeFallback();
+      bestSentences = fallback.sentences;
+      bestTitle = fallback.title;
+    }
+    
+    if (bestSentences.length) {
+      wikipediaPrefix = bestSentences.join(' ');
+      wikipediaPrefix += ` — ${bestTitle}`;
+    }
+  } catch(e) {
+    const fallback = getSafeFallback();
+    if (fallback.sentences.length) {
+      wikipediaPrefix = fallback.sentences.join(' ');
+      wikipediaPrefix += ` — ${fallback.title}`;
+    }
+  }
+
+  // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
+  const rank = ranked.indexOf(iso) + 1;
+  const totalCountries = ranked.length;
+  const severityLabel = c.score >= 80 ? "critical"
+                      : c.score >= 60 ? "high" : "elevated";
+  const pctile = Math.round((1 - rank / totalCountries) * 100);
+
+  // ── 2. DOMINANT DIMENSIONS ─────────────────────────────────────────────
+  const sortedDims = [...DIMS]
+    .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
+    .sort((a, b) => b.val - a.val);
+  const topDim = sortedDims[0];
+  const secondDim = sortedDims[1];
+
+  // ── 3. TREND ANALYSIS ──────────────────────────────────────────────────
+  const anom = cusum(hist);
+  const vol = volatility(hist);
+  const fc = forecast(hist, c.score);
+  const recentDelta = hist.length >= 7
+    ? hist[hist.length - 1] - hist[hist.length - 7]
+    : 0;
+  const deltaAbs = Math.abs(Math.round(recentDelta));
+  const trendPhrase = recentDelta > 4
+    ? `escalated ${deltaAbs} points over the past 7 days`
+    : recentDelta < -3
+    ? `eased slightly (${deltaAbs} pts) but remains ${severityLabel}`
+    : `held steady at ${severityLabel} levels`;
+
+  // ── 4. LIVE EVENT EVIDENCE ─────────────────────────────────────────────
+  const nameLower = name.toLowerCase();
+  const liveSignals = [];
+
+  const quakes = (apiResults.usgs_weekly?.features || [])
+    .filter(f => f.properties.place.toLowerCase().includes(nameLower));
+  if (quakes.length) {
+    const biggest = quakes.reduce((a, b) =>
+      b.properties.mag > a.properties.mag ? b : a);
+    liveSignals.push(
+      `a M${(+biggest.properties.mag).toFixed(1)} earthquake ` +
+      `(USGS, ${biggest.properties.place.split(',')[0]})`
+    );
+  }
+
+  const conflict = (conflictEvents || [])
+    .find(e => e.country.toLowerCase().includes(nameLower));
+  if (conflict) {
+    liveSignals.push(
+      `active ${conflict.event_type.toLowerCase()} ` +
+      `(${conflict.fatalities}+ fatalities, ACLED)`
+    );
+  }
+
+  const ipc = (ipcClassifications || [])
+    .find(i => i.country.toLowerCase().includes(nameLower));
+  if (ipc && ipc.phase >= 3) {
+    const pop = Math.round(ipc.population / 1e6);
+    const isPhase4 = ipc.phase === 4;
+    const isYemen = nameLower === 'yemen';
+    const isSudan = nameLower === 'sudan';
+    
+    if (isPhase4 && (isYemen || isSudan)) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger (IPC Phase 3+)`
+      );
+    } else if (ipc.phase === 4) {
+      liveSignals.push(
+        `IPC Phase 4 (Emergency) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 3) {
+      liveSignals.push(
+        `IPC Phase 3 (Crisis) food insecurity affecting ${pop}M people`
+      );
+    } else if (ipc.phase === 5) {
+      liveSignals.push(
+        `IPC Phase 5 (Famine) — ${pop}M people at immediate risk of starvation`
+      );
+    } else {
+      liveSignals.push(
+        `IPC Phase ${ipc.phase} food insecurity (${pop}M people)`
+      );
+    }
+  }
+
+  const fews = (foodSecurityAlerts || [])
+    .find(a => a.country.toLowerCase().includes(nameLower));
+  if (fews && !ipc) {
+    liveSignals.push(`FEWS NET: ${fews.title}`);
+  }
+
+  const heat = (heatStressData || [])
+    .find(h => h.iso === iso && h.temp > 38);
+  if (heat) {
+    liveSignals.push(
+      `extreme heat (${heat.temp}°C, Open-Meteo)`
+    );
+  }
+
+  // ── 5. SPILLOVER PRESSURE ──────────────────────────────────────────────
+  const highNeighbours = (ADJ[iso] || [])
+    .filter(n => store[n]?.score >= 60)
+    .map(n => store[n].name);
+  const spillPhrase = highNeighbours.length >= 2
+    ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')}` +
+      ` adds +${(c.spillover || 0).toFixed(1)} to the composite score.`
+    : '';
+
+  // ── 6. ANOMALY FLAG ────────────────────────────────────────────────────
+  const histSwing = hist.length >= 4
+    ? Math.max(...hist) - Math.min(...hist)
+    : 0;
+  const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12
+    ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}),` +
+      ` indicating an unusual spike relative to the 28-day baseline.`
+    : '';
+
+  // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
+  const parts = [];
+
+  if (wikipediaPrefix) {
+    parts.push(wikipediaPrefix);
+  }
+
+  parts.push(
+    `${flag} ${name} ranks #${rank} globally with a ${severityLabel} ` +
+    `urgency score of ${c.score}/100, placing it in the ` +
+    `top ${100 - pctile}% of all tracked countries.`
+  );
+
+  parts.push(
+    `The composite is driven primarily by ${topDim.l.toLowerCase()} ` +
+    `(${topDim.val}/100) and ${secondDim.l.toLowerCase()} ` +
+    `(${secondDim.val}/100), the two highest-weighted dimensions.`
+  );
+
+  parts.push(
+    `The score has ${trendPhrase}` +
+    (fc.esc
+      ? `, with the 7-day model projecting further escalation to ${fc.fc}.`
+      : `.`)
+  );
+
+  if (liveSignals.length) {
+    const joined = liveSignals.length === 1
+      ? liveSignals[0]
+      : liveSignals.slice(0, -1).join(', ') + ' and ' + liveSignals.slice(-1);
+    parts.push(
+      `Live data confirms ${joined}.`
+    );
+  }
+
+  if (spillPhrase || anomPhrase) {
+    parts.push((spillPhrase + anomPhrase).trim());
+  }
+
+  return parts.join(' ');
+}
+
+// ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
     .filter(iso => store[iso]?.score >= 60)
@@ -725,15 +1130,12 @@ function showTopUrgentStory() {
   selectedIso = targetIso;
   rankIdx = ranked.indexOf(targetIso);
 
-  // Render panel and zoom — no scroll side effects
   renderPanel(targetIso, topCrisisType);
   zoomToCountry(targetIso);
 
-  // Reset right panel to top so it doesn't jump mid-content
   const rightPanel = document.getElementById('rightPanel');
   if (rightPanel) rightPanel.scrollTop = 0;
 
-  // Highlight sidebar card — only scroll if it's genuinely off-screen
   document.querySelectorAll('.rank-card').forEach(el =>
     el.classList.toggle('sel', el.dataset.iso === targetIso));
   const activeCard = document.querySelector(`[data-iso="${targetIso}"]`);
@@ -743,44 +1145,33 @@ function showTopUrgentStory() {
     if (!inView) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  // Update URL
   const url = topCrisisType
     ? `?country=${targetIso}&crisis=${topCrisisType}`
     : `?country=${targetIso}`;
   window.history.pushState({ country: targetIso }, '', url);
 
-  // Inject narrative — must beat renderPanel's own 100ms brief timeout
   setTimeout(() => {
-  const el = document.getElementById('aiBriefContent');
-  if (!el) return;
-  
-  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
-  let narrative = '';
-  try {
-    narrative = buildUrgencyNarrative(targetIso);
-  } catch(e) {
-    console.warn('buildUrgencyNarrative error:', e);
-  }
-  
-  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
-  if (!narrative || narrative.length < 10) {
-    if (activeCrisisData) {
-      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
-    } else {
-      narrative = fetchAIBrief(iso);
+    const el = document.getElementById('aiBriefContent');
+    if (!el) return;
+    let narrative = '';
+    try {
+      narrative = buildUrgencyNarrative(targetIso);
+    } catch(e) {
+      console.warn('buildUrgencyNarrative error:', e);
     }
-  }
+    if (!narrative || narrative.length < 10) {
+      narrative = fetchAIBrief(targetIso);
+    }
+    el.innerHTML =
+      `<div class="ai-brief-text">${narrative}</div>` +
+      `<button class="ai-brief-btn" onclick="selCountry('${targetIso}')">↺ Regenerate</button>`;
+  }, 100);
   
-  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
-  el.innerHTML =
-    `<div class="ai-brief-text">${narrative}</div>` +
-    `<button class="ai-brief-btn" onclick="selCountry('${targetIso}')">↺ Regenerate</button>`;
-}, 100);  const isEventBacked = withEventMatch.includes(targetIso);
+  const isEventBacked = withEventMatch.includes(targetIso);
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
         (isEventBacked ? "live event confirmed" : "score threshold"));
-}
-window.dataLayer = window.dataLayer || [];
+}window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-0LR42BR1B9');
