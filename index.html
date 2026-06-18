@@ -746,19 +746,16 @@ function showTopUrgentStory() {
   setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
-  // ── DIRECTLY CALL buildUrgencyNarrative ──────────────────────────────
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
   let narrative = '';
   try {
-    if (typeof buildUrgencyNarrative === 'function') {
-      narrative = buildUrgencyNarrative(iso);
-    } else {
-      throw new Error('buildUrgencyNarrative is not defined');
-    }
+    narrative = buildUrgencyNarrative(iso);
   } catch(e) {
     console.warn('buildUrgencyNarrative error:', e);
   }
   
-  // If narrative is empty or too short, use fallback
+  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
   if (!narrative || narrative.length < 10) {
     if (activeCrisisData) {
       narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
@@ -767,12 +764,11 @@ function showTopUrgentStory() {
     }
   }
   
-  // ── FORCE DISPLAY ─────────────────────────────────────────────────────
+  // ── RENDER THE BRIEF ──────────────────────────────────────────────────────
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
-}, 200);
-  const isEventBacked = withEventMatch.includes(targetIso);
+}, 100);  const isEventBacked = withEventMatch.includes(targetIso);
   const badge = c.score >= 80 ? "🔴" : "🟠";
   toast(`${badge} TOP STORY: ${c.flag} ${c.name} — ` +
         (isEventBacked ? "live event confirmed" : "score threshold"));
