@@ -646,7 +646,13 @@ function buildUrgencyNarrative(iso) {
     parts.push((spillPhrase + anomPhrase).trim());
   }
 
-  return parts.join(' ');
+  // Join all parts and dynamically convert any ==text== to bold
+  let narrative = parts.join(' ');
+  
+  // Replace ==text== with <b>text</b>
+  narrative = narrative.replace(/==([^=]+)==/g, '<b>$1</b>');
+  
+  return narrative;
 }
 
 // ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
