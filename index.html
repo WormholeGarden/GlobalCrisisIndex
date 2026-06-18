@@ -2751,11 +2751,21 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
-  const narrative = typeof buildUrgencyNarrative === 'function'
-    ? buildUrgencyNarrative(iso)
-    : (activeCrisisData
-        ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
-        : fetchAIBrief(iso));
+  
+  // Ensure buildUrgencyNarrative is called correctly with the ISO
+  let narrative = '';
+  if (typeof buildUrgencyNarrative === 'function') {
+    narrative = buildUrgencyNarrative(iso);
+  }
+  
+  // If narrative is empty or still the fallback, use the fallback
+  if (!narrative || narrative.includes('Complex Emergency')) {
+    // Use your existing fallback
+    narrative = activeCrisisData
+      ? `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`
+      : fetchAIBrief(iso);
+  }
+  
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
