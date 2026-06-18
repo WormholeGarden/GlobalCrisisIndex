@@ -746,16 +746,19 @@ function showTopUrgentStory() {
   setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
-  
   // ── DIRECTLY CALL buildUrgencyNarrative ──────────────────────────────
   let narrative = '';
   try {
-    narrative = buildUrgencyNarrative(iso);
+    if (typeof buildUrgencyNarrative === 'function') {
+      narrative = buildUrgencyNarrative(iso);
+    } else {
+      throw new Error('buildUrgencyNarrative is not defined');
+    }
   } catch(e) {
     console.warn('buildUrgencyNarrative error:', e);
   }
   
-  // If narrative is empty, use fallback
+  // If narrative is empty or too short, use fallback
   if (!narrative || narrative.length < 10) {
     if (activeCrisisData) {
       narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
