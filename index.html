@@ -3212,88 +3212,27 @@ setTimeout(() => {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
   
-  // ── BUILD THE NARRATIVE DIRECTLY ──────────────────────────────────────────
-  const hist = (history[iso] || []).map(h => h.s);
-  const rank = ranked.indexOf(iso) + 1;
-  const totalCountries = ranked.length;
-  const severityLabel = c.score >= 80 ? "critical" : c.score >= 60 ? "high" : "elevated";
-  const pctile = Math.round((1 - rank / totalCountries) * 100);
-  
-  const sortedDims = [...DIMS].map(d => ({ ...d, val: c.dims[d.k] || 0 })).sort((a, b) => b.val - a.val);
-  const topDim = sortedDims[0];
-  const secondDim = sortedDims[1];
-  
-  const anom = cusum(hist);
-  const fc = forecast(hist, c.score);
-  const recentDelta = hist.length >= 7 ? hist[hist.length - 1] - hist[hist.length - 7] : 0;
-  const deltaAbs = Math.abs(Math.round(recentDelta));
-  const trendPhrase = recentDelta > 4 ? `escalated ${deltaAbs} points over the past 7 days` : recentDelta < -3 ? `eased slightly (${deltaAbs} pts) but remains ${severityLabel}` : `held steady at ${severityLabel} levels`;
-  
-  const nameLower = c.name.toLowerCase();
-  const liveSignals = [];
-  
-  const quakes = (apiResults.usgs_weekly?.features || []).filter(f => f.properties.place.toLowerCase().includes(nameLower));
-  if (quakes.length) {
-    const biggest = quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a);
-    liveSignals.push(`a M${(+biggest.properties.mag).toFixed(1)} earthquake (USGS, ${biggest.properties.place.split(',')[0]})`);
+  // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
+  let narrative = '';
+  try {
+    narrative = buildUrgencyNarrative(iso);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
   }
   
-  const conflict = (conflictEvents || []).find(e => e.country.toLowerCase().includes(nameLower));
-  if (conflict) {
-    liveSignals.push(`active ${conflict.event_type.toLowerCase()} (${conflict.fatalities}+ fatalities, ACLED)`);
-  }
-  
-  const ipc = (ipcClassifications || []).find(i => i.country.toLowerCase().includes(nameLower));
-  if (ipc && ipc.phase >= 3) {
-    const pop = Math.round(ipc.population / 1e6);
-    const isPhase4 = ipc.phase === 4;
-    const isYemen = nameLower === 'yemen';
-    const isSudan = nameLower === 'sudan';
-    if (isPhase4 && (isYemen || isSudan)) {
-      liveSignals.push(`IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger (IPC Phase 3+)`);
-    } else if (ipc.phase === 4) {
-      liveSignals.push(`IPC Phase 4 (Emergency) food insecurity affecting ${pop}M people`);
-    } else if (ipc.phase === 3) {
-      liveSignals.push(`IPC Phase 3 (Crisis) food insecurity affecting ${pop}M people`);
-    } else if (ipc.phase === 5) {
-      liveSignals.push(`IPC Phase 5 (Famine) — ${pop}M people at immediate risk of starvation`);
+  // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
+  if (!narrative || narrative.length < 10) {
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
     } else {
-      liveSignals.push(`IPC Phase ${ipc.phase} food insecurity (${pop}M people)`);
+      narrative = fetchAIBrief(iso);
     }
-  }
-  
-  const fews = (foodSecurityAlerts || []).find(a => a.country.toLowerCase().includes(nameLower));
-  if (fews && !ipc) {
-    liveSignals.push(`FEWS NET: ${fews.title}`);
-  }
-  
-  const heat = (heatStressData || []).find(h => h.iso === iso && h.temp > 38);
-  if (heat) {
-    liveSignals.push(`extreme heat (${heat.temp}°C, Open-Meteo)`);
-  }
-  
-  const highNeighbours = (ADJ[iso] || []).filter(n => store[n]?.score >= 60).map(n => store[n].name);
-  const spillPhrase = highNeighbours.length >= 2 ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')} adds +${(c.spillover || 0).toFixed(1)} to the composite score.` : '';
-  
-  const histSwing = hist.length >= 4 ? Math.max(...hist) - Math.min(...hist) : 0;
-  const anomPhrase = anom.det && anom.z > 3.5 && histSwing > 12 ? ` A statistical anomaly is detected (z=${anom.z.toFixed(1)}), indicating an unusual spike relative to the 28-day baseline.` : '';
-  
-  let narrative = `${c.flag} ${c.name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries. The composite is driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100), the two highest-weighted dimensions. The score has ${trendPhrase}${fc.esc ? `, with the 7-day model projecting further escalation to ${fc.fc}.` : '.'}`;
-  
-  if (liveSignals.length) {
-    const joined = liveSignals.length === 1 ? liveSignals[0] : liveSignals.slice(0, -1).join(', ') + ' and ' + liveSignals.slice(-1);
-    narrative += ` Live data confirms ${joined}.`;
-  }
-  
-  if (spillPhrase || anomPhrase) {
-    narrative += (spillPhrase + anomPhrase);
   }
   
   el.innerHTML =
     `<div class="ai-brief-text">${narrative}</div>` +
     `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
 }, 100);
-
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
     setTimeout(() => {
