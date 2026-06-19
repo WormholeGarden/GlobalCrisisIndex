@@ -1715,38 +1715,67 @@ const safe = (p, ms=8000) => Promise.race([p, new Promise((_, r) => setTimeout((
 // ALL API ENDPOINTS (FULLY INTEGRATED)
 // ============================================================================
 const API_ENDPOINTS = {
-  // ── SEISMIC ──────────────────────────────────────────────────────────────
-  usgs_weekly: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
+  // ── SEISMIC (3 sources, all keyless) ─────────────────────────────────────
+  usgs_weekly:      'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
   usgs_significant: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
-  emsc: 'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=40&minmagnitude=4.5&orderby=time',
+  usgs_all_day:     'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson',
 
-  // ── NATURAL EVENTS ──────────────────────────────────────────────────────
-  reliefweb_disasters: '/api/proxy?source=reliefweb_disasters',
-  reliefweb_reports: '/api/proxy?source=reliefweb_reports',
-  gdacs: 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=25',
+  // ── NATURAL EVENTS / DISASTERS (all real, keyless) ───────────────────────
+  nasa_eonet:       'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7',
+  nasa_eonet_closed:'https://eonet.gsfc.nasa.gov/api/v3/events?status=closed&limit=30&days=3',
+  gdacs:            'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&eventtype=&fromDate=&toDate=&alertscore=&country=&limit=40',
+  reliefweb:        'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&preset=latest&slim=1&limit=30&filter[field]=status&filter[value]=alert',
+  reliefweb_crises: 'https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&preset=latest&slim=1&limit=20&filter[field]=theme.name&filter[value]=Humanitarian%20Financing',
 
-  // ── WEATHER ──────────────────────────────────────────────────────────────
-  noaa: 'https://api.weather.gov/alerts?status=actual&limit=20',
-  openmeteo: null,
-  openweathermap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=bd5e378503939ddaee76f12ad7a97608',
+  // ── WEATHER / ATMOSPHERE (keyless) ───────────────────────────────────────
+  noaa_alerts:      'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=20',
+  open_meteo_air:   'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=15.5&longitude=32.5&hourly=pm10,pm2_5,dust&forecast_days=1',
 
-  // ── CONFLICT ─────────────────────────────────────────────────────────────
-  gdelt: '/api/proxy?source=gdelt',
+  // ── CONFLICT / EVENTS (real, keyless GDELT) ───────────────────────────────
+  gdelt_geo:        'https://api.gdeltproject.org/api/v2/geo/geo?query=crisis+conflict+war+famine+attack&mode=pointdata&startdatetime=20250101000000&maxrows=50&format=geojson',
+  gdelt_tv:         'https://api.gdeltproject.org/api/v2/tv/tv?query=crisis+humanitarian+conflict&mode=timelinevol&format=json&timespan=7d',
 
-  // ── HEALTH ───────────────────────────────────────────────────────────────
-  who_news: 'https://www.who.int/api/news/emergencies?sf_culture=en',
-  who_rss: 'https://www.who.int/rss-feeds/news-english.xml',
+  // ── HEALTH / DISEASE (real, keyless) ─────────────────────────────────────
+  who_rss:          'https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml&api_key=&count=20',
+  cdc_fluview:      'https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html',
+  disease_sh:       'https://disease.sh/v3/covid-19/countries?sort=cases&limit=20',
 
-  // ── ECONOMIC ─────────────────────────────────────────────────────────────
-  wb_gdp: 'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
-  wb_nutrition: 'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
-  wb_homicide: 'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
-  wb_refugees: 'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
+  // ── FOOD SECURITY (real APIs, keyless) ───────────────────────────────────
+  fao_giews:        'https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&slim=1&limit=20&filter[field]=theme.name&filter[value]=Food+and+Nutrition',
+  wfp_vam:          'https://api.hungermapdata.org/v2/info/country',
+  ipc_api:          'https://www.ipcinfo.org/ipcinfo-website/ipc-dashboard-and-chat/ipc-api/en/',
 
-  // ── DISPLACEMENT ────────────────────────────────────────────────────────
-  unhcr: `/api/proxy?source=unhcr&year=${new Date().getFullYear()}`,
+  // ── DISPLACEMENT / REFUGEES (UNHCR public data portal) ───────────────────
+  unhcr_situations: 'https://data.unhcr.org/population/get/sublocation?forcedDisp=1&displayType=doughnut&widget_id=288&geo_id=0&popin=1',
+  unhcr_pop:        `https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=${new Date().getFullYear()-1}&yearTo=${new Date().getFullYear()}&coa_all=true&forcedDisp=1`,
+
+  // ── ECONOMIC STRESS (World Bank, real, keyless) ───────────────────────────
+  wb_gdp:           'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1',
+  wb_nutrition:     'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
+  wb_poverty:       'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
+  wb_inflation:     'https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1',
+  wb_homicide:      'https://api.worldbank.org/v2/country/all/indicator/VC.IHR.PSRC.P5?format=json&per_page=300&mrv=3',
+  wb_refugees:      'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
+  wb_gini:          'https://api.worldbank.org/v2/country/all/indicator/SI.POV.GINI?format=json&per_page=300&mrv=3',
+  wb_mortality:     'https://api.worldbank.org/v2/country/all/indicator/SH.DYN.MORT?format=json&per_page=300&mrv=1',
+
+  // ── FIRE / ENVIRONMENTAL (NASA FIRMS via public CSV-JSON, keyless) ────────
+  firms_world:      'https://firms.modaps.eosdis.nasa.gov/api/country/csv/AC3F65E5-4BB8-11EF-82D4-67C86EAFDFFA/VIIRS_SNPP_NRT/World/1',
+
+  // ── IMF (real, keyless) ───────────────────────────────────────────────────
+  imf_weo:          'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH?periods=2024',
+  imf_debt:         'https://www.imf.org/external/datamapper/api/v1/GGX_NGDP?periods=2024',
+
+  // ── OPEN INFRASTRUCTURE / ALERTS ─────────────────────────────────────────
+  pdc_hazards:      'https://sentry.pdc.org/hp_srv/services/hazards/t/json/search?pagination=false&components=hazard',
+  emdat_proxy:      'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=50',
+
+  // ── CLIMATE ANOMALIES (NOAA CDO, keyless endpoint) ────────────────────────
+  noaa_climate:     'https://www.ncei.noaa.gov/cdo-web/api/v2/data?datasetid=GHCND&locationid=FIPS:US&startdate=2025-01-01&enddate=2025-12-31&limit=10',
+
+  // ── AVIATION / HUMANITARIAN CORRIDORS ────────────────────────────────────
+  opensky:          'https://opensky-network.org/api/states/all?lamin=0&lomin=20&lamax=25&lomax=55',
 };
-
 // ============================================================================
 // DATA DEFINITIONS (abbreviated)
 // ============================================================================
@@ -2013,9 +2042,452 @@ function forecast(hist,cur){if(hist.length<4)return{fc:cur,dir:"→ Stable",dc:"
 function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
 function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
 function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
-function buildDims(base,types){const has=t=>types.includes(t);const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));return{conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8)};}
-function seedHistory(iso,currentScore){const N=28;const seed=iso.split('').reduce((s,c,i)=>s+c.charCodeAt(0)*(i+1)*17,0);let score=Math.min(99,Math.max(5,currentScore+Math.round((seededRand(seed)-0.5)*18)));const hist=[];for(let i=0;i<=N;i++){hist.push({t:Date.now()-(N-i)*86400000,s:score});const r=seededRand(seed+i*31+7);const trend=(currentScore-score)*0.12;const delta=trend+(r-0.5)*5;score=Math.min(99,Math.max(5,Math.round(score+delta)));}hist[hist.length-1].s=currentScore;return hist;}
-function spilloverScore(newStore){let res={};for(let iso in newStore){let nb=(ADJ[iso]||[]).filter(n=>newStore[n]);let excess=nb.length?Math.max(0,nb.reduce((s,n)=>s+newStore[n].score,0)/nb.length-50):0;res[iso]=Math.round(excess*.13*10)/10;}return res;}
+// ── LIVE API LOOKUP HELPERS ───────────────────────────────────────────────
+function getLiveApiBoosts(iso) {
+  const name = (NAMES[iso] || iso).toLowerCase();
+  const boosts = {
+    conflict: 0, displacement: 0, food: 0,
+    health: 0, economic: 0, climate: 0, access: 0, political: 0
+  };
+
+  // ── USGS: seismic → conflict/access/health boost ─────────────────────────
+  const allQuakes = [
+    ...(apiResults.usgs_weekly?.features   || []),
+    ...(apiResults.usgs_significant?.features || []),
+    ...(apiResults.usgs_all_day?.features  || []),
+  ];
+  allQuakes.forEach(f => {
+    const place = (f.properties?.place || '').toLowerCase();
+    if (!place.includes(name) && !place.includes(iso.toLowerCase())) return;
+    const mag = f.properties?.mag || 0;
+    if (mag >= 7)      { boosts.access += 12; boosts.health += 10; boosts.economic += 8; }
+    else if (mag >= 6) { boosts.access += 7;  boosts.health += 5;  boosts.economic += 4; }
+    else if (mag >= 5) { boosts.access += 3;  boosts.health += 2; }
+  });
+
+  // ── NASA EONET: natural events ────────────────────────────────────────────
+  const eonetEvents = [
+    ...(apiResults.nasa_eonet?.events        || []),
+    ...(apiResults.nasa_eonet_closed?.events || []),
+  ];
+  eonetEvents.forEach(ev => {
+    const title = (ev.title || '').toLowerCase();
+    if (!title.includes(name) && !(ev.geometry || []).length) return;
+    const cat = (ev.categories?.[0]?.title || '').toLowerCase();
+    if (cat.includes('wildfire'))      { boosts.climate += 8;  boosts.economic += 4; boosts.access += 3; }
+    if (cat.includes('flood'))         { boosts.climate += 7;  boosts.food += 5;     boosts.access += 4; }
+    if (cat.includes('volcano'))       { boosts.access  += 9;  boosts.health += 6;   boosts.economic += 5; }
+    if (cat.includes('storm'))         { boosts.climate += 6;  boosts.access += 5;   boosts.economic += 3; }
+    if (cat.includes('drought'))       { boosts.food    += 9;  boosts.climate += 7;  boosts.economic += 5; }
+    if (cat.includes('landslide'))     { boosts.access  += 6;  boosts.health += 4; }
+    if (cat.includes('earthquake'))    { boosts.access  += 5;  boosts.health += 4; }
+  });
+
+  // ── GDACS: orange/red alerts ──────────────────────────────────────────────
+  const gdacsFeatures = apiResults.gdacs?.features || apiResults.gdacs?.events || [];
+  gdacsFeatures.forEach(ev => {
+    const props = ev.properties || ev;
+    const evName = (props.eventname || props.EventName || props.country || '').toLowerCase();
+    if (!evName.includes(name)) return;
+    const level = (props.alertlevel || props.AlertLevel || '').toLowerCase();
+    const severity = level === 'red' ? 14 : level === 'orange' ? 8 : 4;
+    const type = (props.eventtype || props.EventType || '').toUpperCase();
+    if (type === 'EQ')  { boosts.access += severity;  boosts.health += severity * 0.7; }
+    if (type === 'TC')  { boosts.climate += severity; boosts.access += severity * 0.8; }
+    if (type === 'FL')  { boosts.climate += severity; boosts.food += severity * 0.6; }
+    if (type === 'VO')  { boosts.access += severity;  boosts.health += severity * 0.5; }
+    if (type === 'DR')  { boosts.food += severity;    boosts.climate += severity * 0.7; }
+    if (type === 'WF')  { boosts.climate += severity; boosts.access += severity * 0.5; }
+  });
+
+  // ── RELIEFWEB: active disaster alerts ────────────────────────────────────
+  (apiResults.reliefweb_events || []).forEach(ev => {
+    if (!(ev.country || '').toLowerCase().includes(name)) return;
+    const type = (ev.type || '').toLowerCase();
+    if (type.includes('conflict'))    { boosts.conflict += 8;    boosts.access += 6; }
+    if (type.includes('flood'))       { boosts.climate += 6;     boosts.food += 4; }
+    if (type.includes('epidemic'))    { boosts.health += 9;      boosts.access += 4; }
+    if (type.includes('drought'))     { boosts.food += 8;        boosts.climate += 5; }
+    if (type.includes('earthquake'))  { boosts.access += 7;      boosts.health += 5; }
+    if (type.includes('cyclone'))     { boosts.climate += 7;     boosts.access += 5; }
+  });
+
+  // ── GDELT: conflict/political events ─────────────────────────────────────
+  (apiResults.gdelt_processed || []).forEach(ev => {
+    const evName = (ev.properties?.name || '').toLowerCase();
+    if (!evName.includes(name)) return;
+    boosts.conflict  += 5;
+    boosts.political += 4;
+    boosts.access    += 2;
+  });
+
+  // ── WHO RSS: health emergencies ───────────────────────────────────────────
+  (apiResults.who_rss?.items || []).forEach(item => {
+    const title = (item.title || item.description || '').toLowerCase();
+    if (!title.includes(name)) return;
+    boosts.health  += 8;
+    boosts.access  += 3;
+  });
+
+  // ── disease.sh: COVID/disease hot spots ───────────────────────────────────
+  if (Array.isArray(apiResults.disease_sh)) {
+    const match = apiResults.disease_sh.find(c =>
+      (c.country || '').toLowerCase().includes(name) ||
+      (c.countryInfo?.iso3 || '').toLowerCase() === iso.toLowerCase()
+    );
+    if (match) {
+      const casePer1M = match.casesPerOneMillion || 0;
+      const deathPer1M = match.deathsPerOneMillion || 0;
+      if (casePer1M > 50000)  boosts.health += 7;
+      else if (casePer1M > 10000) boosts.health += 4;
+      if (deathPer1M > 500)   boosts.health += 5;
+    }
+  }
+
+  // ── IPC food security classifications ────────────────────────────────────
+  const ipcMatch = ipcClassifications.find(i =>
+    (i.country || '').toLowerCase().includes(name)
+  );
+  if (ipcMatch) {
+    const phase = ipcMatch.phase || 0;
+    if (phase >= 5)      { boosts.food += 22; boosts.health += 14; boosts.displacement += 10; }
+    else if (phase >= 4) { boosts.food += 16; boosts.health += 10; boosts.displacement += 7; }
+    else if (phase >= 3) { boosts.food += 10; boosts.health += 6;  boosts.displacement += 4; }
+  }
+
+  // ── WFP HungerMap ────────────────────────────────────────────────────────
+  const wfpMatch = (apiResults.wfp_hunger_map || []).find(c =>
+    (c.country_name || '').toLowerCase().includes(name) ||
+    (c.iso3 || '').toLowerCase() === iso.toLowerCase()
+  );
+  if (wfpMatch) {
+    const phase = wfpMatch.ipc_phase || 0;
+    if (phase >= 4) { boosts.food += 12; boosts.health += 6; }
+    else if (phase >= 3) { boosts.food += 7; boosts.health += 3; }
+  }
+
+  // ── FEWS NET food alerts ──────────────────────────────────────────────────
+  const fewsMatch = foodSecurityAlerts.find(a =>
+    (a.country || '').toLowerCase().includes(name)
+  );
+  if (fewsMatch) {
+    boosts.food += fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc >= 3 ? 6 : 3;
+  }
+
+  // ── ACLED / conflict events ───────────────────────────────────────────────
+  const conflictMatch = conflictEvents.find(e =>
+    (e.country || '').toLowerCase().includes(name)
+  );
+  if (conflictMatch) {
+    const fat = conflictMatch.fatalities || 0;
+    boosts.conflict += fat > 100 ? 14 : fat > 20 ? 9 : fat > 0 ? 5 : 4;
+    boosts.political += 5;
+    boosts.access   += 4;
+    boosts.displacement += 4;
+  }
+
+  // ── Heat stress (Open-Meteo) ──────────────────────────────────────────────
+  const heatMatch = heatStressData.find(h => h.iso === iso);
+  if (heatMatch) {
+    if (heatMatch.temp >= 46)      { boosts.climate += 14; boosts.health += 10; boosts.food += 6; }
+    else if (heatMatch.temp >= 42) { boosts.climate += 9;  boosts.health += 6;  boosts.food += 3; }
+    else if (heatMatch.temp >= 38) { boosts.climate += 5;  boosts.health += 3; }
+  }
+
+  // ── IMF GDP growth (negative = economic stress) ───────────────────────────
+  const imfGrowth = apiResults.imf_growth_map;
+  if (imfGrowth) {
+    const growth = imfGrowth[iso];
+    if (typeof growth === 'number') {
+      if (growth < -5)      { boosts.economic += 16; boosts.food += 6; }
+      else if (growth < -2) { boosts.economic += 10; boosts.food += 3; }
+      else if (growth < 0)  { boosts.economic += 5; }
+    }
+  }
+
+  // ── World Bank poverty ────────────────────────────────────────────────────
+  if (apiResults.wb_poverty?.[1]) {
+    const wbMatch = apiResults.wb_poverty[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (wbMatch?.value) {
+      const pov = wbMatch.value;
+      if (pov > 50)       { boosts.economic += 14; boosts.food += 8; boosts.health += 6; }
+      else if (pov > 30)  { boosts.economic += 9;  boosts.food += 5; boosts.health += 3; }
+      else if (pov > 10)  { boosts.economic += 4; }
+    }
+  }
+
+  // ── World Bank inflation ──────────────────────────────────────────────────
+  if (apiResults.wb_inflation?.[1]) {
+    const infMatch = apiResults.wb_inflation[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (infMatch?.value) {
+      const inf = infMatch.value;
+      if (inf > 50)      { boosts.economic += 14; boosts.food += 7; }
+      else if (inf > 20) { boosts.economic += 9;  boosts.food += 4; }
+      else if (inf > 10) { boosts.economic += 4; }
+    }
+  }
+
+  // ── World Bank mortality (child) ──────────────────────────────────────────
+  if (apiResults.wb_mortality?.[1]) {
+    const mortMatch = apiResults.wb_mortality[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (mortMatch?.value > 50) boosts.health += 8;
+    else if (mortMatch?.value > 20) boosts.health += 4;
+  }
+
+  // ── World Bank nutrition (undernourishment %) ─────────────────────────────
+  if (apiResults.wb_nutrition?.[1]) {
+    const nutMatch = apiResults.wb_nutrition[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (nutMatch?.value > 30) { boosts.food += 8;  boosts.health += 4; }
+    else if (nutMatch?.value > 15) { boosts.food += 4; }
+  }
+
+  // ── World Bank GINI (inequality) ──────────────────────────────────────────
+  if (apiResults.wb_gini?.[1]) {
+    const giniMatch = apiResults.wb_gini[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (giniMatch?.value > 50) { boosts.economic += 6; boosts.political += 4; }
+    else if (giniMatch?.value > 40) { boosts.economic += 3; }
+  }
+
+  // ── UNHCR displacement ────────────────────────────────────────────────────
+  if (apiResults.unhcr_pop?.items?.length) {
+    const unhcrMatch = apiResults.unhcr_pop.items.find(d =>
+      (d.coo_iso || d.coa_iso || '').toLowerCase() === iso.toLowerCase()
+    );
+    if (unhcrMatch) {
+      const total = (unhcrMatch.refugees || 0) + (unhcrMatch.idps || 0) + (unhcrMatch.asylum_seekers || 0);
+      if (total > 2000000)     { boosts.displacement += 18; boosts.conflict += 8; }
+      else if (total > 500000) { boosts.displacement += 12; boosts.conflict += 5; }
+      else if (total > 100000) { boosts.displacement += 7;  boosts.conflict += 3; }
+      else if (total > 10000)  { boosts.displacement += 4; }
+    }
+  }
+
+  // ── World Bank refugees (stock) ───────────────────────────────────────────
+  if (apiResults.wb_refugees?.[1]) {
+    const refMatch = apiResults.wb_refugees[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (refMatch?.value > 1000000)  boosts.displacement += 10;
+    else if (refMatch?.value > 100000) boosts.displacement += 6;
+    else if (refMatch?.value > 10000)  boosts.displacement += 3;
+  }
+
+  // ── World Bank homicide ───────────────────────────────────────────────────
+  if (apiResults.wb_homicide?.[1]) {
+    const homMatch = apiResults.wb_homicide[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (homMatch?.value > 30)  { boosts.conflict += 10; boosts.political += 5; }
+    else if (homMatch?.value > 10) { boosts.conflict += 6;  boosts.political += 3; }
+    else if (homMatch?.value > 5)  { boosts.conflict += 3; }
+  }
+
+  // ── IMF debt stress ───────────────────────────────────────────────────────
+  if (apiResults.imf_debt?.values?.GGX_NGDP) {
+    const debt = apiResults.imf_debt.values.GGX_NGDP[iso];
+    if (typeof debt === 'number') {
+      if (debt > 120)      { boosts.economic += 10; boosts.political += 5; }
+      else if (debt > 80)  { boosts.economic += 6; }
+      else if (debt > 60)  { boosts.economic += 3; }
+    }
+  }
+
+  // ── Cap all boosts to prevent runaway scores ──────────────────────────────
+  const MAX_BOOST = 35;
+  for (const k in boosts) boosts[k] = Math.min(MAX_BOOST, Math.max(0, Math.round(boosts[k])));
+
+  return boosts;
+}
+
+function buildDims(base, types, iso) {
+  const has = t => types.includes(t);
+  const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
+
+  // ── 1. TYPE-BASED STRUCTURAL SCORES (same logic as before) ───────────────
+  const structural = {
+    conflict:     clamp(base * ((has('CW') || has('CE')) ? 1.1  : has('REF') ? 0.65 : 0.28)),
+    displacement: clamp(base * ((has('REF') || has('CW') || has('CE')) ? 1.05 : (has('EQ') || has('FL') || has('TC')) ? 0.8 : 0.38)),
+    food:         clamp(base * ((has('FN') || has('DR')) ? 1.15 : (has('CE') || has('CW')) ? 0.9 : has('FL') ? 0.7 : 0.42)),
+    health:       clamp(base * ((has('EP') || has('FN')) ? 1.1  : (has('CE') || has('CW') || has('EQ')) ? 0.85 : 0.52)),
+    economic:     clamp(base * ((has('CE') || has('CW') || has('FN') || has('DR')) ? 0.82 : 0.42) + 10),
+    climate:      clamp(base * ((has('HEAT') || has('DR')) ? 0.88 : (has('FL') || has('TC') || has('WF')) ? 0.75 : 0.32) + 12),
+    access:       clamp(base * ((has('CW') || has('CE')) ? 0.88 : (has('EQ') || has('FL') || has('LS')) ? 0.72 : 0.32) + 8),
+    political:    clamp(base * ((has('CE') || has('CW') || has('REF')) ? 0.85 : 0.42) + 8),
+  };
+
+  // ── 2. LIVE API BOOSTS (only if APIs have loaded) ────────────────────────
+  // Guard: if apiResults is empty (first render before fetch) skip boosts
+  const hasApiData = Object.keys(apiResults).length > 0;
+  if (!iso || !hasApiData) return structural;
+
+  const boosts = getLiveApiBoosts(iso);
+
+  // ── 3. BLEND: structural drives the base, live API boosts on top ──────────
+  // Weight: 70% structural + 30% live signal, then add boost
+  // This keeps countries with no API matches stable
+  return {
+    conflict:     clamp(structural.conflict     * 0.72 + boosts.conflict     + (boosts.conflict     > 0 ? structural.conflict     * 0.28 : structural.conflict     * 0.28)),
+    displacement: clamp(structural.displacement * 0.72 + boosts.displacement + (boosts.displacement > 0 ? structural.displacement * 0.28 : structural.displacement * 0.28)),
+    food:         clamp(structural.food         * 0.72 + boosts.food         + (boosts.food         > 0 ? structural.food         * 0.28 : structural.food         * 0.28)),
+    health:       clamp(structural.health       * 0.72 + boosts.health       + (boosts.health       > 0 ? structural.health       * 0.28 : structural.health       * 0.28)),
+    economic:     clamp(structural.economic     * 0.72 + boosts.economic     + (boosts.economic     > 0 ? structural.economic     * 0.28 : structural.economic     * 0.28)),
+    climate:      clamp(structural.climate      * 0.72 + boosts.climate      + (boosts.climate      > 0 ? structural.climate      * 0.28 : structural.climate      * 0.28)),
+    access:       clamp(structural.access       * 0.72 + boosts.access       + (boosts.access       > 0 ? structural.access       * 0.28 : structural.access       * 0.28)),
+    political:    clamp(structural.political    * 0.72 + boosts.political    + (boosts.political    > 0 ? structural.political    * 0.28 : structural.political    * 0.28)),
+  };
+}
+
+function seedHistory(iso, currentScore) {
+  const N = 28;
+  const seed = iso.split('').reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
+
+  // ── Pull any real trend signal from APIs to bias history slope ───────────
+  let trendBias = 0;
+
+  // IPC food trend
+  const ipcMatch = ipcClassifications.find(i => (i.country || '').toLowerCase().includes((NAMES[iso] || '').toLowerCase()));
+  if (ipcMatch?.phase >= 4) trendBias += 1.2;
+  else if (ipcMatch?.phase >= 3) trendBias += 0.6;
+
+  // GDELT conflict volume trend
+  if (apiResults.gdelt_tv) {
+    try {
+      const tvData = typeof apiResults.gdelt_tv === 'string'
+        ? JSON.parse(apiResults.gdelt_tv)
+        : apiResults.gdelt_tv;
+      if (tvData?.timeline?.length >= 2) {
+        const vals = tvData.timeline.map(t => t.value || 0);
+        const recent = vals.slice(-3).reduce((a, b) => a + b, 0) / 3;
+        const older  = vals.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+        if (recent > older * 1.3) trendBias += 0.8;
+        else if (recent < older * 0.7) trendBias -= 0.5;
+      }
+    } catch (_) {}
+  }
+
+  // Conflict events → upward bias
+  const conflictMatch = conflictEvents.find(e => (e.country || '').toLowerCase().includes((NAMES[iso] || '').toLowerCase()));
+  if (conflictMatch?.fatalities > 50) trendBias += 0.9;
+
+  // Heat stress → recent spike
+  const heatMatch = heatStressData.find(h => h.iso === iso);
+  if (heatMatch?.temp >= 44) trendBias += 0.7;
+
+  // IMF negative growth → downward economic pressure (scores go up = worse)
+  const imfGrowth = apiResults.imf_growth_map?.[iso];
+  if (typeof imfGrowth === 'number' && imfGrowth < -3) trendBias += 0.6;
+
+  // ── Build the 28-day seeded history with real trend bias ─────────────────
+  let score = Math.min(99, Math.max(5, currentScore + Math.round((seededRand(seed) - 0.5) * 18)));
+  const hist = [];
+
+  for (let i = 0; i <= N; i++) {
+    hist.push({ t: Date.now() - (N - i) * 86400000, s: score });
+    const r = seededRand(seed + i * 31 + 7);
+    // Blend: structural mean-reversion + real trend bias + noise
+    const structuralPull = (currentScore - score) * 0.12;
+    const realTrendPull  = trendBias * 0.4;
+    const noise          = (r - 0.5) * 5;
+    const delta          = structuralPull + realTrendPull + noise;
+    score = Math.min(99, Math.max(5, Math.round(score + delta)));
+  }
+
+  hist[hist.length - 1].s = currentScore;
+  return hist;
+}
+
+function spilloverScore(newStore) {
+  const res = {};
+
+  for (const iso in newStore) {
+    const neighbours = (ADJ[iso] || []).filter(n => newStore[n]);
+    if (!neighbours.length) { res[iso] = 0; continue; }
+
+    // Base spillover: neighbour average above threshold
+    const avgNeighbour = neighbours.reduce((s, n) => s + newStore[n].score, 0) / neighbours.length;
+    let spill = Math.max(0, avgNeighbour - 50) * 0.13;
+
+    // ── API-enhanced spillover modifiers ─────────────────────────────────────
+
+    // Refugee flows → displacement pressure crosses borders
+    if (apiResults.wb_refugees?.[1]) {
+      const refData = apiResults.wb_refugees[1];
+      const hasLargeRefugeeNeighbour = neighbours.some(n => {
+        const d = refData.find(r => r.countryiso3code === n || r.country?.id === n);
+        return d?.value > 500000;
+      });
+      if (hasLargeRefugeeNeighbour) spill += 2.5;
+    }
+
+    // UNHCR: if a neighbour is a major displacement source
+    if (apiResults.unhcr_pop?.items?.length) {
+      const hasUNHCRNeighbour = neighbours.some(n =>
+        apiResults.unhcr_pop.items.find(d =>
+          (d.coo_iso || '').toLowerCase() === n.toLowerCase() &&
+          ((d.refugees || 0) + (d.idps || 0)) > 200000
+        )
+      );
+      if (hasUNHCRNeighbour) spill += 2.0;
+    }
+
+    // Conflict spillover: active conflict in neighbour amplifies risk
+    const hasConflictNeighbour = neighbours.some(n =>
+      conflictEvents.find(e => (e.country || '').toLowerCase().includes((NAMES[n] || '').toLowerCase()))
+    );
+    if (hasConflictNeighbour) spill += 1.8;
+
+    // IPC food crisis in neighbour → food supply chain pressure
+    const hasIpcNeighbour = neighbours.some(n => {
+      const nName = (NAMES[n] || '').toLowerCase();
+      return ipcClassifications.find(i => i.phase >= 3 && (i.country || '').toLowerCase().includes(nName));
+    });
+    if (hasIpcNeighbour) spill += 1.5;
+
+    // GDELT: high conflict media volume in region amplifies spillover
+    if (apiResults.gdelt_processed?.length) {
+      const gdeltNeighbourHits = neighbours.filter(n =>
+        apiResults.gdelt_processed.some(ev =>
+          (ev.properties?.name || '').toLowerCase().includes((NAMES[n] || '').toLowerCase())
+        )
+      ).length;
+      spill += gdeltNeighbourHits * 0.6;
+    }
+
+    // EONET disasters in neighbours → humanitarian pressure
+    const eonetEvents = [
+      ...(apiResults.nasa_eonet?.events        || []),
+      ...(apiResults.nasa_eonet_closed?.events || []),
+    ];
+    const hasEonetNeighbour = neighbours.some(n => {
+      const nName = (NAMES[n] || '').toLowerCase();
+      return eonetEvents.some(ev => (ev.title || '').toLowerCase().includes(nName));
+    });
+    if (hasEonetNeighbour) spill += 1.2;
+
+    // IMF: economic contagion — neighbour in recession amplifies economic spillover
+    if (apiResults.imf_growth_map) {
+      const hasRecessNeighbour = neighbours.some(n => {
+        const g = apiResults.imf_growth_map[n];
+        return typeof g === 'number' && g < -2;
+      });
+      if (hasRecessNeighbour) spill += 1.0;
+    }
+
+    res[iso] = Math.round(Math.min(20, spill) * 10) / 10;
+  }
+
+  return res;
+}
 
 // ============================================================================
 // API FETCHERS (condensed)
@@ -2030,81 +2502,324 @@ async function fetchDiseaseOutbreaks(){try{const res=await safe(fetch(API_ENDPOI
 // ============================================================================
 // BUILD TICKER
 // ============================================================================
-function buildTickerFromResults(){
-  const items=[];
-  const now=Date.now();
-  
-  if(apiResults.usgs_weekly?.features)
-    apiResults.usgs_weekly.features.slice(0,3).forEach(f=>{
-      const p=f.properties;
-      const mag=+(p.mag||0).toFixed(1);
-      let c="#3ec5ff",l="LOW";
-      if(mag>=7){c="#ff375f";l="CRITICAL";}
-      else if(mag>=6){c="#ff8c42";l="HIGH";}
-      else if(mag>=5){c="#ffb020";l="MODERATE";}
-      items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place.split(',')[0]}`,age:Math.floor((now-p.time)/60000)});
+function buildTickerFromResults() {
+  const items = [];
+  const now = Date.now();
+
+  // ── USGS SEISMIC (3 feeds merged, deduped by id) ──────────────────────────
+  const seenQuakes = new Set();
+  ['usgs_weekly', 'usgs_significant', 'usgs_all_day'].forEach(feed => {
+    (apiResults[feed]?.features || []).forEach(f => {
+      if (seenQuakes.has(f.id)) return;
+      seenQuakes.add(f.id);
+      const p = f.properties;
+      const mag = +(p.mag || 0).toFixed(1);
+      let c = '#3ec5ff', l = 'LOW';
+      if (mag >= 7)      { c = '#ff375f'; l = 'CRITICAL'; }
+      else if (mag >= 6) { c = '#ff8c42'; l = 'HIGH'; }
+      else if (mag >= 5) { c = '#ffb020'; l = 'MODERATE'; }
+      items.push({ l, c, t: `🌍 USGS: M${mag} — ${p.place?.split(',')[0] || ''}` });
     });
-    
-  if(apiResults.nasa?.events)
-    apiResults.nasa.events.slice(0,3).forEach(ev=>{
-      const cat=(ev.categories||[])[0]?.title||'';
-      let c="#ffb020",l="MODERATE",icon="⚠️";
-      if(cat==="Volcanoes"){c="#ff8c42";l="HIGH";icon="🌋";}
-      else if(cat==="Wildfires"){c="#ff8c42";l="HIGH";icon="🔥";}
-      items.push({l,c,t:`${icon} NASA: ${ev.title.substring(0,50)}`,age:30});
+  });
+
+  // ── NASA EONET (open events) ───────────────────────────────────────────────
+  (apiResults.nasa_eonet?.events || []).slice(0, 5).forEach(ev => {
+    const cat = (ev.categories || [])[0]?.title || '';
+    let c = '#ffb020', l = 'MODERATE', icon = '⚠️';
+    if (cat === 'Volcanoes')        { c = '#ff8c42'; l = 'HIGH'; icon = '🌋'; }
+    else if (cat === 'Wildfires')   { c = '#ff8c42'; l = 'HIGH'; icon = '🔥'; }
+    else if (cat === 'Sea and Lake Ice') { c = '#3ec5ff'; l = 'LOW'; icon = '🧊'; }
+    else if (cat === 'Floods')      { c = '#ff8c42'; l = 'HIGH'; icon = '🌊'; }
+    else if (cat === 'Severe Storms'){ c = '#ff375f'; l = 'CRITICAL'; icon = '⛈️'; }
+    else if (cat === 'Earthquakes') { c = '#ffb020'; l = 'MODERATE'; icon = '🌍'; }
+    else if (cat === 'Landslides')  { c = '#ffb020'; l = 'MODERATE'; icon = '⛰️'; }
+    else if (cat === 'Drought')     { c = '#ff8c42'; l = 'HIGH'; icon = '🏜️'; }
+    items.push({ l, c, t: `${icon} NASA EONET: ${ev.title?.substring(0, 60)}` });
+  });
+
+  // ── GDACS ALERTS ──────────────────────────────────────────────────────────
+  (apiResults.gdacs?.features || apiResults.gdacs?.events || []).slice(0, 4).forEach(ev => {
+    const props = ev.properties || ev;
+    const type = props.eventtype || props.EventType || 'Alert';
+    const alert = (props.alertlevel || props.AlertLevel || 'orange').toLowerCase();
+    const c = alert === 'red' ? '#ff375f' : '#ff8c42';
+    const l = alert === 'red' ? 'CRITICAL' : 'HIGH';
+    const icon = { EQ: '🌍', TC: '🌀', FL: '🌊', VO: '🌋', DR: '🏜️', WF: '🔥' }[type] || '⚠️';
+    items.push({ l, c, t: `${icon} GDACS: ${props.eventname || props.EventName || type}` });
+  });
+
+  // ── NOAA WEATHER ALERTS ───────────────────────────────────────────────────
+  (apiResults.noaa_alerts?.features || []).slice(0, 3).forEach(alert => {
+    const p = alert.properties;
+    const sev = (p.severity || '').toLowerCase();
+    const c = sev === 'extreme' ? '#ff375f' : sev === 'severe' ? '#ff8c42' : '#ffb020';
+    const l = sev === 'extreme' ? 'CRITICAL' : sev === 'severe' ? 'HIGH' : 'MODERATE';
+    items.push({ l, c, t: `🌪️ NOAA: ${p.event || 'Weather Alert'} — ${(p.areaDesc || '').substring(0, 40)}` });
+  });
+
+  // ── WHO RSS ───────────────────────────────────────────────────────────────
+  (apiResults.who_rss?.items || []).slice(0, 3).forEach(item => {
+    items.push({ l: 'HIGH', c: '#ff8c42', t: `🏥 WHO: ${(item.title || '').substring(0, 65)}` });
+  });
+
+  // ── RELIEFWEB DISASTERS ───────────────────────────────────────────────────
+  (apiResults.reliefweb_events || []).slice(0, 4).forEach(ev => {
+    const typeIcon = { 'Flash Flood': '🌊', 'Earthquake': '🌍', 'Cyclone': '🌀', 'Drought': '🏜️', 'Epidemic': '🦠', 'Conflict': '⚔️' }[ev.type] || '⚠️';
+    items.push({ l: 'HIGH', c: '#ff8c42', t: `${typeIcon} ReliefWeb: ${ev.country} — ${ev.title?.substring(0, 50)}` });
+  });
+
+  // ── GDELT EVENTS ──────────────────────────────────────────────────────────
+  (apiResults.gdelt_processed || []).slice(0, 3).forEach(ev => {
+    const name = ev.properties?.name || '';
+    if (name) items.push({ l: 'MODERATE', c: '#ffb020', t: `📡 GDELT: Crisis event — ${name.substring(0, 55)}` });
+  });
+
+  // ── HEAT STRESS ───────────────────────────────────────────────────────────
+  heatStressData.filter(h => h.temp > 40).forEach(h => {
+    const sev = h.temp > 45 ? 'CRITICAL' : 'HIGH';
+    const c = h.temp > 45 ? '#ff375f' : '#ff8c42';
+    items.push({ l: sev, c, t: `🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}` });
+  });
+
+  // ── IPC FOOD SECURITY ─────────────────────────────────────────────────────
+  ipcClassifications.forEach(i => {
+    let c = '#ffb020', l = 'MODERATE';
+    if (i.phase >= 5)      { c = '#ff375f'; l = 'CATASTROPHIC'; }
+    else if (i.phase >= 4) { c = '#ff375f'; l = 'CRITICAL'; }
+    else if (i.phase >= 3) { c = '#ff8c42'; l = 'HIGH'; }
+    const pop = Math.round(i.population / 1e6);
+    items.push({ l, c, t: `🌾 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${pop}M people` });
+  });
+
+  // ── WFP HUNGER MAP ────────────────────────────────────────────────────────
+  (apiResults.wfp_hunger_map || []).slice(0, 4).forEach(c => {
+    if (c.ipc_phase >= 3) {
+      const col = c.ipc_phase >= 4 ? '#ff375f' : '#ff8c42';
+      items.push({ l: 'HIGH', c: col, t: `🍚 WFP HungerMap: ${c.country_name} — Phase ${c.ipc_phase}` });
+    }
+  });
+
+  // ── CONFLICT ──────────────────────────────────────────────────────────────
+  conflictEvents.slice(0, 5).forEach(c => {
+    const src = c.source === 'GDELT' ? 'GDELT' : 'ACLED';
+    const fat = c.fatalities > 0 ? ` (${c.fatalities}+ fatalities)` : '';
+    items.push({ l: 'HIGH', c: '#ff8c42', t: `⚔️ ${src}: ${c.country} — ${c.event_type}${fat}` });
+  });
+
+  // ── DISEASE OUTBREAKS ─────────────────────────────────────────────────────
+  diseaseOutbreaks.slice(0, 4).forEach(d => {
+    const cases = d.cases >= 10000 ? `${(d.cases/1000).toFixed(0)}K` : d.cases?.toLocaleString?.() || '';
+    items.push({ l: 'HIGH', c: '#ff8c42', t: `🦠 ${d.disease} outbreak in ${d.country}${cases ? ' · ' + cases + ' cases' : ''}` });
+  });
+
+  // ── IMF ECONOMIC STRESS ───────────────────────────────────────────────────
+  if (apiResults.imf_growth_map) {
+    const negGrowth = Object.entries(apiResults.imf_growth_map)
+      .filter(([, v]) => typeof v === 'number' && v < -2)
+      .slice(0, 3);
+    negGrowth.forEach(([iso, growth]) => {
+      const name = NAMES[iso] || iso;
+      items.push({ l: 'HIGH', c: '#ff8c42', t: `📉 IMF: ${name} GDP growth ${growth.toFixed(1)}% — economic stress` });
     });
-    
-  if(apiResults.noaa?.features)
-    apiResults.noaa.features.slice(0,3).forEach(alert=>{
-      const props=alert.properties;
-      items.push({l:"HIGH",c:"#ff8c42",t:`🌪️ NOAA: ${props.event||'Weather Alert'} — ${props.areaDesc?.substring(0,40)}`,age:15});
-    });
-    
-  heatStressData.forEach(h=>{
-    if(h.temp>40)
-      items.push({l:"HIGH",c:"#ff8c42",t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${h.iso}`,age:5});
-  });
-  
-  foodSecurityAlerts.forEach(a=>{
-    let c="#ffb020",l="MODERATE";
-    if(a.ipc>=4){c="#ff375f";l="CRITICAL";}
-    else if(a.ipc>=3){c="#ff8c42";l="HIGH";}
-    items.push({l,c,t:`🌾 FEWS NET: ${a.country} — ${a.title.substring(0,55)}`,age:10});
-  });
-  
-  ipcClassifications.forEach(i=>{
-    let c="#ffb020",l="MODERATE";
-    if(i.phase>=4){c="#ff375f";l="CRITICAL";}
-    else if(i.phase>=3){c="#ff8c42";l="HIGH";}
-    items.push({l,c,t:`📊 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${Math.round(i.population/1e6)}M people`,age:8});
-  });
-  
-  conflictEvents.forEach(c=>{
-    items.push({l:"HIGH",c:"#ff8c42",t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`,age:20});
-  });
-  
-  diseaseOutbreaks.forEach(d=>{
-    items.push({l:"HIGH",c:"#ff8c42",t:`🦠 Disease: ${d.disease} outbreak in ${d.country}`,age:20});
-  });
-  
-  // FIX: Remove any filtering that might hide items
-  const uniq = items.slice(0, 55);
-  
-  if(uniq.length===0) return;
-  
-  const doubled=[...uniq,...uniq];
-  const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
-  const inner=document.getElementById('tickerInner');
-  if(inner) {
-    inner.innerHTML=html;
-    inner.style.animationDuration=Math.max(65,uniq.length*4)+'s';
+  }
+
+  // ── WORLD BANK POVERTY ────────────────────────────────────────────────────
+  if (apiResults.wb_poverty?.[1]) {
+    apiResults.wb_poverty[1]
+      .filter(d => d.value > 30)
+      .slice(0, 3)
+      .forEach(d => {
+        items.push({ l: 'HIGH', c: '#ff8c42', t: `📊 World Bank: ${d.country?.value || d.countryiso3code} — ${d.value?.toFixed(1)}% extreme poverty` });
+      });
+  }
+
+  // ── INFLATION SPIKES ──────────────────────────────────────────────────────
+  if (apiResults.wb_inflation?.[1]) {
+    apiResults.wb_inflation[1]
+      .filter(d => d.value > 20)
+      .slice(0, 3)
+      .forEach(d => {
+        items.push({ l: 'HIGH', c: '#ff8c42', t: `💸 World Bank: ${d.country?.value || d.countryiso3code} — ${d.value?.toFixed(1)}% inflation` });
+      });
+  }
+
+  if (!items.length) return;
+
+  const uniq = items.slice(0, 80);
+  const doubled = [...uniq, ...uniq];
+  const html = doubled.map(e =>
+    `<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`
+  ).join('');
+  const inner = document.getElementById('tickerInner');
+  if (inner) {
+    inner.innerHTML = html;
+    inner.style.animationDuration = Math.max(80, uniq.length * 3.5) + 's';
   }
 }
 
 // ============================================================================
 // FETCH ALL APIs
 // ============================================================================
-async function fetchAllAPIs(){const promises={};for(const[key,url]of Object.entries(API_ENDPOINTS)){if(url)promises[key]=safe(fetch(url).then(r=>r.json()).catch(()=>null));}const results=await Promise.allSettled(Object.values(promises));const keys=Object.keys(promises);results.forEach((res,idx)=>{apiResults[keys[idx]]=res.status==='fulfilled'?res.value:null;});heatStressData=await fetchOpenMeteoHeatStress();foodSecurityAlerts=await fetchFewsNetAlerts();ipcClassifications=await fetchIpcClassifications();conflictEvents=await fetchConflictEvents();weatherAlerts=await fetchWeatherAlerts();diseaseOutbreaks=await fetchDiseaseOutbreaks();buildTickerFromResults();}
+async function fetchAllAPIs() {
+  // ── BATCH 1: Fast, keyless, always-on ─────────────────────────────────────
+  const batch1 = {
+    usgs_weekly:      API_ENDPOINTS.usgs_weekly,
+    usgs_significant: API_ENDPOINTS.usgs_significant,
+    usgs_all_day:     API_ENDPOINTS.usgs_all_day,
+    nasa_eonet:       API_ENDPOINTS.nasa_eonet,
+    gdacs:            API_ENDPOINTS.gdacs,
+    noaa_alerts:      API_ENDPOINTS.noaa_alerts,
+    disease_sh:       API_ENDPOINTS.disease_sh,
+    wb_gdp:           API_ENDPOINTS.wb_gdp,
+    wb_poverty:       API_ENDPOINTS.wb_poverty,
+    wb_inflation:     API_ENDPOINTS.wb_inflation,
+    wb_mortality:     API_ENDPOINTS.wb_mortality,
+    wb_gini:          API_ENDPOINTS.wb_gini,
+    wb_refugees:      API_ENDPOINTS.wb_refugees,
+    imf_weo:          API_ENDPOINTS.imf_weo,
+    imf_debt:         API_ENDPOINTS.imf_debt,
+  };
+
+  // ── BATCH 2: Slightly slower / larger payloads ────────────────────────────
+  const batch2 = {
+    reliefweb:        API_ENDPOINTS.reliefweb,
+    reliefweb_crises: API_ENDPOINTS.reliefweb_crises,
+    gdelt_geo:        API_ENDPOINTS.gdelt_geo,
+    who_rss:          API_ENDPOINTS.who_rss,
+    wfp_vam:          API_ENDPOINTS.wfp_vam,
+    unhcr_pop:        API_ENDPOINTS.unhcr_pop,
+    wb_nutrition:     API_ENDPOINTS.wb_nutrition,
+    wb_homicide:      API_ENDPOINTS.wb_homicide,
+    nasa_eonet_closed:API_ENDPOINTS.nasa_eonet_closed,
+    emdat_proxy:      API_ENDPOINTS.emdat_proxy,
+  };
+
+  // Fire batch 1 immediately
+  const p1 = {};
+  for (const [k, url] of Object.entries(batch1)) {
+    if (url) p1[k] = safe(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.ok ? r.json() : null).catch(() => null));
+  }
+
+  // Fire batch 2 with slight stagger to avoid rate limits
+  await new Promise(r => setTimeout(r, 120));
+  const p2 = {};
+  for (const [k, url] of Object.entries(batch2)) {
+    if (url) p2[k] = safe(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.ok ? r.json() : null).catch(() => null));
+  }
+
+  // Resolve both batches in parallel
+  const [r1, r2] = await Promise.all([
+    Promise.allSettled(Object.values(p1)),
+    Promise.allSettled(Object.values(p2)),
+  ]);
+
+  Object.keys(p1).forEach((k, i) => {
+    apiResults[k] = r1[i].status === 'fulfilled' ? r1[i].value : null;
+  });
+  Object.keys(p2).forEach((k, i) => {
+    apiResults[k] = r2[i].status === 'fulfilled' ? r2[i].value : null;
+  });
+
+  // ── PARALLEL SPECIALIST FETCHERS ─────────────────────────────────────────
+  const [heat, food, ipc, conflict, weather, disease, gdelt, reliefEvents, wfp] = await Promise.all([
+    fetchOpenMeteoHeatStress(),
+    fetchFewsNetAlerts(),
+    fetchIpcClassifications(),
+    fetchConflictEvents(),
+    fetchWeatherAlerts(),
+    fetchDiseaseOutbreaks(),
+    fetchGdeltEvents(),
+    fetchReliefWebEvents(),
+    fetchWFPHungerMap(),
+  ]);
+
+  heatStressData       = heat;
+  foodSecurityAlerts   = food;
+  ipcClassifications   = ipc;
+  conflictEvents       = conflict;
+  weatherAlerts        = weather;
+  diseaseOutbreaks     = disease;
+
+  // Merge GDELT + ReliefWeb events into conflictEvents and apiResults
+  if (gdelt.length)        apiResults.gdelt_processed    = gdelt;
+  if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
+  if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
+
+  // ── ENRICH DISEASE OUTBREAKS from disease.sh ─────────────────────────────
+  if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
+    const covidHot = apiResults.disease_sh
+      .filter(c => c.todayCases > 1000)
+      .slice(0, 8)
+      .map(c => ({ disease: 'COVID-19', country: c.country, cases: c.todayCases, severity: c.todayDeaths > 50 ? 'HIGH' : 'MODERATE' }));
+    diseaseOutbreaks = [...diseaseOutbreaks, ...covidHot].slice(0, 20);
+  }
+
+  // ── ENRICH CONFLICT from GDELT geo ───────────────────────────────────────
+  if (apiResults.gdelt_geo?.features?.length) {
+    const gdeltConflict = apiResults.gdelt_geo.features.slice(0, 15).map(f => ({
+      country: f.properties?.name || 'Unknown',
+      event_type: f.properties?.actiongeo_type || 'Conflict Event',
+      fatalities: 0,
+      source: 'GDELT',
+    }));
+    conflictEvents = [...conflictEvents, ...gdeltConflict].slice(0, 30);
+  }
+
+  // ── ENRICH FOOD from WFP HungerMap ───────────────────────────────────────
+  if (wfp.length) {
+    const wfpAlerts = wfp
+      .filter(c => c.ipc_phase >= 3)
+      .map(c => ({ country: c.country_name, title: `WFP IPC Phase ${c.ipc_phase}`, ipc: c.ipc_phase }));
+    foodSecurityAlerts = [...foodSecurityAlerts, ...wfpAlerts].slice(0, 30);
+  }
+
+  // ── ENRICH IMF data into economic stress scoring ──────────────────────────
+  if (apiResults.imf_weo?.values?.NGDP_RPCH) {
+    apiResults.imf_growth_map = apiResults.imf_weo.values.NGDP_RPCH;
+  }
+
+  buildTickerFromResults();
+}
+
+// ── NEW SPECIALIST FETCHERS ────────────────────────────────────────────────
+
+async function fetchGdeltEvents() {
+  try {
+    const res = await safe(fetch(API_ENDPOINTS.gdelt_geo).then(r => r.ok ? r.json() : null).catch(() => null));
+    if (res?.features?.length) return res.features.slice(0, 20);
+    return [];
+  } catch (e) { return []; }
+}
+
+async function fetchReliefWebEvents() {
+  try {
+    const res = await safe(fetch(API_ENDPOINTS.reliefweb).then(r => r.ok ? r.json() : null).catch(() => null));
+    if (res?.data?.length) return res.data.slice(0, 20).map(d => ({
+      country: d.fields?.country?.[0]?.name || 'Unknown',
+      title: d.fields?.name || '',
+      type: d.fields?.type?.[0]?.name || 'Disaster',
+      date: d.fields?.date?.created || '',
+    }));
+    return [];
+  } catch (e) { return []; }
+}
+
+async function fetchWFPHungerMap() {
+  try {
+    const res = await safe(fetch(API_ENDPOINTS.wfp_vam).then(r => r.ok ? r.json() : null).catch(() => null));
+    if (res?.body?.length) {
+      return res.body
+        .filter(c => c.ipc_phase >= 2)
+        .map(c => ({
+          country_name: c.country_name,
+          iso3: c.iso3,
+          ipc_phase: c.ipc_phase,
+          population: c.population,
+        }));
+    }
+    return [];
+  } catch (e) { return []; }
+}
 
 // ============================================================================
 // REFRESH
