@@ -646,76 +646,16 @@ function buildUrgencyNarrative(iso) {
     parts.push((spillPhrase + anomPhrase).trim());
   }
 
-  // Join all parts - but now we'll process each sentence/paragraph separately
+  // Join all parts and dynamically convert any ==text== or ===text=== to bold
   let narrative = parts.join(' ');
   
-  // First, split by periods that are followed by a space and a capital letter
-  // to get individual sentences/paragraphs
-  let sentences = narrative.match(/[^.!?]+[.!?]+/g) || [narrative];
+  // First handle ===text=== (triple equals)
+  narrative = narrative.replace(/===([^=]+)===/g, '<b>$1</b>');
   
-  // Process each sentence to find and format headings
-  let formattedParts = [];
-  let currentHeading = '';
-  let currentContent = '';
+  // Then handle ==text== (double equals) - but only if not already processed by triple equals
+  narrative = narrative.replace(/==([^=]+)==/g, '<b>$1</b>');
   
-  for (let i = 0; i < sentences.length; i++) {
-    let sentence = sentences[i].trim();
-    
-    // Check for heading patterns
-    let headingMatch = sentence.match(/^\s*={1,3}\s*([^=]+)\s*={1,3}\s*$/);
-    
-    if (headingMatch) {
-      // This is a heading - push any accumulated content first
-      if (currentContent) {
-        formattedParts.push(currentContent);
-        currentContent = '';
-      }
-      
-      // Format the heading based on number of equals signs
-      let headingText = headingMatch[1].trim();
-      let headingHtml = '';
-      
-      // Count the equals signs
-      let equalsCount = sentence.match(/^={1,3}/)[0].length;
-      
-      if (equalsCount === 1) {
-        headingHtml = `<h4 style="margin: 16px 0 8px 0; font-weight: bold; font-size: 1.1em;">${headingText}</h4>`;
-      } else if (equalsCount === 2) {
-        headingHtml = `<h3 style="margin: 20px 0 10px 0; font-weight: bold; font-size: 1.2em;">${headingText}</h3>`;
-      } else if (equalsCount === 3) {
-        headingHtml = `<h2 style="margin: 24px 0 12px 0; font-weight: bold; font-size: 1.3em;">${headingText}</h2>`;
-      }
-      
-      formattedParts.push(headingHtml);
-      currentHeading = headingText;
-    } else {
-      // This is regular content
-      if (currentContent) {
-        currentContent += ' ' + sentence;
-      } else {
-        currentContent = sentence;
-      }
-    }
-  }
-  
-  // Push any remaining content
-  if (currentContent) {
-    formattedParts.push(currentContent);
-  }
-  
-  // Join everything with proper spacing
-  let finalNarrative = formattedParts.join(' ');
-  
-  // Clean up any double spaces
-  finalNarrative = finalNarrative.replace(/\s+/g, ' ');
-  
-  // Add paragraph breaks after headings (ensure headings are on their own line)
-  finalNarrative = finalNarrative.replace(/(<\/h[234]>)/g, '$1<br>');
-  
-  // Ensure proper spacing between paragraphs
-  finalNarrative = finalNarrative.replace(/\.\s+/g, '. ');
-  
-  return finalNarrative;
+  return narrative;
 }
 
 // ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
