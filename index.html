@@ -2313,7 +2313,7 @@ function buildDims(base, types, iso) {
   const has = t => types.includes(t);
   const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
 
-  // ── 1. TYPE-BASED STRUCTURAL SCORES (same logic as before) ───────────────
+  // ── 1. STRUCTURAL SCORES (baseline from base + crisis types) ──────────────
   const structural = {
     conflict:     clamp(base * ((has('CW') || has('CE')) ? 1.1  : has('REF') ? 0.65 : 0.28)),
     displacement: clamp(base * ((has('REF') || has('CW') || has('CE')) ? 1.05 : (has('EQ') || has('FL') || has('TC')) ? 0.8 : 0.38)),
@@ -2325,25 +2325,27 @@ function buildDims(base, types, iso) {
     political:    clamp(base * ((has('CE') || has('CW') || has('REF')) ? 0.85 : 0.42) + 8),
   };
 
-  // ── 2. LIVE API BOOSTS (only if APIs have loaded) ────────────────────────
-  // Guard: if apiResults is empty (first render before fetch) skip boosts
+  // ── 2. LIVE API BOOSTS (skip if no data) ──────────────────────────────────
   const hasApiData = Object.keys(apiResults).length > 0;
   if (!iso || !hasApiData) return structural;
 
   const boosts = getLiveApiBoosts(iso);
 
-  // ── 3. BLEND: structural drives the base, live API boosts on top ──────────
-  // Weight: 70% structural + 30% live signal, then add boost
-  // This keeps countries with no API matches stable
+  // ── 3. BLEND: 55% structural + 45% live data ──────────────────────────────
+  // The structural score provides a realistic baseline.
+  // The live data (boosts) drives the score up or down based on real events.
+  const STRUCT_WEIGHT = 0.55;
+  const LIVE_WEIGHT   = 0.45;
+
   return {
-    conflict:     clamp(structural.conflict     * 0.72 + boosts.conflict     + (boosts.conflict     > 0 ? structural.conflict     * 0.28 : structural.conflict     * 0.28)),
-    displacement: clamp(structural.displacement * 0.72 + boosts.displacement + (boosts.displacement > 0 ? structural.displacement * 0.28 : structural.displacement * 0.28)),
-    food:         clamp(structural.food         * 0.72 + boosts.food         + (boosts.food         > 0 ? structural.food         * 0.28 : structural.food         * 0.28)),
-    health:       clamp(structural.health       * 0.72 + boosts.health       + (boosts.health       > 0 ? structural.health       * 0.28 : structural.health       * 0.28)),
-    economic:     clamp(structural.economic     * 0.72 + boosts.economic     + (boosts.economic     > 0 ? structural.economic     * 0.28 : structural.economic     * 0.28)),
-    climate:      clamp(structural.climate      * 0.72 + boosts.climate      + (boosts.climate      > 0 ? structural.climate      * 0.28 : structural.climate      * 0.28)),
-    access:       clamp(structural.access       * 0.72 + boosts.access       + (boosts.access       > 0 ? structural.access       * 0.28 : structural.access       * 0.28)),
-    political:    clamp(structural.political    * 0.72 + boosts.political    + (boosts.political    > 0 ? structural.political    * 0.28 : structural.political    * 0.28)),
+    conflict:     clamp(structural.conflict     * STRUCT_WEIGHT + boosts.conflict     * LIVE_WEIGHT),
+    displacement: clamp(structural.displacement * STRUCT_WEIGHT + boosts.displacement * LIVE_WEIGHT),
+    food:         clamp(structural.food         * STRUCT_WEIGHT + boosts.food         * LIVE_WEIGHT),
+    health:       clamp(structural.health       * STRUCT_WEIGHT + boosts.health       * LIVE_WEIGHT),
+    economic:     clamp(structural.economic     * STRUCT_WEIGHT + boosts.economic     * LIVE_WEIGHT),
+    climate:      clamp(structural.climate      * STRUCT_WEIGHT + boosts.climate      * LIVE_WEIGHT),
+    access:       clamp(structural.access       * STRUCT_WEIGHT + boosts.access       * LIVE_WEIGHT),
+    political:    clamp(structural.political    * STRUCT_WEIGHT + boosts.political    * LIVE_WEIGHT),
   };
 }
 
