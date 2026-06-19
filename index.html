@@ -3781,7 +3781,38 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
 buildFilters();updateSearchLockState();startRefreshTimer();
-d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
+// 1. Fetch the world data
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+  .then(world => {
+    
+    // 2. Locate the geometry arrays inside the TopoJSON
+    const countries = world.objects.countries.geometries;
+    
+    // 3. Find the Russian federation object (ISO 643)
+    const russia = countries.find(c => +c.id === 643);
+    const ukraine = countries.find(c => +c.id === 804);
+    
+    // 4. Extract Crimea from Russia and reassign it to Ukraine if coordinates exist
+    if (russia && ukraine && russia.type === 'MultiPolygon') {
+      // Index 0 in the 110m world-atlas MultiPolygon represents the isolated Crimean polygon
+      const crimeaPolygon = russia.coordinates.shift(); 
+      
+      if (ukraine.type === 'Polygon') {
+        // Convert Ukraine to MultiPolygon to accept the new piece
+        ukraine.type = 'MultiPolygon';
+        ukraine.coordinates = [ukraine.coordinates, crimeaPolygon];
+      } else if (ukraine.type === 'MultiPolygon') {
+        // Append directly if already a MultiPolygon
+        ukraine.coordinates.push(crimeaPolygon);
+      }
+    }
+
+    // 5. Pass the modified, politically corrected map data to your initializer
+    initMap(world);
+    refresh();
+  })
+  .catch(() => refresh());
+
 
 // Mobile filter button functionality with animations
 if (window.innerWidth <= 900) {
