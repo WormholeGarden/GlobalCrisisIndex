@@ -2946,18 +2946,18 @@ async function refresh() {
 // MAP FUNCTIONS (condensed)
 // ============================================================================
 
-function resolveIsoFromName(name){
-  if(!name)return null;
-  const nl=name.toLowerCase().trim();
-  for(const[iso,n]of Object.entries(NAMES)){if(n.toLowerCase()===nl)return iso;}
-  // common world-atlas name variants
-  const aliases={'democratic republic of the congo':'COD','republic of the congo':'COG','united states of america':'USA','united kingdom':'GBR','russian federation':'RUS','south korea':'KOR','north korea':'PRK','iran (islamic republic of)':'IRN',"côte d'ivoire":'CIV','ivory coast':'CIV','czechia':'CZE','czech republic':'CZE','taiwan, province of china':'TWN','bolivia (plurinational state of)':'BOL','venezuela (bolivarian republic of)':'VEN','syrian arab republic':'SYR','viet nam':'VNM','lao pdr':'LAO',"democratic people's republic of korea":'PRK','republic of korea':'KOR','united republic of tanzania':'TZA','tanzania':'TZA'};
-  if(aliases[nl])return aliases[nl];
-  // prefix match fallback
-  for(const[iso,n]of Object.entries(NAMES)){if(nl.startsWith(n.toLowerCase().slice(0,5))||n.toLowerCase().startsWith(nl.slice(0,5)))return iso;}
+function resolveIsoFromName(name) {
+  if (!name) return null;
+  // Direct lookup in NAMES values
+  for (const [iso, n] of Object.entries(NAMES)) {
+    if (n.toLowerCase() === name.toLowerCase()) return iso;
+  }
+  // Fuzzy: startsWith
+  for (const [iso, n] of Object.entries(NAMES)) {
+    if (n.toLowerCase().startsWith(name.toLowerCase().slice(0, 6))) return iso;
+  }
   return null;
 }
-function initMap(world){
 function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path')
   .data(countries.features.filter(d => {
     const id = String(d.id);
