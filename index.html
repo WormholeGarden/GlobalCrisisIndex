@@ -2846,37 +2846,19 @@ async function refresh() {
   let newStore = {};
   
   for (let iso of Object.keys(ISO_NUM)) {
-  const name = NAMES[iso] || iso;
-  const flag = FLAGS[iso] || '🌍';
-  const types = CTYPES[iso] || DEFAULT_T;
-  const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-  
-  // ── START FROM A NEUTRAL SCORE OF 50 ──────────────────────────────────────
-  // All countries start at 50. Live data (APIs) will adjust this up or down.
-  // This eliminates all human priors and historical bias.
-  const rawBase = 50;
-  
-  // ── EVENTS: estimate from live conflict/IPC/quake counts ───────────────────
-  // Use live data to estimate events rather than a static formula
-  let events = 4;
-  // Boost events if there are active conflicts
-  if (conflictEvents.some(e => e.country.toLowerCase().includes(name.toLowerCase()))) events += 8;
-  // Boost events if there are heat alerts
-  if (heatStressData.some(h => h.iso === iso && h.temp > 40)) events += 4;
-  // Boost events if there are disease outbreaks
-  if (diseaseOutbreaks.some(d => d.country.toLowerCase().includes(name.toLowerCase()))) events += 6;
-  // Boost events if there are USGS quakes
-  const quakeCount = (apiResults.usgs_weekly?.features || [])
-    .filter(f => f.properties.place.toLowerCase().includes(name.toLowerCase())).length;
-  events += Math.min(10, quakeCount);
-  events = Math.min(60, Math.max(4, events));
-  
-  // ── BUILD DIMS WITH 50 AS THE PRIOR ─────────────────────────────────────────
-  const dims = buildDims(rawBase, types);
-  let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
-  
-  newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
-}
+    const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    let base = BASE_SCORES[iso] || 42;
+    const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0) * 137 + (iso.charCodeAt(1) || 0) * 31) - 0.5) * 5);
+    const rawBase = Math.min(99, Math.max(5, base + variation));
+    const mult = { PSE: 1.0, SOM: 1.0, SYR: 1.0, HTI: 1.0, YEM: 1.0, UKR: 1.0, IDN: 1.25, PHL: 1.2, JPN: 1.15 }[iso] || 1.0;
+    const events = Math.min(60, Math.max(4, Math.floor(10 * mult) + Math.floor(rawBase / 14)));
+    const dims = buildDims(rawBase, types);
+    let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
+    newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
+  }
   
   adv(2, 40);
   const spill = spilloverScore(newStore);
@@ -4232,62 +4214,7 @@ if (window.innerWidth <= 900) {
 
 })();
 
-// ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
-function updateDynamicTitle() {
-  const titleEl = document.getElementById('dynamicTitle');
-  if (!titleEl) return;
-  
-  // Wait for store and ranked to be populated
-  if (!store || !ranked || ranked.length === 0) {
-    titleEl.textContent = 'Global Crisis Index — Live Crisis Intelligence · Loading...';
-    return;
-  }
-  
-  // Get top crisis score
-  const topIso = ranked[0];
-  const topCountry = store[topIso];
-  const topScore = topCountry?.score || 83;
-  
-  // Get affected population (from critical count)
-  const crit = ranked.filter(i => store[i]?.score >= 80).length;
-  const affected = Math.round(crit * 4.8) + 'M';
-  
-  // Get anomalies (from cusum detection)
-  const anomalies = ranked.filter(i => {
-    const hist = (history[i] || []).map(h => h.s);
-    return cusum(hist).det;
-  }).length;
-  
-  // Get events (sum of all country events)
-  const events = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
-  
-  // Get global average score
-  const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
-  
-  // Build the dynamic title
-  const title = `Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events | Real-time API`;
-  
-  titleEl.textContent = title;
-  
-  // Also update meta description if available
-  const metaDesc = document.querySelector('meta[name="description"]');
-  if (metaDesc) {
-    // Keep the existing description but you could also update it here if needed
-  }
-}
 
-// Update title on refresh
-const originalRefresh = refresh;
-refresh = async function() {
-  await originalRefresh.call(this);
-  updateDynamicTitle();
-};
-
-// Also update on interval
-setInterval(updateDynamicTitle, 30000); // Every 30 seconds
-
-// Initial update after first load
-setTimeout(updateDynamicTitle, 2000);
 </script>
 
 
