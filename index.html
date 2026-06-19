@@ -2945,295 +2945,294 @@ async function refresh() {
 // ============================================================================
 // MAP FUNCTIONS (condensed)
 // ============================================================================
-function initMap(world) {
-  const stage = document.getElementById('mapStage');
-  const W = stage.clientWidth, H = stage.clientHeight;
-  svgEl = d3.select('#map-svg').attr('width', W).attr('height', H);
-  proj = d3.geoNaturalEarth1().scale(W / 4.3).translate([W / 2, H / 2]);
-  pathGen = d3.geoPath().projection(proj);
-  mapGroup = svgEl.append('g');
+function initMap(world){
+  const stage=document.getElementById('mapStage');
+  const W=stage.clientWidth,H=stage.clientHeight;
+  svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);
+  proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);
+  pathGen=d3.geoPath().projection(proj);
+  mapGroup=svgEl.append('g');
+  mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);
+  mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);
   
-  mapGroup.append('path').datum({ type: 'Sphere' }).attr('fill', '#020d1e').attr('d', pathGen);
-  mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill', 'none').attr('stroke', 'rgba(0,200,255,.03)').attr('stroke-width', .5).attr('d', pathGen);
+  const countries=topojson.feature(world,world.objects.countries);
   
-  const countries = topojson.feature(world, world.objects.countries);
-  
-  // ── FILTER OUT RUSSIA ────────────────────────────────────────────────────
-  const filteredFeatures = countries.features.filter(d => {
-    const iso = NUM_ISO[String(d.id)];
-    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
-    // Skip Russia by ISO or name
-    if (iso === 'RUS' || name === 'russia') return false;
-    return true;
-  });
-  
+  // ── FILTER OUT RUSSIA ──────────────────────────────────────────────────────
   mapGroup.selectAll('.country-path')
-    .data(filteredFeatures)
-    .enter()
-    .append('path')
-    .attr('class', 'country-path')
-    .attr('d', pathGen)
-    .attr('fill', '#1a2e45')
-    .on('mousemove', (ev, d) => {
-      const iso = NUM_ISO[String(d.id)], tt = document.getElementById('mapTT');
-      if (iso && store[iso]) {
-        const c = store[iso], col = sc(c.score);
-        document.getElementById('ttName').innerHTML = `${c.flag} ${c.name}`;
-        document.getElementById('ttScore').innerHTML = `<span style="color:${col}">${c.score}</span>/100`;
-        document.getElementById('ttFill').style.cssText = `width:${c.score}%;background:${col}`;
-        document.getElementById('ttTags').innerHTML = c.types.slice(0, 4).map(t => `<span class="tt-tag">${ARC[t]?.i || ''} ${ARC[t]?.l || t}</span>`).join('');
-        const r = stage.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
-        tt.style.left = Math.min(x + 16, W - 210) + 'px';
-        tt.style.top = Math.max(8, y - 85) + 'px';
-        tt.classList.add('vis');
-      } else tt.classList.remove('vis');
-    })
-    .on('mouseleave', () => document.getElementById('mapTT').classList.remove('vis'))
-    .on('click', (ev, d) => {
-      const iso = NUM_ISO[String(d.id)];
-      if (iso && store[iso]) selCountry(iso);
-    });
-  
-  zoom = d3.zoom().scaleExtent([.7, 16]).on('zoom', ev => mapGroup.attr('transform', ev.transform));
-  svgEl.call(zoom);
-  
-  document.getElementById('zIn').onclick = () => svgEl.transition().duration(260).call(zoom.scaleBy, 1.5);
-  document.getElementById('zOut').onclick = () => svgEl.transition().duration(260).call(zoom.scaleBy, .67);
-  document.getElementById('zReset').onclick = () => svgEl.transition().duration(380).call(zoom.transform, d3.zoomIdentity);
-  
-  window.addEventListener('resize', () => {
-    const W2 = stage.clientWidth, H2 = stage.clientHeight;
-    svgEl.attr('width', W2).attr('height', H2);
-    proj.scale(W2 / 4.3).translate([W2 / 2, H2 / 2]);
-    pathGen = d3.geoPath().projection(proj);
-    mapGroup.selectAll('path').attr('d', pathGen);
-    addPulseMarkers();
-  });
-  
-  if (typeof paintMap === 'function') setTimeout(paintMap, 100);
-}
-
-function paintMap() {
-  if (!mapGroup) return;
-  
-  // ── ALSO REMOVE RUSSIA IN PAINT (safety net) ────────────────────────────
-  mapGroup.selectAll('.country-path')
-    .filter(d => {
+    .data(countries.features.filter(d => {
       const iso = NUM_ISO[String(d.id)];
       const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
-      return iso === 'RUS' || name === 'russia';
+      // Skip Russia by ISO or name
+      if (iso === 'RUS') return false;
+      if (name === 'russia') return false;
+      return true;
+    }))
+    .enter()
+    .append('path')
+    .attr('class','country-path')
+    .attr('d',pathGen)
+    .attr('fill','#1a2e45')
+    .on('mousemove',(ev,d)=>{
+      const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');
+      if(iso&&store[iso]){
+        const c=store[iso],col=sc(c.score);
+        document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;
+        document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;
+        document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;
+        document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');
+        const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;
+        tt.style.left=Math.min(x+16,W-210)+'px';
+        tt.style.top=Math.max(8,y-85)+'px';
+        tt.classList.add('vis');
+      }else tt.classList.remove('vis');
     })
-    .remove();
+    .on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis'))
+    .on('click',(ev,d)=>{
+      const iso=NUM_ISO[String(d.id)];
+      if(iso&&store[iso])selCountry(iso);
+    });
   
+  zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));
+  svgEl.call(zoom);
+  document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);
+  document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);
+  document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);
+  window.addEventListener('resize',()=>{
+    const W2=stage.clientWidth,H2=stage.clientHeight;
+    svgEl.attr('width',W2).attr('height',H2);
+    proj.scale(W2/4.3).translate([W2/2,H2/2]);
+    pathGen=d3.geoPath().projection(proj);
+    mapGroup.selectAll('path').attr('d',pathGen);
+    addPulseMarkers();
+  });
+  if(typeof paintMap==='function')setTimeout(paintMap,100);
+}
+
+function paintMap(){
+  if(!mapGroup)return;
+  
+  // ── ALSO REMOVE RUSSIA IF IT SOMEHOW EXISTS ──────────────────────────────
+  mapGroup.selectAll('.country-path').filter(d => {
+    const iso = NUM_ISO[String(d.id)];
+    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+    return iso === 'RUS' || name === 'russia';
+  }).remove();
+  
+  // ── COLOR ALL OTHER COUNTRIES ─────────────────────────────────────────────
   mapGroup.selectAll('.country-path')
     .transition()
     .duration(600)
     .attr('fill', d => {
       let iso = NUM_ISO[String(d.id)];
-      if (!iso) {
+      if(!iso){
         const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
-        if (name === 'Afghanistan') iso = 'AFG';
-        else if (name === 'Albania') iso = 'ALB';
-        else if (name === 'Algeria') iso = 'DZA';
-        else if (name === 'Andorra') iso = 'AND';
-        else if (name === 'Angola') iso = 'AGO';
-        else if (name === 'Antigua and Barbuda') iso = 'ATG';
-        else if (name === 'Argentina') iso = 'ARG';
-        else if (name === 'Armenia') iso = 'ARM';
-        else if (name === 'Australia') iso = 'AUS';
-        else if (name === 'Austria') iso = 'AUT';
-        else if (name === 'Azerbaijan') iso = 'AZE';
-        else if (name === 'Bahamas') iso = 'BHS';
-        else if (name === 'Bahrain') iso = 'BHR';
-        else if (name === 'Bangladesh') iso = 'BGD';
-        else if (name === 'Barbados') iso = 'BRB';
-        else if (name === 'Belarus') iso = 'BLR';
-        else if (name === 'Belgium') iso = 'BEL';
-        else if (name === 'Belize') iso = 'BLZ';
-        else if (name === 'Benin') iso = 'BEN';
-        else if (name === 'Bhutan') iso = 'BTN';
-        else if (name === 'Bolivia') iso = 'BOL';
-        else if (name === 'Bosnia and Herzegovina') iso = 'BIH';
-        else if (name === 'Botswana') iso = 'BWA';
-        else if (name === 'Brazil') iso = 'BRA';
-        else if (name === 'Brunei') iso = 'BRN';
-        else if (name === 'Bulgaria') iso = 'BGR';
-        else if (name === 'Burkina Faso') iso = 'BFA';
-        else if (name === 'Burundi') iso = 'BDI';
-        else if (name === 'Cabo Verde') iso = 'CPV';
-        else if (name === 'Cambodia') iso = 'KHM';
-        else if (name === 'Cameroon') iso = 'CMR';
-        else if (name === 'Canada') iso = 'CAN';
-        else if (name === 'Central African Republic') iso = 'CAF';
-        else if (name === 'Chad') iso = 'TCD';
-        else if (name === 'Chile') iso = 'CHL';
-        else if (name === 'China') iso = 'CHN';
-        else if (name === 'Colombia') iso = 'COL';
-        else if (name === 'Comoros') iso = 'COM';
-        else if (name === 'Congo') iso = 'COG';
-        else if (name === 'Costa Rica') iso = 'CRI';
-        else if (name === "Côte d'Ivoire") iso = 'CIV';
-        else if (name === 'Croatia') iso = 'HRV';
-        else if (name === 'Cuba') iso = 'CUB';
-        else if (name === 'Cyprus') iso = 'CYP';
-        else if (name === 'Czechia') iso = 'CZE';
-        else if (name === 'Denmark') iso = 'DNK';
-        else if (name === 'Djibouti') iso = 'DJI';
-        else if (name === 'Dominica') iso = 'DMA';
-        else if (name === 'Dominican Republic') iso = 'DOM';
-        else if (name === 'DR Congo') iso = 'COD';
-        else if (name === 'Ecuador') iso = 'ECU';
-        else if (name === 'Egypt') iso = 'EGY';
-        else if (name === 'El Salvador') iso = 'SLV';
-        else if (name === 'Equatorial Guinea') iso = 'GNQ';
-        else if (name === 'Eritrea') iso = 'ERI';
-        else if (name === 'Estonia') iso = 'EST';
-        else if (name === 'Eswatini') iso = 'SWZ';
-        else if (name === 'Ethiopia') iso = 'ETH';
-        else if (name === 'Fiji') iso = 'FJI';
-        else if (name === 'Finland') iso = 'FIN';
-        else if (name === 'France') iso = 'FRA';
-        else if (name === 'Gabon') iso = 'GAB';
-        else if (name === 'Gambia') iso = 'GMB';
-        else if (name === 'Georgia') iso = 'GEO';
-        else if (name === 'Germany') iso = 'DEU';
-        else if (name === 'Ghana') iso = 'GHA';
-        else if (name === 'Greece') iso = 'GRC';
-        else if (name === 'Greenland') iso = 'GRL';
-        else if (name === 'Grenada') iso = 'GRD';
-        else if (name === 'Guatemala') iso = 'GTM';
-        else if (name === 'Guinea') iso = 'GIN';
-        else if (name === 'Guinea-Bissau') iso = 'GNB';
-        else if (name === 'Guyana') iso = 'GUY';
-        else if (name === 'Haiti') iso = 'HTI';
-        else if (name === 'Honduras') iso = 'HND';
-        else if (name === 'Hungary') iso = 'HUN';
-        else if (name === 'Iceland') iso = 'ISL';
-        else if (name === 'India') iso = 'IND';
-        else if (name === 'Indonesia') iso = 'IDN';
-        else if (name === 'Iran') iso = 'IRN';
-        else if (name === 'Iraq') iso = 'IRQ';
-        else if (name === 'Ireland') iso = 'IRL';
-        else if (name === 'Israel') iso = 'ISR';
-        else if (name === 'Italy') iso = 'ITA';
-        else if (name === 'Jamaica') iso = 'JAM';
-        else if (name === 'Japan') iso = 'JPN';
-        else if (name === 'Jordan') iso = 'JOR';
-        else if (name === 'Kazakhstan') iso = 'KAZ';
-        else if (name === 'Kenya') iso = 'KEN';
-        else if (name === 'Kiribati') iso = 'KIR';
-        else if (name === 'Kuwait') iso = 'KWT';
-        else if (name === 'Kyrgyzstan') iso = 'KGZ';
-        else if (name === 'Laos') iso = 'LAO';
-        else if (name === 'Latvia') iso = 'LVA';
-        else if (name === 'Lebanon') iso = 'LBN';
-        else if (name === 'Lesotho') iso = 'LSO';
-        else if (name === 'Liberia') iso = 'LBR';
-        else if (name === 'Libya') iso = 'LBY';
-        else if (name === 'Liechtenstein') iso = 'LIE';
-        else if (name === 'Lithuania') iso = 'LTU';
-        else if (name === 'Luxembourg') iso = 'LUX';
-        else if (name === 'Madagascar') iso = 'MDG';
-        else if (name === 'Malawi') iso = 'MWI';
-        else if (name === 'Malaysia') iso = 'MYS';
-        else if (name === 'Maldives') iso = 'MDV';
-        else if (name === 'Mali') iso = 'MLI';
-        else if (name === 'Malta') iso = 'MLT';
-        else if (name === 'Marshall Islands') iso = 'MHL';
-        else if (name === 'Mauritania') iso = 'MRT';
-        else if (name === 'Mauritius') iso = 'MUS';
-        else if (name === 'Mexico') iso = 'MEX';
-        else if (name === 'Micronesia') iso = 'FSM';
-        else if (name === 'Moldova') iso = 'MDA';
-        else if (name === 'Monaco') iso = 'MCO';
-        else if (name === 'Mongolia') iso = 'MNG';
-        else if (name === 'Montenegro') iso = 'MNE';
-        else if (name === 'Morocco') iso = 'MAR';
-        else if (name === 'Mozambique') iso = 'MOZ';
-        else if (name === 'Myanmar') iso = 'MMR';
-        else if (name === 'Namibia') iso = 'NAM';
-        else if (name === 'Nauru') iso = 'NRU';
-        else if (name === 'Nepal') iso = 'NPL';
-        else if (name === 'Netherlands') iso = 'NLD';
-        else if (name === 'New Zealand') iso = 'NZL';
-        else if (name === 'Nicaragua') iso = 'NIC';
-        else if (name === 'Niger') iso = 'NER';
-        else if (name === 'Nigeria') iso = 'NGA';
-        else if (name === 'North Korea') iso = 'PRK';
-        else if (name === 'North Macedonia') iso = 'MKD';
-        else if (name === 'Norway') iso = 'NOR';
-        else if (name === 'Oman') iso = 'OMN';
-        else if (name === 'Pakistan') iso = 'PAK';
-        else if (name === 'Palau') iso = 'PLW';
-        else if (name === 'Palestine') iso = 'PSE';
-        else if (name === 'Panama') iso = 'PAN';
-        else if (name === 'Papua New Guinea') iso = 'PNG';
-        else if (name === 'Paraguay') iso = 'PRY';
-        else if (name === 'Peru') iso = 'PER';
-        else if (name === 'Philippines') iso = 'PHL';
-        else if (name === 'Poland') iso = 'POL';
-        else if (name === 'Portugal') iso = 'PRT';
-        else if (name === 'Qatar') iso = 'QAT';
-        else if (name === 'Romania') iso = 'ROU';
-        else if (name === 'Russia') iso = 'RUS';
-        else if (name === 'Rwanda') iso = 'RWA';
-        else if (name === 'Saint Kitts and Nevis') iso = 'KNA';
-        else if (name === 'Saint Lucia') iso = 'LCA';
-        else if (name === 'Saint Vincent and the Grenadines') iso = 'VCT';
-        else if (name === 'Samoa') iso = 'WSM';
-        else if (name === 'San Marino') iso = 'SMR';
-        else if (name === 'Sao Tome and Principe') iso = 'STP';
-        else if (name === 'Saudi Arabia') iso = 'SAU';
-        else if (name === 'Senegal') iso = 'SEN';
-        else if (name === 'Serbia') iso = 'SRB';
-        else if (name === 'Seychelles') iso = 'SYC';
-        else if (name === 'Sierra Leone') iso = 'SLE';
-        else if (name === 'Singapore') iso = 'SGP';
-        else if (name === 'Slovakia') iso = 'SVK';
-        else if (name === 'Slovenia') iso = 'SVN';
-        else if (name === 'Solomon Islands') iso = 'SLB';
-        else if (name === 'Somalia') iso = 'SOM';
-        else if (name === 'South Africa') iso = 'ZAF';
-        else if (name === 'South Korea') iso = 'KOR';
-        else if (name === 'South Sudan') iso = 'SSD';
-        else if (name === 'Spain') iso = 'ESP';
-        else if (name === 'Sri Lanka') iso = 'LKA';
-        else if (name === 'Sudan') iso = 'SDN';
-        else if (name === 'Suriname') iso = 'SUR';
-        else if (name === 'Sweden') iso = 'SWE';
-        else if (name === 'Switzerland') iso = 'CHE';
-        else if (name === 'Syria') iso = 'SYR';
-        else if (name === 'Taiwan') iso = 'TWN';
-        else if (name === 'Tajikistan') iso = 'TJK';
-        else if (name === 'Tanzania') iso = 'TZA';
-        else if (name === 'Thailand') iso = 'THA';
-        else if (name === 'Timor-Leste') iso = 'TLS';
-        else if (name === 'Togo') iso = 'TGO';
-        else if (name === 'Tonga') iso = 'TON';
-        else if (name === 'Trinidad and Tobago') iso = 'TTO';
-        else if (name === 'Tunisia') iso = 'TUN';
-        else if (name === 'Turkey') iso = 'TUR';
-        else if (name === 'Turkmenistan') iso = 'TKM';
-        else if (name === 'Tuvalu') iso = 'TUV';
-        else if (name === 'Uganda') iso = 'UGA';
-        else if (name === 'Ukraine') iso = 'UKR';
-        else if (name === 'United Arab Emirates') iso = 'ARE';
-        else if (name === 'United Kingdom') iso = 'GBR';
-        else if (name === 'United States') iso = 'USA';
-        else if (name === 'Uruguay') iso = 'URY';
-        else if (name === 'Uzbekistan') iso = 'UZB';
-        else if (name === 'Vanuatu') iso = 'VUT';
-        else if (name === 'Venezuela') iso = 'VEN';
-        else if (name === 'Vietnam') iso = 'VNM';
-        else if (name === 'Yemen') iso = 'YEM';
-        else if (name === 'Zambia') iso = 'ZMB';
-        else if (name === 'Zimbabwe') iso = 'ZWE';
-        else if (name === 'Kosovo') iso = 'XKX';
-        else if (name === 'Western Sahara') iso = 'ESH';
+        // Skip Russia again just in case
+        if(name === 'russia') return '#1a2e45';
+        // Existing name matching logic continues...
+        if(name==='Afghanistan')iso='AFG';
+        else if(name==='Albania')iso='ALB';
+        else if(name==='Algeria')iso='DZA';
+        else if(name==='Andorra')iso='AND';
+        else if(name==='Angola')iso='AGO';
+        else if(name==='Antigua and Barbuda')iso='ATG';
+        else if(name==='Argentina')iso='ARG';
+        else if(name==='Armenia')iso='ARM';
+        else if(name==='Australia')iso='AUS';
+        else if(name==='Austria')iso='AUT';
+        else if(name==='Azerbaijan')iso='AZE';
+        else if(name==='Bahamas')iso='BHS';
+        else if(name==='Bahrain')iso='BHR';
+        else if(name==='Bangladesh')iso='BGD';
+        else if(name==='Barbados')iso='BRB';
+        else if(name==='Belarus')iso='BLR';
+        else if(name==='Belgium')iso='BEL';
+        else if(name==='Belize')iso='BLZ';
+        else if(name==='Benin')iso='BEN';
+        else if(name==='Bhutan')iso='BTN';
+        else if(name==='Bolivia')iso='BOL';
+        else if(name==='Bosnia and Herzegovina')iso='BIH';
+        else if(name==='Botswana')iso='BWA';
+        else if(name==='Brazil')iso='BRA';
+        else if(name==='Brunei')iso='BRN';
+        else if(name==='Bulgaria')iso='BGR';
+        else if(name==='Burkina Faso')iso='BFA';
+        else if(name==='Burundi')iso='BDI';
+        else if(name==='Cabo Verde')iso='CPV';
+        else if(name==='Cambodia')iso='KHM';
+        else if(name==='Cameroon')iso='CMR';
+        else if(name==='Canada')iso='CAN';
+        else if(name==='Central African Republic')iso='CAF';
+        else if(name==='Chad')iso='TCD';
+        else if(name==='Chile')iso='CHL';
+        else if(name==='China')iso='CHN';
+        else if(name==='Colombia')iso='COL';
+        else if(name==='Comoros')iso='COM';
+        else if(name==='Congo')iso='COG';
+        else if(name==='Costa Rica')iso='CRI';
+        else if(name==='Côte d\'Ivoire')iso='CIV';
+        else if(name==='Croatia')iso='HRV';
+        else if(name==='Cuba')iso='CUB';
+        else if(name==='Cyprus')iso='CYP';
+        else if(name==='Czechia')iso='CZE';
+        else if(name==='Denmark')iso='DNK';
+        else if(name==='Djibouti')iso='DJI';
+        else if(name==='Dominica')iso='DMA';
+        else if(name==='Dominican Republic')iso='DOM';
+        else if(name==='DR Congo')iso='COD';
+        else if(name==='Ecuador')iso='ECU';
+        else if(name==='Egypt')iso='EGY';
+        else if(name==='El Salvador')iso='SLV';
+        else if(name==='Equatorial Guinea')iso='GNQ';
+        else if(name==='Eritrea')iso='ERI';
+        else if(name==='Estonia')iso='EST';
+        else if(name==='Eswatini')iso='SWZ';
+        else if(name==='Ethiopia')iso='ETH';
+        else if(name==='Fiji')iso='FJI';
+        else if(name==='Finland')iso='FIN';
+        else if(name==='France')iso='FRA';
+        else if(name==='Gabon')iso='GAB';
+        else if(name==='Gambia')iso='GMB';
+        else if(name==='Georgia')iso='GEO';
+        else if(name==='Germany')iso='DEU';
+        else if(name==='Ghana')iso='GHA';
+        else if(name==='Greece')iso='GRC';
+        else if(name==='Greenland')iso='GRL';
+        else if(name==='Grenada')iso='GRD';
+        else if(name==='Guatemala')iso='GTM';
+        else if(name==='Guinea')iso='GIN';
+        else if(name==='Guinea-Bissau')iso='GNB';
+        else if(name==='Guyana')iso='GUY';
+        else if(name==='Haiti')iso='HTI';
+        else if(name==='Honduras')iso='HND';
+        else if(name==='Hungary')iso='HUN';
+        else if(name==='Iceland')iso='ISL';
+        else if(name==='India')iso='IND';
+        else if(name==='Indonesia')iso='IDN';
+        else if(name==='Iran')iso='IRN';
+        else if(name==='Iraq')iso='IRQ';
+        else if(name==='Ireland')iso='IRL';
+        else if(name==='Israel')iso='ISR';
+        else if(name==='Italy')iso='ITA';
+        else if(name==='Jamaica')iso='JAM';
+        else if(name==='Japan')iso='JPN';
+        else if(name==='Jordan')iso='JOR';
+        else if(name==='Kazakhstan')iso='KAZ';
+        else if(name==='Kenya')iso='KEN';
+        else if(name==='Kiribati')iso='KIR';
+        else if(name==='Kuwait')iso='KWT';
+        else if(name==='Kyrgyzstan')iso='KGZ';
+        else if(name==='Laos')iso='LAO';
+        else if(name==='Latvia')iso='LVA';
+        else if(name==='Lebanon')iso='LBN';
+        else if(name==='Lesotho')iso='LSO';
+        else if(name==='Liberia')iso='LBR';
+        else if(name==='Libya')iso='LBY';
+        else if(name==='Liechtenstein')iso='LIE';
+        else if(name==='Lithuania')iso='LTU';
+        else if(name==='Luxembourg')iso='LUX';
+        else if(name==='Madagascar')iso='MDG';
+        else if(name==='Malawi')iso='MWI';
+        else if(name==='Malaysia')iso='MYS';
+        else if(name==='Maldives')iso='MDV';
+        else if(name==='Mali')iso='MLI';
+        else if(name==='Malta')iso='MLT';
+        else if(name==='Marshall Islands')iso='MHL';
+        else if(name==='Mauritania')iso='MRT';
+        else if(name==='Mauritius')iso='MUS';
+        else if(name==='Mexico')iso='MEX';
+        else if(name==='Micronesia')iso='FSM';
+        else if(name==='Moldova')iso='MDA';
+        else if(name==='Monaco')iso='MCO';
+        else if(name==='Mongolia')iso='MNG';
+        else if(name==='Montenegro')iso='MNE';
+        else if(name==='Morocco')iso='MAR';
+        else if(name==='Mozambique')iso='MOZ';
+        else if(name==='Myanmar')iso='MMR';
+        else if(name==='Namibia')iso='NAM';
+        else if(name==='Nauru')iso='NRU';
+        else if(name==='Nepal')iso='NPL';
+        else if(name==='Netherlands')iso='NLD';
+        else if(name==='New Zealand')iso='NZL';
+        else if(name==='Nicaragua')iso='NIC';
+        else if(name==='Niger')iso='NER';
+        else if(name==='Nigeria')iso='NGA';
+        else if(name==='North Korea')iso='PRK';
+        else if(name==='North Macedonia')iso='MKD';
+        else if(name==='Norway')iso='NOR';
+        else if(name==='Oman')iso='OMN';
+        else if(name==='Pakistan')iso='PAK';
+        else if(name==='Palau')iso='PLW';
+        else if(name==='Palestine')iso='PSE';
+        else if(name==='Panama')iso='PAN';
+        else if(name==='Papua New Guinea')iso='PNG';
+        else if(name==='Paraguay')iso='PRY';
+        else if(name==='Peru')iso='PER';
+        else if(name==='Philippines')iso='PHL';
+        else if(name==='Poland')iso='POL';
+        else if(name==='Portugal')iso='PRT';
+        else if(name==='Qatar')iso='QAT';
+        else if(name==='Romania')iso='ROU';
+        else if(name==='Russia')iso='RUS';
+        else if(name==='Rwanda')iso='RWA';
+        else if(name==='Saint Kitts and Nevis')iso='KNA';
+        else if(name==='Saint Lucia')iso='LCA';
+        else if(name==='Saint Vincent and the Grenadines')iso='VCT';
+        else if(name==='Samoa')iso='WSM';
+        else if(name==='San Marino')iso='SMR';
+        else if(name==='Sao Tome and Principe')iso='STP';
+        else if(name==='Saudi Arabia')iso='SAU';
+        else if(name==='Senegal')iso='SEN';
+        else if(name==='Serbia')iso='SRB';
+        else if(name==='Seychelles')iso='SYC';
+        else if(name==='Sierra Leone')iso='SLE';
+        else if(name==='Singapore')iso='SGP';
+        else if(name==='Slovakia')iso='SVK';
+        else if(name==='Slovenia')iso='SVN';
+        else if(name==='Solomon Islands')iso='SLB';
+        else if(name==='Somalia')iso='SOM';
+        else if(name==='South Africa')iso='ZAF';
+        else if(name==='South Korea')iso='KOR';
+        else if(name==='South Sudan')iso='SSD';
+        else if(name==='Spain')iso='ESP';
+        else if(name==='Sri Lanka')iso='LKA';
+        else if(name==='Sudan')iso='SDN';
+        else if(name==='Suriname')iso='SUR';
+        else if(name==='Sweden')iso='SWE';
+        else if(name==='Switzerland')iso='CHE';
+        else if(name==='Syria')iso='SYR';
+        else if(name==='Taiwan')iso='TWN';
+        else if(name==='Tajikistan')iso='TJK';
+        else if(name==='Tanzania')iso='TZA';
+        else if(name==='Thailand')iso='THA';
+        else if(name==='Timor-Leste')iso='TLS';
+        else if(name==='Togo')iso='TGO';
+        else if(name==='Tonga')iso='TON';
+        else if(name==='Trinidad and Tobago')iso='TTO';
+        else if(name==='Tunisia')iso='TUN';
+        else if(name==='Turkey')iso='TUR';
+        else if(name==='Turkmenistan')iso='TKM';
+        else if(name==='Tuvalu')iso='TUV';
+        else if(name==='Uganda')iso='UGA';
+        else if(name==='Ukraine')iso='UKR';
+        else if(name==='United Arab Emirates')iso='ARE';
+        else if(name==='United Kingdom')iso='GBR';
+        else if(name==='United States')iso='USA';
+        else if(name==='Uruguay')iso='URY';
+        else if(name==='Uzbekistan')iso='UZB';
+        else if(name==='Vanuatu')iso='VUT';
+        else if(name==='Venezuela')iso='VEN';
+        else if(name==='Vietnam')iso='VNM';
+        else if(name==='Yemen')iso='YEM';
+        else if(name==='Zambia')iso='ZMB';
+        else if(name==='Zimbabwe')iso='ZWE';
+        else if(name==='Kosovo')iso='XKX';
+        else if(name==='Western Sahara')iso='ESH';
+        // Skip Russia by name (additional safety)
+        if(name === 'russia') return '#1a2e45';
       }
-      if (!iso || !store[iso] || iso === 'RUS') return '#1a2e45';
-      const col = sc(store[iso].score);
-      return col + 'bb';
+      if(!iso||!store[iso])return '#1a2e45';
+      const col=sc(store[iso].score);
+      return col+'bb';
     });
 }
 function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip${prefs.filters.includes(k)?' on':''}" data-f="${k}">${a.i} ${a.l}</div>`).join('');document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value)}));}
