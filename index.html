@@ -12,7 +12,7 @@
   global-crisis-index: 50 downloads on Hugging Face
 </a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Globsl Crisis Intel Publicaition  · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -2043,269 +2043,451 @@ function forecast(hist,cur){if(hist.length<4)return{fc:cur,dir:"→ Stable",dc:"
 function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
 function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
 function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
-function buildDims(base, types) {
+// ── LIVE API LOOKUP HELPERS ───────────────────────────────────────────────
+function getLiveApiBoosts(iso) {
+  const name = (NAMES[iso] || iso).toLowerCase();
+  const boosts = {
+    conflict: 0, displacement: 0, food: 0,
+    health: 0, economic: 0, climate: 0, access: 0, political: 0
+  };
+
+  // ── USGS: seismic → conflict/access/health boost ─────────────────────────
+  const allQuakes = [
+    ...(apiResults.usgs_weekly?.features   || []),
+    ...(apiResults.usgs_significant?.features || []),
+    ...(apiResults.usgs_all_day?.features  || []),
+  ];
+  allQuakes.forEach(f => {
+    const place = (f.properties?.place || '').toLowerCase();
+    if (!place.includes(name) && !place.includes(iso.toLowerCase())) return;
+    const mag = f.properties?.mag || 0;
+    if (mag >= 7)      { boosts.access += 12; boosts.health += 10; boosts.economic += 8; }
+    else if (mag >= 6) { boosts.access += 7;  boosts.health += 5;  boosts.economic += 4; }
+    else if (mag >= 5) { boosts.access += 3;  boosts.health += 2; }
+  });
+
+  // ── NASA EONET: natural events ────────────────────────────────────────────
+  const eonetEvents = [
+    ...(apiResults.nasa_eonet?.events        || []),
+    ...(apiResults.nasa_eonet_closed?.events || []),
+  ];
+  eonetEvents.forEach(ev => {
+    const title = (ev.title || '').toLowerCase();
+    if (!title.includes(name) && !(ev.geometry || []).length) return;
+    const cat = (ev.categories?.[0]?.title || '').toLowerCase();
+    if (cat.includes('wildfire'))      { boosts.climate += 8;  boosts.economic += 4; boosts.access += 3; }
+    if (cat.includes('flood'))         { boosts.climate += 7;  boosts.food += 5;     boosts.access += 4; }
+    if (cat.includes('volcano'))       { boosts.access  += 9;  boosts.health += 6;   boosts.economic += 5; }
+    if (cat.includes('storm'))         { boosts.climate += 6;  boosts.access += 5;   boosts.economic += 3; }
+    if (cat.includes('drought'))       { boosts.food    += 9;  boosts.climate += 7;  boosts.economic += 5; }
+    if (cat.includes('landslide'))     { boosts.access  += 6;  boosts.health += 4; }
+    if (cat.includes('earthquake'))    { boosts.access  += 5;  boosts.health += 4; }
+  });
+
+  // ── GDACS: orange/red alerts ──────────────────────────────────────────────
+  const gdacsFeatures = apiResults.gdacs?.features || apiResults.gdacs?.events || [];
+  gdacsFeatures.forEach(ev => {
+    const props = ev.properties || ev;
+    const evName = (props.eventname || props.EventName || props.country || '').toLowerCase();
+    if (!evName.includes(name)) return;
+    const level = (props.alertlevel || props.AlertLevel || '').toLowerCase();
+    const severity = level === 'red' ? 14 : level === 'orange' ? 8 : 4;
+    const type = (props.eventtype || props.EventType || '').toUpperCase();
+    if (type === 'EQ')  { boosts.access += severity;  boosts.health += severity * 0.7; }
+    if (type === 'TC')  { boosts.climate += severity; boosts.access += severity * 0.8; }
+    if (type === 'FL')  { boosts.climate += severity; boosts.food += severity * 0.6; }
+    if (type === 'VO')  { boosts.access += severity;  boosts.health += severity * 0.5; }
+    if (type === 'DR')  { boosts.food += severity;    boosts.climate += severity * 0.7; }
+    if (type === 'WF')  { boosts.climate += severity; boosts.access += severity * 0.5; }
+  });
+
+  // ── RELIEFWEB: active disaster alerts ────────────────────────────────────
+  (apiResults.reliefweb_events || []).forEach(ev => {
+    if (!(ev.country || '').toLowerCase().includes(name)) return;
+    const type = (ev.type || '').toLowerCase();
+    if (type.includes('conflict'))    { boosts.conflict += 8;    boosts.access += 6; }
+    if (type.includes('flood'))       { boosts.climate += 6;     boosts.food += 4; }
+    if (type.includes('epidemic'))    { boosts.health += 9;      boosts.access += 4; }
+    if (type.includes('drought'))     { boosts.food += 8;        boosts.climate += 5; }
+    if (type.includes('earthquake'))  { boosts.access += 7;      boosts.health += 5; }
+    if (type.includes('cyclone'))     { boosts.climate += 7;     boosts.access += 5; }
+  });
+
+  // ── GDELT: conflict/political events ─────────────────────────────────────
+  (apiResults.gdelt_processed || []).forEach(ev => {
+    const evName = (ev.properties?.name || '').toLowerCase();
+    if (!evName.includes(name)) return;
+    boosts.conflict  += 5;
+    boosts.political += 4;
+    boosts.access    += 2;
+  });
+
+  // ── WHO RSS: health emergencies ───────────────────────────────────────────
+  (apiResults.who_rss?.items || []).forEach(item => {
+    const title = (item.title || item.description || '').toLowerCase();
+    if (!title.includes(name)) return;
+    boosts.health  += 8;
+    boosts.access  += 3;
+  });
+
+  // ── disease.sh: COVID/disease hot spots ───────────────────────────────────
+  if (Array.isArray(apiResults.disease_sh)) {
+    const match = apiResults.disease_sh.find(c =>
+      (c.country || '').toLowerCase().includes(name) ||
+      (c.countryInfo?.iso3 || '').toLowerCase() === iso.toLowerCase()
+    );
+    if (match) {
+      const casePer1M = match.casesPerOneMillion || 0;
+      const deathPer1M = match.deathsPerOneMillion || 0;
+      if (casePer1M > 50000)  boosts.health += 7;
+      else if (casePer1M > 10000) boosts.health += 4;
+      if (deathPer1M > 500)   boosts.health += 5;
+    }
+  }
+
+  // ── IPC food security classifications ────────────────────────────────────
+  const ipcMatch = ipcClassifications.find(i =>
+    (i.country || '').toLowerCase().includes(name)
+  );
+  if (ipcMatch) {
+    const phase = ipcMatch.phase || 0;
+    if (phase >= 5)      { boosts.food += 22; boosts.health += 14; boosts.displacement += 10; }
+    else if (phase >= 4) { boosts.food += 16; boosts.health += 10; boosts.displacement += 7; }
+    else if (phase >= 3) { boosts.food += 10; boosts.health += 6;  boosts.displacement += 4; }
+  }
+
+  // ── WFP HungerMap ────────────────────────────────────────────────────────
+  const wfpMatch = (apiResults.wfp_hunger_map || []).find(c =>
+    (c.country_name || '').toLowerCase().includes(name) ||
+    (c.iso3 || '').toLowerCase() === iso.toLowerCase()
+  );
+  if (wfpMatch) {
+    const phase = wfpMatch.ipc_phase || 0;
+    if (phase >= 4) { boosts.food += 12; boosts.health += 6; }
+    else if (phase >= 3) { boosts.food += 7; boosts.health += 3; }
+  }
+
+  // ── FEWS NET food alerts ──────────────────────────────────────────────────
+  const fewsMatch = foodSecurityAlerts.find(a =>
+    (a.country || '').toLowerCase().includes(name)
+  );
+  if (fewsMatch) {
+    boosts.food += fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc >= 3 ? 6 : 3;
+  }
+
+  // ── ACLED / conflict events ───────────────────────────────────────────────
+  const conflictMatch = conflictEvents.find(e =>
+    (e.country || '').toLowerCase().includes(name)
+  );
+  if (conflictMatch) {
+    const fat = conflictMatch.fatalities || 0;
+    boosts.conflict += fat > 100 ? 14 : fat > 20 ? 9 : fat > 0 ? 5 : 4;
+    boosts.political += 5;
+    boosts.access   += 4;
+    boosts.displacement += 4;
+  }
+
+  // ── Heat stress (Open-Meteo) ──────────────────────────────────────────────
+  const heatMatch = heatStressData.find(h => h.iso === iso);
+  if (heatMatch) {
+    if (heatMatch.temp >= 46)      { boosts.climate += 14; boosts.health += 10; boosts.food += 6; }
+    else if (heatMatch.temp >= 42) { boosts.climate += 9;  boosts.health += 6;  boosts.food += 3; }
+    else if (heatMatch.temp >= 38) { boosts.climate += 5;  boosts.health += 3; }
+  }
+
+  // ── IMF GDP growth (negative = economic stress) ───────────────────────────
+  const imfGrowth = apiResults.imf_growth_map;
+  if (imfGrowth) {
+    const growth = imfGrowth[iso];
+    if (typeof growth === 'number') {
+      if (growth < -5)      { boosts.economic += 16; boosts.food += 6; }
+      else if (growth < -2) { boosts.economic += 10; boosts.food += 3; }
+      else if (growth < 0)  { boosts.economic += 5; }
+    }
+  }
+
+  // ── World Bank poverty ────────────────────────────────────────────────────
+  if (apiResults.wb_poverty?.[1]) {
+    const wbMatch = apiResults.wb_poverty[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (wbMatch?.value) {
+      const pov = wbMatch.value;
+      if (pov > 50)       { boosts.economic += 14; boosts.food += 8; boosts.health += 6; }
+      else if (pov > 30)  { boosts.economic += 9;  boosts.food += 5; boosts.health += 3; }
+      else if (pov > 10)  { boosts.economic += 4; }
+    }
+  }
+
+  // ── World Bank inflation ──────────────────────────────────────────────────
+  if (apiResults.wb_inflation?.[1]) {
+    const infMatch = apiResults.wb_inflation[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (infMatch?.value) {
+      const inf = infMatch.value;
+      if (inf > 50)      { boosts.economic += 14; boosts.food += 7; }
+      else if (inf > 20) { boosts.economic += 9;  boosts.food += 4; }
+      else if (inf > 10) { boosts.economic += 4; }
+    }
+  }
+
+  // ── World Bank mortality (child) ──────────────────────────────────────────
+  if (apiResults.wb_mortality?.[1]) {
+    const mortMatch = apiResults.wb_mortality[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (mortMatch?.value > 50) boosts.health += 8;
+    else if (mortMatch?.value > 20) boosts.health += 4;
+  }
+
+  // ── World Bank nutrition (undernourishment %) ─────────────────────────────
+  if (apiResults.wb_nutrition?.[1]) {
+    const nutMatch = apiResults.wb_nutrition[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (nutMatch?.value > 30) { boosts.food += 8;  boosts.health += 4; }
+    else if (nutMatch?.value > 15) { boosts.food += 4; }
+  }
+
+  // ── World Bank GINI (inequality) ──────────────────────────────────────────
+  if (apiResults.wb_gini?.[1]) {
+    const giniMatch = apiResults.wb_gini[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (giniMatch?.value > 50) { boosts.economic += 6; boosts.political += 4; }
+    else if (giniMatch?.value > 40) { boosts.economic += 3; }
+  }
+
+  // ── UNHCR displacement ────────────────────────────────────────────────────
+  if (apiResults.unhcr_pop?.items?.length) {
+    const unhcrMatch = apiResults.unhcr_pop.items.find(d =>
+      (d.coo_iso || d.coa_iso || '').toLowerCase() === iso.toLowerCase()
+    );
+    if (unhcrMatch) {
+      const total = (unhcrMatch.refugees || 0) + (unhcrMatch.idps || 0) + (unhcrMatch.asylum_seekers || 0);
+      if (total > 2000000)     { boosts.displacement += 18; boosts.conflict += 8; }
+      else if (total > 500000) { boosts.displacement += 12; boosts.conflict += 5; }
+      else if (total > 100000) { boosts.displacement += 7;  boosts.conflict += 3; }
+      else if (total > 10000)  { boosts.displacement += 4; }
+    }
+  }
+
+  // ── World Bank refugees (stock) ───────────────────────────────────────────
+  if (apiResults.wb_refugees?.[1]) {
+    const refMatch = apiResults.wb_refugees[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (refMatch?.value > 1000000)  boosts.displacement += 10;
+    else if (refMatch?.value > 100000) boosts.displacement += 6;
+    else if (refMatch?.value > 10000)  boosts.displacement += 3;
+  }
+
+  // ── World Bank homicide ───────────────────────────────────────────────────
+  if (apiResults.wb_homicide?.[1]) {
+    const homMatch = apiResults.wb_homicide[1].find(d =>
+      d.countryiso3code === iso || d.country?.id === iso
+    );
+    if (homMatch?.value > 30)  { boosts.conflict += 10; boosts.political += 5; }
+    else if (homMatch?.value > 10) { boosts.conflict += 6;  boosts.political += 3; }
+    else if (homMatch?.value > 5)  { boosts.conflict += 3; }
+  }
+
+  // ── IMF debt stress ───────────────────────────────────────────────────────
+  if (apiResults.imf_debt?.values?.GGX_NGDP) {
+    const debt = apiResults.imf_debt.values.GGX_NGDP[iso];
+    if (typeof debt === 'number') {
+      if (debt > 120)      { boosts.economic += 10; boosts.political += 5; }
+      else if (debt > 80)  { boosts.economic += 6; }
+      else if (debt > 60)  { boosts.economic += 3; }
+    }
+  }
+
+  // ── Cap all boosts to prevent runaway scores ──────────────────────────────
+  const MAX_BOOST = 35;
+  for (const k in boosts) boosts[k] = Math.min(MAX_BOOST, Math.max(0, Math.round(boosts[k])));
+
+  return boosts;
+}
+
+function buildDims(base, types, iso) {
   const has = t => types.includes(t);
   const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
-  
-  // Base dimension scores from prior
-  let dims = {
-    conflict: clamp(base * ((has('CW') || has('CE')) ? 1.10 : has('REF') ? 0.65 : 0.28)),
-    displacement: clamp(base * ((has('REF') || has('CW') || has('CE')) ? 1.05 : (has('EQ') || has('FL') || has('TC')) ? 0.80 : 0.38)),
-    food: clamp(base * ((has('FN') || has('DR')) ? 1.15 : (has('CE') || has('CW')) ? 0.90 : has('FL') ? 0.70 : 0.42)),
-    health: clamp(base * ((has('EP') || has('FN')) ? 1.10 : (has('CE') || has('CW') || has('EQ')) ? 0.85 : 0.52)),
-    economic: clamp(base * ((has('CE') || has('CW') || has('FN') || has('DR')) ? 0.82 : 0.42) + 10),
-    climate: clamp(base * ((has('HEAT') || has('DR')) ? 0.88 : (has('FL') || has('TC') || has('WF')) ? 0.75 : 0.32) + 12),
-    access: clamp(base * ((has('CW') || has('CE')) ? 0.88 : (has('EQ') || has('FL') || has('LS')) ? 0.72 : 0.32) + 8),
-    political: clamp(base * ((has('CE') || has('CW') || has('REF')) ? 0.85 : 0.42) + 8)
+
+  // ── 1. TYPE-BASED STRUCTURAL SCORES (same logic as before) ───────────────
+  const structural = {
+    conflict:     clamp(base * ((has('CW') || has('CE')) ? 1.1  : has('REF') ? 0.65 : 0.28)),
+    displacement: clamp(base * ((has('REF') || has('CW') || has('CE')) ? 1.05 : (has('EQ') || has('FL') || has('TC')) ? 0.8 : 0.38)),
+    food:         clamp(base * ((has('FN') || has('DR')) ? 1.15 : (has('CE') || has('CW')) ? 0.9 : has('FL') ? 0.7 : 0.42)),
+    health:       clamp(base * ((has('EP') || has('FN')) ? 1.1  : (has('CE') || has('CW') || has('EQ')) ? 0.85 : 0.52)),
+    economic:     clamp(base * ((has('CE') || has('CW') || has('FN') || has('DR')) ? 0.82 : 0.42) + 10),
+    climate:      clamp(base * ((has('HEAT') || has('DR')) ? 0.88 : (has('FL') || has('TC') || has('WF')) ? 0.75 : 0.32) + 12),
+    access:       clamp(base * ((has('CW') || has('CE')) ? 0.88 : (has('EQ') || has('FL') || has('LS')) ? 0.72 : 0.32) + 8),
+    political:    clamp(base * ((has('CE') || has('CW') || has('REF')) ? 0.85 : 0.42) + 8),
   };
-  
-  // ── LIVE ADJUSTMENTS FROM APIs ──────────────────────────────────────────
-  
-  // 1. USGS EARTHQUAKES: boost displacement + health for active quakes
-  if (apiResults.usgs_weekly?.features) {
-    const quakeCountry = apiResults.usgs_weekly.features.filter(f => {
-      const place = (f.properties?.place || '').toLowerCase();
-      const name = NAMES[iso]?.toLowerCase() || '';
-      return place.includes(name);
-    });
-    if (quakeCountry.length) {
-      const maxMag = Math.max(...quakeCountry.map(f => f.properties.mag || 0));
-      if (maxMag >= 4.5) {
-        const boost = Math.min(15, Math.round((maxMag - 4.0) * 4));
-        dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
-        dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+
+  // ── 2. LIVE API BOOSTS (only if APIs have loaded) ────────────────────────
+  // Guard: if apiResults is empty (first render before fetch) skip boosts
+  const hasApiData = Object.keys(apiResults).length > 0;
+  if (!iso || !hasApiData) return structural;
+
+  const boosts = getLiveApiBoosts(iso);
+
+  // ── 3. BLEND: structural drives the base, live API boosts on top ──────────
+  // Weight: 70% structural + 30% live signal, then add boost
+  // This keeps countries with no API matches stable
+  return {
+    conflict:     clamp(structural.conflict     * 0.72 + boosts.conflict     + (boosts.conflict     > 0 ? structural.conflict     * 0.28 : structural.conflict     * 0.28)),
+    displacement: clamp(structural.displacement * 0.72 + boosts.displacement + (boosts.displacement > 0 ? structural.displacement * 0.28 : structural.displacement * 0.28)),
+    food:         clamp(structural.food         * 0.72 + boosts.food         + (boosts.food         > 0 ? structural.food         * 0.28 : structural.food         * 0.28)),
+    health:       clamp(structural.health       * 0.72 + boosts.health       + (boosts.health       > 0 ? structural.health       * 0.28 : structural.health       * 0.28)),
+    economic:     clamp(structural.economic     * 0.72 + boosts.economic     + (boosts.economic     > 0 ? structural.economic     * 0.28 : structural.economic     * 0.28)),
+    climate:      clamp(structural.climate      * 0.72 + boosts.climate      + (boosts.climate      > 0 ? structural.climate      * 0.28 : structural.climate      * 0.28)),
+    access:       clamp(structural.access       * 0.72 + boosts.access       + (boosts.access       > 0 ? structural.access       * 0.28 : structural.access       * 0.28)),
+    political:    clamp(structural.political    * 0.72 + boosts.political    + (boosts.political    > 0 ? structural.political    * 0.28 : structural.political    * 0.28)),
+  };
+}
+
+function seedHistory(iso, currentScore) {
+  const N = 28;
+  const seed = iso.split('').reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
+
+  // ── Pull any real trend signal from APIs to bias history slope ───────────
+  let trendBias = 0;
+
+  // IPC food trend
+  const ipcMatch = ipcClassifications.find(i => (i.country || '').toLowerCase().includes((NAMES[iso] || '').toLowerCase()));
+  if (ipcMatch?.phase >= 4) trendBias += 1.2;
+  else if (ipcMatch?.phase >= 3) trendBias += 0.6;
+
+  // GDELT conflict volume trend
+  if (apiResults.gdelt_tv) {
+    try {
+      const tvData = typeof apiResults.gdelt_tv === 'string'
+        ? JSON.parse(apiResults.gdelt_tv)
+        : apiResults.gdelt_tv;
+      if (tvData?.timeline?.length >= 2) {
+        const vals = tvData.timeline.map(t => t.value || 0);
+        const recent = vals.slice(-3).reduce((a, b) => a + b, 0) / 3;
+        const older  = vals.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+        if (recent > older * 1.3) trendBias += 0.8;
+        else if (recent < older * 0.7) trendBias -= 0.5;
       }
-    }
+    } catch (_) {}
   }
-  
-  // 2. NASA EONET: boost climate dimension for active wildfire/volcano/flood events
-  if (apiResults.nasa_eonet?.events) {
-    const countryName = NAMES[iso]?.toLowerCase() || '';
-    const events = apiResults.nasa_eonet.events.filter(ev => {
-      const desc = (ev.title || '').toLowerCase();
-      return desc.includes(countryName);
-    });
-    if (events.length) {
-      const boost = Math.min(15, events.length * 3);
-      dims.climate = clamp(dims.climate + boost);
-    }
+
+  // Conflict events → upward bias
+  const conflictMatch = conflictEvents.find(e => (e.country || '').toLowerCase().includes((NAMES[iso] || '').toLowerCase()));
+  if (conflictMatch?.fatalities > 50) trendBias += 0.9;
+
+  // Heat stress → recent spike
+  const heatMatch = heatStressData.find(h => h.iso === iso);
+  if (heatMatch?.temp >= 44) trendBias += 0.7;
+
+  // IMF negative growth → downward economic pressure (scores go up = worse)
+  const imfGrowth = apiResults.imf_growth_map?.[iso];
+  if (typeof imfGrowth === 'number' && imfGrowth < -3) trendBias += 0.6;
+
+  // ── Build the 28-day seeded history with real trend bias ─────────────────
+  let score = Math.min(99, Math.max(5, currentScore + Math.round((seededRand(seed) - 0.5) * 18)));
+  const hist = [];
+
+  for (let i = 0; i <= N; i++) {
+    hist.push({ t: Date.now() - (N - i) * 86400000, s: score });
+    const r = seededRand(seed + i * 31 + 7);
+    // Blend: structural mean-reversion + real trend bias + noise
+    const structuralPull = (currentScore - score) * 0.12;
+    const realTrendPull  = trendBias * 0.4;
+    const noise          = (r - 0.5) * 5;
+    const delta          = structuralPull + realTrendPull + noise;
+    score = Math.min(99, Math.max(5, Math.round(score + delta)));
   }
-  
-  // 3. GDACS: boost displacement + health for active red/orange alerts
-  if (apiResults.gdacs?.features) {
-    const countryName = NAMES[iso]?.toLowerCase() || '';
-    const gdacsEvents = apiResults.gdacs.features.filter(f => {
-      const props = f.properties || {};
-      const desc = (props.eventname || props.EventName || '').toLowerCase();
-      return desc.includes(countryName);
-    });
-    if (gdacsEvents.length) {
-      const alertLevels = gdacsEvents.map(f => (f.properties?.alertlevel || 'orange').toLowerCase());
-      if (alertLevels.some(a => a === 'red')) {
-        dims.displacement = clamp(dims.displacement + 8);
-        dims.health = clamp(dims.health + 6);
-      } else if (alertLevels.some(a => a === 'orange')) {
-        dims.displacement = clamp(dims.displacement + 4);
-        dims.health = clamp(dims.health + 3);
-      }
+
+  hist[hist.length - 1].s = currentScore;
+  return hist;
+}
+
+function spilloverScore(newStore) {
+  const res = {};
+
+  for (const iso in newStore) {
+    const neighbours = (ADJ[iso] || []).filter(n => newStore[n]);
+    if (!neighbours.length) { res[iso] = 0; continue; }
+
+    // Base spillover: neighbour average above threshold
+    const avgNeighbour = neighbours.reduce((s, n) => s + newStore[n].score, 0) / neighbours.length;
+    let spill = Math.max(0, avgNeighbour - 50) * 0.13;
+
+    // ── API-enhanced spillover modifiers ─────────────────────────────────────
+
+    // Refugee flows → displacement pressure crosses borders
+    if (apiResults.wb_refugees?.[1]) {
+      const refData = apiResults.wb_refugees[1];
+      const hasLargeRefugeeNeighbour = neighbours.some(n => {
+        const d = refData.find(r => r.countryiso3code === n || r.country?.id === n);
+        return d?.value > 500000;
+      });
+      if (hasLargeRefugeeNeighbour) spill += 2.5;
     }
-  }
-  
-  // 4. NOAA WEATHER: boost climate + health for active extreme weather
-  if (apiResults.noaa_alerts?.features) {
-    const countryName = NAMES[iso]?.toLowerCase() || '';
-    const alerts = apiResults.noaa_alerts.features.filter(f => {
-      const props = f.properties || {};
-      const desc = (props.areaDesc || '').toLowerCase();
-      return desc.includes(countryName);
-    });
-    if (alerts.length) {
-      const severity = alerts.map(f => (f.properties?.severity || '').toLowerCase());
-      if (severity.some(s => s === 'extreme')) {
-        dims.climate = clamp(dims.climate + 10);
-        dims.health = clamp(dims.health + 8);
-      } else if (severity.some(s => s === 'severe')) {
-        dims.climate = clamp(dims.climate + 5);
-        dims.health = clamp(dims.health + 4);
-      }
-    }
-  }
-  
-  // 5. WHO RSS: boost health for disease outbreaks
-  if (apiResults.who_rss?.items) {
-    const countryName = NAMES[iso]?.toLowerCase() || '';
-    const outbreaks = apiResults.who_rss.items.filter(item => {
-      const title = (item.title || '').toLowerCase();
-      return title.includes(countryName) && (
-        title.includes('outbreak') || 
-        title.includes('disease') || 
-        title.includes('epidemic') ||
-        title.includes('cholera') ||
-        title.includes('ebola') ||
-        title.includes('mpox')
+
+    // UNHCR: if a neighbour is a major displacement source
+    if (apiResults.unhcr_pop?.items?.length) {
+      const hasUNHCRNeighbour = neighbours.some(n =>
+        apiResults.unhcr_pop.items.find(d =>
+          (d.coo_iso || '').toLowerCase() === n.toLowerCase() &&
+          ((d.refugees || 0) + (d.idps || 0)) > 200000
+        )
       );
+      if (hasUNHCRNeighbour) spill += 2.0;
+    }
+
+    // Conflict spillover: active conflict in neighbour amplifies risk
+    const hasConflictNeighbour = neighbours.some(n =>
+      conflictEvents.find(e => (e.country || '').toLowerCase().includes((NAMES[n] || '').toLowerCase()))
+    );
+    if (hasConflictNeighbour) spill += 1.8;
+
+    // IPC food crisis in neighbour → food supply chain pressure
+    const hasIpcNeighbour = neighbours.some(n => {
+      const nName = (NAMES[n] || '').toLowerCase();
+      return ipcClassifications.find(i => i.phase >= 3 && (i.country || '').toLowerCase().includes(nName));
     });
-    if (outbreaks.length) {
-      const boost = Math.min(20, outbreaks.length * 5);
-      dims.health = clamp(dims.health + boost);
+    if (hasIpcNeighbour) spill += 1.5;
+
+    // GDELT: high conflict media volume in region amplifies spillover
+    if (apiResults.gdelt_processed?.length) {
+      const gdeltNeighbourHits = neighbours.filter(n =>
+        apiResults.gdelt_processed.some(ev =>
+          (ev.properties?.name || '').toLowerCase().includes((NAMES[n] || '').toLowerCase())
+        )
+      ).length;
+      spill += gdeltNeighbourHits * 0.6;
     }
-  }
-  
-  // 6. IPC FOOD SECURITY: boost food dimension
-  if (ipcClassifications && ipcClassifications.length) {
-    const ipcData = ipcClassifications.find(i => i.country === NAMES[iso]);
-    if (ipcData && ipcData.phase >= 3) {
-      const boost = (ipcData.phase - 2) * 8;
-      dims.food = clamp(dims.food + boost);
-    }
-  }
-  
-  // 7. FEWS NET: boost food dimension (fallback if IPC missing)
-  if (foodSecurityAlerts && foodSecurityAlerts.length) {
-    const fewsData = foodSecurityAlerts.find(f => f.country === NAMES[iso]);
-    if (fewsData && fewsData.ipc >= 3 && !ipcClassifications.find(i => i.country === NAMES[iso])) {
-      const boost = (fewsData.ipc - 2) * 8;
-      dims.food = clamp(dims.food + boost);
-    }
-  }
-  
-  // 8. WFP HUNGER MAP: boost food dimension
-  if (apiResults.wfp_hunger_map && apiResults.wfp_hunger_map.length) {
-    const wfpData = apiResults.wfp_hunger_map.find(h => h.country_name === NAMES[iso]);
-    if (wfpData && wfpData.ipc_phase >= 3) {
-      const boost = Math.min(16, (wfpData.ipc_phase - 1) * 6);
-      dims.food = clamp(dims.food + boost);
-    }
-  }
-  
-  // 9. CONFLICT EVENTS: boost conflict + displacement
-  if (conflictEvents && conflictEvents.length) {
-    const conflicts = conflictEvents.filter(c => c.country.toLowerCase() === NAMES[iso]?.toLowerCase());
-    if (conflicts.length) {
-      const totalFatalities = conflicts.reduce((sum, c) => sum + (c.fatalities || 0), 0);
-      if (totalFatalities > 0) {
-        const boost = Math.min(20, Math.round(Math.log10(totalFatalities + 1) * 6));
-        dims.conflict = clamp(dims.conflict + boost);
-        dims.displacement = clamp(dims.displacement + Math.round(boost * 0.5));
-      }
-    }
-  }
-  
-  // 10. GDELT: boost conflict dimension
-  if (apiResults.gdelt_processed && apiResults.gdelt_processed.length) {
-    const gdeltEvents = apiResults.gdelt_processed.filter(g => {
-      const name = g.properties?.name || '';
-      return name.toLowerCase().includes(NAMES[iso]?.toLowerCase() || '');
+
+    // EONET disasters in neighbours → humanitarian pressure
+    const eonetEvents = [
+      ...(apiResults.nasa_eonet?.events        || []),
+      ...(apiResults.nasa_eonet_closed?.events || []),
+    ];
+    const hasEonetNeighbour = neighbours.some(n => {
+      const nName = (NAMES[n] || '').toLowerCase();
+      return eonetEvents.some(ev => (ev.title || '').toLowerCase().includes(nName));
     });
-    if (gdeltEvents.length) {
-      const boost = Math.min(15, gdeltEvents.length * 4);
-      dims.conflict = clamp(dims.conflict + boost);
+    if (hasEonetNeighbour) spill += 1.2;
+
+    // IMF: economic contagion — neighbour in recession amplifies economic spillover
+    if (apiResults.imf_growth_map) {
+      const hasRecessNeighbour = neighbours.some(n => {
+        const g = apiResults.imf_growth_map[n];
+        return typeof g === 'number' && g < -2;
+      });
+      if (hasRecessNeighbour) spill += 1.0;
     }
+
+    res[iso] = Math.round(Math.min(20, spill) * 10) / 10;
   }
-  
-  // 11. DISEASE OUTBREAKS: boost health dimension
-  if (diseaseOutbreaks && diseaseOutbreaks.length) {
-    const outbreaks = diseaseOutbreaks.filter(d => d.country === NAMES[iso]);
-    if (outbreaks.length) {
-      const cases = outbreaks.reduce((sum, d) => sum + (d.cases || 0), 0);
-      const boost = cases > 100000 ? 25 : cases > 10000 ? 18 : cases > 1000 ? 12 : outbreaks.length * 4;
-      dims.health = clamp(dims.health + Math.min(25, boost));
-    }
-  }
-  
-  // 12. HEAT STRESS: boost climate + health
-  if (heatStressData && heatStressData.length) {
-    const heat = heatStressData.find(h => h.iso === iso);
-    if (heat && heat.temp > 38) {
-      const boost = heat.temp > 45 ? 20 : heat.temp > 42 ? 14 : heat.temp > 38 ? 8 : 0;
-      dims.climate = clamp(dims.climate + boost);
-      dims.health = clamp(dims.health + Math.round(boost * 0.6));
-    }
-  }
-  
-  // 13. IMF ECONOMIC: boost economic dimension
-  if (apiResults.imf_growth_map) {
-    const growth = apiResults.imf_growth_map[iso];
-    if (growth !== undefined && growth < -2) {
-      const boost = Math.min(20, Math.round(Math.abs(growth) * 3));
-      dims.economic = clamp(dims.economic + boost);
-    }
-  }
-  
-  // 14. WORLD BANK POVERTY: boost economic dimension
-  if (apiResults.wb_poverty && apiResults.wb_poverty[1]) {
-    const povertyData = apiResults.wb_poverty[1].find(d => d.countryiso3code === iso);
-    if (povertyData && povertyData.value > 20) {
-      const boost = Math.min(20, Math.round((povertyData.value - 15) * 0.8));
-      dims.economic = clamp(dims.economic + boost);
-    }
-  }
-  
-  // 15. WORLD BANK INFLATION: boost economic dimension
-  if (apiResults.wb_inflation && apiResults.wb_inflation[1]) {
-    const inflationData = apiResults.wb_inflation[1].find(d => d.countryiso3code === iso);
-    if (inflationData && inflationData.value > 15) {
-      const boost = Math.min(20, Math.round((inflationData.value - 10) * 0.6));
-      dims.economic = clamp(dims.economic + boost);
-    }
-  }
-  
-  // 16. WORLD BANK MORTALITY: boost health dimension
-  if (apiResults.wb_mortality && apiResults.wb_mortality[1]) {
-    const mortalityData = apiResults.wb_mortality[1].find(d => d.countryiso3code === iso);
-    if (mortalityData && mortalityData.value > 30) {
-      const boost = Math.min(15, Math.round((mortalityData.value - 20) * 0.4));
-      dims.health = clamp(dims.health + boost);
-    }
-  }
-  
-  // 17. IMF DEBT: boost economic dimension
-  if (apiResults.imf_debt) {
-    const debt = apiResults.imf_debt[iso];
-    if (debt !== undefined && debt > 60) {
-      const boost = Math.min(15, Math.round((debt - 50) * 0.5));
-      dims.economic = clamp(dims.economic + boost);
-    }
-  }
-  
-  // 18. DISEASE.SH COVID: boost health dimension
-  if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
-    const covidData = apiResults.disease_sh.find(c => c.country === NAMES[iso]);
-    if (covidData && covidData.todayCases > 1000) {
-      const boost = Math.min(20, Math.round(Math.log10(covidData.todayCases) * 5));
-      dims.health = clamp(dims.health + boost);
-    }
-  }
-  
-  // 19. UNHCR DISPLACEMENT: boost displacement dimension
-  if (apiResults.unhcr_pop && apiResults.unhcr_pop.data) {
-    const unhcrData = apiResults.unhcr_pop.data.find(d => {
-      const country = d.country_of_asylum || d.country_of_origin || '';
-      return country.toLowerCase().includes(NAMES[iso]?.toLowerCase() || '');
-    });
-    if (unhcrData) {
-      const total = (unhcrData.refugees || 0) + (unhcrData.idps || 0) + (unhcrData.asylum_seekers || 0);
-      if (total > 100000) {
-        const boost = total > 1000000 ? 25 : total > 500000 ? 18 : total > 100000 ? 10 : 0;
-        dims.displacement = clamp(dims.displacement + boost);
-      }
-    }
-  }
-  
-  // 20. RELIEFWEB: boost all dimensions for active emergencies
-  if (apiResults.reliefweb_events && apiResults.reliefweb_events.length) {
-    const rwEvents = apiResults.reliefweb_events.filter(e => {
-      const country = e.country || '';
-      return country.toLowerCase().includes(NAMES[iso]?.toLowerCase() || '');
-    });
-    if (rwEvents.length) {
-      const boost = Math.min(15, rwEvents.length * 3);
-      dims.access = clamp(dims.access + boost);
-      dims.conflict = clamp(dims.conflict + boost);
-    }
-  }
-  
-  return dims;
+
+  return res;
 }
 
 // ============================================================================
