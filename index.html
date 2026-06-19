@@ -12,7 +12,7 @@
   global-crisis-index: 50 downloads on Hugging Face
 </a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">Globsl Crisis Intel Publication · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Globsl Crisis Intel Publication  · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -4215,7 +4215,62 @@ if (window.innerWidth <= 900) {
   };
 
 })();
+// ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
+function updateDynamicTitle() {
+  const titleEl = document.getElementById('dynamicTitle');
+  if (!titleEl) return;
+  
+  // Wait for store and ranked to be populated
+  if (!store || !ranked || ranked.length === 0) {
+    titleEl.textContent = 'Global Crisis Index — Live Crisis Intelligence · Loading...';
+    return;
+  }
+  
+  // Get top crisis score
+  const topIso = ranked[0];
+  const topCountry = store[topIso];
+  const topScore = topCountry?.score || 83;
+  
+  // Get affected population (from critical count)
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+  const affected = Math.round(crit * 4.8) + 'M';
+  
+  // Get anomalies (from cusum detection)
+  const anomalies = ranked.filter(i => {
+    const hist = (history[i] || []).map(h => h.s);
+    return cusum(hist).det;
+  }).length;
+  
+  // Get events (sum of all country events)
+  const events = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
+  
+  // Get global average score
+  const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
+  
+  // Build the dynamic title
+  const title = `Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events | Real-time API`;
+  
+  titleEl.textContent = title;
+  
+  // Also update meta description if available
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) {
+    // Keep the existing description but you could also update it here if needed
+  }
+}
 
+// Update title on refresh
+const originalRefresh = refresh;
+refresh = async function() {
+  await originalRefresh.call(this);
+  updateDynamicTitle();
+};
+
+// Also update on interval
+setInterval(updateDynamicTitle, 30000); // Every 30 seconds
+
+// Initial update after first load
+setTimeout(updateDynamicTitle, 2000);
 
 </script>
 
