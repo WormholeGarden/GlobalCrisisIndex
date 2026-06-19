@@ -4390,57 +4390,72 @@ if (window.innerWidth <= 900) {
 })();
 // ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
 // ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
+// ── DYNAMIC TITLE UPDATER (BULLETPROOF) ──────────────────────────────────
 function updateDynamicTitle() {
   const titleEl = document.getElementById('dynamicTitle');
   if (!titleEl) return;
   
-  // ── FALLBACK VALUES (matches the static fallback) ──────────────────────
+  // ── FALLBACK VALUES ──────────────────────────────────────────────────────
   let gcis = 83;
   let affected = '53M';
   let anomalies = 55;
   let events = 916;
   
-  // ── TRY TO GET LIVE DATA ────────────────────────────────────────────────
+  // ── SAFELY GET LIVE DATA ──────────────────────────────────────────────
   try {
-    if (store && ranked && ranked.length > 0) {
+    // Check if store and ranked exist and have data
+    if (typeof store !== 'undefined' && store && 
+        typeof ranked !== 'undefined' && ranked && ranked.length > 0) {
+      
       // Global average score
-      gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
+      const top20 = ranked.slice(0, 20);
+      const sum = top20.reduce((s, i) => s + (store[i]?.score || 0), 0);
+      gcis = Math.round(sum / top20.length);
       
       // Affected population
-      const crit = ranked.filter(i => store[i]?.score >= 80).length;
+      const crit = ranked.filter(i => (store[i]?.score || 0) >= 80).length;
       affected = Math.round(crit * 4.8) + 'M';
       
-      // Anomalies
-      anomalies = ranked.filter(i => {
-        const hist = (history[i] || []).map(h => h.s);
-        return cusum(hist).det;
-      }).length;
+      // Anomalies — safely check cusum exists
+      if (typeof cusum === 'function') {
+        anomalies = ranked.filter(i => {
+          const hist = (history[i] || []).map(h => h.s);
+          return hist.length > 0 && cusum(hist).det;
+        }).length;
+      }
       
       // Events
-      events = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
+      events = Object.values(store).reduce((s, c) => s + (c?.events || 0), 0);
     }
   } catch (e) {
     // Silent fail — fallback values remain
   }
   
-  // ── BUILD THE TITLE ─────────────────────────────────────────────────────
+  // ── BUILD AND SET THE TITLE ──────────────────────────────────────────
   const title = `Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events | Real-time API`;
   titleEl.textContent = title;
 }
 
 // ── RUN ON LOAD AND REFRESH ──────────────────────────────────────────────
-// Hook into refresh
-const originalRefresh = refresh;
-refresh = async function() {
-  await originalRefresh.call(this);
-  updateDynamicTitle();
-};
+// Hook into refresh safely
+if (typeof refresh === 'function') {
+  const originalRefresh = refresh;
+  refresh = async function() {
+    await originalRefresh.call(this);
+    updateDynamicTitle();
+  };
+}
 
 // Run immediately with fallback values
 setTimeout(updateDynamicTitle, 500);
 
 // Update every 30 seconds
 setInterval(updateDynamicTitle, 30000);
+
+// ── ALSO RUN AFTER REFRESH COMPLETES ──────────────────────────────────────
+// If you have a refresh function that loads data, call updateDynamicTitle after it
+// You can also add it to the end of your existing refresh() function:
+// updateDynamicTitle();
 
 
 </script>
