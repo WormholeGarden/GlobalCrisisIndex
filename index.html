@@ -4269,6 +4269,18 @@ setTimeout(updateDynamicTitle, 500);
 // Update every 30 seconds
 setInterval(updateDynamicTitle, 30000);
 
+function filterPolygon(feature, keepIfCrimea, targetId) {
+      const polys = feature.geometry.type === 'MultiPolygon' ? feature.geometry.coordinates : [feature.geometry.coordinates];
+      const kept = [], moved = [];
+      polys.forEach(poly => {
+        const ring = poly[0];
+        const centroid = ring.reduce((a,c) => [a[0]+c[0], a[1]+c[1]], [0,0]).map(v => v/ring.length);
+        const inCrimea = centroid[0] >= 31 && centroid[0] <= 40 && centroid[1] >= 43.5 && centroid[1] <= 47.5;
+        if (inCrimea) moved.push(poly);
+        else kept.push(poly);
+      });
+      return { kept, moved };
+    }
 </script>
 
 
