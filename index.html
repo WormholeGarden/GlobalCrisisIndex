@@ -2846,19 +2846,37 @@ async function refresh() {
   let newStore = {};
   
   for (let iso of Object.keys(ISO_NUM)) {
-    const name = NAMES[iso] || iso;
-    const flag = FLAGS[iso] || '🌍';
-    const types = CTYPES[iso] || DEFAULT_T;
-    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-    let base = BASE_SCORES[iso] || 42;
-    const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0) * 137 + (iso.charCodeAt(1) || 0) * 31) - 0.5) * 5);
-    const rawBase = Math.min(99, Math.max(5, base + variation));
-    const mult = { PSE: 1.0, SOM: 1.0, SYR: 1.0, HTI: 1.0, YEM: 1.0, UKR: 1.0, IDN: 1.25, PHL: 1.2, JPN: 1.15 }[iso] || 1.0;
-    const events = Math.min(60, Math.max(4, Math.floor(10 * mult) + Math.floor(rawBase / 14)));
-    const dims = buildDims(rawBase, types);
-    let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
-    newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
-  }
+  const name = NAMES[iso] || iso;
+  const flag = FLAGS[iso] || '🌍';
+  const types = CTYPES[iso] || DEFAULT_T;
+  const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+  
+  // ── START FROM A NEUTRAL SCORE OF 50 ──────────────────────────────────────
+  // All countries start at 50. Live data (APIs) will adjust this up or down.
+  // This eliminates all human priors and historical bias.
+  const rawBase = 50;
+  
+  // ── EVENTS: estimate from live conflict/IPC/quake counts ───────────────────
+  // Use live data to estimate events rather than a static formula
+  let events = 4;
+  // Boost events if there are active conflicts
+  if (conflictEvents.some(e => e.country.toLowerCase().includes(name.toLowerCase()))) events += 8;
+  // Boost events if there are heat alerts
+  if (heatStressData.some(h => h.iso === iso && h.temp > 40)) events += 4;
+  // Boost events if there are disease outbreaks
+  if (diseaseOutbreaks.some(d => d.country.toLowerCase().includes(name.toLowerCase()))) events += 6;
+  // Boost events if there are USGS quakes
+  const quakeCount = (apiResults.usgs_weekly?.features || [])
+    .filter(f => f.properties.place.toLowerCase().includes(name.toLowerCase())).length;
+  events += Math.min(10, quakeCount);
+  events = Math.min(60, Math.max(4, events));
+  
+  // ── BUILD DIMS WITH 50 AS THE PRIOR ─────────────────────────────────────────
+  const dims = buildDims(rawBase, types);
+  let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
+  
+  newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
+}
   
   adv(2, 40);
   const spill = spilloverScore(newStore);
