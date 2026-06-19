@@ -3781,7 +3781,7 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
 buildFilters();updateSearchLockState();startRefreshTimer();
-d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
+d3.json('https://unpkg.com/world-atlas@2/countries-50m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
 // Mobile filter button functionality with animations
 if (window.innerWidth <= 900) {
