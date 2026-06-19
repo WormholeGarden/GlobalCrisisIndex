@@ -2945,10 +2945,72 @@ async function refresh() {
 // ============================================================================
 // MAP FUNCTIONS (condensed)
 // ============================================================================
-function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);mapGroup.selectAll('.country-path')
+function initMap(world){const stage=document.getElementById('mapStage');const W=stage.clientWidth,H=stage.clientHeight;svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);pathGen=d3.geoPath().projection(proj);mapGroup=svgEl.append('g');mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);const countries=topojson.feature(world,world.objects.countries);
+
+// ── COMPLETE NAME TO ISO MAPPING ──────────────────────────────────────────
+const nameMap={
+  'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO',
+  'antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS',
+  'austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD',
+  'barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN',
+  'bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA',
+  'brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI',
+  'cabo verde':'CPV','cambodia':'KHM','cameroon':'CMR','canada':'CAN',
+  'central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN',
+  'colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',
+  "côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE',
+  'denmark':'DNK','djibouti':'DJI','dominica':'DMA','dominican republic':'DOM',
+  'dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV',
+  'equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ',
+  'ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB',
+  'gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC',
+  'greenland':'GRL','grenada':'GRD','guatemala':'GTM','guinea':'GIN',
+  'guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND',
+  'hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN',
+  'iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM',
+  'japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR',
+  'kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN',
+  'lesotho':'LSO','liberia':'LBR','libya':'LBY','liechtenstein':'LIE',
+  'lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI',
+  'malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','marshall islands':'MHL',
+  'mauritania':'MRT','mauritius':'MUS','mexico':'MEX','micronesia':'FSM',
+  'moldova':'MDA','monaco':'MCO','mongolia':'MNG','montenegro':'MNE',
+  'morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nauru':'NRU',
+  'nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC',
+  'niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD',
+  'norway':'NOR','oman':'OMN','pakistan':'PAK','palau':'PLW','palestine':'PSE',
+  'panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER',
+  'philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU',
+  'rwanda':'RWA','saint kitts and nevis':'KNA','saint lucia':'LCA',
+  'saint vincent and the grenadines':'VCT','samoa':'WSM','san marino':'SMR',
+  'sao tome and principe':'STP','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB',
+  'seychelles':'SYC','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK',
+  'slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF',
+  'south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA',
+  'sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR',
+  'taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA',
+  'timor-leste':'TLS','togo':'TGO','tonga':'TON','trinidad and tobago':'TTO',
+  'tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','tuvalu':'TUV',
+  'uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR',
+  'united states':'USA','uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT',
+  'venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE',
+  'kosovo':'XKX','western sahara':'ESH'
+};
+
+function getIsoFromFeature(d) {
+  // Try numeric ID first
+  let iso = NUM_ISO[String(d.id)];
+  if (iso) return iso;
+  // Try by name
+  const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+  return nameMap[name] || null;
+}
+
+mapGroup.selectAll('.country-path')
   .data(countries.features.filter(d => {
     const id = String(d.id);
     const name = d.properties?.name || d.properties?.admin || '';
+    // Filter out Russia (ID 643) and any other countries you want to exclude
     return id !== '643' && name !== 'Russia';
   }))
   .enter().append('path')
@@ -2956,14 +3018,15 @@ function initMap(world){const stage=document.getElementById('mapStage');const W=
   .attr('d',pathGen)
   .attr('fill','#1a2e45')
   .on('mousemove',(ev,d)=>{
-    const iso=NUM_ISO[String(d.id)],tt=document.getElementById('mapTT');
-    if(iso&&store[iso]){
-      const c=store[iso],col=sc(c.score);
+    const iso = getIsoFromFeature(d);
+    const tt=document.getElementById('mapTT');
+    if(iso && store[iso]){
+      const c=store[iso], col=sc(c.score);
       document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;
       document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;
       document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;
       document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');
-      const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;
+      const r=stage.getBoundingClientRect(), x=ev.clientX-r.left, y=ev.clientY-r.top;
       tt.style.left=Math.min(x+16,W-210)+'px';
       tt.style.top=Math.max(8,y-85)+'px';
       tt.classList.add('vis');
@@ -2971,8 +3034,8 @@ function initMap(world){const stage=document.getElementById('mapStage');const W=
   })
   .on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis'))
   .on('click',(ev,d)=>{
-    const iso=NUM_ISO[String(d.id)];
-    if(iso&&store[iso])selCountry(iso);
+    const iso = getIsoFromFeature(d);
+    if(iso && store[iso]) selCountry(iso);
   });
 zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));
 svgEl.call(zoom);
@@ -2989,64 +3052,70 @@ window.addEventListener('resize',()=>{
 });
 if(typeof paintMap==='function')setTimeout(paintMap,100);
 }
-function paintMap(){if(!mapGroup)return;mapGroup.selectAll('.country-path').transition().duration(600).attr('fill', d=>{
+function paintMap(){if(!mapGroup)return;
+
+// ── COMPLETE NAME TO ISO MAPPING (same as above) ──────────────────────────
+const nameMap={
+  'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO',
+  'antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS',
+  'austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD',
+  'barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN',
+  'bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA',
+  'brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI',
+  'cabo verde':'CPV','cambodia':'KHM','cameroon':'CMR','canada':'CAN',
+  'central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN',
+  'colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',
+  "côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE',
+  'denmark':'DNK','djibouti':'DJI','dominica':'DMA','dominican republic':'DOM',
+  'dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV',
+  'equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ',
+  'ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB',
+  'gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC',
+  'greenland':'GRL','grenada':'GRD','guatemala':'GTM','guinea':'GIN',
+  'guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND',
+  'hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN',
+  'iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM',
+  'japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR',
+  'kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN',
+  'lesotho':'LSO','liberia':'LBR','libya':'LBY','liechtenstein':'LIE',
+  'lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI',
+  'malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','marshall islands':'MHL',
+  'mauritania':'MRT','mauritius':'MUS','mexico':'MEX','micronesia':'FSM',
+  'moldova':'MDA','monaco':'MCO','mongolia':'MNG','montenegro':'MNE',
+  'morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nauru':'NRU',
+  'nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC',
+  'niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD',
+  'norway':'NOR','oman':'OMN','pakistan':'PAK','palau':'PLW','palestine':'PSE',
+  'panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER',
+  'philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU',
+  'rwanda':'RWA','saint kitts and nevis':'KNA','saint lucia':'LCA',
+  'saint vincent and the grenadines':'VCT','samoa':'WSM','san marino':'SMR',
+  'sao tome and principe':'STP','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB',
+  'seychelles':'SYC','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK',
+  'slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF',
+  'south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA',
+  'sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR',
+  'taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA',
+  'timor-leste':'TLS','togo':'TGO','tonga':'TON','trinidad and tobago':'TTO',
+  'tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','tuvalu':'TUV',
+  'uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR',
+  'united states':'USA','uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT',
+  'venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE',
+  'kosovo':'XKX','western sahara':'ESH'
+};
+
+function getIsoFromFeature(d) {
+  let iso = NUM_ISO[String(d.id)];
+  if (iso) return iso;
+  const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+  return nameMap[name] || null;
+}
+
+mapGroup.selectAll('.country-path').transition().duration(600).attr('fill', d=>{
   if (String(d.id) === '643' || d.properties?.name === 'Russia' || d.properties?.admin === 'Russia') {
     return 'transparent';
   }
-  let iso=NUM_ISO[String(d.id)];
-  if(!iso){
-    const name=(d.properties?.name||d.properties?.admin||'').toLowerCase();
-    // Convert all country names to ISO codes
-    const nameMap={
-      'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO',
-      'antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS',
-      'austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD',
-      'barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN',
-      'bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA',
-      'brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI',
-      'cabo verde':'CPV','cambodia':'KHM','cameroon':'CMR','canada':'CAN',
-      'central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN',
-      'colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',
-      "côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE',
-      'denmark':'DNK','djibouti':'DJI','dominica':'DMA','dominican republic':'DOM',
-      'dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV',
-      'equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ',
-      'ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB',
-      'gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC',
-      'greenland':'GRL','grenada':'GRD','guatemala':'GTM','guinea':'GIN',
-      'guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND',
-      'hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN',
-      'iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM',
-      'japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR',
-      'kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN',
-      'lesotho':'LSO','liberia':'LBR','libya':'LBY','liechtenstein':'LIE',
-      'lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI',
-      'malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','marshall islands':'MHL',
-      'mauritania':'MRT','mauritius':'MUS','mexico':'MEX','micronesia':'FSM',
-      'moldova':'MDA','monaco':'MCO','mongolia':'MNG','montenegro':'MNE',
-      'morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nauru':'NRU',
-      'nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC',
-      'niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD',
-      'norway':'NOR','oman':'OMN','pakistan':'PAK','palau':'PLW','palestine':'PSE',
-      'panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER',
-      'philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU',
-      'rwanda':'RWA','saint kitts and nevis':'KNA','saint lucia':'LCA',
-      'saint vincent and the grenadines':'VCT','samoa':'WSM','san marino':'SMR',
-      'sao tome and principe':'STP','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB',
-      'seychelles':'SYC','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK',
-      'slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF',
-      'south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA',
-      'sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR',
-      'taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA',
-      'timor-leste':'TLS','togo':'TGO','tonga':'TON','trinidad and tobago':'TTO',
-      'tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','tuvalu':'TUV',
-      'uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR',
-      'united states':'USA','uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT',
-      'venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE',
-      'kosovo':'XKX','western sahara':'ESH'
-    };
-    iso = nameMap[name] || null;
-  }
+  const iso = getIsoFromFeature(d);
   if(!iso||!store[iso])return '#1a2e45';
   const col=sc(store[iso].score);
   return col+'bb';
