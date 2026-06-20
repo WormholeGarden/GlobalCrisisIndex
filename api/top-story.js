@@ -1,32 +1,24 @@
 // /api/top-story.js
 //
-// The data layer behind CRYS — returns everything the UI needs to answer
-// any crisis question a user might type.
+// ═══════════════════════════════════════════════════════════════════════════════
+//  GCIS FUSION — The Data Layer Behind CRYS
+//  ─────────────────────────────────────────────────────────────────────────────
+//  "The planet's crisis intelligence infrastructure, delivered as an API."
+// ═══════════════════════════════════════════════════════════════════════════════
 //
-// ── ENDPOINTS ────────────────────────────────────────────────────────────────
+//  ── ENDPOINTS ────────────────────────────────────────────────────────────────
+//  GET /api/top-story                   → top urgent country, full payload
+//  GET /api/top-story?iso=SOM           → one country by ISO code
+//  GET /api/top-story?iso=SOM,YEM       → comparison (side-by-side diff)
+//  GET /api/top-story?top=5             → top N countries (max 50)
+//  GET /api/top-story?q=somalia         → fuzzy name search → ISO → country
+//  GET /api/top-story?region=africa     → all tracked countries in a region
+//  GET /api/top-story?threshold=90      → all countries above a score threshold
+//  GET /api/top-story?format=markdown   → human-readable narrative (for AI/LLMs)
+//  GET /api/top-story?format=csv        → raw data for spreadsheets
+//  GET /api/top-story?alerts=true       → push anomaly alerts to webhook
 //
-//  GET /api/top-story
-//      → top urgent country, full payload
-//
-//  GET /api/top-story?iso=SOM
-//      → one country by ISO code
-//
-//  GET /api/top-story?iso=SOM,YEM
-//      → comparison payload (two or more countries, side-by-side diff)
-//
-//  GET /api/top-story?top=5
-//      → top N countries (max 50)
-//
-//  GET /api/top-story?q=somalia
-//      → fuzzy name search → resolves to ISO, returns that country
-//
-//  GET /api/top-story?region=africa
-//      → all tracked countries in a region, ranked
-//
-//  GET /api/top-story?threshold=90
-//      → all countries at or above a score threshold
-//
-// ── RESPONSE CONTRACT ────────────────────────────────────────────────────────
+//  ── RESPONSE CONTRACT ────────────────────────────────────────────────────────
 //  Every country payload contains:
 //    score, severity, rank, percentile
 //    dimensions (8 drivers with values + labels)
@@ -38,7 +30,7 @@
 //    sources (exactly what data was used, with availability flags)
 //    score_audit (prior → adjustments → final, fully transparent)
 //
-// ── DATA SOURCES (all open, no keys required) ────────────────────────────────
+//  ── DATA SOURCES (all open, no keys required) ────────────────────────────────
 //  USGS     earthquakes ≥4.5, last 7 days
 //  IPC      food security phases 1–5 (live API + curated fallback)
 //  WHO      disease outbreak news (open RSS)
@@ -99,8 +91,6 @@ const DIMS = [
 ];
 
 // ─── COUNTRY TABLE ───────────────────────────────────────────────────────────
-// All countries from the GCIS Fusion front-end, with matching priors,
-// crisis types, adjacency lists, centroids, and region tags.
 
 const COUNTRIES = {
 
@@ -1380,207 +1370,530 @@ function buildPayload(iso, store, ranked) {
     name:           c.name,
     flag:           c.flag,
     score:          c.score,
-    severity:       severityLabel(c.score),
+        severity:       severityLabel(c.score),
     severity_emoji: severityEmoji(c.score),
     rank,
-    total_countries: ranked.length,
     percentile:     Math.round((1 - rank / ranked.length) * 100),
 
-    dimensions: Object.fromEntries(
-      DIMS.map(d => [d.k, {
-        value:   c.dims[d.k] || 0,
-        label:   d.l,
-        weight:  d.w,
-        context: buildDimContext(iso, d.k, c.dims[d.k] || 0, c.signals),
-      }])
-    ),
-
-    crisis_types: c.types.map(t => ({ code: t, label: ARC[t]?.l || t, icon: ARC[t]?.i || "⚠️" })),
-    needs:        [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
+    dimensions: DIMS.map(d => ({
+      key:   d.k,
+      label: d.l,
+      value: c.dims[d.k] || 0,
+      weight: d.w,
+    })),
 
     trend: {
-      delta_7d:    delta7,
-      direction:   fc.trend,
-      slope:       fc.slope,
-      forecast_7d: fc.fc,
-      escalating:  fc.esc,
-    },
-
-    anomaly: {
-      detected: anom.det,
-      z_score:  anom.z,
-      note:     anom.z >= 1.5 ? "Score deviates from 28-day simulated baseline" : null,
-    },
-
-    spillover: {
-      value: c.spillover,
-      from:  (COUNTRIES[iso].adj || [])
-        .filter(n => store[n]?.score >= CFG.SPILLOVER_FLOOR)
-        .map(n => ({ iso: n, name: store[n].name, score: store[n].score })),
+      delta_7d:      delta7,
+      direction:     delta7 > 2 ? "escalating" : delta7 < -2 ? "improving" : "stable",
+      forecast_7d:   fc.fc,
+      forecast_trend: fc.trend,
+      slope:         fc.slope,
+      anomaly_z:     anom.z,
+      anomaly_detected: anom.det,
     },
 
     live_evidence: {
-      earthquake:    c.signals?.quakeMag >= 4.5
-        ? { magnitude: c.signals.quakeMag, location: c.signals.quakePlace, source: "USGS" }
-        : null,
-      food_security: c.signals?.ipcPhase >= 1
-        ? { phase: c.signals.ipcPhase, population_affected: c.signals.ipcPopulation, source: "IPC" }
-        : null,
-      disease_outbreaks: (c.signals?.whoOutbreaks || []).map(o => ({ ...o, source: "WHO" })),
-      displacement:  c.signals?.totalDisplaced > 0
-        ? { total: c.signals.totalDisplaced, refugees: c.signals.refugees, idps: c.signals.idps, asylum_seekers: c.signals.asylum_seekers, source: "UNHCR" }
-        : null,
-      heat:          c.signals?.maxTempC >= 35
-        ? { max_temp_c: c.signals.maxTempC, source: "Open-Meteo" }
-        : null,
-    },
-
-    score_audit: {
-      prior_score: c.priorScore,
-      adjustments: c.audit || [],
-      spillover:   c.spillover,
-      final_score: c.score,
-      live_boost:  c.liveBoost,
+      earthquake:    c.signals?.quakeMag >= 4.5 ? { magnitude: c.signals.quakeMag, place: c.signals.quakePlace } : null,
+      ipc:           c.signals?.ipcPhase >= 2 ? { phase: c.signals.ipcPhase, population: c.signals.ipcPopulation } : null,
+      outbreaks:     c.signals?.whoOutbreaks || [],
+      displaced:     c.signals?.totalDisplaced > 0 ? {
+        total:        c.signals.totalDisplaced,
+        refugees:     c.signals.refugees || 0,
+        idps:         c.signals.idps || 0,
+        asylum_seekers: c.signals.asylum_seekers || 0,
+      } : null,
+      max_temp_c:    c.signals?.maxTempC || 0,
     },
 
     recommendation: recommendation(c.score),
-    region: c.region,
-    narrative: buildNarrative(iso, store, ranked),
+
+    score_audit: {
+      prior_score:   c.priorScore || c.score,
+      live_boost:    c.liveBoost || 0,
+      spillover:     c.spillover || 0,
+      final_score:   c.score,
+      adjustments:   c.audit || [],
+    },
+
+    sources: {
+      usgs:          !!(c.signals?.quakeMag >= 4.5),
+      ipc:           !!(c.signals?.ipcPhase >= 2),
+      who:           !!(c.signals?.whoOutbreaks?.length),
+      unhcr:         !!(c.signals?.totalDisplaced > 0),
+      openmeteo:     !!(c.signals?.maxTempC > 0),
+    },
+
+    narrative: null, // filled when format=markdown
   };
 }
 
-// ─── MAIN HANDLER ────────────────────────────────────────────────────────────
+// ─── FORMAT ROUTERS ───────────────────────────────────────────────────────────
 
-export default async function handler(req, res) {
-  const start = Date.now();
+function renderMarkdown(payload, isComparison) {
+  if (isComparison) {
+    const cmp = payload;
+    let md = `## ⚖️ Crisis Comparison: ${cmp.countries.map(c => c.flag).join(" vs ")}\n\n`;
+    md += `**Verdict:** ${cmp.verdict}\n\n`;
+    md += `| Country | Score | Severity | Rank | Trend (7d) | Forecast |\n`;
+    md += `|---------|-------|----------|------|------------|----------|\n`;
+    for (const c of cmp.countries) {
+      md += `| ${c.flag} ${c.name} | **${c.score}** | ${c.severity} | #${c.rank} | ${c.trend_7d > 0 ? "+" : ""}${c.trend_7d} | ${c.forecast_7d} |\n`;
+    }
+    md += `\n### Key Differentiators\n`;
+    if (cmp.differentiators.length) {
+      for (const d of cmp.differentiators) {
+        const entries = Object.entries(d).filter(([k]) => k !== "dimension");
+        const parts = entries.map(([iso, val]) => `${iso}: ${val} pts higher`);
+        md += `- **${d.dimension}** → ${parts.join(", ")}\n`;
+      }
+    } else {
+      md += `- No significant differentiators (all dimensions within ±10 pts).\n`;
+    }
+    return md;
+  }
 
+  const p = payload;
+  let md = `${p.flag} # ${p.name} — Crisis Score: **${p.score}/100**\n\n`;
+  md += `**Severity:** ${p.severity_emoji} ${p.severity}\n`;
+  md += `**Rank:** #${p.rank} of tracked countries (top ${p.percentile}%)\n\n`;
+
+  md += `### 📊 Dimension Breakdown\n`;
+  for (const d of p.dimensions) {
+    const bar = "█".repeat(Math.round(d.value / 5)) + "░".repeat(20 - Math.round(d.value / 5));
+    md += `- **${d.label}:** ${d.value}/100 ${bar}\n`;
+  }
+
+  md += `\n### 📈 Trend\n`;
+  md += `- 7-day change: ${p.trend.delta_7d > 0 ? "+" : ""}${p.trend.delta_7d} pts (${p.trend.direction})\n`;
+  md += `- 7-day forecast: ${p.trend.forecast_7d}/100 (${p.trend.forecast_trend})\n`;
+  if (p.trend.anomaly_detected) {
+    md += `- ⚠️ Statistical anomaly detected (${p.trend.anomaly_z}σ from baseline)\n`;
+  }
+
+  md += `\n### 🔬 Live Evidence\n`;
+  let hasEvidence = false;
+  if (p.live_evidence.earthquake) {
+    md += `- 🌍 M${p.live_evidence.earthquake.magnitude.toFixed(1)} earthquake near ${p.live_evidence.earthquake.place}\n`;
+    hasEvidence = true;
+  }
+  if (p.live_evidence.ipc) {
+    md += `- 🍚 IPC Phase ${p.live_evidence.ipc.phase} food insecurity`;
+    if (p.live_evidence.ipc.population) md += ` (${(p.live_evidence.ipc.population/1e6).toFixed(1)}M people)`;
+    md += "\n";
+    hasEvidence = true;
+  }
+  for (const ob of p.live_evidence.outbreaks) {
+    md += `- 🦠 ${ob.disease} outbreak (${ob.severity} severity)\n`;
+    hasEvidence = true;
+  }
+  if (p.live_evidence.displaced) {
+    md += `- 🚶 ${(p.live_evidence.displaced.total/1e6).toFixed(1)}M displaced (refugees: ${(p.live_evidence.displaced.refugees/1e6).toFixed(1)}M, IDPs: ${(p.live_evidence.displaced.idps/1e6).toFixed(1)}M)\n`;
+    hasEvidence = true;
+  }
+  if (p.live_evidence.max_temp_c >= 38) {
+    md += `- 🌡️ ${p.live_evidence.max_temp_c}°C extreme heat\n`;
+    hasEvidence = true;
+  }
+  if (!hasEvidence) md += `- No recent live alerts detected\n`;
+
+  md += `\n### 🎯 Recommendation\n`;
+  md += `**${p.recommendation.tier}:** ${p.recommendation.text}\n`;
+
+  md += `\n### 📊 Score Audit\n`;
+  md += `- Prior estimate: ${p.score_audit.prior_score}/100\n`;
+  if (p.score_audit.live_boost !== 0) {
+    md += `- Live data adjustment: ${p.score_audit.live_boost > 0 ? "+" : ""}${p.score_audit.live_boost}\n`;
+  }
+  if (p.score_audit.spillover > 0) {
+    md += `- Regional spillover: +${p.score_audit.spillover.toFixed(1)}\n`;
+  }
+  for (const adj of p.score_audit.adjustments) {
+    md += `- ${adj.source}: ${adj.reason} → ${adj.delta > 0 ? "+" : ""}${adj.delta} pts\n`;
+  }
+
+  return md;
+}
+
+function renderCSV(payload, isComparison) {
+  if (isComparison) {
+    const cmp = payload;
+    let csv = "Country,ISO,Flag,Score,Severity,Rank,Trend_7d,Forecast_7d";
+    for (const d of DIMS) csv += `,${d.l}`;
+    csv += "\n";
+    for (const c of cmp.countries) {
+      csv += `${c.name},${c.iso},${c.flag},${c.score},${c.severity},#${c.rank},${c.trend_7d},${c.forecast_7d}`;
+      for (const d of DIMS) csv += `,${c.dimensions[d.k] || 0}`;
+      csv += "\n";
+    }
+    return csv;
+  }
+
+  const p = payload;
+  let csv = "ISO,Name,Flag,Score,Severity,Rank,Percentile,Trend_7d,Trend_Direction,Forecast_7d,Anomaly_Z";
+  for (const d of DIMS) csv += `,${d.l}`;
+  csv += ",Recommendation_Tier,Recommendation_Text,Prior_Score,Live_Boost,Spillover\n";
+
+  csv += `${p.iso},${p.name},${p.flag},${p.score},${p.severity},#${p.rank},${p.percentile}%,${p.trend.delta_7d},${p.trend.direction},${p.trend.forecast_7d},${p.trend.anomaly_z}`;
+  for (const d of p.dimensions) csv += `,${d.value}`;
+  csv += `,${p.recommendation.tier},"${p.recommendation.text}",${p.score_audit.prior_score},${p.score_audit.live_boost},${p.score_audit.spillover}\n`;
+
+  return csv;
+}
+
+// ─── MAIN HANDLER ─────────────────────────────────────────────────────────────
+
+export default async function handler(req, context) {
+  // ── CORS / OPTIONS ──────────────────────────────────────────────────────────
   if (req.method === "OPTIONS") {
-    res.writeHead(204, CORS); res.end(); return;
-  }
-  if (req.method !== "GET") {
-    res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return;
-  }
-
-  let params;
-  try {
-    const url = new URL(req.url ?? "/", "https://x");
-    params = {
-      iso:       url.searchParams.get("iso")?.toUpperCase().trim() || null,
-      top:       parseInt(url.searchParams.get("top") || "1", 10),
-      q:         url.searchParams.get("q")?.trim() || null,
-      region:    url.searchParams.get("region")?.toLowerCase().trim() || null,
-      threshold: parseInt(url.searchParams.get("threshold") || "0", 10),
-    };
-    if (Number.isNaN(params.top))       params.top = 1;
-    if (Number.isNaN(params.threshold)) params.threshold = 0;
-    params.top = Math.min(CFG.MAX_TOP_N, Math.max(1, params.top));
-  } catch {
-    res.writeHead(400, CORS); res.end(JSON.stringify({ error: "Bad request URL" })); return;
+    return new Response(null, {
+      status: 204,
+      headers: CORS,
+    });
   }
 
-  // Resolve ?region= alias
-  if (params.region) {
-    for (const [canonical, aliases] of Object.entries(REGION_ALIASES)) {
-      if (aliases.includes(params.region)) { params.region = canonical; break; }
+  const url = new URL(req.url);
+  const params = url.searchParams;
+
+  // ── ALERT MODE ──────────────────────────────────────────────────────────────
+  if (params.get("alerts") === "true") {
+    // Trigger webhook push of anomalies
+    try {
+      const webhookUrl = process.env.ALERT_WEBHOOK_URL;
+      if (!webhookUrl) {
+        return new Response(JSON.stringify({ error: "ALERT_WEBHOOK_URL not configured" }), {
+          status: 400,
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      // Fire-and-forget: check for anomalies in the background
+      // We'll compute real-time alerts on the fly
+      const liveData = await fetchAllLive(Object.keys(COUNTRIES));
+      const store = buildStore(liveData);
+      const ranked = Object.entries(store)
+        .filter(([iso]) => COUNTRIES[iso])
+        .sort(([, a], [, b]) => b.score - a.score)
+        .map(([iso]) => iso);
+
+      const alerts = [];
+      for (const iso of ranked.slice(0, 20)) {
+        const hist = seedHistory(iso, store[iso].score);
+        const anom = cusum(hist);
+        if (anom.det || store[iso].score >= 85) {
+          const p = buildPayload(iso, store, ranked);
+          alerts.push({ iso, name: p.name, score: p.score, anomaly_z: p.trend.anomaly_z });
+        }
+      }
+
+      if (alerts.length) {
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timestamp: new Date().toISOString(), alerts }),
+        });
+        return new Response(JSON.stringify({ ok: true, alerts_count: alerts.length }), {
+          status: 200,
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, alerts: [] }), {
+        status: 200,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Alert processing failed", details: e.message }), {
+        status: 500,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
     }
   }
 
-  // Resolve ?q= fuzzy search
-  if (params.q && !params.iso) {
-    const resolved = resolveQuery(params.q);
+  // ── FETCH LIVE DATA ─────────────────────────────────────────────────────────
+  const allIsos = Object.keys(COUNTRIES);
+  const liveData = await fetchAllLive(allIsos);
+  const store = buildStore(liveData);
+
+  // ── RANK ────────────────────────────────────────────────────────────────────
+  const ranked = Object.entries(store)
+    .filter(([iso]) => COUNTRIES[iso])
+    .sort(([, a], [, b]) => b.score - a.score)
+    .map(([iso]) => iso);
+
+  // ── PARSE QUERY ─────────────────────────────────────────────────────────────
+  const isoParam = params.get("iso");
+  const qParam = params.get("q");
+  const regionParam = params.get("region");
+  const thresholdParam = params.get("threshold");
+  const topParam = params.get("top");
+  const format = params.get("format") || "json";
+
+  // ── ROUTE: REGION ──────────────────────────────────────────────────────────
+  if (regionParam) {
+    const regionKey = regionParam.toLowerCase().trim();
+    let matchedRegion = null;
+    for (const [key, aliases] of Object.entries(REGION_ALIASES)) {
+      if (aliases.includes(regionKey) || key === regionKey) {
+        matchedRegion = key;
+        break;
+      }
+    }
+    if (!matchedRegion) {
+      return new Response(JSON.stringify({ error: `Unknown region: ${regionParam}` }), {
+        status: 400,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    const filtered = ranked.filter(iso => COUNTRIES[iso]?.region === matchedRegion);
+    const payloads = filtered.map(iso => buildPayload(iso, store, ranked));
+
+    if (format === "markdown") {
+      let md = `## 🌍 ${matchedRegion.toUpperCase()} — Crisis Monitor\n\n`;
+      md += `**${payloads.length} countries tracked**\n\n`;
+      md += "| Country | Score | Severity | Trend |\n";
+      md += "|---------|-------|----------|-------|\n";
+      for (const p of payloads) {
+        md += `| ${p.flag} ${p.name} | **${p.score}** | ${p.severity} | ${p.trend.direction} |\n`;
+      }
+      return new Response(md, { headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" } });
+    }
+
+    if (format === "csv") {
+      let csv = "ISO,Name,Flag,Score,Severity,Rank,Trend_7d,Trend_Direction,Forecast\n";
+      for (const p of payloads) {
+        csv += `${p.iso},${p.name},${p.flag},${p.score},${p.severity},#${p.rank},${p.trend.delta_7d},${p.trend.direction},${p.trend.forecast_7d}\n`;
+      }
+      return new Response(csv, { headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" } });
+    }
+
+    return new Response(JSON.stringify({
+      region: matchedRegion,
+      count: payloads.length,
+      countries: payloads,
+    }), { headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" } });
+  }
+
+  // ── ROUTE: THRESHOLD ──────────────────────────────────────────────────────
+  if (thresholdParam) {
+    const threshold = parseInt(thresholdParam);
+    if (isNaN(threshold) || threshold < 0 || threshold > 100) {
+      return new Response(JSON.stringify({ error: "Threshold must be 0–100" }), {
+        status: 400,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    const filtered = ranked.filter(iso => store[iso].score >= threshold);
+    const payloads = filtered.map(iso => buildPayload(iso, store, ranked));
+
+    if (format === "markdown") {
+      let md = `## 🔴 Countries Above Threshold: ${threshold}/100\n\n`;
+      md += `**${payloads.length} countries meet or exceed this threshold**\n\n`;
+      md += "| Country | Score | Severity | Trend | Evidence |\n";
+      md += "|---------|-------|----------|-------|----------|\n";
+      for (const p of payloads) {
+        const evidenceCount = Object.values(p.live_evidence).filter(v => v !== null && v !== 0).length;
+        md += `| ${p.flag} ${p.name} | **${p.score}** | ${p.severity} | ${p.trend.direction} | ${evidenceCount} signals |\n`;
+      }
+      return new Response(md, { headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" } });
+    }
+
+    if (format === "csv") {
+      let csv = "ISO,Name,Score,Severity,Rank,Trend_7d,Trend_Direction,Forecast,Anomaly_Z\n";
+      for (const p of payloads) {
+        csv += `${p.iso},${p.name},${p.score},${p.severity},#${p.rank},${p.trend.delta_7d},${p.trend.direction},${p.trend.forecast_7d},${p.trend.anomaly_z}\n`;
+      }
+      return new Response(csv, { headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" } });
+    }
+
+    return new Response(JSON.stringify({
+      threshold,
+      count: payloads.length,
+      countries: payloads,
+    }), { headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" } });
+  }
+
+  // ── ROUTE: TOP N ───────────────────────────────────────────────────────────
+  if (topParam) {
+    const n = Math.min(parseInt(topParam) || 1, CFG.MAX_TOP_N);
+    if (n < 1) {
+      return new Response(JSON.stringify({ error: "Top must be >= 1" }), {
+        status: 400,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    const topIsos = ranked.slice(0, n);
+    const payloads = topIsos.map(iso => buildPayload(iso, store, ranked));
+
+    if (format === "markdown") {
+      let md = `## 🏆 Top ${n} Crisis Countries\n\n`;
+      for (const p of payloads) {
+        md += `### ${p.flag} #${p.rank} ${p.name} — ${p.score}/100 (${p.severity})\n`;
+        md += `- **Trend:** ${p.trend.direction} (${p.trend.delta_7d > 0 ? "+" : ""}${p.trend.delta_7d} pts in 7d)\n`;
+        md += `- **Forecast:** ${p.trend.forecast_7d}/100 in 7d\n`;
+        const topDims = p.dimensions.sort((a, b) => b.value - a.value).slice(0, 3);
+        md += `- **Top drivers:** ${topDims.map(d => `${d.label} (${d.value})`).join(", ")}\n`;
+        md += `\n`;
+      }
+      return new Response(md, { headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" } });
+    }
+
+    if (format === "csv") {
+      let csv = "Rank,ISO,Name,Flag,Score,Severity,Trend_7d,Trend_Direction,Forecast_7d";
+      for (const d of DIMS) csv += `,${d.l}`;
+      csv += "\n";
+      for (const p of payloads) {
+        csv += `#${p.rank},${p.iso},${p.name},${p.flag},${p.score},${p.severity},${p.trend.delta_7d},${p.trend.direction},${p.trend.forecast_7d}`;
+        for (const d of p.dimensions) csv += `,${d.value}`;
+        csv += "\n";
+      }
+      return new Response(csv, { headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" } });
+    }
+
+    return new Response(JSON.stringify({
+      top_n: n,
+      countries: payloads,
+    }), { headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" } });
+  }
+
+  // ── ROUTE: NAME SEARCH ─────────────────────────────────────────────────────
+  if (qParam) {
+    const resolved = resolveQuery(qParam);
     if (!resolved) {
-      res.writeHead(404, CORS);
-      res.end(JSON.stringify({
-        error: `Could not resolve "${params.q}" to a tracked country`,
-        hint:  "Try the ISO-3166-1 alpha-3 code (e.g. SOM, YEM) or full country name",
-        available: Object.entries(COUNTRIES).map(([iso, d]) => `${iso} (${d.name})`).sort(),
-      }));
-      return;
+      return new Response(JSON.stringify({ error: `Country not found: "${qParam}"` }), {
+        status: 404,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
     }
-    params.iso = resolved;
-  }
-
-  const isoList = params.iso
-    ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s])
-    : [];
-
-  const invalidISOs = params.iso
-    ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s])
-    : [];
-  if (invalidISOs.length) {
-    res.writeHead(404, CORS);
-    res.end(JSON.stringify({
-      error:     `Unknown ISO codes: ${invalidISOs.join(", ")}`,
-      available: Object.keys(COUNTRIES).sort(),
-    }));
-    return;
-  }
-
-  try {
-    // Build prior store to determine targets
-    const priorStore  = buildStore(null);
-    const priorRanked = Object.keys(priorStore).sort((a, b) => priorStore[b].score - priorStore[a].score);
-
-    let targetIsos;
-    if (isoList.length)       targetIsos = isoList;
-    else if (params.region)   targetIsos = priorRanked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) targetIsos = priorRanked.filter(iso => priorStore[iso].score >= params.threshold);
-    else                      targetIsos = priorRanked.slice(0, params.top);
-
-    if (!targetIsos.length) {
-      res.writeHead(404, CORS);
-      res.end(JSON.stringify({ error: "No countries matched the query" }));
-      return;
-    }
-
-    const liveData = await fetchAllLive(targetIsos);
-    const store    = buildStore(liveData);
-    const ranked   = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-
-    let finalIsos;
-    if (isoList.length)       finalIsos = isoList;
-    else if (params.region)   finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
-    else                      finalIsos = ranked.slice(0, params.top);
-
-    const payloads    = finalIsos.map(iso => buildPayload(iso, store, ranked));
-    const comparison  = finalIsos.length >= 2 ? buildComparison(finalIsos, store, ranked) : null;
-
-    const sources = {
-      usgs:    { live: liveData.usgs.live,  events:          liveData.usgs.data?.length ?? 0,  label: "USGS Earthquake Hazards Program" },
-      ipc:     { live: liveData.ipc.live,   classifications: liveData.ipc.data?.length ?? 0,   label: "IPC Global — Food Security Phases" },
-      who:     { live: liveData.who.live,   outbreaks:       liveData.who.data?.length ?? 0,   label: "WHO Disease Outbreak News" },
-      unhcr:   { live: liveData.unhcr.live, countries:       Object.keys(liveData.unhcr.data || {}).length, label: "UNHCR Global Refugee Statistics" },
-      weather: { live: Object.values(liveData.weatherMap).some(v => v !== null), label: "Open-Meteo Weather Forecast" },
-    };
-
-    const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
-
-    const body = {
-      meta: {
-        generated_at:      new Date().toISOString(),
-        elapsed_ms:        Date.now() - start,
-        mode,
-        countries_tracked: Object.keys(COUNTRIES).length,
-        score_seed:        Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
-        next_update:       new Date(
-          (Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS
-        ).toISOString(),
-        sources,
-        methodology: "Weighted 8-dimension composite. Priors from OCHA/ACAPS. Live data from USGS/IPC/WHO/UNHCR/Open-Meteo adjusts scores. See score_audit on each country.",
+    // Redirect to single ISO lookup
+    const redirectUrl = new URL(req.url);
+    redirectUrl.searchParams.delete("q");
+    redirectUrl.searchParams.set("iso", resolved);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...CORS,
+        "Location": redirectUrl.toString(),
       },
-      ...(mode === "single"     ? { top_story:  payloads[0] } : {}),
-      ...(mode === "list"       ? { countries:  payloads    } : {}),
-      ...(mode === "comparison" ? { comparison, countries: payloads } : {}),
+    });
+  }
+
+  // ── ROUTE: SINGLE / MULTI ISO ─────────────────────────────────────────────
+  if (isoParam) {
+    const isos = isoParam.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
+    const valid = isos.filter(iso => COUNTRIES[iso]);
+    const invalid = isos.filter(iso => !COUNTRIES[iso]);
+
+    if (valid.length === 0) {
+      return new Response(JSON.stringify({
+        error: "No valid ISO codes provided",
+        invalid: invalid,
+        suggestion: "Use valid ISO 3166-1 alpha-3 codes (e.g., SOM, YEM, SDN)",
+      }), {
+        status: 400,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    // SINGLE COUNTRY
+    if (valid.length === 1) {
+      const iso = valid[0];
+      const payload = buildPayload(iso, store, ranked);
+      payload.narrative = buildNarrative(iso, store, ranked);
+
+      if (format === "markdown") {
+        return new Response(renderMarkdown(payload, false), {
+          headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" },
+        });
+      }
+
+      if (format === "csv") {
+        return new Response(renderCSV(payload, false), {
+          headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" },
+        });
+      }
+
+      return new Response(JSON.stringify(payload), {
+        headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" },
+      });
+    }
+
+    // COMPARISON (2+ countries)
+    const payloads = valid.map(iso => buildPayload(iso, store, ranked));
+    const comparison = buildComparison(valid, store, ranked);
+
+    // Add narratives and full details to each comparison entry
+    const detailed = {
+      comparison,
+      details: Object.fromEntries(valid.map(iso => [iso, {
+        ...buildPayload(iso, store, ranked),
+        narrative: buildNarrative(iso, store, ranked),
+      }])),
+      invalid,
     };
 
-    const secsUntilNextSeed = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
-    res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNextSeed}, stale-while-revalidate=30` });
-    res.end(JSON.stringify(body, null, 2));
+    if (format === "markdown") {
+      let md = renderMarkdown(comparison, true);
+      md += `\n### 📋 Full Details\n\n`;
+      for (const iso of valid) {
+        md += `---\n${renderMarkdown(buildPayload(iso, store, ranked), false)}\n\n`;
+      }
+      return new Response(md, {
+        headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" },
+      });
+    }
 
-  } catch (err) {
-    console.error("[top-story]", err);
-    res.writeHead(500, CORS);
-    res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
+    if (format === "csv") {
+      const csv = renderCSV(comparison, true);
+      return new Response(csv, {
+        headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" },
+      });
+    }
+
+    return new Response(JSON.stringify(detailed), {
+      headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" },
+    });
   }
+
+  // ── DEFAULT: TOP STORY ─────────────────────────────────────────────────────
+  const topIso = ranked[0];
+  if (!topIso) {
+    return new Response(JSON.stringify({ error: "No countries tracked" }), {
+      status: 500,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+
+  const topPayload = buildPayload(topIso, store, ranked);
+  topPayload.narrative = buildNarrative(topIso, store, ranked);
+
+  if (format === "markdown") {
+    return new Response(renderMarkdown(topPayload, false), {
+      headers: { ...CORS, "Content-Type": "text/markdown; charset=utf-8" },
+    });
+  }
+
+  if (format === "csv") {
+    return new Response(renderCSV(topPayload, false), {
+      headers: { ...CORS, "Content-Type": "text/csv; charset=utf-8" },
+    });
+  }
+
+  // Also include top 5 for context
+  const top5 = ranked.slice(0, 5).map(iso => ({
+    iso,
+    name: COUNTRIES[iso].name,
+    flag: COUNTRIES[iso].flag,
+    score: store[iso].score,
+    severity: severityLabel(store[iso].score),
+  }));
+
+  return new Response(JSON.stringify({
+    top_story: topPayload,
+    top_5: top5,
+    as_of: new Date().toISOString(),
+    note: "Full top 5 available via ?top=5",
+  }), {
+    headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" },
+  });
 }
