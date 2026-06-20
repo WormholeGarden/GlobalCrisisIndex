@@ -2857,18 +2857,19 @@ async function refresh() {
   }
   
   adv(0, 5);
-  const apiPromise = fetchAllAPIs();
-  const stepDelay = 2200;
-  setTimeout(() => adv(1, 20), stepDelay * 1);
-  setTimeout(() => adv(2, 35), stepDelay * 2);
-  setTimeout(() => adv(3, 50), stepDelay * 3);
-  setTimeout(() => adv(4, 65), stepDelay * 4);
-  setTimeout(() => adv(5, 78), stepDelay * 5);
-  setTimeout(() => adv(6, 88), stepDelay * 6);
-  await apiPromise;
+  
+  // Show progress during API fetch
+  adv(1, 15);
+  await fetchAllAPIs();
+  adv(2, 40);
   
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
+  
+  // Show progress during data processing
+  adv(3, 55);
+  let processed = 0;
+  const total = Object.keys(ISO_NUM).length;
   
   for (let iso of Object.keys(ISO_NUM)) {
     const name = NAMES[iso] || iso;
@@ -2883,16 +2884,22 @@ async function refresh() {
     const dims = buildDims(rawBase, types);
     let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
     newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
+    
+    processed++;
+    if (processed % 20 === 0) {
+      const pct = 55 + (processed / total) * 20;
+      adv(3, Math.min(75, pct));
+    }
   }
   
-  adv(2, 40);
+  adv(4, 75);
   const spill = spilloverScore(newStore);
   for (let iso in newStore) {
     newStore[iso].spillover = spill[iso] || 0;
     newStore[iso].score = Math.min(99, Math.max(1, newStore[iso].score + newStore[iso].spillover));
   }
   
-  adv(3, 60);
+  adv(5, 85);
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
   
@@ -2931,11 +2938,16 @@ async function refresh() {
     freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
-  adv(4, 85);
+  adv(6, 95);
   paintMap();
   addPulseMarkers();
   renderRanking();
-  loader.style.display = 'none';
+  
+  // Ensure loader is fully complete before hiding
+  adv(7, 100);
+  setTimeout(() => {
+    loader.style.display = 'none';
+  }, 300);
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
   toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount}/APIs live`);
