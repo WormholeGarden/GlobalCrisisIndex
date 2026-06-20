@@ -4441,8 +4441,7 @@ function updateDynamicTitle() {
   
   // ── BUILD THE TITLE ─────────────────────────────────────────────────────
   const title = `Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events | Real-time API`;
-  document.title = title;  // ← REPLACED THIS LINE
-
+  titleEl.textContent = title;
 }
 
 // ── RUN ON LOAD AND REFRESH ──────────────────────────────────────────────
