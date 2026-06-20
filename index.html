@@ -2857,8 +2857,15 @@ async function refresh() {
   }
   
   adv(0, 5);
-  await fetchAllAPIs();
-  adv(1, 20);
+  const apiPromise = fetchAllAPIs();
+  const stepDelay = 2200;
+  setTimeout(() => adv(1, 20), stepDelay * 1);
+  setTimeout(() => adv(2, 35), stepDelay * 2);
+  setTimeout(() => adv(3, 50), stepDelay * 3);
+  setTimeout(() => adv(4, 65), stepDelay * 4);
+  setTimeout(() => adv(5, 78), stepDelay * 5);
+  setTimeout(() => adv(6, 88), stepDelay * 6);
+  await apiPromise;
   
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
