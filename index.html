@@ -2751,17 +2751,17 @@ async function fetchAllAPIs() {
     fetchWFPHungerMap(),
   ]);
 
-  heatStressData       = heat || [];
-  foodSecurityAlerts   = food || [];
-  ipcClassifications   = ipc || [];
-  conflictEvents       = conflict || [];
-  weatherAlerts        = weather || [];
-  diseaseOutbreaks     = disease || [];
+  heatStressData       = heat;
+  foodSecurityAlerts   = food;
+  ipcClassifications   = ipc;
+  conflictEvents       = conflict;
+  weatherAlerts        = weather;
+  diseaseOutbreaks     = disease;
 
   // Merge GDELT + ReliefWeb events into conflictEvents and apiResults
-  if (gdelt && gdelt.length)        apiResults.gdelt_processed    = gdelt;
-  if (reliefEvents && reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
-  if (wfp && wfp.length)          apiResults.wfp_hunger_map     = wfp;
+  if (gdelt.length)        apiResults.gdelt_processed    = gdelt;
+  if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
+  if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
 
   // ── ENRICH DISEASE OUTBREAKS from disease.sh ─────────────────────────────
   if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
@@ -2784,7 +2784,7 @@ async function fetchAllAPIs() {
   }
 
   // ── ENRICH FOOD from WFP HungerMap ───────────────────────────────────────
-  if (wfp && wfp.length) {
+  if (wfp.length) {
     const wfpAlerts = wfp
       .filter(c => c.ipc_phase >= 3)
       .map(c => ({ country: c.country_name, title: `WFP IPC Phase ${c.ipc_phase}`, ipc: c.ipc_phase }));
@@ -2798,6 +2798,7 @@ async function fetchAllAPIs() {
 
   buildTickerFromResults();
 }
+
 // ── NEW SPECIALIST FETCHERS ────────────────────────────────────────────────
 
 async function fetchGdeltEvents() {
