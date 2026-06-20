@@ -207,7 +207,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 83 Score · 53M Affected · 55 Anomalies · 916 Events | Real-time API</title>
+  <title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,455 Events | Real-time API</title>
 <meta name="description" content="⚠️ BREAKING: Global Crisis Index detects critical anomaly — Yemen crisis score 84/100, 1.8M facing IPC Phase 4 Emergency hunger, 4.8M displaced, cholera outbreak (12,000+ cases). Real-time intelligence cited by Google AI and used by intelligence agencies. Free live data: 40+ APIs, 5-min updates. — GCIS Fusion">
 <meta name="keywords" content="global crisis index, Yemen crisis, Yemen famine, Yemen civil war, live crisis data, real-time risk analysis, enterprise crisis API, B2B threat intelligence, humanitarian data API, conflict tracking, famine early warning, disaster monitoring, geopolitical risk, OSINT platform, crisis intelligence, GCIS Fusion, anomaly detection, polycrisis tracking, Yemen emergency">
 <meta name="author" content="GCIS Fusion · Global Crisis Index">
@@ -4390,72 +4390,57 @@ if (window.innerWidth <= 900) {
 })();
 // ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
 // ── DYNAMIC TITLE UPDATER ──────────────────────────────────────────────────
-// ── DYNAMIC TITLE UPDATER (BULLETPROOF) ──────────────────────────────────
 function updateDynamicTitle() {
   const titleEl = document.getElementById('dynamicTitle');
   if (!titleEl) return;
   
-  // ── FALLBACK VALUES ──────────────────────────────────────────────────────
+  // ── FALLBACK VALUES (matches the static fallback) ──────────────────────
   let gcis = 83;
   let affected = '53M';
   let anomalies = 55;
   let events = 916;
   
-  // ── SAFELY GET LIVE DATA ──────────────────────────────────────────────
+  // ── TRY TO GET LIVE DATA ────────────────────────────────────────────────
   try {
-    // Check if store and ranked exist and have data
-    if (typeof store !== 'undefined' && store && 
-        typeof ranked !== 'undefined' && ranked && ranked.length > 0) {
-      
+    if (store && ranked && ranked.length > 0) {
       // Global average score
-      const top20 = ranked.slice(0, 20);
-      const sum = top20.reduce((s, i) => s + (store[i]?.score || 0), 0);
-      gcis = Math.round(sum / top20.length);
+      gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
       
       // Affected population
-      const crit = ranked.filter(i => (store[i]?.score || 0) >= 80).length;
+      const crit = ranked.filter(i => store[i]?.score >= 80).length;
       affected = Math.round(crit * 4.8) + 'M';
       
-      // Anomalies — safely check cusum exists
-      if (typeof cusum === 'function') {
-        anomalies = ranked.filter(i => {
-          const hist = (history[i] || []).map(h => h.s);
-          return hist.length > 0 && cusum(hist).det;
-        }).length;
-      }
+      // Anomalies
+      anomalies = ranked.filter(i => {
+        const hist = (history[i] || []).map(h => h.s);
+        return cusum(hist).det;
+      }).length;
       
       // Events
-      events = Object.values(store).reduce((s, c) => s + (c?.events || 0), 0);
+      events = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
     }
   } catch (e) {
     // Silent fail — fallback values remain
   }
   
-  // ── BUILD AND SET THE TITLE ──────────────────────────────────────────
+  // ── BUILD THE TITLE ─────────────────────────────────────────────────────
   const title = `Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events | Real-time API`;
   titleEl.textContent = title;
 }
 
 // ── RUN ON LOAD AND REFRESH ──────────────────────────────────────────────
-// Hook into refresh safely
-if (typeof refresh === 'function') {
-  const originalRefresh = refresh;
-  refresh = async function() {
-    await originalRefresh.call(this);
-    updateDynamicTitle();
-  };
-}
+// Hook into refresh
+const originalRefresh = refresh;
+refresh = async function() {
+  await originalRefresh.call(this);
+  updateDynamicTitle();
+};
 
 // Run immediately with fallback values
 setTimeout(updateDynamicTitle, 500);
 
 // Update every 30 seconds
 setInterval(updateDynamicTitle, 30000);
-
-// ── ALSO RUN AFTER REFRESH COMPLETES ──────────────────────────────────────
-// If you have a refresh function that loads data, call updateDynamicTitle after it
-// You can also add it to the end of your existing refresh() function:
-// updateDynamicTitle();
 
 
 </script>
