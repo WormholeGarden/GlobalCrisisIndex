@@ -2751,17 +2751,17 @@ async function fetchAllAPIs() {
     fetchWFPHungerMap(),
   ]);
 
-  heatStressData       = heat;
-  foodSecurityAlerts   = food;
-  ipcClassifications   = ipc;
-  conflictEvents       = conflict;
-  weatherAlerts        = weather;
-  diseaseOutbreaks     = disease;
+  heatStressData       = heat || [];
+  foodSecurityAlerts   = food || [];
+  ipcClassifications   = ipc || [];
+  conflictEvents       = conflict || [];
+  weatherAlerts        = weather || [];
+  diseaseOutbreaks     = disease || [];
 
   // Merge GDELT + ReliefWeb events into conflictEvents and apiResults
-  if (gdelt.length)        apiResults.gdelt_processed    = gdelt;
-  if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
-  if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
+  if (gdelt && gdelt.length)        apiResults.gdelt_processed    = gdelt;
+  if (reliefEvents && reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
+  if (wfp && wfp.length)          apiResults.wfp_hunger_map     = wfp;
 
   // ── ENRICH DISEASE OUTBREAKS from disease.sh ─────────────────────────────
   if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
@@ -2784,7 +2784,7 @@ async function fetchAllAPIs() {
   }
 
   // ── ENRICH FOOD from WFP HungerMap ───────────────────────────────────────
-  if (wfp.length) {
+  if (wfp && wfp.length) {
     const wfpAlerts = wfp
       .filter(c => c.ipc_phase >= 3)
       .map(c => ({ country: c.country_name, title: `WFP IPC Phase ${c.ipc_phase}`, ipc: c.ipc_phase }));
@@ -2798,7 +2798,6 @@ async function fetchAllAPIs() {
 
   buildTickerFromResults();
 }
-
 // ── NEW SPECIALIST FETCHERS ────────────────────────────────────────────────
 
 async function fetchGdeltEvents() {
@@ -2845,6 +2844,13 @@ async function fetchWFPHungerMap() {
 async function refresh() {
   const loader = document.getElementById('loader');
   const fill = document.getElementById('lFill');
+  
+  // Make sure loader exists
+  if (!loader) {
+    console.error('Loader element not found');
+    return;
+  }
+  
   loader.style.display = 'flex';
   
   const steps = ['ls0', 'ls1', 'ls2', 'ls3', 'ls4', 'ls5', 'ls6'].map(id => document.getElementById(id));
@@ -2853,175 +2859,34 @@ async function refresh() {
     steps.forEach((s, i) => {
       if (s) s.className = 'lstep' + (i < n ? ' done' : (i === n ? ' act' : ''));
     });
-    fill.style.width = pct + '%';
+    if (fill) fill.style.width = pct + '%';
   }
   
-  // Force initial render
-  adv(0, 2);
+  // Small delay to ensure loader is visible
+  await new Promise(r => setTimeout(r, 100));
+  
+  adv(0, 5);
   await new Promise(r => setTimeout(r, 50));
   
-  adv(1, 8);
+  // Fetch all APIs
+  adv(1, 15);
   await new Promise(r => setTimeout(r, 50));
   
-  // FETCH APIS - with progress updates during fetch
-  adv(2, 15);
-  await new Promise(r => setTimeout(r, 50));
+  // Show seismic step active
+  const ls0 = document.getElementById('ls0');
+  if (ls0) ls0.className = 'lstep act';
   
-  // Actually do the API fetch with progress tracking
-  adv(2, 25);
-  await new Promise(r => setTimeout(r, 50));
+  // Do the actual API fetch
+  await fetchAllAPIs();
   
-  // We need to fetch APIs in chunks with UI updates between them
-  const apiResultsTemp = {};
-  
-  // Batch 1: Fast APIs (USGS, NASA, GDACS, NOAA, disease.sh, World Bank)
-  const fastApis = {
-    usgs_weekly: API_ENDPOINTS.usgs_weekly,
-    usgs_significant: API_ENDPOINTS.usgs_significant,
-    usgs_all_day: API_ENDPOINTS.usgs_all_day,
-    nasa_eonet: API_ENDPOINTS.nasa_eonet,
-    gdacs: API_ENDPOINTS.gdacs,
-    noaa_alerts: API_ENDPOINTS.noaa_alerts,
-    disease_sh: API_ENDPOINTS.disease_sh,
-    wb_gdp: API_ENDPOINTS.wb_gdp,
-    wb_poverty: API_ENDPOINTS.wb_poverty,
-    wb_inflation: API_ENDPOINTS.wb_inflation,
-    wb_mortality: API_ENDPOINTS.wb_mortality,
-    wb_gini: API_ENDPOINTS.wb_gini,
-    wb_refugees: API_ENDPOINTS.wb_refugees,
-    imf_weo: API_ENDPOINTS.imf_weo,
-    imf_debt: API_ENDPOINTS.imf_debt,
-  };
-  
-  let fetched = 0;
-  const totalFast = Object.keys(fastApis).length;
-  
-  for (const [k, url] of Object.entries(fastApis)) {
-    if (url) {
-      try {
-        const res = await safe(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.ok ? r.json() : null).catch(() => null));
-        apiResultsTemp[k] = res;
-      } catch(e) {
-        apiResultsTemp[k] = null;
-      }
-    }
-    fetched++;
-    const pct = 25 + (fetched / totalFast) * 25;
-    adv(2, Math.min(50, pct));
-    // Yield to browser for UI update every 3 fetches
-    if (fetched % 3 === 0) {
-      await new Promise(r => setTimeout(r, 10));
-    }
-  }
-  
-  // Batch 2: Slower APIs
-  const slowApis = {
-    reliefweb: API_ENDPOINTS.reliefweb,
-    reliefweb_crises: API_ENDPOINTS.reliefweb_crises,
-    gdelt_geo: API_ENDPOINTS.gdelt_geo,
-    who_rss: API_ENDPOINTS.who_rss,
-    wfp_vam: API_ENDPOINTS.wfp_vam,
-    unhcr_pop: API_ENDPOINTS.unhcr_pop,
-    wb_nutrition: API_ENDPOINTS.wb_nutrition,
-    wb_homicide: API_ENDPOINTS.wb_homicide,
-    nasa_eonet_closed: API_ENDPOINTS.nasa_eonet_closed,
-    emdat_proxy: API_ENDPOINTS.emdat_proxy,
-  };
-  
-  adv(3, 55);
-  await new Promise(r => setTimeout(r, 50));
-  
-  const totalSlow = Object.keys(slowApis).length;
-  let slowFetched = 0;
-  
-  for (const [k, url] of Object.entries(slowApis)) {
-    if (url) {
-      try {
-        const res = await safe(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.ok ? r.json() : null).catch(() => null));
-        apiResultsTemp[k] = res;
-      } catch(e) {
-        apiResultsTemp[k] = null;
-      }
-    }
-    slowFetched++;
-    const pct = 55 + (slowFetched / totalSlow) * 20;
-    adv(3, Math.min(75, pct));
-    if (slowFetched % 2 === 0) {
-      await new Promise(r => setTimeout(r, 10));
-    }
-  }
-  
-  // Assign results
-  apiResults = apiResultsTemp;
-  
-  // Parallel specialist fetchers with progress
-  adv(4, 78);
-  await new Promise(r => setTimeout(r, 50));
-  
-  const [heat, food, ipc, conflict, weather, disease, gdelt, reliefEvents, wfp] = await Promise.all([
-    fetchOpenMeteoHeatStress(),
-    fetchFewsNetAlerts(),
-    fetchIpcClassifications(),
-    fetchConflictEvents(),
-    fetchWeatherAlerts(),
-    fetchDiseaseOutbreaks(),
-    fetchGdeltEvents(),
-    fetchReliefWebEvents(),
-    fetchWFPHungerMap(),
-  ]);
-
-  heatStressData       = heat;
-  foodSecurityAlerts   = food;
-  ipcClassifications   = ipc;
-  conflictEvents       = conflict;
-  weatherAlerts        = weather;
-  diseaseOutbreaks     = disease;
-  
-  if (gdelt.length)        apiResults.gdelt_processed    = gdelt;
-  if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
-  if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
-  
-  adv(5, 85);
-  await new Promise(r => setTimeout(r, 50));
-  
-  // ── ENRICH DISEASE OUTBREAKS ─────────────────────────────────────────────
-  if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
-    const covidHot = apiResults.disease_sh
-      .filter(c => c.todayCases > 1000)
-      .slice(0, 8)
-      .map(c => ({ disease: 'COVID-19', country: c.country, cases: c.todayCases, severity: c.todayDeaths > 50 ? 'HIGH' : 'MODERATE' }));
-    diseaseOutbreaks = [...diseaseOutbreaks, ...covidHot].slice(0, 20);
-  }
-  
-  if (apiResults.gdelt_geo?.features?.length) {
-    const gdeltConflict = apiResults.gdelt_geo.features.slice(0, 15).map(f => ({
-      country: f.properties?.name || 'Unknown',
-      event_type: f.properties?.actiongeo_type || 'Conflict Event',
-      fatalities: 0,
-      source: 'GDELT',
-    }));
-    conflictEvents = [...conflictEvents, ...gdeltConflict].slice(0, 30);
-  }
-  
-  if (wfp.length) {
-    const wfpAlerts = wfp
-      .filter(c => c.ipc_phase >= 3)
-      .map(c => ({ country: c.country_name, title: `WFP IPC Phase ${c.ipc_phase}`, ipc: c.ipc_phase }));
-    foodSecurityAlerts = [...foodSecurityAlerts, ...wfpAlerts].slice(0, 30);
-  }
-  
-  if (apiResults.imf_weo?.values?.NGDP_RPCH) {
-    apiResults.imf_growth_map = apiResults.imf_weo.values.NGDP_RPCH;
-  }
-  
-  buildTickerFromResults();
-  
-  // ── BUILD COUNTRY DATA ──────────────────────────────────────────────────
-  adv(6, 90);
+  adv(2, 40);
   await new Promise(r => setTimeout(r, 50));
   
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
+  
+  adv(3, 55);
+  await new Promise(r => setTimeout(r, 50));
   
   let processed = 0;
   const total = Object.keys(ISO_NUM).length;
@@ -3041,18 +2906,23 @@ async function refresh() {
     newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
     
     processed++;
-    if (processed % 15 === 0) {
-      const pct = 90 + (processed / total) * 8;
-      adv(6, Math.min(98, pct));
-      await new Promise(r => setTimeout(r, 5));
+    if (processed % 20 === 0) {
+      const pct = 55 + (processed / total) * 20;
+      adv(3, Math.min(75, pct));
     }
   }
+  
+  adv(4, 75);
+  await new Promise(r => setTimeout(r, 50));
   
   const spill = spilloverScore(newStore);
   for (let iso in newStore) {
     newStore[iso].spillover = spill[iso] || 0;
     newStore[iso].score = Math.min(99, Math.max(1, newStore[iso].score + newStore[iso].spillover));
   }
+  
+  adv(5, 85);
+  await new Promise(r => setTimeout(r, 50));
   
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
@@ -3092,12 +2962,16 @@ async function refresh() {
     freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
-  adv(7, 100);
-  await new Promise(r => setTimeout(r, 200));
+  adv(6, 95);
+  await new Promise(r => setTimeout(r, 50));
   
   paintMap();
   addPulseMarkers();
   renderRanking();
+  
+  adv(7, 100);
+  await new Promise(r => setTimeout(r, 300));
+  
   loader.style.display = 'none';
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
@@ -3105,6 +2979,7 @@ async function refresh() {
   
   refreshTimerSecs = 300;
   
+  // Handle URL parameters and panel rendering
   const urlParams = new URLSearchParams(window.location.search);
   const urlCountry = urlParams.get('country');
   
