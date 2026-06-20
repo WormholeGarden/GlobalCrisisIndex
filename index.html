@@ -2845,13 +2845,6 @@ async function fetchWFPHungerMap() {
 async function refresh() {
   const loader = document.getElementById('loader');
   const fill = document.getElementById('lFill');
-  
-  // Make sure loader exists
-  if (!loader) {
-    console.error('Loader element not found');
-    return;
-  }
-  
   loader.style.display = 'flex';
   
   const steps = ['ls0', 'ls1', 'ls2', 'ls3', 'ls4', 'ls5', 'ls6'].map(id => document.getElementById(id));
@@ -2860,37 +2853,15 @@ async function refresh() {
     steps.forEach((s, i) => {
       if (s) s.className = 'lstep' + (i < n ? ' done' : (i === n ? ' act' : ''));
     });
-    if (fill) fill.style.width = pct + '%';
+    fill.style.width = pct + '%';
   }
   
-  // Small delay to ensure loader is visible
-  await new Promise(r => setTimeout(r, 100));
-  
   adv(0, 5);
-  await new Promise(r => setTimeout(r, 50));
-  
-  // Fetch all APIs
-  adv(1, 15);
-  await new Promise(r => setTimeout(r, 50));
-  
-  // Show seismic step active
-  const ls0 = document.getElementById('ls0');
-  if (ls0) ls0.className = 'lstep act';
-  
-  // Do the actual API fetch
   await fetchAllAPIs();
-  
-  adv(2, 40);
-  await new Promise(r => setTimeout(r, 50));
+  adv(1, 20);
   
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
-  
-  adv(3, 55);
-  await new Promise(r => setTimeout(r, 50));
-  
-  let processed = 0;
-  const total = Object.keys(ISO_NUM).length;
   
   for (let iso of Object.keys(ISO_NUM)) {
     const name = NAMES[iso] || iso;
@@ -2905,26 +2876,16 @@ async function refresh() {
     const dims = buildDims(rawBase, types);
     let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
     newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
-    
-    processed++;
-    if (processed % 20 === 0) {
-      const pct = 55 + (processed / total) * 20;
-      adv(3, Math.min(75, pct));
-    }
   }
   
-  adv(4, 75);
-  await new Promise(r => setTimeout(r, 50));
-  
+  adv(2, 40);
   const spill = spilloverScore(newStore);
   for (let iso in newStore) {
     newStore[iso].spillover = spill[iso] || 0;
     newStore[iso].score = Math.min(99, Math.max(1, newStore[iso].score + newStore[iso].spillover));
   }
   
-  adv(5, 85);
-  await new Promise(r => setTimeout(r, 50));
-  
+  adv(3, 60);
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
   
@@ -2963,16 +2924,10 @@ async function refresh() {
     freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
-  adv(6, 95);
-  await new Promise(r => setTimeout(r, 50));
-  
+  adv(4, 85);
   paintMap();
   addPulseMarkers();
   renderRanking();
-  
-  adv(7, 100);
-  await new Promise(r => setTimeout(r, 300));
-  
   loader.style.display = 'none';
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
