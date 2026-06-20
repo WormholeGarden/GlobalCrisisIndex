@@ -1,4 +1,4 @@
-knowing this, show me the 10/10 ultimate masterpiece of the api to make me as rich as possible bc of how brilliant and masterfully it accomplishes its goal. // /api/top-story.js
+// /api/top-story.js
 //
 // The data layer behind CRYS — returns everything the UI needs to answer
 // any crisis question a user might type.
