@@ -250,7 +250,8 @@
  */
 
 // ── GLOBAL URGENCY NARRATIVE BUILDER ──────────────────────────────────────
-function buildUrgencyNarrative(iso) {
+// ── GLOBAL URGENCY NARRATIVE BUILDER ──────────────────────────────────────
+function buildUrgencyNarrative(iso, crisisType) {
   const c = store[iso];
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
@@ -441,10 +442,54 @@ function buildUrgencyNarrative(iso) {
     let bestTitle = '';
     let hasGoodWikipedia = false;
     
-    const searchTerms = [`${name} crisis`, `${name} famine`, `${name} food security`, `${name} climate`];
+    // ── CRISIS-SPECIFIC SEARCH TERMS ──────────────────────────────────────
+    // Map crisis codes to Wikipedia search phrases
+    const crisisSearchTerms = {
+      CE: ['complex emergency', 'humanitarian crisis', 'civil war', 'conflict', 'violence', 'refugee'],
+      CW: ['civil war', 'conflict', 'violence', 'military', 'insurgency'],
+      EQ: ['earthquake', 'seismic', 'quake', 'tremor'],
+      FL: ['flood', 'flooding', 'inundation'],
+      TC: ['cyclone', 'typhoon', 'hurricane', 'storm'],
+      DR: ['drought', 'water shortage', 'arid'],
+      WF: ['wildfire', 'fire', 'bushfire'],
+      ST: ['storm', 'severe weather'],
+      FN: ['famine', 'hunger', 'starvation', 'food crisis'],
+      EP: ['epidemic', 'outbreak', 'disease', 'pandemic'],
+      REF: ['refugee', 'displacement', 'displaced'],
+      HEAT: ['heatwave', 'extreme heat', 'temperature'],
+      LS: ['landslide', 'mudslide'],
+      TSU: ['tsunami', 'tidal wave'],
+      VLC: ['volcano', 'eruption', 'volcanic'],
+    };
+    
+    // Build search terms: combine country name with crisis-specific terms
+    let searchTerms = [`${name} crisis`];
+    
+    if (crisisType && crisisSearchTerms[crisisType]) {
+      // Add crisis-specific searches
+      const crisisWords = crisisSearchTerms[crisisType];
+      for (const word of crisisWords) {
+        searchTerms.push(`${name} ${word}`);
+        searchTerms.push(`${name} ${word} crisis`);
+      }
+      // Also try with the full crisis name from ARC
+      if (ARC[crisisType]?.l) {
+        searchTerms.push(`${name} ${ARC[crisisType].l}`);
+        searchTerms.push(`${name} ${ARC[crisisType].l} crisis`);
+      }
+    }
+    
+    // Add fallback generic searches
+    searchTerms.push(`${name} humanitarian`);
+    searchTerms.push(`${name} situation`);
+    searchTerms.push(`war in ${name}`);
+    searchTerms.push(`crisis in ${name}`);
+    
+    // Remove duplicates
+    searchTerms = [...new Set(searchTerms)];
     
     for (const term of searchTerms) {
-      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=3`;
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=5`;
       const searchReq = new XMLHttpRequest();
       searchReq.open('GET', searchUrl, false);
       searchReq.send();
@@ -463,6 +508,12 @@ function buildUrgencyNarrative(iso) {
               if (s.hasDimensionMatch) return true;
               const lower = s.text.toLowerCase();
               if (lower.includes(name.toLowerCase()) && lower.includes('crisis')) return true;
+              // For crisis-specific search, also check if the sentence contains crisis-related terms
+              if (crisisType && crisisSearchTerms[crisisType]) {
+                for (const word of crisisSearchTerms[crisisType]) {
+                  if (lower.includes(word)) return true;
+                }
+              }
               return false;
             });
             const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
@@ -611,18 +662,26 @@ function buildUrgencyNarrative(iso) {
       ` indicating an unusual spike relative to the 28-day baseline.`
     : '';
 
-  // ── 7. ASSEMBLE SENTENCES ──────────────────────────────────────────────
+  // ── 7. CRISIS-SPECIFIC CONTEXT ────────────────────────────────────────
+  let crisisContext = '';
+  if (crisisType && ARC[crisisType]) {
+    const crisisData = ARC[crisisType];
+    crisisContext = ` The ${crisisData.l} classification means the primary driver is ${crisisData.l.toLowerCase()}, with critical needs including ${crisisData.n.slice(0, 3).join(', ')}.`;
+  }
+
+  // ── 8. ASSEMBLE SENTENCES ──────────────────────────────────────────────
   const parts = [];
 
   if (wikipediaPrefix) {
     parts.push(wikipediaPrefix);
   }
 
-  parts.push(
-    `${flag} ${name} ranks #${rank} globally with a ${severityLabel} ` +
-    `urgency score of ${c.score}/100, placing it in the ` +
-    `top ${100 - pctile}% of all tracked countries.`
-  );
+  // If we have a crisis type, emphasize it in the intro
+  let introPhrase = `${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100`;
+  if (crisisType && ARC[crisisType]) {
+    introPhrase = `${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, driven by an active ${ARC[crisisType].l} crisis`;
+  }
+  parts.push(introPhrase + `, placing it in the top ${100 - pctile}% of all tracked countries.`);
 
   parts.push(
     `The composite is driven primarily by ${topDim.l.toLowerCase()} ` +
@@ -636,6 +695,10 @@ function buildUrgencyNarrative(iso) {
       ? `, with the 7-day model projecting further escalation to ${fc.fc}.`
       : `.`)
   );
+
+  if (crisisContext) {
+    parts.push(crisisContext);
+  }
 
   if (liveSignals.length) {
     const joined = liveSignals.length === 1
@@ -661,7 +724,6 @@ function buildUrgencyNarrative(iso) {
   
   return narrative;
 }
-
 // ── UPDATED showTopUrgentStory ─────────────────────────────────────────────
 function showTopUrgentStory() {
   const pulseEligible = ranked
@@ -3805,17 +3867,21 @@ function renderAIBrief(iso) {
   const c = store[iso];
   if (!c) { el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; return; }
   
+  // ── GET ACTIVE CRISIS TYPE FROM URL ──────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const crisisType = urlParams.get('crisis') || null;
+  
   // ── GENERATE THE FULL URGENCY NARRATIVE ──────────────────────────────────
   let narrative = '';
   try {
-    narrative = buildUrgencyNarrative(iso);
+    narrative = buildUrgencyNarrative(iso, crisisType);
   } catch(e) {
     console.warn('buildUrgencyNarrative error:', e);
   }
   
   // ── FALLBACK IF NARRATIVE IS EMPTY OR TOO SHORT ──────────────────────────
   if (!narrative || narrative.length < 10) {
-    const activeCrisisData = null;
+    const activeCrisisData = crisisType ? ARC[crisisType] : null;
     if (activeCrisisData) {
       narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
     } else {
