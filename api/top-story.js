@@ -1,11 +1,4 @@
-// /api/top-story.js  — GCIS Fusion v2
-//
-// All original endpoints preserved. Upgrades:
-//   • Multi-method anomaly detection (CUSUM + Z-score + Bayesian changepoint + volatility regime)
-//   • Richer narrative with specific sourced numbers
-//   • Cleaner score audit trail
-//   • Better IPC/UNHCR/WHO signal extraction
-//   • OpenAPI-compatible response shape
+
 //
 // ── ENDPOINTS ────────────────────────────────────────────────────────────────
 //  GET /api/top-story                  → top urgent country, full payload
