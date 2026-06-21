@@ -2845,9 +2845,153 @@ async function refresh() {
   }
   
   adv(0, 5);
-  await fetchAllAPIs();
-  adv(1, 20);
   
+  // ── FETCH APIS WITH PROGRESS TRACKING ──────────────────────────────────
+  const batch1 = {
+    usgs_weekly:      API_ENDPOINTS.usgs_weekly,
+    usgs_significant: API_ENDPOINTS.usgs_significant,
+    usgs_all_day:     API_ENDPOINTS.usgs_all_day,
+    nasa_eonet:       API_ENDPOINTS.nasa_eonet,
+    gdacs:            API_ENDPOINTS.gdacs,
+    noaa_alerts:      API_ENDPOINTS.noaa_alerts,
+    disease_sh:       API_ENDPOINTS.disease_sh,
+    wb_gdp:           API_ENDPOINTS.wb_gdp,
+    wb_poverty:       API_ENDPOINTS.wb_poverty,
+    wb_inflation:     API_ENDPOINTS.wb_inflation,
+    wb_mortality:     API_ENDPOINTS.wb_mortality,
+    wb_gini:          API_ENDPOINTS.wb_gini,
+    wb_refugees:      API_ENDPOINTS.wb_refugees,
+    imf_weo:          API_ENDPOINTS.imf_weo,
+    imf_debt:         API_ENDPOINTS.imf_debt,
+  };
+
+  const batch2 = {
+    reliefweb:        API_ENDPOINTS.reliefweb,
+    reliefweb_crises: API_ENDPOINTS.reliefweb_crises,
+    gdelt_geo:        API_ENDPOINTS.gdelt_geo,
+    who_rss:          API_ENDPOINTS.who_rss,
+    wfp_vam:          API_ENDPOINTS.wfp_vam,
+    unhcr_pop:        API_ENDPOINTS.unhcr_pop,
+    wb_nutrition:     API_ENDPOINTS.wb_nutrition,
+    wb_homicide:      API_ENDPOINTS.wb_homicide,
+    nasa_eonet_closed:API_ENDPOINTS.nasa_eonet_closed,
+    emdat_proxy:      API_ENDPOINTS.emdat_proxy,
+  };
+
+  // ── BATCH 1: Fetch with progress ──────────────────────────────────────
+  const totalBatch1 = Object.keys(batch1).length;
+  let completed1 = 0;
+  
+  const p1 = {};
+  for (const [k, url] of Object.entries(batch1)) {
+    if (url) {
+      p1[k] = safe(fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+        .finally(() => {
+          completed1++;
+          const pct = 5 + (completed1 / totalBatch1) * 25;
+          adv(1, Math.min(30, pct));
+        }));
+    }
+  }
+
+  // ── BATCH 2: Fetch with progress ──────────────────────────────────────
+  await new Promise(r => setTimeout(r, 120));
+  const totalBatch2 = Object.keys(batch2).length;
+  let completed2 = 0;
+  
+  const p2 = {};
+  for (const [k, url] of Object.entries(batch2)) {
+    if (url) {
+      p2[k] = safe(fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+        .finally(() => {
+          completed2++;
+          const pct = 30 + (completed2 / totalBatch2) * 25;
+          adv(2, Math.min(55, pct));
+        }));
+    }
+  }
+
+  // ── Wait for both batches ──────────────────────────────────────────────
+  const [r1, r2] = await Promise.all([
+    Promise.allSettled(Object.values(p1)),
+    Promise.allSettled(Object.values(p2)),
+  ]);
+
+  Object.keys(p1).forEach((k, i) => {
+    apiResults[k] = r1[i].status === 'fulfilled' ? r1[i].value : null;
+  });
+  Object.keys(p2).forEach((k, i) => {
+    apiResults[k] = r2[i].status === 'fulfilled' ? r2[i].value : null;
+  });
+
+  adv(3, 60);
+
+  // ── PARALLEL SPECIALIST FETCHERS ──────────────────────────────────────
+  adv(3, 65);
+  const [heat, food, ipc, conflict, weather, disease, gdelt, reliefEvents, wfp] = await Promise.all([
+    fetchOpenMeteoHeatStress(),
+    fetchFewsNetAlerts(),
+    fetchIpcClassifications(),
+    fetchConflictEvents(),
+    fetchWeatherAlerts(),
+    fetchDiseaseOutbreaks(),
+    fetchGdeltEvents(),
+    fetchReliefWebEvents(),
+    fetchWFPHungerMap(),
+  ]);
+
+  heatStressData       = heat;
+  foodSecurityAlerts   = food;
+  ipcClassifications   = ipc;
+  conflictEvents       = conflict;
+  weatherAlerts        = weather;
+  diseaseOutbreaks     = disease;
+
+  if (gdelt.length)        apiResults.gdelt_processed    = gdelt;
+  if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
+  if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
+
+  adv(4, 75);
+
+  // ── ENRICH DISEASE OUTBREAKS ──────────────────────────────────────────
+  if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
+    const covidHot = apiResults.disease_sh
+      .filter(c => c.todayCases > 1000)
+      .slice(0, 8)
+      .map(c => ({ disease: 'COVID-19', country: c.country, cases: c.todayCases, severity: c.todayDeaths > 50 ? 'HIGH' : 'MODERATE' }));
+    diseaseOutbreaks = [...diseaseOutbreaks, ...covidHot].slice(0, 20);
+  }
+
+  if (apiResults.gdelt_geo?.features?.length) {
+    const gdeltConflict = apiResults.gdelt_geo.features.slice(0, 15).map(f => ({
+      country: f.properties?.name || 'Unknown',
+      event_type: f.properties?.actiongeo_type || 'Conflict Event',
+      fatalities: 0,
+      source: 'GDELT',
+    }));
+    conflictEvents = [...conflictEvents, ...gdeltConflict].slice(0, 30);
+  }
+
+  if (wfp.length) {
+    const wfpAlerts = wfp
+      .filter(c => c.ipc_phase >= 3)
+      .map(c => ({ country: c.country_name, title: `WFP IPC Phase ${c.ipc_phase}`, ipc: c.ipc_phase }));
+    foodSecurityAlerts = [...foodSecurityAlerts, ...wfpAlerts].slice(0, 30);
+  }
+
+  if (apiResults.imf_weo?.values?.NGDP_RPCH) {
+    apiResults.imf_growth_map = apiResults.imf_weo.values.NGDP_RPCH;
+  }
+
+  buildTickerFromResults();
+
+  adv(5, 85);
+
+  // ── BUILD STORE ──────────────────────────────────────────────────────
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
   
@@ -2866,14 +3010,12 @@ async function refresh() {
     newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
   }
   
-  adv(2, 40);
   const spill = spilloverScore(newStore);
   for (let iso in newStore) {
     newStore[iso].spillover = spill[iso] || 0;
     newStore[iso].score = Math.min(99, Math.max(1, newStore[iso].score + newStore[iso].spillover));
   }
   
-  adv(3, 60);
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
   
@@ -2887,6 +3029,8 @@ async function refresh() {
       if (history[iso].length > 60) history[iso].shift();
     }
   }
+  
+  adv(6, 92);
   
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
   const delta = prevGCIS != null ? gcis - prevGCIS : 0;
@@ -2912,10 +3056,12 @@ async function refresh() {
     freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
-  adv(4, 85);
+  adv(6, 97);
   paintMap();
   addPulseMarkers();
   renderRanking();
+  
+  adv(6, 100);
   loader.style.display = 'none';
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
@@ -2945,7 +3091,6 @@ async function refresh() {
   };
   resolvePanel(0);
 }
-
 // ============================================================================
 // MAP FUNCTIONS (condensed)
 // ============================================================================
