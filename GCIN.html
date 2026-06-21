@@ -143,6 +143,25 @@
       margin-bottom: 0.5rem;
       line-height: 1.6;
     }
+    .wiki-container {
+      margin: 1rem 0;
+      padding: 0.75rem 1rem;
+      background: rgba(107, 200, 255, 0.05);
+      border-left: 2px solid #6bc8ff;
+      border-radius: 0 12px 12px 0;
+    }
+    .wiki-label {
+      font-family: system-ui;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6bc8ff;
+      margin-bottom: 0.5rem;
+    }
+    .wiki-sentence {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
       .lead { font-size: 1.1rem; }
@@ -186,6 +205,7 @@
     // ─────────────────────────────────────────────────────────────────────────
     function splitIntoSentences(text) {
       if (!text) return [];
+      // Split on periods, exclamation points, question marks followed by space or newline
       let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
       if (sentences.length === 1) {
         sentences = text.split(/\n/);
@@ -194,7 +214,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 2. EXTRACT YEARS FROM TEXT
+    // 2. EXTRACT YEARS FROM TEXT (matches original function)
     // ─────────────────────────────────────────────────────────────────────────
     function extractYears(text) {
       const years = [];
@@ -206,7 +226,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 3. GET RECENCY BONUS
+    // 3. GET RECENCY BONUS (matches original function EXACTLY)
     // ─────────────────────────────────────────────────────────────────────────
     function getRecencyBonus(text) {
       const years = extractYears(text);
@@ -225,7 +245,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. CHECK CONTEMPORARY INDICATORS
+    // 4. CHECK CONTEMPORARY INDICATORS (matches original function)
     // ─────────────────────────────────────────────────────────────────────────
     function hasContemporaryIndicators(text) {
       const lower = text.toLowerCase();
@@ -272,7 +292,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 6. SCORE SENTENCES (matches original function)
+    // 6. SCORE SENTENCES (matches original function EXACTLY)
     // ─────────────────────────────────────────────────────────────────────────
     function scoreSentences(sentences, countryName, weights, crisisTypes) {
       const name = countryName || '';
@@ -313,7 +333,6 @@
         let score = 0;
         let hasDimensionMatch = false;
         const lower = sent.toLowerCase();
-        const sentLower = lower;
         
         // Skip if band China crisis
         if (nameLower === 'china' && isBandChinaCrisis('', sent)) {
@@ -323,11 +342,11 @@
         // Country name mention
         if (nameLower && lower.includes(nameLower)) score += 20;
         
-        // Recency bonus
+        // Recency bonus - THIS IS THE KEY FILTER
         const recencyBonus = getRecencyBonus(sent);
         score += recencyBonus;
         
-        // Contemporary indicators
+        // Contemporary indicators - adds bonus for recent language
         if (hasContemporaryIndicators(sent)) score += 15;
         
         // Check against weights and crisis keywords
@@ -453,11 +472,10 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 9. MAIN WIKIPEDIA FETCH FUNCTION (matches original logic)
+    // 9. MAIN WIKIPEDIA FETCH FUNCTION (matches original logic EXACTLY)
     // ─────────────────────────────────────────────────────────────────────────
     async function getRelevantWikipediaContent(countryName, crisisTypes, score, dims) {
       const name = countryName || '';
-      const nameLower = name.toLowerCase();
       
       // Calculate weights based on dimensions (matching original)
       const foodDim = dims?.food?.value || 0;
@@ -543,13 +561,18 @@
                 }
                 sentences = sentences.filter(s => s.trim().length > 60);
                 
-                // Score sentences
+                // Score sentences with recency filter
                 const scored = scoreSentences(sentences, name, weights, crisisTypes);
                 
                 // Filter: must have dimension match OR contain country name + crisis
+                // AND must have recency bonus > -50 (penalizes historical content heavily)
                 const filtered = scored.filter(s => {
+                  // Skip if recency bonus is too low (historical content)
+                  if (s.recencyBonus < -50) return false;
+                  
                   if (s.hasDimensionMatch) return true;
                   const lower = s.text.toLowerCase();
+                  const nameLower = name.toLowerCase();
                   if (nameLower && lower.includes(nameLower) && lower.includes('crisis')) return true;
                   // Also check for crisis-specific terms
                   if (crisisTypes && Array.isArray(crisisTypes)) {
@@ -566,6 +589,7 @@
                 // Sort by score and take top 3
                 const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
                 
+                // Require at least 2 sentences with good length
                 if (topScored.length >= 2 && topScored.every(s => s.text.length > 60)) {
                   bestSentences = topScored.map(s => s.text);
                   bestTitle = result.title;
@@ -605,8 +629,8 @@
     function formatJournalisticExcerpt(sentences, articleTitle, articleUrl) {
       if (!sentences || !sentences.length) return null;
       
-      let html = '<div style="margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(107, 200, 255, 0.05); border-left: 2px solid #6bc8ff; border-radius: 0 12px 12px 0;">';
-      html += '<div style="font-family: system-ui; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #6bc8ff; margin-bottom: 0.5rem;">CONTEXT · WIKIPEDIA</div>';
+      let html = '<div class="wiki-container">';
+      html += '<div class="wiki-label">CONTEXT · WIKIPEDIA</div>';
       
       for (const sent of sentences) {
         html += `<div class="wiki-sentence">${escapeHtml(sent)}</div>`;
