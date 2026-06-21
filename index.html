@@ -2837,48 +2837,47 @@ async function refresh() {
   
   const steps = ['ls0', 'ls1', 'ls2', 'ls3', 'ls4', 'ls5', 'ls6'].map(id => document.getElementById(id));
   
-  // Force a UI update
-  function adv(n, pct) {
+  // ── SMOOTH PROGRESS WITH MINIMUM INCREMENTS ──────────────────────────
+  let currentProgress = 0;
+  
+  function adv(n, targetPct) {
+    // Clamp target to ensure we never go backwards
+    targetPct = Math.min(100, Math.max(currentProgress + 1, targetPct));
+    
+    // Update step indicators
     steps.forEach((s, i) => {
       if (s) s.className = 'lstep' + (i < n ? ' done' : (i === n ? ' act' : ''));
     });
-    fill.style.width = Math.min(100, pct) + '%';
-    // Force reflow for smooth visual updates
-    if (fill) fill.parentElement.offsetHeight;
-  }
-  
-  // Smooth progress updater with micro-steps
-  function smoothProgress(targetPct, step, duration = 300) {
-    const startPct = parseFloat(fill.style.width) || 0;
-    const diff = targetPct - startPct;
-    const steps = Math.max(10, Math.min(30, Math.abs(diff) / 2));
-    const increment = diff / steps;
-    const interval = duration / steps;
-    let current = startPct;
-    let count = 0;
     
-    return new Promise(resolve => {
-      const timer = setInterval(() => {
-        count++;
-        current += increment;
-        if (count >= steps || current >= targetPct) {
-          clearInterval(timer);
-          fill.style.width = targetPct + '%';
-          // Update step indicator at milestone
-          const stepIdx = Math.floor(targetPct / 16);
-          steps.forEach((s, i) => {
-            if (s) s.className = 'lstep' + (i < stepIdx ? ' done' : (i === stepIdx ? ' act' : ''));
-          });
-          resolve();
-        } else {
-          fill.style.width = current + '%';
-        }
-      }, Math.max(10, interval));
-    });
+    // Smoothly animate progress bar to target
+    const startPct = currentProgress;
+    const duration = 400; // ms
+    const startTime = Date.now();
+    
+    function animateProgress() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // Ease function for smooth deceleration
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentPct = startPct + (targetPct - startPct) * eased;
+      fill.style.width = Math.min(100, currentPct) + '%';
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateProgress);
+      } else {
+        fill.style.width = Math.min(100, targetPct) + '%';
+        currentProgress = Math.min(100, targetPct);
+      }
+    }
+    animateProgress();
   }
   
-  // ── START WITH SMOOTH ANIMATION ──────────────────────────────────────
-  await smoothProgress(5, 1);
+  // ── STEP 0: Start ──────────────────────────────────────────────────────
+  adv(0, 3);
+  await new Promise(r => setTimeout(r, 200));
+  
+  // ── STEP 1: Batch 1 APIs ──────────────────────────────────────────────
+  adv(1, 8);
   
   const batch1 = {
     usgs_weekly:      API_ENDPOINTS.usgs_weekly,
@@ -2911,10 +2910,9 @@ async function refresh() {
     emdat_proxy:      API_ENDPOINTS.emdat_proxy,
   };
 
-  // ── BATCH 1: Fetch with granular progress ────────────────────────────
+  // ── BATCH 1: Fetch with smooth progress ──────────────────────────────
   const totalBatch1 = Object.keys(batch1).length;
   let completed1 = 0;
-  let batch1Progress = 5;
   
   const p1 = {};
   for (const [k, url] of Object.entries(batch1)) {
@@ -2924,21 +2922,14 @@ async function refresh() {
         .catch(() => null)
         .finally(() => {
           completed1++;
-          const pct = 5 + (completed1 / totalBatch1) * 30;
-          // Update progress smoothly every 2-3 completions
-          if (completed1 % 2 === 0 || completed1 === totalBatch1) {
-            fill.style.width = Math.min(35, pct) + '%';
-            const stepIdx = Math.floor(pct / 16);
-            steps.forEach((s, i) => {
-              if (s) s.className = 'lstep' + (i < stepIdx ? ' done' : (i === stepIdx ? ' act' : ''));
-            });
-          }
+          const pct = 8 + (completed1 / totalBatch1) * 27;
+          adv(1, Math.min(35, pct));
         }));
     }
   }
 
-  // ── BATCH 2: Fetch with granular progress ────────────────────────────
-  await new Promise(r => setTimeout(r, 80));
+  // ── BATCH 2: Fetch with smooth progress ──────────────────────────────
+  await new Promise(r => setTimeout(r, 150));
   const totalBatch2 = Object.keys(batch2).length;
   let completed2 = 0;
   
@@ -2950,19 +2941,14 @@ async function refresh() {
         .catch(() => null)
         .finally(() => {
           completed2++;
-          const pct = 35 + (completed2 / totalBatch2) * 30;
-          if (completed2 % 2 === 0 || completed2 === totalBatch2) {
-            fill.style.width = Math.min(65, pct) + '%';
-            const stepIdx = Math.floor(pct / 16);
-            steps.forEach((s, i) => {
-              if (s) s.className = 'lstep' + (i < stepIdx ? ' done' : (i === stepIdx ? ' act' : ''));
-            });
-          }
+          const pct = 35 + (completed2 / totalBatch2) * 25;
+          adv(2, Math.min(60, pct));
         }));
     }
   }
 
   // ── Wait for both batches ──────────────────────────────────────────────
+  adv(2, 42);
   const [r1, r2] = await Promise.all([
     Promise.allSettled(Object.values(p1)),
     Promise.allSettled(Object.values(p2)),
@@ -2975,16 +2961,11 @@ async function refresh() {
     apiResults[k] = r2[i].status === 'fulfilled' ? r2[i].value : null;
   });
 
-  // Smooth transition to step 3
-  await smoothProgress(65, 3);
+  adv(3, 62);
 
   // ── PARALLEL SPECIALIST FETCHERS ──────────────────────────────────────
-  // Update step to specialist fetchers
-  steps.forEach((s, i) => {
-    if (s) s.className = 'lstep' + (i < 3 ? ' done' : (i === 3 ? ' act' : ''));
-  });
-  
-  const specialistPromises = [
+  adv(3, 65);
+  const [heat, food, ipc, conflict, weather, disease, gdelt, reliefEvents, wfp] = await Promise.all([
     fetchOpenMeteoHeatStress(),
     fetchFewsNetAlerts(),
     fetchIpcClassifications(),
@@ -2994,33 +2975,7 @@ async function refresh() {
     fetchGdeltEvents(),
     fetchReliefWebEvents(),
     fetchWFPHungerMap(),
-  ];
-  
-  let specialistDone = 0;
-  const totalSpecialists = specialistPromises.length;
-  
-  // Track each specialist individually
-  const trackedPromises = specialistPromises.map((p, idx) => {
-    return p.then(result => {
-      specialistDone++;
-      const pct = 65 + (specialistDone / totalSpecialists) * 20;
-      fill.style.width = Math.min(85, pct) + '%';
-      // Update step when we reach certain thresholds
-      if (specialistDone >= 3) {
-        steps.forEach((s, i) => {
-          if (s) s.className = 'lstep' + (i < 4 ? ' done' : (i === 4 ? ' act' : ''));
-        });
-      }
-      if (specialistDone >= 6) {
-        steps.forEach((s, i) => {
-          if (s) s.className = 'lstep' + (i < 5 ? ' done' : (i === 5 ? ' act' : ''));
-        });
-      }
-      return result;
-    });
-  });
-  
-  const [heat, food, ipc, conflict, weather, disease, gdelt, reliefEvents, wfp] = await Promise.all(trackedPromises);
+  ]);
 
   heatStressData       = heat;
   foodSecurityAlerts   = food;
@@ -3033,9 +2988,9 @@ async function refresh() {
   if (reliefEvents.length) apiResults.reliefweb_events   = reliefEvents;
   if (wfp.length)          apiResults.wfp_hunger_map     = wfp;
 
-  // ── ENRICH DATA ──────────────────────────────────────────────────────
-  await smoothProgress(85, 5);
+  adv(4, 72);
 
+  // ── ENRICH DATA ────────────────────────────────────────────────────────
   if (apiResults.disease_sh && Array.isArray(apiResults.disease_sh)) {
     const covidHot = apiResults.disease_sh
       .filter(c => c.todayCases > 1000)
@@ -3067,36 +3022,25 @@ async function refresh() {
 
   buildTickerFromResults();
 
+  adv(5, 82);
+
   // ── BUILD STORE ──────────────────────────────────────────────────────
-  await smoothProgress(88, 6);
-  
   const refreshSeed = Math.floor(Date.now() / 60000);
   let newStore = {};
   
-  // Process in chunks for smoother UI
-  const isos = Object.keys(ISO_NUM);
-  const chunkSize = 20;
-  
-  for (let i = 0; i < isos.length; i += chunkSize) {
-    const chunk = isos.slice(i, i + chunkSize);
-    for (let iso of chunk) {
-      const name = NAMES[iso] || iso;
-      const flag = FLAGS[iso] || '🌍';
-      const types = CTYPES[iso] || DEFAULT_T;
-      const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-      let base = BASE_SCORES[iso] || 42;
-      const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0) * 137 + (iso.charCodeAt(1) || 0) * 31) - 0.5) * 5);
-      const rawBase = Math.min(99, Math.max(5, base + variation));
-      const mult = { PSE: 1.0, SOM: 1.0, SYR: 1.0, HTI: 1.0, YEM: 1.0, UKR: 1.0, IDN: 1.25, PHL: 1.2, JPN: 1.15 }[iso] || 1.0;
-      const events = Math.min(60, Math.max(4, Math.floor(10 * mult) + Math.floor(rawBase / 14)));
-      const dims = buildDims(rawBase, types);
-      let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
-      newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
-    }
-    // Update progress after each chunk
-    const pct = 88 + ((i + chunk.length) / isos.length) * 5;
-    fill.style.width = Math.min(93, pct) + '%';
-    await new Promise(r => setTimeout(r, 10)); // Tiny yield for UI
+  for (let iso of Object.keys(ISO_NUM)) {
+    const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    let base = BASE_SCORES[iso] || 42;
+    const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0) * 137 + (iso.charCodeAt(1) || 0) * 31) - 0.5) * 5);
+    const rawBase = Math.min(99, Math.max(5, base + variation));
+    const mult = { PSE: 1.0, SOM: 1.0, SYR: 1.0, HTI: 1.0, YEM: 1.0, UKR: 1.0, IDN: 1.25, PHL: 1.2, JPN: 1.15 }[iso] || 1.0;
+    const events = Math.min(60, Math.max(4, Math.floor(10 * mult) + Math.floor(rawBase / 14)));
+    const dims = buildDims(rawBase, types);
+    let score = Math.min(99, Math.max(1, Math.round(composite(dims))));
+    newStore[iso] = { name, flag, types, needs, dims, score, events, spillover: 0 };
   }
   
   const spill = spilloverScore(newStore);
@@ -3107,6 +3051,8 @@ async function refresh() {
   
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  
+  adv(5, 88);
   
   if (!historyInitialized) {
     for (let iso in store) history[iso] = seedHistory(iso, store[iso].score);
@@ -3119,7 +3065,7 @@ async function refresh() {
     }
   }
   
-  await smoothProgress(95, 6);
+  adv(6, 92);
   
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
   const delta = prevGCIS != null ? gcis - prevGCIS : 0;
@@ -3145,15 +3091,16 @@ async function refresh() {
     freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
-  // ── FINAL RENDER ──────────────────────────────────────────────────────
-  await smoothProgress(98, 6);
+  adv(6, 96);
   paintMap();
   addPulseMarkers();
   renderRanking();
   
-  await smoothProgress(100, 6);
-  // Small delay before hiding loader for visual completion
-  await new Promise(r => setTimeout(r, 150));
+  // ── FINAL: Smoothly complete to 100% ──────────────────────────────────
+  adv(6, 100);
+  
+  // Wait for animation to complete before hiding loader
+  await new Promise(r => setTimeout(r, 600));
   loader.style.display = 'none';
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
