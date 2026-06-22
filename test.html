@@ -2123,11 +2123,11 @@ function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff"}
 function composite(d){return DIMS.reduce((s,dim)=>s+dim.w*(d[dim.k]||0),0)}
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2))}
 function entropy(arr){if(arr.length<4)return '—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2)}
-// // ──────────────────────────────────────────────────────────────────────────────
+// // // ──────────────────────────────────────────────────────────────────────────────
 // COMPLETE NEURAL NETWORK CRISIS PREDICTOR WITH 15 FEATURES
 // ──────────────────────────────────────────────────────────────────────────────
 
-// ── 1. NEURAL NETWORK WEIGHTS (15 inputs → 8 hidden → 6 hidden → 1 output) ──
+// ── 1. NEURAL NETWORK WEIGHTS (pre-trained + learnable) ──────────────────
 const NN = {
   _storage: null,
   
@@ -2137,7 +2137,7 @@ const NN = {
         const saved = localStorage.getItem('nn_weights_v3');
         if (saved) {
           this._storage = JSON.parse(saved);
-          console.log('🧠 Loaded saved NN weights v3 (15 features)');
+          console.log('🧠 Loaded saved NN weights (v3 - 15 features)');
         } else {
           this._storage = this._defaultWeights();
         }
@@ -2150,7 +2150,7 @@ const NN = {
   
   _defaultWeights() {
     return {
-      // ── 15 INPUT FEATURES → 8 HIDDEN NEURONS ──
+      // ── 15 INPUT FEATURES → 8 NEURONS ──
       // Feature order: [p5,p4,p3,p2,p1,volatility,eventPressure,dimEntropy,typeScore,
       //                quakeMag,quakeCount,conflictFatalities,diseaseCases,displacement,heatTemp]
       w1: [
@@ -2163,7 +2163,7 @@ const NN = {
         [0.44, 0.48, 0.36, 0.18, -0.18, 0.58, 0.30, 0.20, 0.28, 0.50, 0.35, 0.58, 0.30, 0.38, 0.24],
         [0.32, 0.30, 0.24, 0.18, -0.08, 0.38, 0.18, 0.10, 0.12, 0.32, 0.20, 0.38, 0.18, 0.22, 0.12],
       ],
-      // ── 8 HIDDEN → 6 HIDDEN ──
+      // Hidden1 (8) → Hidden2 (6)
       w2: [
         [0.62, 0.55, 0.48, 0.32, 0.45, 0.38, 0.42, 0.35],
         [0.58, 0.52, 0.42, 0.28, 0.38, 0.34, 0.38, 0.30],
@@ -2172,13 +2172,12 @@ const NN = {
         [0.55, 0.50, 0.44, 0.30, 0.40, 0.35, 0.40, 0.32],
         [0.45, 0.42, 0.35, 0.20, 0.30, 0.25, 0.30, 0.22],
       ],
-      // ── 6 HIDDEN → OUTPUT ──
+      // Hidden2 (6) → Output
       w3: [0.72, 0.65, 0.48, 0.22, 0.38, 0.28],
-      // ── BIASES ──
+      // Biases
       b1: [0.12, 0.08, 0.15, 0.05, 0.10, 0.06, 0.14, 0.04],
       b2: [0.25, 0.32, 0.18, 0.14, 0.22, 0.10],
       b3: 0.08,
-      // ── METADATA ──
       version: 3,
       training_count: 0,
       last_updated: Date.now(),
@@ -2208,11 +2207,8 @@ const NN = {
 
 // ── 2. ACTIVATION FUNCTIONS ──────────────────────────────────────────────
 function nnActivate(x) {
-  // Swish activation: x * sigmoid(x)
-  return x / (1 + Math.exp(-x)) * 1.1;
+  return x / (1 + Math.exp(-x)) * 1.1; // Swish activation
 }
-
-function nnRelu(x) { return x > 0 ? x : x * 0.01; }
 
 // ── 3. FORWARD PASS ──────────────────────────────────────────────────────
 function nnForward(features, weights) {
@@ -2249,9 +2245,9 @@ function nnForward(features, weights) {
   return { h1, h2, output };
 }
 
-// ── 4. COMPLETE FEATURE EXTRACTION (15 features) ──────────────────────
+// ── 4. FEATURE EXTRACTION WITH ALL 15 FEATURES ────────────────────────────
 function nnExtractFeatures(hist, cur, dims, events, iso) {
-  // ── 1. HISTORY FEATURES (5) ────────────────────────────────────────────
+  // ── 1. HISTORY FEATURES (p5-p1) ────────────────────────────────────────
   const padded = hist.length >= 8 ? hist.slice(-8) : [...Array(8 - hist.length).fill(cur - 3), ...hist];
   const n = padded.length;
   
@@ -2286,60 +2282,55 @@ function nnExtractFeatures(hist, cur, dims, events, iso) {
   
   // ── 5. CRISIS TYPE SCORE ──────────────────────────────────────────────
   let typeScore = 0.3;
-  if (iso && typeof CTYPES !== 'undefined' && CTYPES[iso]) {
+  if (iso && CTYPES[iso]) {
     typeScore = Math.min(0.9, CTYPES[iso].length / 5);
   }
   
-  // ── 6. EARTHQUAKE MAGNITUDE ──────────────────────────────────────────
+  // ── 6. EARTHQUAKE MAGNITUDE ───────────────────────────────────────────
   let quakeMag = 0;
   let quakeCount = 0;
-  const countryName = (typeof NAMES !== 'undefined' && NAMES[iso]) ? NAMES[iso].toLowerCase() : (iso || '').toLowerCase();
+  const countryName = (NAMES[iso] || iso || '').toLowerCase();
   
-  if (typeof apiResults !== 'undefined') {
-    ['usgs_weekly', 'usgs_significant', 'usgs_all_day'].forEach(feed => {
-      const data = apiResults[feed];
-      if (data && data.features) {
-        data.features.forEach(f => {
-          const place = (f.properties?.place || '').toLowerCase();
-          if (place.includes(countryName) || place.includes(iso?.toLowerCase() || '')) {
-            quakeCount++;
-            const mag = f.properties?.mag || 0;
-            if (mag > quakeMag) quakeMag = mag;
-          }
-        });
-      }
-    });
-  }
+  ['usgs_weekly', 'usgs_significant', 'usgs_all_day'].forEach(feed => {
+    const data = apiResults[feed];
+    if (data && data.features) {
+      data.features.forEach(f => {
+        const place = (f.properties?.place || '').toLowerCase();
+        if (place.includes(countryName) || place.includes(iso?.toLowerCase() || '')) {
+          quakeCount++;
+          const mag = f.properties?.mag || 0;
+          if (mag > quakeMag) quakeMag = mag;
+        }
+      });
+    }
+  });
+  
   quakeMag = Math.min(1, quakeMag / 8);
   quakeCount = Math.min(0.9, quakeCount / 20);
   
-  // ── 7. CONFLICT FATALITIES ────────────────────────────────────────────
+  // ── 7. CONFLICT FATALITIES ─────────────────────────────────────────────
   let conflictFatalities = 0;
-  if (typeof conflictEvents !== 'undefined') {
-    conflictEvents.forEach(c => {
-      const cCountry = (c.country || '').toLowerCase();
-      if (cCountry.includes(countryName)) {
-        conflictFatalities += c.fatalities || 0;
-      }
-    });
-  }
+  conflictEvents.forEach(c => {
+    const cCountry = (c.country || '').toLowerCase();
+    if (cCountry.includes(countryName)) {
+      conflictFatalities += c.fatalities || 0;
+    }
+  });
   conflictFatalities = Math.min(1, conflictFatalities / 1000);
   
-  // ── 8. DISEASE CASES ──────────────────────────────────────────────────
+  // ── 8. DISEASE CASES ───────────────────────────────────────────────────
   let diseaseCases = 0;
-  if (typeof diseaseOutbreaks !== 'undefined') {
-    diseaseOutbreaks.forEach(d => {
-      const dCountry = (d.country || '').toLowerCase();
-      if (dCountry.includes(countryName)) {
-        diseaseCases += d.cases || 0;
-      }
-    });
-  }
+  diseaseOutbreaks.forEach(d => {
+    const dCountry = (d.country || '').toLowerCase();
+    if (dCountry.includes(countryName)) {
+      diseaseCases += d.cases || 0;
+    }
+  });
   diseaseCases = Math.min(1, diseaseCases / 100000);
   
-  // ── 9. DISPLACEMENT ──────────────────────────────────────────────────
+  // ── 9. DISPLACEMENT ────────────────────────────────────────────────────
   let displacement = 0;
-  if (typeof apiResults !== 'undefined' && apiResults.unhcr_pop?.items) {
+  if (apiResults.unhcr_pop?.items) {
     const match = apiResults.unhcr_pop.items.find(d => {
       const coo = (d.coo_iso || '').toLowerCase();
       const coa = (d.coa_iso || '').toLowerCase();
@@ -2353,16 +2344,14 @@ function nnExtractFeatures(hist, cur, dims, events, iso) {
   
   // ── 10. HEAT TEMPERATURE ──────────────────────────────────────────────
   let heatTemp = 0;
-  if (typeof heatStressData !== 'undefined') {
-    heatStressData.forEach(h => {
-      if (h.iso === iso) {
-        heatTemp = h.temp || 0;
-      }
-    });
-  }
+  heatStressData.forEach(h => {
+    if (h.iso === iso) {
+      heatTemp = h.temp || 0;
+    }
+  });
   heatTemp = Math.min(1, Math.max(0, (heatTemp - 20) / 35));
   
-  // ── RETURN ALL 15 FEATURES ──────────────────────────────────────────────
+  // ── RETURN ALL 15 FEATURES ─────────────────────────────────────────────
   return [
     p5, p4, p3, p2, p1,
     volatility,
@@ -2389,7 +2378,6 @@ function forecast(hist, cur, dims, events, iso) {
       confidence: 0.3,
       nnPred: cur,
       tradPred: cur,
-      features: null,
       feature_breakdown: null
     };
   }
@@ -2411,7 +2399,7 @@ function forecast(hist, cur, dims, events, iso) {
   
   let confidence = 0.4;
   confidence += Math.min(0.3, hist.length / 60) * 0.3;
-  confidence -= (typeof volatility !== 'undefined' ? volatility(hist) : 1.5) / 25;
+  confidence -= volatility(hist) / 25;
   confidence += Math.min(0.15, (events || 10) / 100);
   confidence += Math.min(0.1, NN.weights.training_count / 500) * 0.1;
   
@@ -2422,7 +2410,6 @@ function forecast(hist, cur, dims, events, iso) {
   
   const delta = fc - cur;
   let dir, dc, esc;
-  
   if (delta > 3.5) {
     dir = "↑ Escalating";
     dc = "up";
@@ -2445,13 +2432,7 @@ function forecast(hist, cur, dims, events, iso) {
     predicted: fc,
     actual: cur,
     confidence: confidence,
-    hist_length: hist.length,
-    quakeMag: features[9],
-    quakeCount: features[10],
-    conflictFatalities: features[11],
-    diseaseCases: features[12],
-    displacement: features[13],
-    heatTemp: features[14]
+    hist_length: hist.length
   });
   
   if (window._nnPredictions.length > 500) {
@@ -2469,18 +2450,18 @@ function forecast(hist, cur, dims, events, iso) {
     delta: Math.round(delta * 10) / 10,
     features: features,
     feature_breakdown: {
-      earthquake: { mag: features[9] * 8, count: Math.round(features[10] * 20) },
-      conflict: { fatalities: Math.round(features[11] * 1000) },
-      disease: { cases: Math.round(features[12] * 100000) },
-      displacement: Math.round(features[13] * 5000000),
-      heat: Math.round(20 + features[14] * 35)
+      earthquake: { mag: features[9], count: features[10] },
+      conflict: { fatalities: features[11] },
+      disease: { cases: features[12] },
+      displacement: features[13],
+      heat: features[14]
     }
   };
 }
 
 // ── 6. ANOMALY DETECTION ─────────────────────────────────────────────────
 function detectAnomaly(hist, cur, dims, events, iso, threshold = 4.5) {
-  if (hist.length < 6) return { detected: false, z_score: 0.5, error: 0, predicted: cur };
+  if (hist.length < 6) return { detected: false, z_score: 0.5, error: 0 };
   
   const pred = forecast(hist.slice(0, -1), hist[hist.length-2] || cur, dims, events, iso);
   const error = Math.abs(cur - pred.fc);
@@ -2620,7 +2601,7 @@ function nnSelfLearn() {
   
   const statusEl = document.getElementById('nnStatus');
   if (statusEl) {
-    statusEl.textContent = `🧠 ${weights.training_count} samples`;
+    statusEl.textContent = `🧠 ${weights.training_count} samples · error: ${avgError.toFixed(1)}`;
   }
 }
 
@@ -2641,13 +2622,12 @@ function nnScheduleLearn() {
 
 setInterval(nnScheduleLearn, 60 * 1000);
 
-// ── 9. FORCE LEARN ──────────────────────────────────────────────────────
 window.nnForceLearn = function() {
   nnSelfLearn();
-  if (typeof toast !== 'undefined') toast('🧠 Neural network learning triggered');
+  toast('🧠 Neural network learning triggered');
 };
 
-// ── 10. FEATURE IMPORTANCE TRACKING ─────────────────────────────────────
+// ── 9. FEATURE IMPORTANCE TRACKING ──────────────────────────────────────
 function nnTrackFeatureImportance() {
   const predictions = window._nnPredictions || [];
   if (predictions.length < 20) return;
@@ -2678,30 +2658,31 @@ function nnTrackFeatureImportance() {
   
   const sorted = correlations.sort((a, b) => b.importance - a.importance);
   
-  sorted.forEach((item) => {
+  sorted.forEach((item, idx) => {
     const featureIdx = featureNames.indexOf(item.name);
     if (featureIdx >= 0) {
       weights.feature_importance[item.name] = Math.round(item.importance * 100) / 100;
     }
   });
   
-  console.log('🧠 Feature importance:');
+  console.log('🧠 Top 5 most important features:');
   sorted.slice(0, 5).forEach((item, i) => {
     console.log(`  ${i+1}. ${item.name}: ${(item.importance * 100).toFixed(1)}%`);
   });
   
   NN.save();
+  return sorted;
 }
 
 setInterval(nnTrackFeatureImportance, 30 * 60 * 1000);
 
-// ── 11. CONTEXT FOR FORECAST ────────────────────────────────────────────
+// ── 10. CONTEXT FOR FORECAST ─────────────────────────────────────────────
 window.__nnContext = {};
 window.setNNContext = function(iso, dims, events) {
   window.__nnContext = { iso, dims, events };
 };
 
-// ── 12. MIGRATE CUSUM ──────────────────────────────────────────────────
+// ── 11. MIGRATE CUSUM TO USE NN ANOMALY DETECTION ──────────────────────
 const originalCusum = window.cusum || function() { return { det: false, z: 0.5 }; };
 
 window.cusum = function(arr, th) {
@@ -2721,9 +2702,9 @@ window.cusum = function(arr, th) {
 };
 
 console.log('🧠 Neural Network with 15 Features initialized');
-console.log('🧠 Features: History(5) + Volatility + Events + Entropy + Type + Quakes(2) + Conflict + Disease + Displacement + Heat');
+console.log(`🧠 Features: History(5) + Volatility + Events + Entropy + Type + Quake(2) + Conflict + Disease + Displacement + Heat`);
 console.log(`🧠 Last training: ${NN.weights.training_count || 0} samples`);
-console.log('🧠 Self-learning every 5 minutes');
+console.log('🧠 Self-learning every 5 minutes or 8 new predictions');
 // ── LIVE API LOOKUP HELPERS ───────────────────────────────────────────────
 function getLiveApiBoosts(iso) {
   const name = (NAMES[iso] || iso).toLowerCase();
