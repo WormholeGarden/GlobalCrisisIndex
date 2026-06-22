@@ -161,24 +161,44 @@
 }
     
     async function loadBreakingHeadline() {
-      const headlineEl = document.getElementById("breaking-headline");
-      if (!headlineEl) return;
-      try {
-        const countries = await fetchAllCountries();
-        if (!countries || countries.length === 0) throw new Error("No country data");
-        const scored = countries.map(c => ({ ...c, anomalyScore: computeAnomalyScore(c) }));
-        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
-        const topAnomaly = scored[0];
-        headlineEl.innerText = generateHeadline(topAnomaly);
-        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topAnomaly));
-      } catch (err) {
-        headlineEl.innerText = "⚠️ Live feed unavailable.";
+  const headlineEl = document.getElementById("breaking-headline");
+  if (!headlineEl) return;
+  
+  try {
+    const countries = await fetchAllCountries();
+    if (!countries || countries.length === 0) throw new Error("No country data");
+    
+    // ── NEW LOGIC: Fetch the top story by score, not anomaly ────────────
+    const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
+    const topStory = sortedByScore[0];
+    
+    // ── Check if this is a new story ─────────────────────────────────────
+    const previousIso = localStorage.getItem('gcin_top_iso');
+    const currentIso = topStory.iso;
+    
+    if (previousIso !== currentIso) {
+      // New country is #1 — generate a fresh story
+      headlineEl.innerText = generateHeadline(topStory);
+      localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+      localStorage.setItem('gcin_top_iso', currentIso);
+    } else {
+      // Same country — update the narrative with fresh numbers
+      const stored = localStorage.getItem('gcin_top_anomaly');
+      if (stored) {
+        const oldStory = JSON.parse(stored);
+        if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
+          // Score changed — update the story
+          headlineEl.innerText = generateHeadline(topStory);
+          localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+        }
+        // If nothing changed, keep the existing story
       }
     }
     
-    loadBreakingHeadline();
-    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
-  })();
+  } catch (err) {
+    headlineEl.innerText = "⚠️ Live feed unavailable.";
+  }
+}
 </script>
 <script type="application/ld+json">
 {
