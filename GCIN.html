@@ -158,10 +158,6 @@
       color: #6bc8ff;
       margin-bottom: 0.5rem;
     }
-    .wiki-sentence {
-      margin-bottom: 0.5rem;
-      line-height: 1.6;
-    }
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
       .lead { font-size: 1.1rem; }
@@ -201,11 +197,10 @@
     const WIKI_SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*";
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 1. SPLIT INTO SENTENCES (intelligent sentence boundary detection)
+    // 1. SPLIT INTO SENTENCES
     // ─────────────────────────────────────────────────────────────────────────
     function splitIntoSentences(text) {
       if (!text) return [];
-      // Split on periods, exclamation points, question marks followed by space or newline
       let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
       if (sentences.length === 1) {
         sentences = text.split(/\n/);
@@ -214,7 +209,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 2. EXTRACT YEARS FROM TEXT (matches original function)
+    // 2. EXTRACT YEARS FROM TEXT
     // ─────────────────────────────────────────────────────────────────────────
     function extractYears(text) {
       const years = [];
@@ -226,7 +221,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 3. GET RECENCY BONUS (matches original function EXACTLY)
+    // 3. GET RECENCY BONUS
     // ─────────────────────────────────────────────────────────────────────────
     function getRecencyBonus(text) {
       const years = extractYears(text);
@@ -245,7 +240,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. CHECK CONTEMPORARY INDICATORS (matches original function)
+    // 4. CHECK CONTEMPORARY INDICATORS
     // ─────────────────────────────────────────────────────────────────────────
     function hasContemporaryIndicators(text) {
       const lower = text.toLowerCase();
@@ -265,16 +260,13 @@
       const lowerTitle = title.toLowerCase();
       const lowerText = text.toLowerCase();
       
-      // Check if the country is China
       if (!lowerTitle.includes('china') && !lowerText.includes('china')) return false;
       
-      // Check for band/music indicators in title
       if (lowerTitle.includes('band') || lowerTitle.includes('album') || 
           lowerTitle.includes('singer') || lowerTitle.includes('musician')) {
         return true;
       }
       
-      // Check for band/music indicators in text
       const bandKeywords = [
         'cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 
         'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde',
@@ -292,13 +284,12 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 6. SCORE SENTENCES (matches original function EXACTLY)
+    // 6. SCORE SENTENCES
     // ─────────────────────────────────────────────────────────────────────────
     function scoreSentences(sentences, countryName, weights, crisisTypes) {
       const name = countryName || '';
       const nameLower = name.toLowerCase();
       
-      // Build crisis keywords from crisis types
       const crisisKeywords = {
         'CW': ['war', 'missile', 'nuclear', 'military', 'weapon', 'conflict', 'tension', 'threat', 'diplomacy', 'foreign', 'policy', 'government', 'civil war', 'fighting', 'rebel', 'insurgent'],
         'CE': ['complex emergency', 'humanitarian crisis', 'collapse', 'crisis', 'emergency'],
@@ -318,7 +309,6 @@
         'VLC': ['volcano', 'eruption', 'volcanic']
       };
       
-      // Collect all relevant keywords
       let allKeywords = [];
       if (crisisTypes && Array.isArray(crisisTypes)) {
         for (const type of crisisTypes) {
@@ -326,7 +316,6 @@
           allKeywords = allKeywords.concat(keywords);
         }
       }
-      // Add generic crisis keywords
       allKeywords = allKeywords.concat(['crisis', 'emergency', 'catastrophic', 'severe', 'critical']);
       
       return sentences.map(sent => {
@@ -334,22 +323,17 @@
         let hasDimensionMatch = false;
         const lower = sent.toLowerCase();
         
-        // Skip if band China crisis
         if (nameLower === 'china' && isBandChinaCrisis('', sent)) {
           return { text: sent.trim(), score: -1000, hasDimensionMatch: false, recencyBonus: 0, years: [] };
         }
         
-        // Country name mention
         if (nameLower && lower.includes(nameLower)) score += 20;
         
-        // Recency bonus - THIS IS THE KEY FILTER
         const recencyBonus = getRecencyBonus(sent);
         score += recencyBonus;
         
-        // Contemporary indicators - adds bonus for recent language
         if (hasContemporaryIndicators(sent)) score += 15;
         
-        // Check against weights and crisis keywords
         if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') || 
             lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
             lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
@@ -375,19 +359,16 @@
           hasDimensionMatch = true;
         }
         
-        // Crisis-specific checks
         if (lower.includes('crisis')) score += 10;
         if (lower.includes('emergency')) score += 12;
         if (/\d+/.test(sent)) score += 5;
         if (/\d+(\.\d+)?%/.test(sent)) score += 8;
         if (/million|billion/.test(lower)) score += 10;
         
-        // Length preferences
         if (sent.length > 80 && sent.length < 400) score += 5;
         if (sent.length < 50) score -= 10;
         if (sent.length > 500) score -= 5;
         
-        // Also check if any crisis keywords are present
         for (const kw of allKeywords) {
           if (lower.includes(kw)) {
             score += 8;
@@ -433,7 +414,7 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 8. GET SAFE FALLBACK (matches original function)
+    // 8. GET SAFE FALLBACK
     // ─────────────────────────────────────────────────────────────────────────
     function getSafeFallback(countryName, dims) {
       const foodDim = dims?.food?.value || 0;
@@ -472,12 +453,11 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 9. MAIN WIKIPEDIA FETCH FUNCTION (matches original logic EXACTLY)
+    // 9. MAIN WIKIPEDIA FETCH FUNCTION
     // ─────────────────────────────────────────────────────────────────────────
     async function getRelevantWikipediaContent(countryName, crisisTypes, score, dims) {
       const name = countryName || '';
       
-      // Calculate weights based on dimensions (matching original)
       const foodDim = dims?.food?.value || 0;
       const climateDim = dims?.climate?.value || 0;
       const conflictDim = dims?.conflict?.value || 0;
@@ -490,7 +470,6 @@
         economic: economicDim >= 60 ? 15 : (economicDim >= 40 ? 10 : 0)
       };
       
-      // Crisis search terms mapping (matching original)
       const crisisSearchTerms = {
         CE: ['complex emergency', 'humanitarian crisis', 'civil war', 'conflict', 'violence', 'refugee'],
         CW: ['civil war', 'conflict', 'violence', 'military', 'insurgency'],
@@ -509,7 +488,6 @@
         VLC: ['volcano', 'eruption', 'volcanic'],
       };
       
-      // Build search terms (matching original)
       let searchTerms = [`${name} crisis`];
       
       if (crisisTypes && Array.isArray(crisisTypes)) {
@@ -522,16 +500,12 @@
         }
       }
       
-      // Add fallback generic searches
       searchTerms.push(`${name} humanitarian`);
       searchTerms.push(`${name} situation`);
       searchTerms.push(`war in ${name}`);
       searchTerms.push(`crisis in ${name}`);
-      
-      // Remove duplicates
       searchTerms = [...new Set(searchTerms)];
       
-      // Search Wikipedia with each term
       let bestSentences = [];
       let bestTitle = '';
       let hasGoodWikipedia = false;
@@ -551,30 +525,22 @@
             for (const result of results) {
               const extract = await fetchExtract(result.title);
               if (extract) {
-                // Skip if band China crisis
                 if (isBandChinaCrisis(result.title, extract)) continue;
                 
-                // Split into sentences
                 let sentences = splitIntoSentences(extract);
                 if (sentences.length < 3) {
                   sentences = extract.split(/\n/);
                 }
                 sentences = sentences.filter(s => s.trim().length > 60);
                 
-                // Score sentences with recency filter
                 const scored = scoreSentences(sentences, name, weights, crisisTypes);
                 
-                // Filter: must have dimension match OR contain country name + crisis
-                // AND must have recency bonus > -50 (penalizes historical content heavily)
                 const filtered = scored.filter(s => {
-                  // Skip if recency bonus is too low (historical content)
                   if (s.recencyBonus < -50) return false;
-                  
                   if (s.hasDimensionMatch) return true;
                   const lower = s.text.toLowerCase();
                   const nameLower = name.toLowerCase();
                   if (nameLower && lower.includes(nameLower) && lower.includes('crisis')) return true;
-                  // Also check for crisis-specific terms
                   if (crisisTypes && Array.isArray(crisisTypes)) {
                     for (const type of crisisTypes) {
                       const terms = crisisSearchTerms[type] || [];
@@ -586,10 +552,8 @@
                   return false;
                 });
                 
-                // Sort by score and take top 3
                 const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
                 
-                // Require at least 2 sentences with good length
                 if (topScored.length >= 2 && topScored.every(s => s.text.length > 60)) {
                   bestSentences = topScored.map(s => s.text);
                   bestTitle = result.title;
@@ -600,12 +564,11 @@
             }
           }
         } catch(e) {
-          // Silent fail, continue to next search term
+          // Silent fail
         }
         if (hasGoodWikipedia) break;
       }
       
-      // Use fallback if no good Wikipedia content found
       if (!hasGoodWikipedia || bestSentences.length < 2) {
         const fallback = getSafeFallback(name, dims);
         bestSentences = fallback.sentences;
@@ -671,26 +634,54 @@
     }
     
     // ─────────────────────────────────────────────────────────────────────────
-    // 12. LOAD ANOMALY DATA
+    // 12. LOAD ANOMALY DATA FROM API
     // ─────────────────────────────────────────────────────────────────────────
     async function loadAnomalyData() {
-      let stored = localStorage.getItem('gcin_top_anomaly');
-      if (stored) {
-        try { return JSON.parse(stored); } catch(e) { console.warn("Invalid localStorage data"); }
+      try {
+        const res = await fetch(`${API_BASE}?top=50`);
+        const data = await res.json();
+        
+        if (!data || !data.countries || data.countries.length === 0) {
+          throw new Error("No country data");
+        }
+        
+        // Compute anomaly scores for each country
+        const scored = data.countries.map(c => {
+          // Check if country has anomaly detection
+          let anomalyScore = 0;
+          if (c.anomaly && c.anomaly.z_score) {
+            anomalyScore += Math.min(5, c.anomaly.z_score);
+          }
+          if (c.trend && Math.abs(c.trend.forecast_7d - c.score) > 8) {
+            anomalyScore += 2;
+          }
+          if (c.live_boost && c.live_boost > 8) {
+            anomalyScore += 1.5;
+          }
+          return { 
+            ...c, 
+            anomalyScore: Math.min(10, Math.round(anomalyScore * 10) / 10) 
+          };
+        });
+        
+        // Sort by anomaly score (highest first)
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore);
+        
+        // Also get top story by score for fallback
+        const sortedByScore = [...data.countries].sort((a, b) => b.score - a.score);
+        const topStory = sortedByScore[0];
+        
+        // If anomaly score is low, use the top story instead
+        const best = scored[0];
+        if (best.anomalyScore > 2) {
+          return best;
+        } else {
+          return topStory;
+        }
+      } catch (err) {
+        console.warn('Error loading anomaly data:', err);
+        return null;
       }
-      const res = await fetch(`${API_BASE}?top=50`);
-      const data = await res.json();
-      const countries = data.countries || [];
-      if (!countries.length) throw new Error("No country data");
-      const scored = countries.map(c => {
-        let score = 0;
-        if (c.anomaly?.z_score) score += Math.min(5, c.anomaly.z_score);
-        if (c.trend && Math.abs(c.trend.forecast_7d - c.score) > 8) score += 2;
-        if (c.live_boost && c.live_boost > 8) score += 1.5;
-        return { ...c, anomalyScore: Math.min(10, Math.round(score * 10) / 10) };
-      });
-      scored.sort((a,b) => b.anomalyScore - a.anomalyScore);
-      return scored[0];
     }
     
     function getSeverityLabel(score) {
@@ -720,6 +711,12 @@
         return `Extreme heatwave reaching ${c.live_evidence.heat.max_temp_c}°C — breaking historical records.`;
       }
       return `Statistical anomaly detected: crisis score ${c.score}/100 diverges from 28‑day baseline (z=${c.anomaly?.z_score || 0}).`;
+    }
+    
+    function formatNumber(num) {
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+      return num.toString();
     }
     
     async function renderArticle() {
@@ -831,7 +828,7 @@
       
       document.getElementById('article-content').innerHTML = html;
       
-      // Fetch and inject Wikipedia sentences using the enhanced logic
+      // Fetch and inject Wikipedia sentences
       await fetchAndInjectWikipediaSentences(
         country.name, 
         country.crisis_types || [], 
