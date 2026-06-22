@@ -2123,24 +2123,21 @@ function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff"}
 function composite(d){return DIMS.reduce((s,dim)=>s+dim.w*(d[dim.k]||0),0)}
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2))}
 function entropy(arr){if(arr.length<4)return '—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2)}
-// ──────────────────────────────────────────────────────────────────────────────
-// NEURAL NETWORK CRISIS PREDICTOR WITH SELF-LEARNING
+// // ──────────────────────────────────────────────────────────────────────────────
+// COMPLETE NEURAL NETWORK CRISIS PREDICTOR WITH 15 FEATURES
 // ──────────────────────────────────────────────────────────────────────────────
 
-// ── 1. NEURAL NETWORK WEIGHTS (pre-trained + learnable) ──────────────────
+// ── 1. NEURAL NETWORK WEIGHTS (15 inputs → 8 hidden → 6 hidden → 1 output) ──
 const NN = {
-  // Persistent storage for learned weights
   _storage: null,
   
-  // Default weights (pre-trained on 500+ crisis patterns)
   get weights() {
-    // Try to load saved weights from localStorage
     if (!this._storage) {
       try {
-        const saved = localStorage.getItem('nn_weights');
+        const saved = localStorage.getItem('nn_weights_v3');
         if (saved) {
           this._storage = JSON.parse(saved);
-          console.log('🧠 Loaded saved NN weights');
+          console.log('🧠 Loaded saved NN weights v3 (15 features)');
         } else {
           this._storage = this._defaultWeights();
         }
@@ -2153,45 +2150,56 @@ const NN = {
   
   _defaultWeights() {
     return {
-      // Input -> Hidden1 (8 inputs -> 5 neurons)
+      // ── 15 INPUT FEATURES → 8 HIDDEN NEURONS ──
+      // Feature order: [p5,p4,p3,p2,p1,volatility,eventPressure,dimEntropy,typeScore,
+      //                quakeMag,quakeCount,conflictFatalities,diseaseCases,displacement,heatTemp]
       w1: [
-        [0.42, 0.38, 0.45, 0.33, 0.40, 0.55, 0.28, 0.19],
-        [0.38, 0.35, 0.40, 0.30, 0.35, 0.48, 0.24, 0.15],
-        [0.45, 0.40, 0.48, 0.36, 0.42, 0.62, 0.32, 0.22],
-        [0.33, 0.28, 0.35, 0.25, 0.30, 0.40, 0.20, 0.12],
-        [0.40, 0.36, 0.42, 0.32, 0.38, 0.52, 0.26, 0.18],
+        [0.38, 0.42, 0.31, 0.19, -0.12, 0.55, 0.28, 0.19, 0.25, 0.48, 0.32, 0.55, 0.28, 0.35, 0.22],
+        [0.34, 0.39, 0.28, 0.22, -0.08, 0.48, 0.24, 0.15, 0.20, 0.42, 0.28, 0.48, 0.24, 0.30, 0.18],
+        [0.41, 0.45, 0.35, 0.15, -0.15, 0.62, 0.32, 0.22, 0.30, 0.55, 0.38, 0.62, 0.32, 0.42, 0.28],
+        [0.29, 0.33, 0.27, 0.20, -0.05, 0.40, 0.20, 0.12, 0.15, 0.35, 0.22, 0.40, 0.20, 0.25, 0.15],
+        [0.40, 0.36, 0.42, 0.32, 0.38, 0.52, 0.26, 0.18, 0.22, 0.45, 0.30, 0.52, 0.26, 0.32, 0.20],
+        [0.35, 0.38, 0.30, 0.25, -0.10, 0.45, 0.22, 0.14, 0.18, 0.38, 0.25, 0.45, 0.22, 0.28, 0.16],
+        [0.44, 0.48, 0.36, 0.18, -0.18, 0.58, 0.30, 0.20, 0.28, 0.50, 0.35, 0.58, 0.30, 0.38, 0.24],
+        [0.32, 0.30, 0.24, 0.18, -0.08, 0.38, 0.18, 0.10, 0.12, 0.32, 0.20, 0.38, 0.18, 0.22, 0.12],
       ],
-      // Hidden1 -> Hidden2 (5 inputs -> 4 neurons)
+      // ── 8 HIDDEN → 6 HIDDEN ──
       w2: [
-        [0.62, 0.55, 0.48, 0.32, 0.45],
-        [0.58, 0.52, 0.42, 0.28, 0.38],
-        [0.48, 0.45, 0.38, 0.22, 0.32],
-        [0.52, 0.48, 0.40, 0.25, 0.35],
+        [0.62, 0.55, 0.48, 0.32, 0.45, 0.38, 0.42, 0.35],
+        [0.58, 0.52, 0.42, 0.28, 0.38, 0.34, 0.38, 0.30],
+        [0.48, 0.45, 0.38, 0.22, 0.32, 0.28, 0.32, 0.25],
+        [0.52, 0.48, 0.40, 0.25, 0.35, 0.30, 0.35, 0.28],
+        [0.55, 0.50, 0.44, 0.30, 0.40, 0.35, 0.40, 0.32],
+        [0.45, 0.42, 0.35, 0.20, 0.30, 0.25, 0.30, 0.22],
       ],
-      // Hidden2 -> Output (4 inputs -> 1 output)
-      w3: [0.72, 0.65, 0.48, 0.22],
-      // Biases
-      b1: [0.12, 0.08, 0.15, 0.05, 0.10],
-      b2: [0.25, 0.32, 0.18, 0.14],
+      // ── 6 HIDDEN → OUTPUT ──
+      w3: [0.72, 0.65, 0.48, 0.22, 0.38, 0.28],
+      // ── BIASES ──
+      b1: [0.12, 0.08, 0.15, 0.05, 0.10, 0.06, 0.14, 0.04],
+      b2: [0.25, 0.32, 0.18, 0.14, 0.22, 0.10],
       b3: 0.08,
-      // Learning metadata
-      version: 2,
+      // ── METADATA ──
+      version: 3,
       training_count: 0,
-      last_updated: Date.now()
+      last_updated: Date.now(),
+      feature_importance: {
+        p5: 0, p4: 0, p3: 0, p2: 0, p1: 0,
+        volatility: 0, eventPressure: 0, dimEntropy: 0, typeScore: 0,
+        quakeMag: 0, quakeCount: 0, conflictFatalities: 0,
+        diseaseCases: 0, displacement: 0, heatTemp: 0
+      }
     };
   },
   
-  // Save weights to localStorage
   save() {
     try {
       this._storage.last_updated = Date.now();
-      localStorage.setItem('nn_weights', JSON.stringify(this._storage));
+      localStorage.setItem('nn_weights_v3', JSON.stringify(this._storage));
     } catch(e) {
       console.warn('Could not save NN weights:', e);
     }
   },
   
-  // Get a specific weight with fallback
   get(key) {
     const w = this.weights;
     return w[key] || this._defaultWeights()[key];
@@ -2200,21 +2208,14 @@ const NN = {
 
 // ── 2. ACTIVATION FUNCTIONS ──────────────────────────────────────────────
 function nnActivate(x) {
-  // Swish activation: x * sigmoid(x) - better for crisis patterns
+  // Swish activation: x * sigmoid(x)
   return x / (1 + Math.exp(-x)) * 1.1;
-}
-
-function nnActivateDerivative(x) {
-  // Derivative of swish for backprop
-  const sig = 1 / (1 + Math.exp(-x));
-  return sig * (1 + x * (1 - sig));
 }
 
 function nnRelu(x) { return x > 0 ? x : x * 0.01; }
 
 // ── 3. FORWARD PASS ──────────────────────────────────────────────────────
 function nnForward(features, weights) {
-  // Layer 1: Input -> Hidden1
   const w1 = weights.w1 || NN._defaultWeights().w1;
   const b1 = weights.b1 || NN._defaultWeights().b1;
   
@@ -2226,7 +2227,6 @@ function nnForward(features, weights) {
     return nnActivate(sum);
   });
   
-  // Layer 2: Hidden1 -> Hidden2
   const w2 = weights.w2 || NN._defaultWeights().w2;
   const b2 = weights.b2 || NN._defaultWeights().b2;
   
@@ -2238,7 +2238,6 @@ function nnForward(features, weights) {
     return nnActivate(sum);
   });
   
-  // Layer 3: Hidden2 -> Output
   const w3 = weights.w3 || NN._defaultWeights().w3;
   const b3 = weights.b3 || NN._defaultWeights().b3;
   
@@ -2250,20 +2249,19 @@ function nnForward(features, weights) {
   return { h1, h2, output };
 }
 
-// ── 4. FEATURE EXTRACTION ───────────────────────────────────────────────
+// ── 4. COMPLETE FEATURE EXTRACTION (15 features) ──────────────────────
 function nnExtractFeatures(hist, cur, dims, events, iso) {
-  // Pad history
+  // ── 1. HISTORY FEATURES (5) ────────────────────────────────────────────
   const padded = hist.length >= 8 ? hist.slice(-8) : [...Array(8 - hist.length).fill(cur - 3), ...hist];
   const n = padded.length;
   
-  // Past 5 values
   const p5 = n >= 5 ? padded[n-5] : cur - 4;
   const p4 = n >= 4 ? padded[n-4] : cur - 3;
   const p3 = n >= 3 ? padded[n-3] : cur - 2;
   const p2 = n >= 2 ? padded[n-2] : cur - 1;
   const p1 = n >= 1 ? padded[n-1] : cur;
   
-  // Volatility (standard deviation of recent changes)
+  // ── 2. VOLATILITY ──────────────────────────────────────────────────────
   let volatility = 1.5;
   if (hist.length >= 4) {
     const diffs = hist.slice(1).map((v, i) => Math.abs(v - hist[i]));
@@ -2271,10 +2269,10 @@ function nnExtractFeatures(hist, cur, dims, events, iso) {
     volatility = Math.min(12, Math.max(0.3, meanDiff * 0.8 + 0.5));
   }
   
-  // Event pressure (normalized)
+  // ── 3. EVENT PRESSURE ──────────────────────────────────────────────────
   const eventPressure = Math.min(0.9, Math.max(0.1, (events || 10) / 50));
   
-  // Dimension entropy (how concentrated the crisis is)
+  // ── 4. DIMENSION ENTROPY ──────────────────────────────────────────────
   let dimEntropy = 0.3;
   if (dims) {
     const values = Object.values(dims).filter(v => typeof v === 'number');
@@ -2286,18 +2284,102 @@ function nnExtractFeatures(hist, cur, dims, events, iso) {
     }
   }
   
-  // Crisis type encoding (based on ISO)
+  // ── 5. CRISIS TYPE SCORE ──────────────────────────────────────────────
   let typeScore = 0.3;
-  if (iso && CTYPES[iso]) {
+  if (iso && typeof CTYPES !== 'undefined' && CTYPES[iso]) {
     typeScore = Math.min(0.9, CTYPES[iso].length / 5);
   }
   
-  return [p5, p4, p3, p2, p1, volatility, eventPressure, dimEntropy, typeScore];
+  // ── 6. EARTHQUAKE MAGNITUDE ──────────────────────────────────────────
+  let quakeMag = 0;
+  let quakeCount = 0;
+  const countryName = (typeof NAMES !== 'undefined' && NAMES[iso]) ? NAMES[iso].toLowerCase() : (iso || '').toLowerCase();
+  
+  if (typeof apiResults !== 'undefined') {
+    ['usgs_weekly', 'usgs_significant', 'usgs_all_day'].forEach(feed => {
+      const data = apiResults[feed];
+      if (data && data.features) {
+        data.features.forEach(f => {
+          const place = (f.properties?.place || '').toLowerCase();
+          if (place.includes(countryName) || place.includes(iso?.toLowerCase() || '')) {
+            quakeCount++;
+            const mag = f.properties?.mag || 0;
+            if (mag > quakeMag) quakeMag = mag;
+          }
+        });
+      }
+    });
+  }
+  quakeMag = Math.min(1, quakeMag / 8);
+  quakeCount = Math.min(0.9, quakeCount / 20);
+  
+  // ── 7. CONFLICT FATALITIES ────────────────────────────────────────────
+  let conflictFatalities = 0;
+  if (typeof conflictEvents !== 'undefined') {
+    conflictEvents.forEach(c => {
+      const cCountry = (c.country || '').toLowerCase();
+      if (cCountry.includes(countryName)) {
+        conflictFatalities += c.fatalities || 0;
+      }
+    });
+  }
+  conflictFatalities = Math.min(1, conflictFatalities / 1000);
+  
+  // ── 8. DISEASE CASES ──────────────────────────────────────────────────
+  let diseaseCases = 0;
+  if (typeof diseaseOutbreaks !== 'undefined') {
+    diseaseOutbreaks.forEach(d => {
+      const dCountry = (d.country || '').toLowerCase();
+      if (dCountry.includes(countryName)) {
+        diseaseCases += d.cases || 0;
+      }
+    });
+  }
+  diseaseCases = Math.min(1, diseaseCases / 100000);
+  
+  // ── 9. DISPLACEMENT ──────────────────────────────────────────────────
+  let displacement = 0;
+  if (typeof apiResults !== 'undefined' && apiResults.unhcr_pop?.items) {
+    const match = apiResults.unhcr_pop.items.find(d => {
+      const coo = (d.coo_iso || '').toLowerCase();
+      const coa = (d.coa_iso || '').toLowerCase();
+      return coo === iso?.toLowerCase() || coa === iso?.toLowerCase();
+    });
+    if (match) {
+      displacement = (match.refugees || 0) + (match.idps || 0) + (match.asylum_seekers || 0);
+    }
+  }
+  displacement = Math.min(1, displacement / 5000000);
+  
+  // ── 10. HEAT TEMPERATURE ──────────────────────────────────────────────
+  let heatTemp = 0;
+  if (typeof heatStressData !== 'undefined') {
+    heatStressData.forEach(h => {
+      if (h.iso === iso) {
+        heatTemp = h.temp || 0;
+      }
+    });
+  }
+  heatTemp = Math.min(1, Math.max(0, (heatTemp - 20) / 35));
+  
+  // ── RETURN ALL 15 FEATURES ──────────────────────────────────────────────
+  return [
+    p5, p4, p3, p2, p1,
+    volatility,
+    eventPressure,
+    dimEntropy,
+    typeScore,
+    quakeMag,
+    quakeCount,
+    conflictFatalities,
+    diseaseCases,
+    displacement,
+    heatTemp
+  ];
 }
 
 // ── 5. MAIN FORECAST FUNCTION ───────────────────────────────────────────
 function forecast(hist, cur, dims, events, iso) {
-  // ── FALLBACK: Not enough data ──────────────────────────────────
   if (hist.length < 4) {
     return { 
       fc: cur, 
@@ -2306,39 +2388,38 @@ function forecast(hist, cur, dims, events, iso) {
       esc: false, 
       confidence: 0.3,
       nnPred: cur,
-      tradPred: cur
+      tradPred: cur,
+      features: null,
+      feature_breakdown: null
     };
   }
   
-  // ── EXTRACT FEATURES ────────────────────────────────────────────
   const features = nnExtractFeatures(hist, cur, dims, events, iso);
-  
-  // ── NEURAL NETWORK FORWARD PASS ──────────────────────────────
   const weights = NN.weights;
   const result = nnForward(features, weights);
+  
   let nnPred = Math.round(cur + result.output * 1.1);
   nnPred = Math.min(99, Math.max(1, nnPred));
   
-  // ── TRADITIONAL TREND (for ensemble) ──────────────────────────
   const d = hist.slice(-12);
   const tr = hist.length >= 5 ? (d[d.length-1] - d[Math.max(0, d.length-5)]) / 5 : 0;
   const tradPred = Math.round(Math.min(99, Math.max(5, d[d.length-1] + tr * 1.8)));
   
-  // ── ENSEMBLE: 70% NN, 30% traditional ────────────────────────
-  // NN weight increases as we have more data
   const nnWeight = Math.min(0.85, 0.6 + hist.length / 100);
   const ensemble = Math.round(nnPred * nnWeight + tradPred * (1 - nnWeight));
   const fc = Math.min(99, Math.max(1, ensemble));
   
-  // ── CONFIDENCE SCORE ──────────────────────────────────────────
   let confidence = 0.4;
   confidence += Math.min(0.3, hist.length / 60) * 0.3;
-  confidence -= volatility(hist) / 25;
+  confidence -= (typeof volatility !== 'undefined' ? volatility(hist) : 1.5) / 25;
   confidence += Math.min(0.15, (events || 10) / 100);
   confidence += Math.min(0.1, NN.weights.training_count / 500) * 0.1;
+  
+  // Feature richness bonus
+  const featureRichness = features.filter(f => f > 0.1).length / features.length;
+  confidence += featureRichness * 0.1;
   confidence = Math.min(0.95, Math.max(0.2, confidence));
   
-  // ── DIRECTION & STATUS ──────────────────────────────────────
   const delta = fc - cur;
   let dir, dc, esc;
   
@@ -2356,8 +2437,6 @@ function forecast(hist, cur, dims, events, iso) {
     esc = delta > 1.5;
   }
   
-  // ── STORE FOR SELF-LEARNING ──────────────────────────────────
-  // Save the prediction for later learning
   if (!window._nnPredictions) window._nnPredictions = [];
   window._nnPredictions.push({
     timestamp: Date.now(),
@@ -2366,12 +2445,17 @@ function forecast(hist, cur, dims, events, iso) {
     predicted: fc,
     actual: cur,
     confidence: confidence,
-    hist_length: hist.length
+    hist_length: hist.length,
+    quakeMag: features[9],
+    quakeCount: features[10],
+    conflictFatalities: features[11],
+    diseaseCases: features[12],
+    displacement: features[13],
+    heatTemp: features[14]
   });
   
-  // Keep only last 200 predictions
-  if (window._nnPredictions.length > 200) {
-    window._nnPredictions = window._nnPredictions.slice(-200);
+  if (window._nnPredictions.length > 500) {
+    window._nnPredictions = window._nnPredictions.slice(-500);
   }
   
   return { 
@@ -2383,19 +2467,24 @@ function forecast(hist, cur, dims, events, iso) {
     nnPred,
     tradPred,
     delta: Math.round(delta * 10) / 10,
-    features: features
+    features: features,
+    feature_breakdown: {
+      earthquake: { mag: features[9] * 8, count: Math.round(features[10] * 20) },
+      conflict: { fatalities: Math.round(features[11] * 1000) },
+      disease: { cases: Math.round(features[12] * 100000) },
+      displacement: Math.round(features[13] * 5000000),
+      heat: Math.round(20 + features[14] * 35)
+    }
   };
 }
 
 // ── 6. ANOMALY DETECTION ─────────────────────────────────────────────────
 function detectAnomaly(hist, cur, dims, events, iso, threshold = 4.5) {
-  if (hist.length < 6) return { detected: false, z_score: 0.5, error: 0 };
+  if (hist.length < 6) return { detected: false, z_score: 0.5, error: 0, predicted: cur };
   
-  // Get NN prediction for the last point
   const pred = forecast(hist.slice(0, -1), hist[hist.length-2] || cur, dims, events, iso);
   const error = Math.abs(cur - pred.fc);
   
-  // Calculate error history
   const errors = [];
   for (let i = 6; i < hist.length; i++) {
     const slice = hist.slice(Math.max(0, i-12), i);
@@ -2429,7 +2518,6 @@ function nnSelfLearn() {
     return;
   }
   
-  // Filter to recent predictions (last 7 days)
   const now = Date.now();
   const recent = predictions.filter(p => (now - p.timestamp) < 7 * 24 * 60 * 60 * 1000);
   
@@ -2438,11 +2526,9 @@ function nnSelfLearn() {
     return;
   }
   
-  // ── COMPUTE GRADIENT DESCENT ──────────────────────────────────
   const weights = NN.weights;
   const learningRate = 0.005 * Math.min(1, recent.length / 30);
   
-  // Gradient accumulators
   const grad_w1 = weights.w1.map(row => row.map(() => 0));
   const grad_w2 = weights.w2.map(row => row.map(() => 0));
   const grad_w3 = weights.w3.map(() => 0);
@@ -2453,37 +2539,25 @@ function nnSelfLearn() {
   let totalError = 0;
   let validSamples = 0;
   
-  // For each sample, compute gradient
   for (const sample of recent) {
-    if (!sample.features || sample.features.length < 8) continue;
-    if (Math.abs(sample.predicted - sample.actual) > 15) continue; // Skip outliers
+    if (!sample.features || sample.features.length < 15) continue;
+    if (Math.abs(sample.predicted - sample.actual) > 15) continue;
     
-    // Forward pass
     const result = nnForward(sample.features, weights);
-    const prediction = Math.round(sample.actual + result.output * 1.1);
-    const target = sample.actual;
-    
-    // Error: difference between predicted and actual
-    const error = target - sample.actual - result.output * 1.1;
+    const error = sample.actual - sample.actual - result.output * 1.1;
     totalError += Math.abs(error);
     validSamples++;
     
-    // Clamp error to prevent exploding gradients
     const clampedError = Math.min(5, Math.max(-5, error)) * 0.5;
-    
-    // Backpropagate through output layer
     const d_output = clampedError * 1.1;
     
-    // Update w3
     for (let i = 0; i < weights.w3.length && i < result.h2.length; i++) {
       grad_w3[i] += d_output * result.h2[i] * learningRate;
     }
     grad_b3 += d_output * learningRate;
     
-    // Backpropagate through hidden2
     const d_h2 = weights.w3.map((w, i) => d_output * w);
     
-    // Update w2
     for (let i = 0; i < weights.w2.length && i < d_h2.length; i++) {
       for (let j = 0; j < weights.w2[i].length && j < result.h1.length; j++) {
         grad_w2[i][j] += d_h2[i] * result.h1[j] * learningRate * 0.8;
@@ -2491,12 +2565,10 @@ function nnSelfLearn() {
       grad_b2[i] += d_h2[i] * learningRate * 0.8;
     }
     
-    // Backpropagate through hidden1
     const d_h1 = weights.w2.map((row, i) => {
       return row.reduce((sum, w, j) => sum + (d_h2[i] || 0) * w, 0);
     });
     
-    // Update w1
     for (let i = 0; i < weights.w1.length && i < d_h1.length; i++) {
       for (let j = 0; j < weights.w1[i].length && j < sample.features.length; j++) {
         grad_w1[i][j] += d_h1[i] * sample.features[j] * learningRate * 0.6;
@@ -2510,8 +2582,6 @@ function nnSelfLearn() {
     return;
   }
   
-  // ── APPLY GRADIENTS ──────────────────────────────────────────
-  // Clip gradients to prevent instability
   const clip = (v) => Math.min(0.5, Math.max(-0.5, v));
   
   for (let i = 0; i < weights.w1.length; i++) {
@@ -2539,29 +2609,24 @@ function nnSelfLearn() {
   weights.b3 += clip(grad_b3 || 0);
   weights.b3 = Math.min(0.5, Math.max(-0.5, weights.b3));
   
-  // Update metadata
   weights.training_count = (weights.training_count || 0) + validSamples;
   weights.last_updated = Date.now();
   
-  // ── SAVE WEIGHTS ──────────────────────────────────────────────
   NN.save();
   
-  // ── LOG RESULTS ──────────────────────────────────────────────
   const avgError = totalError / validSamples;
-  console.log(`🧠 Self-learning complete: ${validSamples} samples, avg error: ${avgError.toFixed(2)}, learning rate: ${(learningRate * 100).toFixed(1)}%`);
+  console.log(`🧠 Self-learning complete: ${validSamples} samples, avg error: ${avgError.toFixed(2)}`);
   console.log(`🧠 Total training: ${weights.training_count} samples`);
   
-  // ── OPTIONAL: Display learning status in UI ──────────────────
   const statusEl = document.getElementById('nnStatus');
   if (statusEl) {
-    statusEl.textContent = `🧠 ${weights.training_count} samples learned · error: ${avgError.toFixed(1)}`;
+    statusEl.textContent = `🧠 ${weights.training_count} samples`;
   }
 }
 
 // ── 8. SCHEDULED SELF-LEARNING ───────────────────────────────────────────
-// Learn every 5 minutes (or after 10 new predictions)
 let nnLastLearnTime = 0;
-const NN_LEARN_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const NN_LEARN_INTERVAL = 5 * 60 * 1000;
 const NN_MIN_PREDICTIONS = 8;
 
 function nnScheduleLearn() {
@@ -2574,23 +2639,69 @@ function nnScheduleLearn() {
   }
 }
 
-// Run learning check every 60 seconds
 setInterval(nnScheduleLearn, 60 * 1000);
 
-// ── 9. FORCE LEARN (for debugging / manual trigger) ──────────────────────
+// ── 9. FORCE LEARN ──────────────────────────────────────────────────────
 window.nnForceLearn = function() {
   nnSelfLearn();
-  toast('🧠 Neural network learning triggered');
+  if (typeof toast !== 'undefined') toast('🧠 Neural network learning triggered');
 };
 
-// ── 10. CONTEXT FOR FORECAST ─────────────────────────────────────────────
+// ── 10. FEATURE IMPORTANCE TRACKING ─────────────────────────────────────
+function nnTrackFeatureImportance() {
+  const predictions = window._nnPredictions || [];
+  if (predictions.length < 20) return;
+  
+  const weights = NN.weights;
+  const featureNames = ['p5','p4','p3','p2','p1','volatility','eventPressure','dimEntropy','typeScore',
+                        'quakeMag','quakeCount','conflictFatalities','diseaseCases','displacement','heatTemp'];
+  
+  const correlations = featureNames.map((name, idx) => {
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+    let n = 0;
+    
+    for (const pred of predictions) {
+      if (!pred.features || pred.features.length <= idx) continue;
+      const x = pred.features[idx] || 0;
+      const y = Math.abs(pred.predicted - pred.actual);
+      if (x === 0 && y === 0) continue;
+      
+      sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x; sumY2 += y * y;
+      n++;
+    }
+    
+    if (n < 5) return { name, correlation: 0, importance: 0 };
+    const corr = (n * sumXY - sumX * sumY) / 
+                 Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)) || 0;
+    return { name, correlation: corr, importance: Math.abs(corr) };
+  });
+  
+  const sorted = correlations.sort((a, b) => b.importance - a.importance);
+  
+  sorted.forEach((item) => {
+    const featureIdx = featureNames.indexOf(item.name);
+    if (featureIdx >= 0) {
+      weights.feature_importance[item.name] = Math.round(item.importance * 100) / 100;
+    }
+  });
+  
+  console.log('🧠 Feature importance:');
+  sorted.slice(0, 5).forEach((item, i) => {
+    console.log(`  ${i+1}. ${item.name}: ${(item.importance * 100).toFixed(1)}%`);
+  });
+  
+  NN.save();
+}
+
+setInterval(nnTrackFeatureImportance, 30 * 60 * 1000);
+
+// ── 11. CONTEXT FOR FORECAST ────────────────────────────────────────────
 window.__nnContext = {};
 window.setNNContext = function(iso, dims, events) {
   window.__nnContext = { iso, dims, events };
 };
 
-// ── 11. MIGRATE CUSUM TO USE NN ANOMALY DETECTION ──────────────────────
-// Keep the function name for backward compatibility
+// ── 12. MIGRATE CUSUM ──────────────────────────────────────────────────
 const originalCusum = window.cusum || function() { return { det: false, z: 0.5 }; };
 
 window.cusum = function(arr, th) {
@@ -2609,12 +2720,10 @@ window.cusum = function(arr, th) {
   return originalCusum(arr, th);
 };
 
-console.log('🧠 Neural Network with Self-Learning initialized');
+console.log('🧠 Neural Network with 15 Features initialized');
+console.log('🧠 Features: History(5) + Volatility + Events + Entropy + Type + Quakes(2) + Conflict + Disease + Displacement + Heat');
 console.log(`🧠 Last training: ${NN.weights.training_count || 0} samples`);
-console.log('🧠 Self-learning every 5 minutes or 8 new predictions');
-function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
-function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
-function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
+console.log('🧠 Self-learning every 5 minutes');
 // ── LIVE API LOOKUP HELPERS ───────────────────────────────────────────────
 function getLiveApiBoosts(iso) {
   const name = (NAMES[iso] || iso).toLowerCase();
