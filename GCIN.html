@@ -1,718 +1,761 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GCIN · All Crisis Anomaly Stories</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #030b18;
-            font-family: 'Georgia', 'Times New Roman', Times, serif;
-            color: #eef4ff;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-        }
-
-        /* ── HEADER ── */
-        .site-header {
-            border-bottom: 1px solid rgba(66, 153, 225, 0.25);
-            padding-bottom: 0.75rem;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-        .masthead h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-        .masthead .sub {
-            font-size: 0.7rem;
-            letter-spacing: 2px;
-            color: #6bc8ff;
-            text-transform: uppercase;
-        }
-        .header-meta {
-            font-size: 0.75rem;
-            color: #5a7390;
-            text-align: right;
-        }
-        .header-meta span {
-            display: block;
-        }
-        .header-meta .live-badge {
-            color: #ff375f;
-            font-weight: 700;
-        }
-
-        /* ── STORY CARD ── */
-        .story-card {
-            background: rgba(15, 23, 47, 0.6);
-            border: 1px solid #2d3a5e;
-            border-radius: 16px;
-            padding: 1.8rem 2rem;
-            margin-bottom: 2.5rem;
-            transition: border-color 0.2s;
-        }
-        .story-card:hover {
-            border-color: #3a5a8a;
-        }
-        .story-card .story-rank {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: #5a7390;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 0.3rem;
-        }
-        .story-card .headline {
-            font-size: 1.8rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 0.5rem;
-        }
-        .story-card .headline .flag {
-            font-size: 1.6rem;
-            margin-right: 0.3rem;
-        }
-        .story-card .headline .score-badge {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.2rem 0.6rem;
-            border-radius: 30px;
-            margin-left: 0.5rem;
-            vertical-align: middle;
-        }
-        .story-card .meta-line {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem 1.5rem;
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.75rem;
-            color: #7c9ec0;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid #1e2a4a;
-            padding-bottom: 0.75rem;
-        }
-        .story-card .meta-line .anomaly-score {
-            color: #ffb347;
-            font-weight: 600;
-        }
-        .story-card .meta-line .z-score {
-            color: #80c0ff;
-        }
-        .story-card .story-body {
-            font-size: 1rem;
-            line-height: 1.7;
-            color: #c8dcff;
-        }
-        .story-card .story-body p {
-            margin-bottom: 0.75rem;
-        }
-        .story-card .story-body .evidence-list {
-            list-style: none;
-            margin: 0.5rem 0 1rem 0;
-        }
-        .story-card .story-body .evidence-list li {
-            padding: 0.3rem 0;
-            border-bottom: 1px solid #1a2a3f;
-            font-size: 0.9rem;
-        }
-        .story-card .story-footer {
-            margin-top: 1.2rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid #1e2a4a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.7rem;
-            color: #5a7390;
-        }
-        .story-card .story-footer .read-more {
-            color: #80c0ff;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .story-card .story-footer .read-more:hover {
-            text-decoration: underline;
-        }
-
-        /* ── WIKI CONTEXT ── */
-        .wiki-container {
-            margin: 1rem 0;
-            padding: 0.75rem 1rem;
-            background: rgba(107, 200, 255, 0.05);
-            border-left: 2px solid #6bc8ff;
-            border-radius: 0 12px 12px 0;
-        }
-        .wiki-container .wiki-label {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #6bc8ff;
-            margin-bottom: 0.3rem;
-        }
-        .wiki-container .wiki-sentence {
-            margin-bottom: 0.3rem;
-            line-height: 1.6;
-            font-size: 0.95rem;
-            color: #b0c8e8;
-        }
-        .wiki-container .wiki-attribution {
-            font-size: 0.65rem;
-            color: #3a5a7a;
-            margin-top: 0.3rem;
-            display: block;
-        }
-        .wiki-container .wiki-attribution a {
-            color: #80c0ff;
-            text-decoration: none;
-        }
-
-        /* ── ANOMALY BOX ── */
-        .anomaly-box {
-            background: rgba(255, 55, 95, 0.06);
-            border-left: 3px solid #ff375f;
-            padding: 0.75rem 1rem;
-            margin: 1rem 0;
-            border-radius: 0 12px 12px 0;
-            font-size: 0.95rem;
-        }
-        .anomaly-box strong {
-            color: #ff6b6b;
-        }
-
-        /* ── SCORE AUDIT ── */
-        .audit-list {
-            font-size: 0.85rem;
-            color: #a0b8d8;
-            list-style: none;
-            margin: 0.5rem 0;
-        }
-        .audit-list li {
-            padding: 0.2rem 0;
-            border-bottom: 1px solid #0f1f2f;
-        }
-
-        /* ── LOADING / ERROR ── */
-        .loading-placeholder {
-            text-align: center;
-            padding: 3rem 0;
-            color: #5a7390;
-        }
-        .error-message {
-            background: rgba(255, 55, 95, 0.1);
-            border: 1px solid #ff375f;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            color: #ff8a7a;
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 700px) {
-            .container { padding: 1rem; }
-            .story-card { padding: 1.2rem; }
-            .story-card .headline { font-size: 1.4rem; }
-            .site-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-            .header-meta { text-align: left; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCIN · Global Crisis Intelligence Network — Anomaly Desk</title>
+  <meta name="description" content="Real-time crisis intelligence, anomaly detection, and investigative journalism powered by live data from 40+ APIs.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #030b18;
+      font-family: 'Georgia', 'Times New Roman', Times, serif;
+      color: #eef4ff;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    .gcin-masthead {
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #6bc8ff;
+      border-bottom: 1px solid rgba(66, 153, 225, 0.2);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .gcin-masthead span { color: #5a7390; font-size: 0.6rem; letter-spacing: 0.1em; }
+    h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.5rem; }
+    .subtitle { color: #7c9ec0; margin-bottom: 2rem; border-left: 3px solid #ff375f; padding-left: 1rem; }
+    .article-grid { display: flex; flex-direction: column; gap: 2.5rem; }
+    .article-card {
+      background: #0a1622;
+      border: 1px solid rgba(66, 153, 225, 0.12);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: border-color 0.2s;
+    }
+    .article-card:hover { border-color: rgba(66, 153, 225, 0.3); }
+    .article-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .article-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #fff;
+      flex: 1;
+    }
+    .article-title .flag { font-size: 1.8rem; margin-right: 0.5rem; }
+    .article-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: #7c9ec0;
+      font-family: system-ui, sans-serif;
+      flex-wrap: wrap;
+      margin: 0.5rem 0 1rem 0;
+    }
+    .severity-badge {
+      display: inline-block;
+      padding: 0.15rem 0.7rem;
+      border-radius: 30px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .severity-critical { color: #ff375f; border-color: rgba(255,55,95,0.3); background: rgba(255,55,95,0.08); }
+    .severity-catastrophic { color: #ff375f; border-color: rgba(255,55,95,0.5); background: rgba(255,55,95,0.15); }
+    .severity-high { color: #ffb347; border-color: rgba(255,179,71,0.3); background: rgba(255,179,71,0.08); }
+    .severity-elevated { color: #ffb020; border-color: rgba(255,176,32,0.3); background: rgba(255,176,32,0.08); }
+    .severity-moderate { color: #6bc8ff; border-color: rgba(107,200,255,0.3); background: rgba(107,200,255,0.08); }
+    .article-lead {
+      font-size: 1.15rem;
+      color: #c0e0ff;
+      margin: 0.75rem 0 1rem 0;
+      border-left: 3px solid #ff375f;
+      padding-left: 1rem;
+      line-height: 1.7;
+    }
+    .article-body {
+      font-size: 0.95rem;
+      color: #d0e4ff;
+      line-height: 1.7;
+    }
+    .article-body p { margin-bottom: 0.75rem; }
+    .dimension-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .dim-item {
+      background: #0f172f;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid #1e2a4a;
+      font-size: 0.8rem;
+    }
+    .dim-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6bc8ff; }
+    .dim-value { font-size: 1.1rem; font-weight: 700; }
+    .evidence-list { list-style: none; margin: 0.5rem 0; }
+    .evidence-list li { padding: 0.3rem 0; border-bottom: 1px solid #1e2a4a; font-size: 0.85rem; }
+    .wiki-container {
+      margin: 1rem 0;
+      padding: 0.75rem 1rem;
+      background: rgba(107,200,255,0.04);
+      border-left: 2px solid #6bc8ff;
+      border-radius: 0 8px 8px 0;
+    }
+    .wiki-label { font-family: system-ui; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #6bc8ff; margin-bottom: 0.3rem; }
+    .wiki-sentence { margin-bottom: 0.3rem; font-size: 0.9rem; color: #bbd4ff; }
+    .quote {
+      font-style: italic;
+      background: #0a1222;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      color: #bbd4ff;
+      font-size: 0.9rem;
+    }
+    hr { border: none; border-top: 1px solid #2d4a6e; margin: 1.5rem 0; }
+    .footer-note { font-size: 0.7rem; color: #5a7390; text-align: center; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #1e2a4a; }
+    .btn-back {
+      display: inline-block;
+      background: #3174c7;
+      padding: 0.3rem 1rem;
+      border-radius: 30px;
+      font-size: 0.7rem;
+      font-family: system-ui;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 1rem;
+    }
+    .btn-back:hover { background: #468ef0; }
+    .loading { text-align: center; padding: 3rem; color: #5a7390; }
+    .anomaly-score-badge {
+      font-size: 0.7rem;
+      background: rgba(255,55,95,0.08);
+      border: 1px solid rgba(255,55,95,0.2);
+      border-radius: 30px;
+      padding: 0.1rem 0.7rem;
+      color: #ff8a7a;
+      font-family: system-ui;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 1rem; }
+      .article-title { font-size: 1.4rem; }
+      .article-card { padding: 1.2rem; }
+      .article-lead { font-size: 1rem; }
+      .dimension-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    }
+  </style>
 </head>
 <body>
 <div class="container">
-    <!-- Header -->
-    <header class="site-header">
-        <div class="masthead">
-            <h1>GCIN</h1>
-            <div class="sub">Global Crisis Index News · Anomaly Desk</div>
-        </div>
-        <div class="header-meta">
-            <span class="live-badge">🔴 LIVE</span>
-            <span id="header-timestamp">Loading data...</span>
-            <span style="font-size:0.65rem; color:#3a5a7a;">All stories are algorithmically generated from live API data.</span>
-        </div>
-    </header>
+  <a href="/" class="btn-back">← Back to dashboard</a>
 
-    <!-- Main Content -->
-    <div id="stories-container">
-        <div class="loading-placeholder">⏳ Loading crisis intelligence...</div>
-    </div>
+  <div class="gcin-masthead">
+    <span>GCIN · GLOBAL CRISIS INTELLIGENCE NETWORK</span>
+    <span id="update-time">⏳ Loading…</span>
+  </div>
 
-    <div style="margin-top:3rem; border-top:1px solid #1e2a4a; padding-top:1.5rem; text-align:center; font-size:0.7rem; color:#3a5a7a;">
-        Data refreshes every 5 minutes from 40+ live APIs · Methodology: Weighted 8‑dimension composite · Anomaly detection: 4‑method ensemble
-    </div>
+  <h1>📰 Anomaly Desk — All Active Anomalies</h1>
+  <div class="subtitle">Every statistically significant crisis divergence detected by the Global Crisis Index, ranked by severity.</div>
+
+  <div id="articles-container">
+    <div class="loading">⏳ Loading live crisis intelligence…</div>
+  </div>
+
+  <div class="footer-note">
+    Data refreshes every 5 minutes from 40+ live APIs. Anomaly detection uses 4‑method ensemble (CUSUM, Z-score, Changepoint, Volatility).<br>
+    Source: Global Crisis Index · Methodology: Weighted 8‑dimension composite.
+  </div>
 </div>
 
 <script>
-    (function() {
-        "use strict";
+  (function() {
+    const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+    const WIKI_FULL_API = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=";
+    const WIKI_SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*";
 
-        const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
-        const WIKI_FULL_API = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=";
-        const WIKI_SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*";
+    // ─── UTILITY FUNCTIONS ────────────────────────────────────────────────────
 
-        // ─── UTILITY FUNCTIONS ────────────────────────────────────────────────
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
 
-        function splitIntoSentences(text) {
-            if (!text) return [];
-            let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
-            if (sentences.length === 1) sentences = text.split(/\n/);
-            return sentences.filter(s => s.trim().length > 50);
+    function getSeverityLabel(score) {
+      if (score >= 85) return "CATASTROPHIC";
+      if (score >= 75) return "CRITICAL";
+      if (score >= 60) return "HIGH";
+      if (score >= 40) return "ELEVATED";
+      return "MODERATE";
+    }
+
+    function getSeverityClass(score) {
+      if (score >= 85) return "severity-catastrophic";
+      if (score >= 75) return "severity-critical";
+      if (score >= 60) return "severity-high";
+      if (score >= 40) return "severity-elevated";
+      return "severity-moderate";
+    }
+
+    function formatNumber(num) {
+      if (num === undefined || num === null || isNaN(num)) return '—';
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+      return num.toString();
+    }
+
+    function extractYears(text) {
+      const years = [];
+      const matches = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
+      if (matches) matches.forEach(y => years.push(parseInt(y)));
+      return years;
+    }
+
+    function getRecencyBonus(text) {
+      const years = extractYears(text);
+      if (years.length === 0) return 0;
+      const currentYear = new Date().getFullYear();
+      const latestYear = Math.max(...years);
+      if (latestYear === currentYear) return 50;
+      if (latestYear === currentYear - 1) return 40;
+      if (latestYear === currentYear - 2) return 30;
+      if (latestYear === currentYear - 3) return 25;
+      if (latestYear >= 2020) return 20;
+      if (latestYear >= 2010) return 10;
+      if (latestYear >= 2000) return 5;
+      if (latestYear < 1990) return -100;
+      return 0;
+    }
+
+    function hasContemporaryIndicators(text) {
+      const lower = text.toLowerCase();
+      const terms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 'since 202', 'since 201', 'as of 202', 'in recent years'];
+      return terms.some(t => lower.includes(t));
+    }
+
+    function isBandChinaCrisis(title, text) {
+      if (!title || !text) return false;
+      const lowerTitle = title.toLowerCase();
+      const lowerText = text.toLowerCase();
+      if (!lowerTitle.includes('china') && !lowerText.includes('china')) return false;
+      if (lowerTitle.includes('band') || lowerTitle.includes('album') || lowerTitle.includes('singer') || lowerTitle.includes('musician')) return true;
+      const bandKeywords = ['cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde', 'difficult shapes', 'passive rhythms', 'flaunt the imperfection', 'what price paradise', 'diary of a hollow horse', 'warped by success', 'autumn in the neighbourhood', 'opening act', 'greatest hits tour', '40th anniversary', 'headlining tour', 'cd', 'vinyl', 'remix', 'band members', 'eddie lundon', 'gary daly', 'kevin wilkinson', 'walter becker', 'china crisis contributed', 'extended remix'];
+      return bandKeywords.some(kw => lowerText.includes(kw));
+    }
+
+    function splitIntoSentences(text) {
+      if (!text) return [];
+      let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+      if (sentences.length === 1) sentences = text.split(/\n/);
+      return sentences.filter(s => s.trim().length > 50);
+    }
+
+    function scoreSentences(sentences, countryName, weights, crisisTypes) {
+      const name = countryName || '';
+      const nameLower = name.toLowerCase();
+
+      const crisisKeywords = {
+        'CW': ['war', 'missile', 'nuclear', 'military', 'weapon', 'conflict', 'tension', 'threat', 'diplomacy', 'foreign', 'policy', 'government', 'civil war', 'fighting', 'rebel', 'insurgent'],
+        'CE': ['complex emergency', 'humanitarian crisis', 'collapse', 'crisis', 'emergency'],
+        'FN': ['famine', 'hunger', 'starvation', 'malnutrition', 'food crisis', 'food insecurity', 'agriculture', 'crop', 'harvest'],
+        'DR': ['drought', 'water shortage', 'arid', 'water scarcity', 'groundwater'],
+        'EP': ['epidemic', 'outbreak', 'disease', 'pandemic', 'cholera', 'health crisis'],
+        'REF': ['refugee', 'displaced', 'displacement', 'flee', 'migration', 'internally displaced'],
+        'ECON': ['economy', 'trade', 'sanctions', 'poverty', 'gdp', 'inflation', 'unemployment', 'economic collapse'],
+        'EQ': ['earthquake', 'seismic', 'quake', 'tremor'],
+        'FL': ['flood', 'flooding', 'inundation'],
+        'TC': ['cyclone', 'typhoon', 'hurricane', 'storm'],
+        'WF': ['wildfire', 'fire', 'bushfire'],
+        'ST': ['storm', 'severe weather'],
+        'HEAT': ['heatwave', 'extreme heat', 'temperature'],
+        'LS': ['landslide', 'mudslide'],
+        'TSU': ['tsunami', 'tidal wave'],
+        'VLC': ['volcano', 'eruption', 'volcanic']
+      };
+
+      let allKeywords = ['crisis', 'emergency', 'catastrophic', 'severe', 'critical'];
+      if (crisisTypes && Array.isArray(crisisTypes)) {
+        for (const type of crisisTypes) {
+          if (crisisKeywords[type]) allKeywords = allKeywords.concat(crisisKeywords[type]);
+        }
+      }
+
+      return sentences.map(sent => {
+        let score = 0;
+        let hasDimensionMatch = false;
+        const lower = sent.toLowerCase();
+
+        if (nameLower === 'china' && isBandChinaCrisis('', sent)) {
+          return { text: sent.trim(), score: -1000, hasDimensionMatch: false, recencyBonus: 0, years: [] };
         }
 
-        function extractYears(text) {
-            const years = [];
-            const matches = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
-            if (matches) matches.forEach(y => years.push(parseInt(y)));
-            return years;
+        if (nameLower && lower.includes(nameLower)) score += 20;
+
+        const recencyBonus = getRecencyBonus(sent);
+        score += recencyBonus;
+        if (hasContemporaryIndicators(sent)) score += 15;
+
+        if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') ||
+            lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
+            lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
+          score += weights.food;
+          hasDimensionMatch = true;
+        }
+        if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') ||
+            lower.includes('weather') || lower.includes('crop') || lower.includes('agriculture') ||
+            lower.includes('rainfall') || lower.includes('temperature') || lower.includes('heatwave'))) {
+          score += weights.climate;
+          hasDimensionMatch = true;
+        }
+        if (weights.conflict && (lower.includes('war') || lower.includes('missile') || lower.includes('nuclear') ||
+            lower.includes('military') || lower.includes('weapon') || lower.includes('conflict') ||
+            lower.includes('tension') || lower.includes('threat') || lower.includes('diplomacy') ||
+            lower.includes('foreign') || lower.includes('policy') || lower.includes('government'))) {
+          score += weights.conflict;
+          hasDimensionMatch = true;
+        }
+        if (weights.economic && (lower.includes('economy') || lower.includes('trade') || lower.includes('sanctions') ||
+            lower.includes('poverty') || lower.includes('gdp') || lower.includes('inflation'))) {
+          score += weights.economic;
+          hasDimensionMatch = true;
         }
 
-        function getRecencyBonus(text) {
-            const years = extractYears(text);
-            if (!years.length) return 0;
-            const currentYear = new Date().getFullYear();
-            const latest = Math.max(...years);
-            if (latest === currentYear) return 50;
-            if (latest === currentYear - 1) return 40;
-            if (latest === currentYear - 2) return 30;
-            if (latest === currentYear - 3) return 25;
-            if (latest >= 2020) return 20;
-            if (latest >= 2010) return 10;
-            if (latest >= 2000) return 5;
-            if (latest < 1990) return -100;
-            return 0;
+        if (lower.includes('crisis')) score += 10;
+        if (lower.includes('emergency')) score += 12;
+        if (/\d+/.test(sent)) score += 5;
+        if (/\d+(\.\d+)?%/.test(sent)) score += 8;
+        if (/million|billion/.test(lower)) score += 10;
+
+        if (sent.length > 80 && sent.length < 400) score += 5;
+        if (sent.length < 50) score -= 10;
+        if (sent.length > 500) score -= 5;
+
+        for (const kw of allKeywords) {
+          if (lower.includes(kw)) { score += 8; hasDimensionMatch = true; break; }
         }
 
-        function hasContemporaryIndicators(text) {
-            const lower = text.toLowerCase();
-            const terms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 'since 202', 'since 201', 'as of 202'];
-            return terms.some(t => lower.includes(t));
+        return { text: sent.trim(), score, hasDimensionMatch, recencyBonus, years: extractYears(sent) };
+      });
+    }
+
+    async function fetchExtract(pageTitle) {
+      try {
+        const url = `${WIKI_FULL_API}${encodeURIComponent(pageTitle)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.status === 200) {
+          const data = await response.json();
+          const pages = data.query?.pages;
+          if (pages) {
+            const pageId = Object.keys(pages)[0];
+            if (pageId !== '-1') return pages[pageId].extract || '';
+          }
         }
+        return '';
+      } catch(e) { return ''; }
+    }
 
-        function isBandChinaCrisis(title, text) {
-            if (!title || !text) return false;
-            const lowerTitle = title.toLowerCase();
-            const lowerText = text.toLowerCase();
-            if (!lowerTitle.includes('china') && !lowerText.includes('china')) return false;
-            if (lowerTitle.includes('band') || lowerTitle.includes('album') || lowerTitle.includes('singer')) return true;
-            const keywords = ['cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde', 'remix', 'band members', 'china crisis contributed'];
-            return keywords.some(k => lowerText.includes(k));
+    function getSafeFallback(countryName, dims) {
+      const foodDim = dims?.food?.value || 0;
+      const climateDim = dims?.climate?.value || 0;
+      const conflictDim = dims?.conflict?.value || 0;
+      const economicDim = dims?.economic?.value || 0;
+      const name = countryName || 'Country';
+      let sentences = [];
+      let title = `${name} crisis profile`;
+
+      if (foodDim >= 75) {
+        sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting a significant portion of the population.`);
+        if (foodDim >= 85) sentences.push(`Food shortages and agricultural collapse have created a critical humanitarian situation.`);
+      } else if (foodDim >= 60) {
+        sentences.push(`${name} experiences elevated food insecurity, with recurring shortages and malnutrition concerns.`);
+      }
+      if (climateDim >= 70) {
+        sentences.push(`Climate vulnerability is high, with extreme weather events, droughts, and flooding threatening livelihoods.`);
+      } else if (climateDim >= 50) {
+        sentences.push(`Climate variability poses a growing risk to agriculture and water security.`);
+      }
+      if (conflictDim >= 70) {
+        sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
+      } else if (conflictDim >= 50) {
+        sentences.push(`Political instability and security threats continue to undermine stability.`);
+      }
+      if (economicDim >= 60) {
+        sentences.push(`Economic hardship and poverty have left millions without access to basic necessities.`);
+      }
+      if (sentences.length === 0) {
+        sentences.push(`${name} faces a complex humanitarian and security situation requiring ongoing monitoring.`);
+      }
+      return { sentences: sentences.slice(0, 3), title: title };
+    }
+
+    async function getRelevantWikipediaContent(countryName, crisisTypes, score, dims) {
+      const name = countryName || '';
+      const foodDim = dims?.food?.value || 0;
+      const climateDim = dims?.climate?.value || 0;
+      const conflictDim = dims?.conflict?.value || 0;
+      const economicDim = dims?.economic?.value || 0;
+
+      const weights = {
+        food: foodDim >= 75 ? 35 : (foodDim >= 60 ? 25 : (foodDim >= 40 ? 15 : 0)),
+        climate: climateDim >= 70 ? 30 : (climateDim >= 55 ? 20 : (climateDim >= 40 ? 12 : 0)),
+        conflict: conflictDim >= 70 ? 25 : (conflictDim >= 50 ? 15 : (conflictDim >= 30 ? 8 : 0)),
+        economic: economicDim >= 60 ? 15 : (economicDim >= 40 ? 10 : 0)
+      };
+
+      const crisisSearchTerms = {
+        CE: ['complex emergency', 'humanitarian crisis', 'civil war', 'conflict', 'violence', 'refugee'],
+        CW: ['civil war', 'conflict', 'violence', 'military', 'insurgency'],
+        EQ: ['earthquake', 'seismic', 'quake', 'tremor'],
+        FL: ['flood', 'flooding', 'inundation'],
+        TC: ['cyclone', 'typhoon', 'hurricane', 'storm'],
+        DR: ['drought', 'water shortage', 'arid'],
+        WF: ['wildfire', 'fire', 'bushfire'],
+        ST: ['storm', 'severe weather'],
+        FN: ['famine', 'hunger', 'starvation', 'food crisis'],
+        EP: ['epidemic', 'outbreak', 'disease', 'pandemic'],
+        REF: ['refugee', 'displacement', 'displaced'],
+        HEAT: ['heatwave', 'extreme heat', 'temperature'],
+        LS: ['landslide', 'mudslide'],
+        TSU: ['tsunami', 'tidal wave'],
+        VLC: ['volcano', 'eruption', 'volcanic'],
+      };
+
+      let searchTerms = [`${name} crisis`];
+      if (crisisTypes && Array.isArray(crisisTypes)) {
+        for (const type of crisisTypes) {
+          const crisisWords = crisisSearchTerms[type] || [];
+          for (const word of crisisWords) {
+            searchTerms.push(`${name} ${word}`);
+            searchTerms.push(`${name} ${word} crisis`);
+          }
         }
+      }
+      searchTerms.push(`${name} humanitarian`);
+      searchTerms.push(`${name} situation`);
+      searchTerms.push(`war in ${name}`);
+      searchTerms.push(`crisis in ${name}`);
+      searchTerms = [...new Set(searchTerms)];
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
-        }
+      let bestSentences = [];
+      let bestTitle = '';
+      let hasGoodWikipedia = false;
 
-        // ─── WIKIPEDIA FETCH ──────────────────────────────────────────────────
-
-        async function fetchExtract(pageTitle) {
-            try {
-                const url = WIKI_FULL_API + encodeURIComponent(pageTitle);
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 8000);
-                const resp = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeout);
-                if (resp.status !== 200) return '';
-                const data = await resp.json();
-                const pages = data.query?.pages;
-                if (!pages) return '';
-                const pageId = Object.keys(pages)[0];
-                return pageId !== '-1' ? pages[pageId].extract || '' : '';
-            } catch { return ''; }
-        }
-
-        function getSafeFallback(countryName, dims) {
-            const name = countryName || 'Country';
-            const food = dims?.food?.value || 0;
-            const climate = dims?.climate?.value || 0;
-            const conflict = dims?.conflict?.value || 0;
-            const economic = dims?.economic?.value || 0;
-            const sentences = [];
-            if (food >= 75) sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting a significant portion of the population.`);
-            if (food >= 85) sentences.push(`Food shortages and agricultural collapse have created a critical humanitarian situation.`);
-            else if (food >= 60) sentences.push(`${name} experiences elevated food insecurity, with recurring shortages and malnutrition concerns.`);
-            if (climate >= 70) sentences.push(`Climate vulnerability is high, with extreme weather events, droughts, and flooding threatening livelihoods.`);
-            else if (climate >= 50) sentences.push(`Climate variability poses a growing risk to agriculture and water security.`);
-            if (conflict >= 70) sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
-            else if (conflict >= 50) sentences.push(`Political instability and security threats continue to undermine stability.`);
-            if (economic >= 60) sentences.push(`Economic hardship and poverty have left millions without access to basic necessities.`);
-            if (!sentences.length) sentences.push(`${name} faces a complex humanitarian and security situation requiring ongoing monitoring.`);
-            return { sentences: sentences.slice(0, 3), title: `${name} crisis profile` };
-        }
-
-        function scoreSentences(sentences, countryName, weights, crisisTypes) {
-            const nameLower = countryName.toLowerCase();
-            const crisisKeywords = {
-                'CW': ['war', 'missile', 'nuclear', 'military', 'weapon', 'conflict', 'tension', 'civil war', 'fighting'],
-                'CE': ['complex emergency', 'humanitarian crisis', 'collapse', 'crisis', 'emergency'],
-                'FN': ['famine', 'hunger', 'starvation', 'malnutrition', 'food crisis', 'food insecurity', 'agriculture'],
-                'DR': ['drought', 'water shortage', 'arid', 'water scarcity'],
-                'EP': ['epidemic', 'outbreak', 'disease', 'pandemic', 'cholera', 'health crisis'],
-                'REF': ['refugee', 'displaced', 'displacement', 'flee', 'migration'],
-                'ECON': ['economy', 'trade', 'sanctions', 'poverty', 'gdp', 'inflation', 'unemployment'],
-                'EQ': ['earthquake', 'seismic', 'quake', 'tremor'],
-                'FL': ['flood', 'flooding', 'inundation'],
-                'TC': ['cyclone', 'typhoon', 'hurricane', 'storm'],
-                'HEAT': ['heatwave', 'extreme heat', 'temperature'],
-                'LS': ['landslide', 'mudslide'],
-                'TSU': ['tsunami', 'tidal wave'],
-                'VLC': ['volcano', 'eruption', 'volcanic']
-            };
-            let allKeywords = ['crisis', 'emergency', 'catastrophic', 'severe', 'critical'];
-            if (crisisTypes && Array.isArray(crisisTypes)) {
-                crisisTypes.forEach(t => {
-                    if (crisisKeywords[t]) allKeywords = allKeywords.concat(crisisKeywords[t]);
-                });
-            }
-            return sentences.map(sent => {
-                let score = 0;
-                let hasDimensionMatch = false;
-                const lower = sent.toLowerCase();
-                if (nameLower && lower.includes(nameLower)) score += 20;
-                const recency = getRecencyBonus(sent);
-                score += recency;
-                if (hasContemporaryIndicators(sent)) score += 15;
-                if (weights.food && /food|hunger|famine|starvation|malnutrition|food insecurity|agriculture/.test(lower)) {
-                    score += weights.food;
-                    hasDimensionMatch = true;
-                }
-                if (weights.climate && /climate|drought|flood|weather|crop|agriculture|rainfall|temperature|heatwave/.test(lower)) {
-                    score += weights.climate;
-                    hasDimensionMatch = true;
-                }
-                if (weights.conflict && /war|missile|nuclear|military|weapon|conflict|tension|government|diplomacy/.test(lower)) {
-                    score += weights.conflict;
-                    hasDimensionMatch = true;
-                }
-                if (weights.economic && /economy|trade|sanctions|poverty|gdp|inflation/.test(lower)) {
-                    score += weights.economic;
-                    hasDimensionMatch = true;
-                }
-                if (/crisis/.test(lower)) score += 10;
-                if (/emergency/.test(lower)) score += 12;
-                if (/\d+/.test(sent)) score += 5;
-                if (/\d+%/.test(sent)) score += 8;
-                if (/million|billion/.test(lower)) score += 10;
-                if (sent.length > 80 && sent.length < 400) score += 5;
-                if (sent.length < 50) score -= 10;
-                allKeywords.forEach(kw => {
-                    if (lower.includes(kw)) { score += 8; hasDimensionMatch = true; }
-                });
-                return { text: sent.trim(), score, hasDimensionMatch, recencyBonus: recency };
-            });
-        }
-
-        async function getRelevantWikipediaContent(countryName, crisisTypes, score, dims) {
-            const name = countryName || '';
-            const foodDim = dims?.food?.value || 0;
-            const climateDim = dims?.climate?.value || 0;
-            const conflictDim = dims?.conflict?.value || 0;
-            const economicDim = dims?.economic?.value || 0;
-            const weights = {
-                food: foodDim >= 75 ? 35 : (foodDim >= 60 ? 25 : (foodDim >= 40 ? 15 : 0)),
-                climate: climateDim >= 70 ? 30 : (climateDim >= 55 ? 20 : (climateDim >= 40 ? 12 : 0)),
-                conflict: conflictDim >= 70 ? 25 : (conflictDim >= 50 ? 15 : (conflictDim >= 30 ? 8 : 0)),
-                economic: economicDim >= 60 ? 15 : (economicDim >= 40 ? 10 : 0)
-            };
-            const crisisSearchTerms = {
-                CE: ['complex emergency', 'humanitarian crisis', 'civil war', 'conflict'],
-                CW: ['civil war', 'conflict', 'violence', 'military'],
-                EQ: ['earthquake', 'seismic', 'quake'],
-                FL: ['flood', 'flooding'],
-                TC: ['cyclone', 'typhoon', 'hurricane'],
-                DR: ['drought', 'water shortage'],
-                WF: ['wildfire', 'fire'],
-                FN: ['famine', 'hunger', 'starvation'],
-                EP: ['epidemic', 'outbreak', 'disease'],
-                REF: ['refugee', 'displacement'],
-                HEAT: ['heatwave', 'extreme heat']
-            };
-            let searchTerms = [`${name} crisis`, `${name} humanitarian`, `crisis in ${name}`, `war in ${name}`];
-            if (crisisTypes && Array.isArray(crisisTypes)) {
-                crisisTypes.forEach(t => {
-                    const words = crisisSearchTerms[t] || [];
-                    words.forEach(w => searchTerms.push(`${name} ${w}`, `${name} ${w} crisis`));
-                });
-            }
-            searchTerms = [...new Set(searchTerms)];
-
-            let bestSentences = [], bestTitle = '', hasGood = false;
-            for (const term of searchTerms) {
-                try {
-                    const url = WIKI_SEARCH + `&srsearch=${encodeURIComponent(term)}&srlimit=5`;
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 6000);
-                    const resp = await fetch(url, { signal: controller.signal });
-                    clearTimeout(timeout);
-                    if (resp.status !== 200) continue;
-                    const data = await resp.json();
-                    const results = data.query?.search || [];
-                    for (const result of results) {
-                        const extract = await fetchExtract(result.title);
-                        if (!extract) continue;
-                        if (isBandChinaCrisis(result.title, extract)) continue;
-                        let sentences = splitIntoSentences(extract);
-                        sentences = sentences.filter(s => s.length > 60);
-                        const scored = scoreSentences(sentences, name, weights, crisisTypes);
-                        const filtered = scored.filter(s => {
-                            if (s.recencyBonus < -50) return false;
-                            if (s.hasDimensionMatch) return true;
-                            const lower = s.text.toLowerCase();
-                            if (name && lower.includes(name.toLowerCase()) && lower.includes('crisis')) return true;
-                            return false;
-                        });
-                        const top = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
-                        if (top.length >= 2 && top.every(s => s.text.length > 60)) {
-                            bestSentences = top.map(s => s.text);
-                            bestTitle = result.title;
-                            hasGood = true;
-                            break;
-                        }
+      for (const term of searchTerms) {
+        try {
+          const searchUrl = `${WIKI_SEARCH}&srsearch=${encodeURIComponent(term)}&srlimit=5`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const searchResp = await fetch(searchUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (searchResp.status === 200) {
+            const searchData = await searchResp.json();
+            const results = searchData.query?.search || [];
+            for (const result of results) {
+              const extract = await fetchExtract(result.title);
+              if (extract) {
+                if (isBandChinaCrisis(result.title, extract)) continue;
+                let sentences = splitIntoSentences(extract);
+                if (sentences.length < 3) sentences = extract.split(/\n/);
+                sentences = sentences.filter(s => s.trim().length > 60);
+                const scored = scoreSentences(sentences, name, weights, crisisTypes);
+                const filtered = scored.filter(s => {
+                  if (s.recencyBonus < -50) return false;
+                  if (s.hasDimensionMatch) return true;
+                  const lower = s.text.toLowerCase();
+                  if (name.toLowerCase() && lower.includes(name.toLowerCase()) && lower.includes('crisis')) return true;
+                  if (crisisTypes && Array.isArray(crisisTypes)) {
+                    for (const type of crisisTypes) {
+                      const terms = crisisSearchTerms[type] || [];
+                      for (const word of terms) {
+                        if (lower.includes(word)) return true;
+                      }
                     }
-                } catch {}
-                if (hasGood) break;
-            }
-            if (!hasGood || bestSentences.length < 2) {
-                const fb = getSafeFallback(name, dims);
-                bestSentences = fb.sentences;
-                bestTitle = fb.title;
-            }
-            if (bestSentences.length) {
-                return {
-                    sentences: bestSentences,
-                    title: bestTitle,
-                    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(bestTitle.replace(/ /g, '_'))}`
-                };
-            }
-            return null;
-        }
-
-        // ─── BUILD STORY HTML ────────────────────────────────────────────────
-
-        function buildStoryHTML(country, allCountries, rank) {
-            const c = country;
-            const score = c.score || 0;
-            const severity = score >= 85 ? 'CATASTROPHIC' : score >= 75 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 40 ? 'ELEVATED' : 'MODERATE';
-            const severityColor = score >= 85 ? '#ff375f' : score >= 75 ? '#ff8c42' : score >= 60 ? '#ffb020' : score >= 40 ? '#69db7c' : '#74c0fc';
-            const flag = c.flag || '🌍';
-            const name = c.name || 'Unknown';
-            const iso = c.iso || '---';
-            const zScore = c.anomaly?.z_score || 0;
-            const anomalyDetected = c.anomaly?.detected || false;
-            const anomalyScore = c.anomalyScore || 0;
-
-            const trendDir = c.trend?.direction || 'stable';
-            const delta = c.trend?.delta_7d || 0;
-            const forecast = c.trend?.forecast_7d || score;
-            const spillover = c.spillover?.value || 0;
-
-            // Friction description
-            let friction = '';
-            if (c.live_evidence?.food_security?.phase >= 3) {
-                const pop = (c.live_evidence.food_security.population_affected / 1e6).toFixed(1);
-                const phase = c.live_evidence.food_security.phase;
-                friction = `${pop} million people facing IPC Phase ${phase} hunger`;
-            } else if (c.live_evidence?.displacement?.total > 0) {
-                friction = `${(c.live_evidence.displacement.total / 1e6).toFixed(1)} million displaced`;
-            } else if (c.live_evidence?.disease_outbreaks?.length) {
-                const o = c.live_evidence.disease_outbreaks[0];
-                friction = `${o.disease} outbreak (${o.severity})`;
-            } else if (c.live_evidence?.heat?.max_temp_c >= 42) {
-                friction = `Extreme heat at ${c.live_evidence.heat.max_temp_c}°C`;
-            } else {
-                friction = `Statistical anomaly (z=${zScore.toFixed(1)})`;
-            }
-
-            // Dimensions
-            const dims = c.dimensions || {};
-            const dimList = [
-                { label: 'Conflict', value: dims.conflict?.value || 0 },
-                { label: 'Displacement', value: dims.displacement?.value || 0 },
-                { label: 'Food Security', value: dims.food?.value || 0 },
-                { label: 'Health', value: dims.health?.value || 0 },
-                { label: 'Economic', value: dims.economic?.value || 0 },
-                { label: 'Climate', value: dims.climate?.value || 0 },
-                { label: 'Access', value: dims.access?.value || 0 },
-                { label: 'Political', value: dims.political?.value || 0 }
-            ];
-
-            // Evidence
-            let evidenceHtml = '';
-            if (c.live_evidence?.food_security) {
-                evidenceHtml += `<li>🍚 IPC Phase ${c.live_evidence.food_security.phase} — ${(c.live_evidence.food_security.population_affected/1e6).toFixed(1)}M affected</li>`;
-            }
-            if (c.live_evidence?.displacement) {
-                evidenceHtml += `<li>🚶 Displacement: ${(c.live_evidence.displacement.total/1e6).toFixed(1)}M</li>`;
-            }
-            if (c.live_evidence?.disease_outbreaks?.length) {
-                c.live_evidence.disease_outbreaks.forEach(o => {
-                    evidenceHtml += `<li>🦠 ${o.disease} — ${o.cases.toLocaleString()}+ cases, ${o.deaths} deaths</li>`;
+                  }
+                  return false;
                 });
+                const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 3);
+                if (topScored.length >= 2 && topScored.every(s => s.text.length > 60)) {
+                  bestSentences = topScored.map(s => s.text);
+                  bestTitle = result.title;
+                  hasGoodWikipedia = true;
+                  break;
+                }
+              }
             }
-            if (c.live_evidence?.heat?.max_temp_c >= 38) {
-                evidenceHtml += `<li>🥵 ${c.live_evidence.heat.max_temp_c}°C extreme heat</li>`;
-            }
-            if (!evidenceHtml) evidenceHtml = '<li>No live signals detected in this window.</li>';
+          }
+        } catch(e) {}
+        if (hasGoodWikipedia) break;
+      }
 
-            // Audit trail
-            let auditHtml = '';
-            if (c.score_audit?.adjustments?.length) {
-                auditHtml = '<ul class="audit-list">';
-                c.score_audit.adjustments.slice(0, 4).forEach(a => {
-                    auditHtml += `<li>${a.source}: ${a.reason} (${a.delta} pts)</li>`;
-                });
-                auditHtml += '</ul>';
-            }
+      if (!hasGoodWikipedia || bestSentences.length < 2) {
+        const fallback = getSafeFallback(name, dims);
+        bestSentences = fallback.sentences;
+        bestTitle = fallback.title;
+      }
 
-            // Wikipedia context placeholder – will be loaded async
-            const wikiPlaceholderId = `wiki-${iso || rank}`;
+      if (bestSentences.length) {
+        return {
+          sentences: bestSentences,
+          title: bestTitle,
+          url: `https://en.wikipedia.org/wiki/${encodeURIComponent(bestTitle.replace(/ /g, '_'))}`
+        };
+      }
+      return null;
+    }
 
-            return `
-            <div class="story-card" id="story-${iso || rank}">
-                <div class="story-rank">${rank}. ${anomalyDetected ? '🔴 ANOMALY DETECTED' : '⚠️ WATCH'} · Anomaly score ${anomalyScore.toFixed(1)}/10</div>
-                <div class="headline">
-                    <span class="flag">${flag}</span>
-                    ${name}
-                    <span class="score-badge" style="background:${severityColor}22; color:${severityColor}; border:1px solid ${severityColor}44;">${score}/100</span>
-                </div>
-                <div class="meta-line">
-                    <span class="anomaly-score">${severity}</span>
-                    <span>📈 ${trendDir} · ${delta > 0 ? '+' : ''}${delta} pts / 7d</span>
-                    <span class="z-score">🔍 z=${zScore.toFixed(2)}</span>
-                    <span>🌐 spillover +${spillover.toFixed(1)}</span>
-                    <span>📊 forecast ${forecast}/100</span>
-                </div>
-                <div class="story-body">
-                    <p><strong>The anomaly:</strong> ${friction}. The statistical anomaly score (z‑score: ${zScore.toFixed(1)}) confirms this divergence is not random.</p>
-                    <p><strong>8‑Dimension breakdown:</strong></p>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.25rem 1rem; margin:0.5rem 0; font-size:0.9rem;">
-                        ${dimList.map(d => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #0f1f2f; padding:0.15rem 0;"><span>${d.label}</span><span style="color:${d.value >= 70 ? '#ff8a7a' : d.value >= 50 ? '#ffb347' : '#69db7c'}">${d.value}/100</span></div>`).join('')}
-                    </div>
-                    <p><strong>Live evidence:</strong></p>
-                    <ul class="evidence-list">${evidenceHtml}</ul>
-                    <p><strong>Score audit:</strong> Prior estimate: ${c.score_audit?.prior_score || score}/100. Live data adjustment: +${c.live_boost || 0} points.</p>
-                    ${auditHtml}
-                </div>
-                <div class="wiki-container" id="${wikiPlaceholderId}">
-                    <div class="wiki-label">⏳ Loading Wikipedia context...</div>
-                </div>
-                <div class="story-footer">
-                    <span>${iso} · ${c.region || 'global'}</span>
-                    <a href="/?country=${iso}" class="read-more">Full analysis →</a>
-                </div>
+    // ─── BUILD ARTICLE HTML ──────────────────────────────────────────────────
+
+    function buildArticleHTML(country, rank, total) {
+      const score = country.score || 0;
+      const severity = getSeverityLabel(score);
+      const severityClass = getSeverityClass(score);
+      const flag = country.flag || '🌍';
+      const name = country.name || 'Unknown';
+      const iso = country.iso || 'N/A';
+      const dims = country.dimensions || {};
+      const anomaly = country.anomaly || {};
+      const trend = country.trend || {};
+      const liveEvidence = country.live_evidence || {};
+      const recommendations = country.recommendation || {};
+
+      let dimsHtml = '';
+      const dimList = [
+        { key: 'conflict', label: 'Conflict', value: dims.conflict?.value || 0 },
+        { key: 'displacement', label: 'Displacement', value: dims.displacement?.value || 0 },
+        { key: 'food', label: 'Food Security', value: dims.food?.value || 0 },
+        { key: 'health', label: 'Health', value: dims.health?.value || 0 },
+        { key: 'economic', label: 'Economic', value: dims.economic?.value || 0 },
+        { key: 'climate', label: 'Climate', value: dims.climate?.value || 0 },
+        { key: 'access', label: 'Access', value: dims.access?.value || 0 },
+        { key: 'political', label: 'Political', value: dims.political?.value || 0 }
+      ];
+      dimsHtml = `<div class="dimension-grid">` +
+        dimList.map(d => `<div class="dim-item"><div class="dim-label">${d.label}</div><div class="dim-value">${d.value}/100</div></div>`).join('') +
+        `</div>`;
+
+      let evidenceHtml = '';
+      if (liveEvidence.food_security) {
+        const pop = (liveEvidence.food_security.population_affected || 0) / 1e6;
+        evidenceHtml += `<li>🍚 IPC Phase ${liveEvidence.food_security.phase} food insecurity — ${pop.toFixed(1)}M people affected</li>`;
+      }
+      if (liveEvidence.displacement && liveEvidence.displacement.total > 0) {
+        const totalDisp = liveEvidence.displacement.total / 1e6;
+        evidenceHtml += `<li>🚶 Displacement: ${totalDisp.toFixed(1)}M total (refugees: ${(liveEvidence.displacement.refugees/1e6||0).toFixed(1)}M, IDPs: ${(liveEvidence.displacement.idps/1e6||0).toFixed(1)}M)</li>`;
+      }
+      if (liveEvidence.disease_outbreaks && liveEvidence.disease_outbreaks.length) {
+        liveEvidence.disease_outbreaks.slice(0, 2).forEach(o => {
+          evidenceHtml += `<li>🦠 ${o.disease} (${o.severity}) — ${o.cases.toLocaleString()}+ cases, ${o.deaths} deaths</li>`;
+        });
+      }
+      if (liveEvidence.heat && liveEvidence.heat.max_temp_c >= 38) {
+        evidenceHtml += `<li>🥵 Extreme heat: ${liveEvidence.heat.max_temp_c}°C</li>`;
+      }
+      if (liveEvidence.earthquake) {
+        evidenceHtml += `<li>🌍 M${liveEvidence.earthquake.magnitude} earthquake near ${liveEvidence.earthquake.location}</li>`;
+      }
+      if (evidenceHtml) evidenceHtml = `<ul class="evidence-list">${evidenceHtml}</ul>`;
+      else evidenceHtml = '<p style="color:#5a7390;font-size:0.85rem;">No live signals detected in this window.</p>';
+
+      const anomalyScore = country.anomalyScore || 0;
+      const zScore = anomaly.z_score || 0;
+      const anomalyNote = anomaly.note || (zScore >= 1.5 ? `Statistical anomaly (z=${zScore.toFixed(1)})` : 'No significant anomaly');
+
+      const trendPhrase = trend.direction === 'escalating' ? '📈 Escalating' :
+                          trend.direction === 'improving' ? '📉 Improving' : '➡️ Stable';
+      const trendDelta = trend.delta_7d || 0;
+
+      const narrative = country.narrative || `${flag} ${name} is at ${score}/100 (${severity}). Live data from 40+ APIs.`;
+
+      // Fetch Wikipedia content (will be inserted asynchronously)
+      return {
+        html: `
+          <div class="article-card" data-iso="${iso}" data-country="${name}">
+            <div class="article-header">
+              <div class="article-title">
+                <span class="flag">${flag}</span> ${name}
+                <span style="font-size:0.8rem;color:#7c9ec0;font-weight:400;">— Crisis Score ${score}/100 (${severity})</span>
+              </div>
+              <div>
+                <span class="severity-badge ${severityClass}">${severity}</span>
+                <span class="anomaly-score-badge" style="margin-left:0.5rem;">🔍 ${anomalyScore.toFixed(1)}/10</span>
+              </div>
             </div>
-            `;
+
+            <div class="article-meta">
+              <span>#${rank} of ${total} tracked</span>
+              <span>📍 ${iso} · ${country.region || 'Global'}</span>
+              <span>${trendPhrase} · ${trendDelta > 0 ? '+' : ''}${trendDelta} pts / 7d</span>
+              <span>🔬 z=${zScore.toFixed(2)}</span>
+              <span>⚡ ${anomalyNote}</span>
+            </div>
+
+            <div class="article-body" id="article-body-${iso}">
+              <div class="article-lead">
+                ${flag} ${name} has recorded a live crisis score of ${score}/100 — classified as ${severity}. 
+                The composite is driven primarily by ${dimList[0].label} (${dimList[0].value}/100) and ${dimList[1].label} (${dimList[1].value}/100), the two highest-weighted dimensions.
+                ${trend.direction === 'escalating' ? `The score has escalated ${trendDelta} points over the past 7 days.` : `The score has held steady at ${severity.toLowerCase()} levels.`}
+              </div>
+
+              <div id="wiki-container-${iso}" class="wiki-container">
+                <div class="wiki-label">📖 CONTEXT · WIKIPEDIA</div>
+                <div class="wiki-sentence" style="color:#7c9ec0;">Loading context from Wikipedia…</div>
+              </div>
+
+              <p><strong>📊 8‑Dimension Breakdown</strong></p>
+              ${dimsHtml}
+
+              <p><strong>📡 Live Evidence</strong></p>
+              ${evidenceHtml}
+
+              ${recommendations.text ? `<div class="quote">“${recommendations.text}” — GCIN Anomaly Desk</div>` : ''}
+
+              <p style="font-size:0.8rem;color:#5a7390;margin-top:0.5rem;">
+                📊 Prior estimate: ${country.prior_score || score - (country.live_boost || 0)}/100. 
+                Live data adjustment: +${country.live_boost || 0} points. Regional spillover: +${country.spillover?.value || 0}.
+              </p>
+            </div>
+          </div>
+        `,
+        iso: iso,
+        name: name,
+        score: score,
+        severity: severity,
+        wikiReady: true
+      };
+    }
+
+    // ─── FETCH AND INJECT WIKIPEDIA CONTENT ──────────────────────────────────
+
+    async function injectWikipediaContent(iso, country, containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      try {
+        const wikiData = await getRelevantWikipediaContent(
+          country.name,
+          country.crisis_types || [],
+          country.score,
+          country.dimensions || {}
+        );
+
+        const wikiContainer = document.getElementById(`wiki-container-${iso}`);
+        if (!wikiContainer) return;
+
+        if (wikiData && wikiData.sentences && wikiData.sentences.length) {
+          let html = `<div class="wiki-label">📖 CONTEXT · WIKIPEDIA</div>`;
+          for (const sent of wikiData.sentences) {
+            html += `<div class="wiki-sentence">${escapeHtml(sent)}</div>`;
+          }
+          html += `<div style="font-size:0.65rem;color:#3a5a7a;margin-top:0.3rem;">— <a href="${wikiData.url}" target="_blank" style="color:#80c0ff;">${wikiData.title}</a></div>`;
+          wikiContainer.innerHTML = html;
+        } else {
+          wikiContainer.innerHTML = `<div class="wiki-label">📖 CONTEXT · WIKIPEDIA</div><div class="wiki-sentence" style="color:#5a7390;">No relevant Wikipedia article found for this crisis profile.</div>`;
+        }
+      } catch (e) {
+        const wikiContainer = document.getElementById(`wiki-container-${iso}`);
+        if (wikiContainer) {
+          wikiContainer.innerHTML = `<div class="wiki-label">📖 CONTEXT · WIKIPEDIA</div><div class="wiki-sentence" style="color:#5a7390;">Could not load Wikipedia context.</div>`;
+        }
+      }
+    }
+
+    // ─── MAIN LOAD FUNCTION ──────────────────────────────────────────────────
+
+    async function loadAllAnomalies() {
+      const container = document.getElementById('articles-container');
+      if (!container) return;
+
+      try {
+        const response = await fetch(`${API_BASE}?top=50`);
+        if (!response.ok) throw new Error(`API returned ${response.status}`);
+        const data = await response.json();
+        const countries = data.countries || [];
+        if (!countries.length) throw new Error('No country data');
+
+        // Compute anomaly score for each country (matching original logic)
+        const scored = countries.map(c => {
+          let score = 0;
+          if (c.anomaly?.z_score) score += Math.min(5, c.anomaly.z_score);
+          if (c.trend && Math.abs(c.trend.forecast_7d - c.score) > 8) score += 2;
+          if (c.live_boost && c.live_boost > 8) score += 1.5;
+          return { ...c, anomalyScore: Math.min(10, Math.round(score * 10) / 10) };
+        });
+
+        // Sort by anomaly score descending, then by score descending
+        scored.sort((a, b) => b.anomalyScore - a.anomalyScore || b.score - a.score);
+
+        // Take top 30 anomalies with anomalyScore > 0.5
+        const anomalies = scored.filter(c => c.anomalyScore > 0.5).slice(0, 30);
+
+        if (!anomalies.length) {
+          container.innerHTML = '<div style="text-align:center;padding:3rem;color:#5a7390;">🔍 No significant anomalies detected at this time.</div>';
+          return;
         }
 
-        // ─── FETCH ALL ANOMALIES ─────────────────────────────────────────────
+        // Update timestamp
+        const timeEl = document.getElementById('update-time');
+        if (timeEl) timeEl.textContent = `🕒 ${new Date().toLocaleString()}`;
 
-        async function fetchAllAnomalies() {
-            const url = new URL(API_BASE);
-            url.searchParams.append('top', '50');
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-            const data = await resp.json();
-            const countries = data.countries || [];
-            if (!countries.length) throw new Error('No country data');
-            // Compute anomaly score
-            return countries.map(c => {
-                let score = 0;
-                if (c.anomaly?.z_score) score += Math.min(5, c.anomaly.z_score);
-                if (c.trend && Math.abs(c.trend.forecast_7d - c.score) > 8) score += 2;
-                if (c.live_boost && c.live_boost > 8) score += 1.5;
-                return { ...c, anomalyScore: Math.min(10, Math.round(score * 10) / 10) };
-            }).sort((a, b) => b.anomalyScore - a.anomalyScore);
+        // Build article HTML for each anomaly
+        let html = '<div class="article-grid">';
+        const wikiPromises = [];
+
+        anomalies.forEach((country, index) => {
+          const rank = index + 1;
+          const articleData = buildArticleHTML(country, rank, anomalies.length);
+          html += articleData.html;
+          // Store wiki injection info
+          wikiPromises.push({
+            iso: country.iso,
+            country: country,
+            containerId: `article-body-${country.iso}`
+          });
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Inject Wikipedia content asynchronously
+        for (const item of wikiPromises) {
+          await injectWikipediaContent(item.iso, item.country, item.containerId);
         }
 
-        // ─── LOAD WIKIPEDIA FOR A STORY ─────────────────────────────────────
+      } catch (err) {
+        console.error('Error loading anomalies:', err);
+        container.innerHTML = `<div style="text-align:center;padding:3rem;color:#ff6b6b;">⚠️ Could not load crisis intelligence. Please refresh the page.</div>`;
+      }
+    }
 
-        async function loadWikipediaForStory(country, containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            try {
-                const wikiData = await getRelevantWikipediaContent(
-                    country.name,
-                    country.crisis_types || [],
-                    country.score,
-                    country.dimensions || {}
-                );
-                if (wikiData && wikiData.sentences.length) {
-                    let html = '<div class="wiki-label">📖 CONTEXT · WIKIPEDIA</div>';
-                    wikiData.sentences.forEach(s => {
-                        html += `<div class="wiki-sentence">${escapeHtml(s)}</div>`;
-                    });
-                    html += `<div class="wiki-attribution">— <a href="${wikiData.url}" target="_blank">${wikiData.title}</a> on Wikipedia</div>`;
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div class="wiki-label">📖 No Wikipedia context available.</div>';
-                }
-            } catch (e) {
-                container.innerHTML = '<div class="wiki-label">📖 Wikipedia context could not be loaded.</div>';
-            }
-        }
+    // ─── AUTO-REFRESH ─────────────────────────────────────────────────────────
 
-        // ─── RENDER ALL STORIES ─────────────────────────────────────────────
-
-        async function renderAllStories() {
-            const container = document.getElementById('stories-container');
-            const timestamp = document.getElementById('header-timestamp');
-            try {
-                const anomalies = await fetchAllAnomalies();
-                if (!anomalies.length) {
-                    container.innerHTML = '<div class="error-message">No anomalies detected in this window.</div>';
-                    return;
-                }
-                timestamp.textContent = new Date().toLocaleString();
-
-                let html = '';
-                anomalies.forEach((country, index) => {
-                    html += buildStoryHTML(country, anomalies, index + 1);
-                });
-                container.innerHTML = html;
-
-                // Load Wikipedia for each story
-                const wikiPromises = anomalies.map((country, index) => {
-                    const containerId = `wiki-${country.iso || index}`;
-                    return loadWikipediaForStory(country, containerId);
-                });
-                await Promise.all(wikiPromises);
-
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = `<div class="error-message">❌ Failed to load crisis intelligence: ${err.message}</div>`;
-                timestamp.textContent = 'Error loading data';
-            }
-        }
-
-        // ─── INIT ─────────────────────────────────────────────────────────────
-
-        renderAllStories();
-        // Refresh every 10 minutes
-        setInterval(renderAllStories, 10 * 60 * 1000);
-    })();
+    loadAllAnomalies();
+    setInterval(loadAllAnomalies, 5 * 60 * 1000); // Refresh every 5 minutes
+  })();
 </script>
 </body>
 </html>
