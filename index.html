@@ -1675,69 +1675,22 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    // ── 1. HIDE ALL UPGRADE WALLS ──────────────────────────────────────────
-    // Hide lock banner in sidebar (if it exists)
-    const lockBanner = document.querySelector('.lock-banner');
-    if (lockBanner) lockBanner.style.display = 'none';
-    
-    // Hide upgrade buttons in header
+    // Hide any lock banners in the UI
+    document.querySelectorAll('.lock-banner').forEach(el => el.style.display = 'none');
+    // Only hide header upgrade button, NOT elements inside panelContent
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
-    
-    // Hide modal CTA (upgrade button inside modal)
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    
-    // Hide "UPGRADE TO PRO" button in pro banner
-    const proBannerUpgrade = document.querySelector('#proBanner a[href="#"][onclick*="openModal"]');
-    if (proBannerUpgrade) proBannerUpgrade.style.display = 'none';
-    
-    // ── 2. SHOW THE LOCKED COUNTRY PANEL ──────────────────────────────────
-    // If we're currently showing an upgrade wall (free tier block),
-    // re-render the panel with the actual country data
+    // Re-render panel if a country is selected, clearing any upgrade wall
     if (selectedIso && store[selectedIso]) {
-      // Re-render the full panel
-      renderPanel(selectedIso, null);
-    } else if (ranked && ranked.length > 0) {
-      // If no country is selected, select the top one
-      selectedIso = ranked[0];
       renderPanel(selectedIso, null);
     }
-    
-    // ── 3. RE-RENDER THE RANKING LIST ─────────────────────────────────────
-    // This shows all countries instead of just the top 10
-    renderRanking(document.getElementById('search')?.value || '');
-    
-    // ── 4. UPDATE THE SEARCH BAR ──────────────────────────────────────────
-    updateSearchLockState();
-    
-    // ── 5. UNLOCK THE MAP ─────────────────────────────────────────────────
-    // Re-paint map with full color scale (no restrictions)
-    if (typeof paintMap === 'function') paintMap();
-    
-    // ── 6. TRIGGER A FULL REFRESH TO GET ALL DATA ────────────────────────
-    // This ensures all Pro features are properly loaded
-    setTimeout(() => {
-      if (typeof refresh === 'function') refresh();
-    }, 300);
-    
-    // ── 7. SHOW A CONFIRMATION TOAST ─────────────────────────────────────
-    toast('✨ Pro unlocked! Full access granted.');
-    
   } else {
-    // ── FREE TIER: RESTORE UPGRADE BUTTONS ──────────────────────────────
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
-    
-    // Show pro banner upgrade button again
-    const proBannerUpgrade = document.querySelector('#proBanner a[href="#"][onclick*="openModal"]');
-    if (proBannerUpgrade) proBannerUpgrade.style.display = '';
-    
-    // Re-lock the search bar
-    updateSearchLockState();
   }
 }
-
 // ============================================================================
 // LOGIN FUNCTIONS
 // ============================================================================
@@ -1795,6 +1748,13 @@ async function checkProStatusAndUpdateUI(email) {
       }
       unlockProFeatures(true);
       toast(`🎉 Pro member! Full access unlocked.`);
+      // Refresh the panel if a country is selected to remove any upgrade wall
+      if (selectedIso && store[selectedIso]) {
+        renderPanel(selectedIso, null);
+      } else if (ranked && ranked.length > 0) {
+        selectedIso = ranked[0];
+        renderPanel(selectedIso, null);
+      }
     } else {
       tier = 'free';
       if (tierPill) {
@@ -1815,8 +1775,7 @@ async function checkProStatusAndUpdateUI(email) {
     console.error('Error checking Pro status:', err);
     return false;
   }
-}
-function updateUILoggedIn(email) {
+}function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
   document.getElementById('loginEmail').style.display = 'none';
@@ -4021,11 +3980,14 @@ function renderRanking(filter=''){
 function selCountry(iso){
   if(!iso||!store[iso])return;
 
+  // Check if user is PRO
+  const isProUser = (tier === 'pro');
+
   // Free tier: block panel for countries outside top 10
-  if(tier!=='pro'){
+  if(!isProUser){
     const idx=ranked.indexOf(iso);
     if(idx>=10){
-      // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
+      // Still zoom/highlight the country on the map
       _doZoom(iso);
       document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
       // Show upgrade wall in right panel
@@ -4059,6 +4021,7 @@ function selCountry(iso){
     }
   }
 
+  // PRO user or top 10 free country — render normally
   selectedIso=iso;
   const idx=ranked.indexOf(iso);
   if(idx>=0)rankIdx=idx;
@@ -4068,7 +4031,6 @@ function selCountry(iso){
   const newUrl=`${window.location.pathname}?country=${iso}`;
   window.history.pushState({country:iso},'',newUrl);
 }
-
 function _doZoom(iso){
   if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
   const stage=document.getElementById('mapStage');
