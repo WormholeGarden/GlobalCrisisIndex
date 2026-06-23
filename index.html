@@ -1674,12 +1674,22 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // PRO FEATURE UNLOCK
 // ============================================================================
 function unlockProFeatures(isPro) {
-  const lockBanner = document.querySelector('.lock-banner');
-  if (lockBanner) lockBanner.style.display = isPro ? 'none' : '';
-  document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = isPro ? 'none' : '');
-  const modalCta = document.querySelector('.modal-cta');
-  if (modalCta) modalCta.style.display = isPro ? 'none' : '';
+  if (isPro) {
+    const lockBanner = document.querySelector('.lock-banner');
+    if (lockBanner) lockBanner.style.display = 'none';
+    // Only hide header upgrade button, NOT elements inside panelContent
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = 'none';
+    // Re-render panel if a country is selected, clearing any upgrade wall
+    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
+  } else {
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = '';
+  }
 }
+
 // ============================================================================
 // LOGIN FUNCTIONS
 // ============================================================================
