@@ -1675,22 +1675,21 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    // Hide any lock banners in the UI
-    document.querySelectorAll('.lock-banner').forEach(el => el.style.display = 'none');
+    const lockBanner = document.querySelector('.lock-banner');
+    if (lockBanner) lockBanner.style.display = 'none';
     // Only hide header upgrade button, NOT elements inside panelContent
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
     // Re-render panel if a country is selected, clearing any upgrade wall
-    if (selectedIso && store[selectedIso]) {
-      renderPanel(selectedIso, null);
-    }
+    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
   } else {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
   }
 }
+
 // ============================================================================
 // LOGIN FUNCTIONS
 // ============================================================================
@@ -1748,13 +1747,6 @@ async function checkProStatusAndUpdateUI(email) {
       }
       unlockProFeatures(true);
       toast(`🎉 Pro member! Full access unlocked.`);
-      // Refresh the panel if a country is selected to remove any upgrade wall
-      if (selectedIso && store[selectedIso]) {
-        renderPanel(selectedIso, null);
-      } else if (ranked && ranked.length > 0) {
-        selectedIso = ranked[0];
-        renderPanel(selectedIso, null);
-      }
     } else {
       tier = 'free';
       if (tierPill) {
@@ -1775,7 +1767,8 @@ async function checkProStatusAndUpdateUI(email) {
     console.error('Error checking Pro status:', err);
     return false;
   }
-}function updateUILoggedIn(email) {
+}
+function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
   document.getElementById('loginEmail').style.display = 'none';
@@ -3980,14 +3973,13 @@ function renderRanking(filter=''){
 function selCountry(iso){
   if(!iso||!store[iso])return;
 
-  // Check if user is PRO
-  const isProUser = (tier === 'pro');
-
-  // Free tier: block panel for countries outside top 10
-  if(!isProUser){
+  // For pro users, always show the full panel
+  const isPro = (tier === 'pro');
+  
+  // For free users, block panels for countries outside top 10
+  if(!isPro){
     const idx=ranked.indexOf(iso);
     if(idx>=10){
-      // Still zoom/highlight the country on the map
       _doZoom(iso);
       document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
       // Show upgrade wall in right panel
@@ -4021,7 +4013,6 @@ function selCountry(iso){
     }
   }
 
-  // PRO user or top 10 free country — render normally
   selectedIso=iso;
   const idx=ranked.indexOf(iso);
   if(idx>=0)rankIdx=idx;
@@ -4031,6 +4022,7 @@ function selCountry(iso){
   const newUrl=`${window.location.pathname}?country=${iso}`;
   window.history.pushState({country:iso},'',newUrl);
 }
+
 function _doZoom(iso){
   if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
   const stage=document.getElementById('mapStage');
