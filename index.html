@@ -3973,13 +3973,11 @@ function renderRanking(filter=''){
 function selCountry(iso){
   if(!iso||!store[iso])return;
 
-  // For pro users, always show the full panel
-  const isPro = (tier === 'pro');
-  
-  // For free users, block panels for countries outside top 10
-  if(!isPro){
+  // Free tier: block panel for countries outside top 10
+  if(tier!=='pro'){
     const idx=ranked.indexOf(iso);
     if(idx>=10){
+      // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
       _doZoom(iso);
       document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
       // Show upgrade wall in right panel
@@ -4057,7 +4055,18 @@ function fetchAIBrief(iso){
 // RENDER PANEL
 // ============================================================================
 async function renderPanel(iso, focusCrisisType) {
-  const c = store[iso]; if (!c) return;
+  const c = store[iso];
+  if (!c) {
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('panelContent').style.display = 'none';
+    return;
+  }
+  
+  // Ensure needs array exists
+  if (!c.needs || !Array.isArray(c.needs)) {
+    c.needs = [];
+  }
+  
   const hist = (history[iso] || []).map(h => h.s);
   const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
   const col = sc(c.score); const cir = 175.9;
@@ -4065,7 +4074,7 @@ async function renderPanel(iso, focusCrisisType) {
   // ── CRISIS PARAM: only show focused crisis if there's an active pulse marker for it ──
   const activePulseIsos = new Set(ranked.filter(i => store[i]?.score >= 60).slice(0, 18).map(i => i));
   const countryHasPulse = activePulseIsos.has(iso);
-  const crisisTypeValid = focusCrisisType && c.types.includes(focusCrisisType) && countryHasPulse;
+  const crisisTypeValid = focusCrisisType && c.types && c.types.includes(focusCrisisType) && countryHasPulse;
   const activeCrisis = crisisTypeValid ? focusCrisisType : null;
   const activeCrisisData = activeCrisis ? ARC[activeCrisis] : null;
 
@@ -4140,7 +4149,7 @@ async function renderPanel(iso, focusCrisisType) {
   ` : '';
 
   // ── CRISIS TYPE PILLS (highlight active crisis if present) ──
-const typeTagsHtml = c.types.slice(0, 5).map(t => {
+  const typeTagsHtml = (c.types || []).slice(0, 5).map(t => {
     const isActive = t === activeCrisis;
     return `<span class="type-tag${isActive ? ' active-crisis-tag' : ''}" data-type="${t}" onclick="window.location.href='/?country=${iso}&crisis=${t}'" style="cursor:pointer;${isActive
       ? 'background:rgba(255,55,95,0.18);border-color:rgba(255,55,95,0.5);color:#ff375f;box-shadow:0 0 10px rgba(255,55,95,0.3);'
@@ -4167,15 +4176,16 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
-  document.getElementById('panelContent').innerHTML = `
+  // ── BUILD THE PANEL HTML ──
+  let panelHtml = `
     ${crisisBannerHtml}
     <div class="p-block">
       <div class="p-score-row">
         <div>
           <div class="p-flag-row">
-            <div class="p-flag">${c.flag}</div>
+            <div class="p-flag">${c.flag || '🌍'}</div>
             <div>
-              <div class="p-name">${c.name}</div>
+              <div class="p-name">${c.name || iso}</div>
               <div class="p-iso">${iso}${activeCrisis ? ` · ${activeCrisis}` : ''}</div>
             </div>
           </div>
@@ -4186,7 +4196,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
             <circle class="ring-bg" cx="34" cy="34" r="28"/>
             <circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/>
           </svg>
-          <div class="ring-val" style="color:${col}">${c.score}</div>
+          <div class="ring-val" style="color:${col}">${c.score || 0}</div>
           <div class="ring-lbl">/100</div>
         </div>
       </div>
@@ -4194,11 +4204,11 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         <div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div>
         <div class="vol-chip">∫ Ent ${ent}</div>
         <div class="vol-chip">🌐 +${(c.spillover || 0).toFixed(1)}</div>
-        <div class="vol-chip">📅 ${c.events}</div>
+        <div class="vol-chip">📅 ${c.events || 0}</div>
         ${activeCrisis ? `<div class="vol-chip" style="background:rgba(255,55,95,0.1);border-color:rgba(255,55,95,0.25);color:#ff375f;">⚡ ${activeCrisis} Focus</div>` : ''}
       </div>
       <div class="urgency-bar-wrap">
-        <div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div>
+        <div class="u-head"><span>Urgency</span><span>${c.score || 0}/100</span></div>
         <div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div>
       </div>
       <div class="needs-strip">
@@ -4207,25 +4217,19 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         ).join('')}
       </div>
       ${ipcInfo ? (() => {
-  // Determine if this is a Phase 4 (Emergency) population that needs clarification
-  const isPhase4 = ipcInfo.phase === 4;
-  const isYemen = c.name === 'Yemen';
-  const isSudan = c.name === 'Sudan';
-  
-  // For Yemen and Sudan Phase 4, the population figure is actually total acute (Phase 3+4+5)
-  // Display it correctly without misrepresenting
-  if (isPhase4 && (isYemen || isSudan)) {
-    const totalAcute = ipcInfo.population;
-    return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
-      <span>📊 IPC Food Security: Phase 4 (Emergency) — ${Math.round(totalAcute / 1e6)}M people facing acute hunger (IPC Phase 3+)</span>
-    </div>`;
-  }
-  
-  // For all other countries, display normally
-  return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
-    <span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span>
-  </div>`;
-})() : ''}
+        const isPhase4 = ipcInfo.phase === 4;
+        const isYemen = c.name === 'Yemen';
+        const isSudan = c.name === 'Sudan';
+        if (isPhase4 && (isYemen || isSudan)) {
+          const totalAcute = ipcInfo.population;
+          return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+            <span>📊 IPC Food Security: Phase 4 (Emergency) — ${Math.round(totalAcute / 1e6)}M people facing acute hunger (IPC Phase 3+)</span>
+          </div>`;
+        }
+        return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
+          <span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span>
+        </div>`;
+      })() : ''}
     </div>
 
     <div class="ai-brief" id="aiBrief">
@@ -4262,7 +4266,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         <div class="dims-body">
           <div class="dims-bars">
             ${DIMS.map(d => {
-              const v = c.dims[d.k] || 0;
+              const v = c.dims?.[d.k] || 0;
               const isHighlighted = activeDimHighlights[d.k] >= 0.7;
               return `<div class="dim-row" style="${isHighlighted ? 'background:rgba(255,55,95,0.05);border-radius:4px;margin:0 -4px;padding:0 4px;' : ''}">
                 <div class="dim-icon">${d.i}</div>
@@ -4274,12 +4278,12 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
               </div>`;
             }).join('')}
           </div>
-          <div class="radar-wrap">${buildRadar(c.dims)}</div>
+          <div class="radar-wrap">${buildRadar(c.dims || {})}</div>
         </div>
       </div>
     </div>
 
-        <div class="ps">
+    <div class="ps">
       <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
         <div class="fc-head">
           <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
@@ -4319,7 +4323,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           </span>
         </div>
         
-        <!-- Anomaly Alert -->
         ${anom && anom.detected ? `
         <div style="margin-top:6px;padding:5px 8px;background:rgba(255,55,95,0.08);border:1px solid rgba(255,55,95,0.2);border-radius:4px;display:flex;align-items:center;gap:6px;">
           <span style="font-size:14px;">🚨</span>
@@ -4331,13 +4334,14 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         </div>
         ` : ''}
         
-        <!-- Learning progress -->
         <div style="margin-top:4px;display:flex;justify-content:space-between;font-family:var(--fm);font-size:5px;color:var(--td);">
           <span>🧠 ${NN && NN.weights && NN.weights.training_count ? NN.weights.training_count : 0} samples trained</span>
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
         </div>
       </div>
-    </div>    <div class="charity-section">
+    </div>
+    
+    <div class="charity-section">
       <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
       <div class="ch-cards">
         ${chs.map(ch => `
@@ -4381,13 +4385,15 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     </div>
   `;
 
+  document.getElementById('panelContent').innerHTML = panelHtml;
+
   // ── ANIMATE IN ──
   setTimeout(() => {
-    const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
+    const u = document.getElementById('uFill'); if (u) u.style.width = (c.score || 0) + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
-    if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
-    DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
+    if (ring) ring.setAttribute('stroke-dasharray', `${((c.score || 0) / 100 * cir).toFixed(1)} ${cir}`);
+    DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = ((c.dims?.[d.k] || 0)) + '%'; });
   }, 60);
 
   if (mapGroup) {
@@ -4396,11 +4402,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   }
 
   setTimeout(() => calcImpact(iso), 100);
-
- // ── AI BRIEF: data-driven narrative ──
   setTimeout(() => renderAIBrief(iso), 100);
 
-  // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
     setTimeout(() => {
       const banner = document.getElementById('crisisFocusBanner');
@@ -4408,7 +4411,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     }, 200);
   }
 }
-
 function renderAIBrief(iso) {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
