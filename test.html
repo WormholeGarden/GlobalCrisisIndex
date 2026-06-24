@@ -3940,6 +3940,7 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 // RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
 // ============================================================================
 function renderRanking(filter=''){
+  if (!ranked || !ranked.length || !store || !Object.keys(store).length) return;
   const active=new Set(prefs.filters);
   let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
                   .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
