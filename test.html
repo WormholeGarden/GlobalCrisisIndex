@@ -1692,11 +1692,7 @@ function unlockProFeatures(isPro) {
 // LOGIN FUNCTIONS
 // ============================================================================
 function login() {
-  const email = document.getElementById('loginEmail').value.trim();
-  if (!email || !email.includes('@')) {
-    toast('Please enter a valid email');
-    return;
-  }
+  const email = document.getElementById('loginEmail').value.trim() || 'demo@gcis.app';
   localStorage.setItem('userEmail', email);
   localStorage.setItem('isLoggedIn', 'true');
   checkProStatusAndUpdateUI(email);
