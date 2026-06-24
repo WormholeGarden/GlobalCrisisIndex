@@ -1,4 +1,4 @@
-fix the login rendering everything properly. tell me 'replace [ful code x] with [full xode y]' <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -1673,62 +1673,169 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 // PRO FEATURE UNLOCK
 // ============================================================================
+// ============================================================================
+// PRO FEATURE UNLOCK - FIXED
+// ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    const lockBanner = document.querySelector('.lock-banner');
-    if (lockBanner) lockBanner.style.display = 'none';
-    // Only hide header upgrade button, NOT elements inside panelContent
-    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    // Hide upgrade buttons in header
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => {
+      btn.style.display = 'none';
+    });
+    
+    // Hide upgrade button in modal
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // Re-render panel if a country is selected, clearing any upgrade wall
-    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
+    
+    // Show "Pro" badge in modal
+    const modalBadge = document.querySelector('.modal-badge');
+    if (modalBadge) {
+      modalBadge.textContent = '⭐ GCIS Fusion Pro — Active';
+      modalBadge.style.background = 'rgba(0,200,255,0.15)';
+      modalBadge.style.borderColor = 'rgba(0,200,255,0.3)';
+      modalBadge.style.color = '#00c8ff';
+    }
+    
+    // Hide lock banners anywhere
+    document.querySelectorAll('.lock-banner').forEach(el => {
+      el.style.display = 'none';
+    });
+    
+    // If a country is selected, re-render the panel
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
+    }
+    
+    // Re-render ranking to show all countries
+    renderRanking(document.getElementById('search').value);
+    
+    toast('✅ Pro features unlocked!');
   } else {
-    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    // Show upgrade buttons
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => {
+      btn.style.display = '';
+    });
+    
+    // Show upgrade CTA in modal
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
+    
+    const modalBadge = document.querySelector('.modal-badge');
+    if (modalBadge) {
+      modalBadge.textContent = 'GCIS Fusion Premium';
+      modalBadge.style.background = 'rgba(191,127,255,0.1)';
+      modalBadge.style.borderColor = 'rgba(191,127,255,0.22)';
+      modalBadge.style.color = '#bf7fff';
+    }
+    
+    // If a country is selected, re-render the panel
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
+    }
+    
+    renderRanking(document.getElementById('search').value);
   }
 }
 
 // ============================================================================
 // LOGIN FUNCTIONS
 // ============================================================================
+// ============================================================================
+// LOGIN FUNCTIONS - FIXED
+// ============================================================================
 function login() {
-  const email = document.getElementById('loginEmail').value.trim();
-  if (!email || !email.includes('@')) {
-    toast('Please enter a valid email');
+  const emailInput = document.getElementById('loginEmail');
+  const email = emailInput ? emailInput.value.trim() : '';
+  
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    toast('⚠️ Please enter a valid email address');
     return;
   }
+  
+  // Show loading state
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) {
+    loginBtn.textContent = '⏳ Checking...';
+    loginBtn.disabled = true;
+  }
+  
+  // Save email and check pro status
   localStorage.setItem('userEmail', email);
   localStorage.setItem('isLoggedIn', 'true');
-  checkProStatusAndUpdateUI(email);
-  updateUILoggedIn(email);
-  toast(`Logged in as ${email}`);
+  
+  checkProStatusAndUpdateUI(email).then((isPro) => {
+    updateUILoggedIn(email);
+    if (isPro) {
+      toast(`✅ Welcome back! Pro access granted.`);
+    } else {
+      toast(`📧 Logged in as ${email}. Free tier active.`);
+    }
+    // Restore login button
+    if (loginBtn) {
+      loginBtn.textContent = 'Login';
+      loginBtn.disabled = false;
+    }
+  }).catch((err) => {
+    console.error('Login error:', err);
+    toast('⚠️ Login failed. Please try again.');
+    if (loginBtn) {
+      loginBtn.textContent = 'Login';
+      loginBtn.disabled = false;
+    }
+  });
 }
 
 function logout() {
   localStorage.removeItem('userEmail');
   localStorage.removeItem('isLoggedIn');
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginBtn').style.display = '';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('loginEmail').style.display = '';
-  document.getElementById('tierPill').textContent = 'FREE';
-  document.getElementById('tierPill').className = 'tier-pill free';
-  document.getElementById('tierPill').onclick = () => openModal();
+  
+  const emailInput = document.getElementById('loginEmail');
+  if (emailInput) emailInput.value = '';
+  
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.style.display = '';
+  
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.style.display = 'none';
+  
+  if (emailInput) emailInput.style.display = '';
+  
+  const tierPill = document.getElementById('tierPill');
+  if (tierPill) {
+    tierPill.textContent = 'FREE';
+    tierPill.className = 'tier-pill free';
+    tierPill.onclick = () => openModal();
+  }
+  
+  const userSpan = document.getElementById('userSpan');
+  if (userSpan) userSpan.remove();
+  
   tier = 'free';
   unlockProFeatures(false);
   updateSearchLockState();
-  document.getElementById('search').value='';
+  document.getElementById('search').value = '';
   renderRanking('');
-  toast('Logged out');
+  
+  // Show pro banner for Free users
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) {
+    proBanner.style.display = 'flex';
+  }
+  
+  toast('👋 Logged out');
 }
 
 async function checkProStatusAndUpdateUI(email) {
   try {
-    const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`, {
+    const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${encodeURIComponent(email)}"`, {
       headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' }
     });
+    
+    if (!response.ok) {
+      console.warn('Airtable API error:', response.status);
+      return false;
+    }
+    
     const data = await response.json();
     const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
     const tierPill = document.getElementById('tierPill');
@@ -1737,16 +1844,16 @@ async function checkProStatusAndUpdateUI(email) {
     if (isPro) {
       tier = 'pro';
       if (tierPill) {
-        tierPill.textContent = 'PRO';
+        tierPill.textContent = 'PRO ⭐';
         tierPill.className = 'tier-pill pro';
         tierPill.onclick = null;
+        tierPill.style.cursor = 'default';
       }
       // Hide pro banner for Pro users
       if (proBanner) {
         proBanner.style.display = 'none';
       }
       unlockProFeatures(true);
-      toast(`🎉 Pro member! Full access unlocked.`);
     } else {
       tier = 'free';
       if (tierPill) {
@@ -1765,28 +1872,40 @@ async function checkProStatusAndUpdateUI(email) {
     return isPro;
   } catch (err) {
     console.error('Error checking Pro status:', err);
+    // Don't change tier on error - keep existing state
     return false;
   }
 }
+
 function updateUILoggedIn(email) {
-  document.getElementById('loginBtn').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = '';
-  document.getElementById('loginEmail').style.display = 'none';
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const emailInput = document.getElementById('loginEmail');
+  
+  if (loginBtn) loginBtn.style.display = 'none';
+  if (logoutBtn) logoutBtn.style.display = '';
+  if (emailInput) emailInput.style.display = 'none';
+  
   const headerRight = document.querySelector('.header-right');
   let userSpan = document.getElementById('userSpan');
   if (!userSpan) {
     userSpan = document.createElement('span');
     userSpan.id = 'userSpan';
-    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
-    headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
+    userSpan.style.cssText = 'font-family:var(--fm);font-size:7px;color:var(--cyan);margin-right:5px;background:rgba(0,200,255,0.06);padding:2px 8px;border-radius:99px;border:1px solid rgba(0,200,255,0.12);';
+    if (headerRight) {
+      headerRight.insertBefore(userSpan, loginBtn);
+    }
   }
-  userSpan.textContent = email;
+  userSpan.textContent = `👤 ${email}`;
 }
 
 function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
-  if (email) {
-    document.getElementById('loginEmail').value = email;
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  
+  if (email && isLoggedIn) {
+    const emailInput = document.getElementById('loginEmail');
+    if (emailInput) emailInput.value = email;
     checkProStatusAndUpdateUI(email);
     updateUILoggedIn(email);
   }
@@ -4750,7 +4869,24 @@ document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso)
 function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · Live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}else if(e.key==='r')refresh();else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}});
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
 document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('loginEmail').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+// Also add click handler for the tier pill to open modal when free
+document.addEventListener('DOMContentLoaded', function() {
+  const tierPill = document.getElementById('tierPill');
+  if (tierPill && tier === 'free') {
+    tierPill.onclick = () => openModal();
+  }
+});
+
+checkExistingLogin();
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
