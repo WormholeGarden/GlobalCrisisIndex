@@ -3941,26 +3941,33 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 // ============================================================================
 function renderRanking(filter=''){
   if (!ranked || !ranked.length || !store || !Object.keys(store).length) return;
-  const active=new Set(prefs.filters);
-  let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
-                  .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
-  const isProUser = (tier === 'pro');
-  const shown = isProUser ? all : all.slice(0, 10);
-  const hidden = all.length - shown.length;
-  document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{
-    const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
-    const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
-    const spkMx=Math.max(...spk),spkMn=Math.min(...spk,spkMx-8);
-    const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
-    const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
-    const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
-    return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
-  }).join('');
-  if(tier==='free' && hidden>0){
-    document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
-  }
+  const rankList = document.getElementById('rankList');
+  if (!rankList) return;
+  try {
+    const active=new Set(prefs.filters);
+    let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
+                    .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
+    const isProUser = (tier === 'pro');
+    const shown = isProUser ? all : all.slice(0, 10);
+    const hidden = all.length - shown.length;
+    rankList.innerHTML=shown.map((iso,i)=>{
+      try {
+        const c=store[iso];
+        if (!c) return '';
+        const hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
+        const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
+        const spkMx=Math.max(...spk),spkMn=Math.min(...spk,spkMx-8);
+        const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
+        const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
+        const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
+        return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
+      } catch(e) { return ''; }
+    }).join('');
+    if(tier==='free' && hidden>0){
+      rankList.insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
+    }
+  } catch(e) { console.warn('renderRanking error:', e); }
 }
-
 function selCountry(iso){
   if(!iso||!store[iso])return;
 
