@@ -1701,13 +1701,9 @@ function login() {
   }
   localStorage.setItem('userEmail', email);
   localStorage.setItem('isLoggedIn', 'true');
-  // Force tier to 'pro' for demo purposes
-  tier = 'pro';
+  checkProStatusAndUpdateUI(email);
   updateUILoggedIn(email);
-  unlockProFeatures(true);
-  updateSearchLockState();
-  renderRanking(document.getElementById('search').value);
-  toast(`✅ Logged in as ${email} — Pro features unlocked!`);
+  toast(`Logged in as ${email}`);
 }
 
 function logout() {
@@ -1728,6 +1724,50 @@ function logout() {
   toast('Logged out');
 }
 
+async function checkProStatusAndUpdateUI(email) {
+  try {
+    const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`, {
+      headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' }
+    });
+    const data = await response.json();
+    const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
+    const tierPill = document.getElementById('tierPill');
+    const proBanner = document.getElementById('proBanner');
+    
+    if (isPro) {
+      tier = 'pro';
+      if (tierPill) {
+        tierPill.textContent = 'PRO';
+        tierPill.className = 'tier-pill pro';
+        tierPill.onclick = null;
+      }
+      // Hide pro banner for Pro users
+      if (proBanner) {
+        proBanner.style.display = 'none';
+      }
+      unlockProFeatures(true);
+      toast(`🎉 Pro member! Full access unlocked.`);
+    } else {
+      tier = 'free';
+      if (tierPill) {
+        tierPill.textContent = 'FREE';
+        tierPill.className = 'tier-pill free';
+        tierPill.onclick = () => openModal();
+      }
+      // Show pro banner for Free users
+      if (proBanner) {
+        proBanner.style.display = 'flex';
+      }
+      unlockProFeatures(false);
+    }
+    updateSearchLockState();
+    renderRanking(document.getElementById('search').value);
+    return isPro;
+  } catch (err) {
+    console.error('Error checking Pro status:', err);
+    return false;
+  }
+}
 function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
@@ -1741,30 +1781,14 @@ function updateUILoggedIn(email) {
     headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
   }
   userSpan.textContent = email;
-  
-  // Update tier pill
-  const tierPill = document.getElementById('tierPill');
-  if (tierPill) {
-    tierPill.textContent = 'PRO';
-    tierPill.className = 'tier-pill pro';
-    tierPill.onclick = null;
-  }
 }
 
 function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  if (email && isLoggedIn) {
+  if (email) {
     document.getElementById('loginEmail').value = email;
-    tier = 'pro';
+    checkProStatusAndUpdateUI(email);
     updateUILoggedIn(email);
-    unlockProFeatures(true);
-    updateSearchLockState();
-    renderRanking(document.getElementById('search').value);
-  } else {
-    tier = 'free';
-    unlockProFeatures(false);
-    updateSearchLockState();
   }
 }
 
@@ -5218,6 +5242,7 @@ setTimeout(updateDynamicTitle, 500);
 
 // Update every 30 seconds
 setInterval(updateDynamicTitle, 30000);
+
 
 </script>
 
