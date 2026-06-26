@@ -1691,6 +1691,12 @@ function login() {
   localStorage.setItem('userEmail', email);
   updateUILoggedIn(email);
   setProStatus(PRO_EMAILS.includes(email));
+  // FORCE re-render with small delay to ensure store is ready
+  setTimeout(() => {
+    if (Object.keys(store).length > 0) {
+      renderRanking(document.getElementById('search')?.value || '');
+    }
+  }, 100);
   toast(PRO_EMAILS.includes(email) ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
 }
 
