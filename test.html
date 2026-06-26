@@ -1675,11 +1675,14 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    const lb = document.querySelector('.lock-banner');
-    if (lb) lb.style.display = 'none';
-  }
-  document.querySelectorAll('header .hbtn.upgrade').forEach(b => b.style.display = isPro ? 'none' : '');
-}else {
+    const lockBanner = document.querySelector('.lock-banner');
+    if (lockBanner) lockBanner.style.display = 'none';
+    // Only hide header upgrade button, NOT elements inside panelContent
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = 'none';
+    // Re-render panel if a country is selected, clearing any upgrade wall
+  } else {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
