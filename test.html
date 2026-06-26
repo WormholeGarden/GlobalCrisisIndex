@@ -1717,9 +1717,20 @@ function setProStatus(isPro) {
   if (banner) banner.style.display = isPro ? 'none' : 'flex';
   unlockProFeatures(isPro);
   updateSearchLockState();
-  // Force re-render with all countries when Pro
+  // ✅ FIX: Force re-render with current search, ensure store is loaded
   const searchVal = document.getElementById('search')?.value || '';
-  if (Object.keys(store).length > 0) renderRanking(searchVal);
+  if (Object.keys(store).length > 0) {
+    renderRanking(searchVal);
+  } else {
+    // If store isn't loaded yet, wait for it
+    const checkStore = setInterval(() => {
+      if (Object.keys(store).length > 0) {
+        renderRanking(searchVal);
+        clearInterval(checkStore);
+      }
+    }, 200);
+    setTimeout(() => clearInterval(checkStore), 5000);
+  }
 }
 
 function updateUILoggedIn(email) {
