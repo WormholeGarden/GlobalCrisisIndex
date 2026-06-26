@@ -1674,15 +1674,15 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // PRO FEATURE UNLOCK
 // ============================================================================
 function unlockProFeatures(isPro) {
-  const lb = document.querySelector('.lock-banner');
-  if (lb) lb.style.display = isPro ? 'none' : '';
-  document.querySelectorAll('header .hbtn.upgrade').forEach(b => b.style.display = isPro ? 'none' : '');
-  if (isPro) {
-    const box = document.getElementById('search');
-    if (box) { box.classList.remove('locked'); box.placeholder = 'Search country…'; }
-  }
+  const lockBanner = document.querySelector('.lock-banner');
+  if (lockBanner) lockBanner.style.display = isPro ? 'none' : '';
+  document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = isPro ? 'none' : '');
+  const modalCta = document.querySelector('.modal-cta');
+  if (modalCta) modalCta.style.display = isPro ? 'none' : '';
+  const search = document.getElementById('search');
+  if (search) { search.classList.toggle('locked', !isPro); search.placeholder = isPro ? 'Search country…' : '🔒 Pro only'; }
+  if (isPro && Object.keys(store).length > 0) renderRanking('');
 }
-
 const PRO_EMAILS = ['jmm6993@gmail.com'];
 
 function login() {
@@ -3919,9 +3919,9 @@ function selCountry(iso){
   if(!iso||!store[iso])return;
 
   // Free tier: block panel for countries outside top 10
- if(tier!=='pro' && ranked.indexOf(iso)>=10){
-    const idx=-1;
-    if(true){
+  if(tier!=='pro'){
+    const idx=ranked.indexOf(iso);
+    if(idx>=10){
       // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
       _doZoom(iso);
       document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
