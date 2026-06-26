@@ -1655,9 +1655,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 <script>
 // ============================================================================
-// SIMPLE EMAIL LOGIN (No Google OAuth)
+// SIMPLE EMAIL LOGIN (No Google OAuth) - FIXED
 // ============================================================================
-let tier = 'free'; // Global tier variable used by renderRanking
+let tier = 'free'; // Global tier variable
 
 function toast(msg) {
   let t = document.getElementById('toast');
@@ -1671,27 +1671,70 @@ function closeModal() { document.getElementById('modalBg').classList.remove('ope
 function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
 
 // ============================================================================
-// PRO FEATURE UNLOCK
+// PRO FEATURE UNLOCK - FIXED
 // ============================================================================
 function unlockProFeatures(isPro) {
+  const tierPill = document.getElementById('tierPill');
+  const proBanner = document.getElementById('proBanner');
+  
   if (isPro) {
-    const lockBanner = document.querySelector('.lock-banner');
-    if (lockBanner) lockBanner.style.display = 'none';
-    // Only hide header upgrade button, NOT elements inside panelContent
+    tier = 'pro';
+    
+    // Update tier pill
+    if (tierPill) {
+      tierPill.textContent = 'PRO';
+      tierPill.className = 'tier-pill pro';
+      tierPill.onclick = null;
+    }
+    
+    // Hide pro banner
+    if (proBanner) {
+      proBanner.style.display = 'none';
+    }
+    
+    // Hide upgrade buttons
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // Re-render panel if a country is selected, clearing any upgrade wall
-    if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null);
+    
+    // Re-render if a country is selected
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
+    }
+    
+    // Re-render ranking to show all countries
+    renderRanking(document.getElementById('search').value);
+    updateSearchLockState();
+    
+    toast('🎉 Pro unlocked! Full access granted.');
   } else {
+    tier = 'free';
+    
+    // Update tier pill
+    if (tierPill) {
+      tierPill.textContent = 'FREE';
+      tierPill.className = 'tier-pill free';
+      tierPill.onclick = () => openModal();
+    }
+    
+    // Show pro banner
+    if (proBanner) {
+      proBanner.style.display = 'flex';
+    }
+    
+    // Show upgrade buttons
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
+    
+    // Re-render ranking (limited to top 10)
+    renderRanking(document.getElementById('search').value);
+    updateSearchLockState();
   }
 }
 
 // ============================================================================
-// LOGIN FUNCTIONS
+// LOGIN FUNCTIONS - FIXED
 // ============================================================================
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -1713,14 +1756,14 @@ function logout() {
   document.getElementById('loginBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginEmail').style.display = '';
-  document.getElementById('tierPill').textContent = 'FREE';
-  document.getElementById('tierPill').className = 'tier-pill free';
-  document.getElementById('tierPill').onclick = () => openModal();
-  tier = 'free';
+  
+  // Reset to free tier
   unlockProFeatures(false);
-  updateSearchLockState();
-  document.getElementById('search').value='';
+  
+  // Clear search
+  document.getElementById('search').value = '';
   renderRanking('');
+  updateSearchLockState();
   toast('Logged out');
 }
 
@@ -1731,43 +1774,20 @@ async function checkProStatusAndUpdateUI(email) {
     });
     const data = await response.json();
     const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
-    const tierPill = document.getElementById('tierPill');
-    const proBanner = document.getElementById('proBanner');
     
     if (isPro) {
-      tier = 'pro';
-      if (tierPill) {
-        tierPill.textContent = 'PRO';
-        tierPill.className = 'tier-pill pro';
-        tierPill.onclick = null;
-      }
-      // Hide pro banner for Pro users
-      if (proBanner) {
-        proBanner.style.display = 'none';
-      }
       unlockProFeatures(true);
-      toast(`🎉 Pro member! Full access unlocked.`);
     } else {
-      tier = 'free';
-      if (tierPill) {
-        tierPill.textContent = 'FREE';
-        tierPill.className = 'tier-pill free';
-        tierPill.onclick = () => openModal();
-      }
-      // Show pro banner for Free users
-      if (proBanner) {
-        proBanner.style.display = 'flex';
-      }
       unlockProFeatures(false);
     }
-    updateSearchLockState();
-    renderRanking(document.getElementById('search').value);
     return isPro;
   } catch (err) {
     console.error('Error checking Pro status:', err);
-    return false;
+    // On error, keep current tier (don't downgrade)
+    return tier === 'pro';
   }
 }
+
 function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
@@ -1777,7 +1797,7 @@ function updateUILoggedIn(email) {
   if (!userSpan) {
     userSpan = document.createElement('span');
     userSpan.id = 'userSpan';
-    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
+    userSpan.style.cssText = 'font-family:var(--fm);font-size:8px;color:var(--cyan);margin-right:5px;';
     headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
   }
   userSpan.textContent = email;
@@ -1789,6 +1809,25 @@ function checkExistingLogin() {
     document.getElementById('loginEmail').value = email;
     checkProStatusAndUpdateUI(email);
     updateUILoggedIn(email);
+  }
+}
+
+// ============================================================================
+// SEARCH LOCK STATE - FIXED
+// ============================================================================
+function updateSearchLockState() {
+  const box = document.getElementById('search');
+  if (!box) return;
+  if (tier === 'pro') {
+    box.classList.remove('locked');
+    box.placeholder = 'Search country…';
+    box.title = '';
+    box.disabled = false;
+  } else {
+    box.classList.add('locked');
+    box.placeholder = '🔒 Pro only';
+    box.title = 'Upgrade to Pro to search countries';
+    box.disabled = true;
   }
 }
 
@@ -3664,7 +3703,8 @@ async function refresh() {
   paintMap();
   addPulseMarkers();
   renderRanking();
-  
+  // After renderRanking() call
+updateSearchLockState();
   // ── FINAL: Smoothly complete to 100% ──────────────────────────────────
   adv(6, 100);
   
@@ -4455,19 +4495,22 @@ document.getElementById('search').addEventListener('input',e=>{
   renderRanking(e.target.value);
 });
 
-function updateSearchLockState(){
-  const box=document.getElementById('search');
-  if(!box)return;
-  if(tier==='pro'){
+function updateSearchLockState() {
+  const box = document.getElementById('search');
+  if (!box) return;
+  if (tier === 'pro') {
     box.classList.remove('locked');
-    box.placeholder='Search country…';
-    box.title='';
+    box.placeholder = 'Search country…';
+    box.title = '';
+    box.disabled = false;
   } else {
     box.classList.add('locked');
-    box.placeholder='🔒 Pro only';
-    box.title='Upgrade to Pro to search countries';
+    box.placeholder = '🔒 Pro only';
+    box.title = 'Upgrade to Pro to search countries';
+    box.disabled = true;
   }
 }
+
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
 // ============================================================================
 // ENHANCED SHARE MODAL — All Major Social Networks
