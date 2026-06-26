@@ -9,7 +9,7 @@
     <!-- LEFT: PRO Banner Content (LIVE APIs + Quote + Links) -->
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">
-  global-crisis-index: 62 downloads on Hugging Face
+  global-crisis-index: 66 downloads on Hugging Face
 </a>
       <span style="color: var(--tm);">|</span>
       <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
@@ -1671,34 +1671,15 @@ function closeModal() { document.getElementById('modalBg').classList.remove('ope
 function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
 
 // ============================================================================
-// PRO FEATURE UNLOCK - FIXED VERSION
+// PRO FEATURE UNLOCK
 // ============================================================================
 function unlockProFeatures(isPro) {
-  // Only update the tier pill, don't try to hide elements that might not exist
-  const tierPill = document.getElementById('tierPill');
-  if (tierPill) {
-    if (isPro) {
-      tierPill.textContent = 'PRO';
-      tierPill.className = 'tier-pill pro';
-      tierPill.onclick = null;
-    } else {
-      tierPill.textContent = 'FREE';
-      tierPill.className = 'tier-pill free';
-      tierPill.onclick = () => openModal();
-    }
+ if (isPro) { document.querySelectorAll('.lock-banner, header .hbtn.upgrade, .modal-cta').forEach(el => el && (el.style.display = 'none')); if (selectedIso && store[selectedIso]) renderPanel(selectedIso, null); else if (ranked.length) { selectedIso = ranked[0]; renderPanel(selectedIso, null);
+  } else {
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = '';
   }
-  
-  // Update the pro banner visibility
-  const proBanner = document.getElementById('proBanner');
-  if (proBanner) {
-    proBanner.style.display = isPro ? 'none' : 'flex';
-  }
-  
-  // Update search lock state
-  updateSearchLockState();
-  
-  // Re-render ranking to reflect tier change
-  renderRanking(document.getElementById('search')?.value || '');
 }
 
 // ============================================================================
@@ -1724,8 +1705,12 @@ function logout() {
   document.getElementById('loginBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginEmail').style.display = '';
+  document.getElementById('tierPill').textContent = 'FREE';
+  document.getElementById('tierPill').className = 'tier-pill free';
+  document.getElementById('tierPill').onclick = () => openModal();
   tier = 'free';
   unlockProFeatures(false);
+  updateSearchLockState();
   document.getElementById('search').value='';
   renderRanking('');
   toast('Logged out');
@@ -1738,24 +1723,43 @@ async function checkProStatusAndUpdateUI(email) {
     });
     const data = await response.json();
     const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
+    const tierPill = document.getElementById('tierPill');
+    const proBanner = document.getElementById('proBanner');
     
     if (isPro) {
       tier = 'pro';
+      if (tierPill) {
+        tierPill.textContent = 'PRO';
+        tierPill.className = 'tier-pill pro';
+        tierPill.onclick = null;
+      }
+      // Hide pro banner for Pro users
+      if (proBanner) {
+        proBanner.style.display = 'none';
+      }
       unlockProFeatures(true);
       toast(`🎉 Pro member! Full access unlocked.`);
     } else {
       tier = 'free';
+      if (tierPill) {
+        tierPill.textContent = 'FREE';
+        tierPill.className = 'tier-pill free';
+        tierPill.onclick = () => openModal();
+      }
+      // Show pro banner for Free users
+      if (proBanner) {
+        proBanner.style.display = 'flex';
+      }
       unlockProFeatures(false);
     }
+    updateSearchLockState();
+    renderRanking(document.getElementById('search').value);
     return isPro;
   } catch (err) {
     console.error('Error checking Pro status:', err);
-    tier = 'free';
-    unlockProFeatures(false);
     return false;
   }
 }
-
 function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
