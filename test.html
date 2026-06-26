@@ -1657,7 +1657,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 // ============================================================================
 // SIMPLE EMAIL LOGIN (No Google OAuth)
 // ============================================================================
-let tier = 'free'; // Global tier variable used by renderRanking
+var tier = 'free'; // Global tier variable used by renderRanking
 
 function toast(msg) {
   let t = document.getElementById('toast');
@@ -1681,7 +1681,7 @@ function unlockProFeatures(isPro) {
   if (modalCta) modalCta.style.display = isPro ? 'none' : '';
   const search = document.getElementById('search');
   if (search) { search.classList.toggle('locked', !isPro); search.placeholder = isPro ? 'Search country…' : '🔒 Pro only'; }
-  if (isPro && Object.keys(store).length > 0) { renderRanking(''); if (selectedIso) selCountry(selectedIso); }
+  if (isPro && Object.keys(store).length > 0) renderRanking('');
 }
 const PRO_EMAILS = ['jmm6993@gmail.com'];
 
@@ -2063,6 +2063,7 @@ VUT:[166.6,-15.4],TON:[-175.2,-21.2],WSM:[-172.1,-13.8],KIR:[-157.4,1.9],FSM:[15
 // CORE HELPERS (abbreviated but functional)
 // ============================================================================
 let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:Object.keys(ARC)};
+window.tier = 'free';
 let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
 let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
 function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff"}
@@ -3900,7 +3901,7 @@ function renderRanking(filter=''){
   let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
                   .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
   const isProUser = (tier === 'pro');
-  const shown = isProUser ? all : all.slice(0, 10);
+  const shown = (window.tier==='pro') ? all : all.slice(0, 10);
   const hidden = all.length - shown.length;
   document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{
     const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
@@ -3920,7 +3921,7 @@ function selCountry(iso){
   if(!iso||!store[iso])return;
 
   // Free tier: block panel for countries outside top 10
-  if(tier!=='pro'){
+ if(window.tier!=='pro'){
     const idx=ranked.indexOf(iso);
     if(idx>=10){
       // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
