@@ -1717,20 +1717,9 @@ function setProStatus(isPro) {
   if (banner) banner.style.display = isPro ? 'none' : 'flex';
   unlockProFeatures(isPro);
   updateSearchLockState();
-  // ✅ FIX: Force re-render with current search, ensure store is loaded
+  // Force re-render with all countries when Pro
   const searchVal = document.getElementById('search')?.value || '';
-  if (Object.keys(store).length > 0) {
-    renderRanking(searchVal);
-  } else {
-    // If store isn't loaded yet, wait for it
-    const checkStore = setInterval(() => {
-      if (Object.keys(store).length > 0) {
-        renderRanking(searchVal);
-        clearInterval(checkStore);
-      }
-    }, 200);
-    setTimeout(() => clearInterval(checkStore), 5000);
-  }
+  if (Object.keys(store).length > 0) renderRanking(searchVal);
 }
 
 function updateUILoggedIn(email) {
@@ -1749,7 +1738,27 @@ function updateUILoggedIn(email) {
 
 function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
-  if (email) { updateUILoggedIn(email); setProStatus(PRO_EMAILS.includes(email)); }
+  if (email) {
+    updateUILoggedIn(email);
+    setProStatus(PRO_EMAILS.includes(email));
+    // ✅ FIX: Re-render ranking after login to show all countries
+    // Use a small delay to ensure store is populated
+    setTimeout(() => {
+      if (Object.keys(store).length > 0) {
+        renderRanking(document.getElementById('search')?.value || '');
+      } else {
+        // If store isn't ready yet, check again in 500ms
+        const checkInterval = setInterval(() => {
+          if (Object.keys(store).length > 0) {
+            renderRanking(document.getElementById('search')?.value || '');
+            clearInterval(checkInterval);
+          }
+        }, 500);
+        // Stop checking after 5 seconds
+        setTimeout(() => clearInterval(checkInterval), 5000);
+      }
+    }, 100);
+  }
 }
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
