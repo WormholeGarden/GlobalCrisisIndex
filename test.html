@@ -1674,28 +1674,12 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // PRO FEATURE UNLOCK
 // ============================================================================
 function unlockProFeatures(isPro) {
-  // Lock banner in sidebar
   const lb = document.querySelector('.lock-banner');
   if (lb) lb.style.display = isPro ? 'none' : '';
-  // Upgrade button in header
   document.querySelectorAll('header .hbtn.upgrade').forEach(b => b.style.display = isPro ? 'none' : '');
-  // Search bar
-  const search = document.getElementById('search');
-  if (search) {
-    search.classList.toggle('locked', !isPro);
-    search.placeholder = isPro ? 'Search country…' : '🔒 Pro only';
-    if (isPro) {
-      search.onclick = null;
-      search.oninput = e => renderRanking(e.target.value);
-    } else {
-      search.oninput = e => { e.target.value = ''; };
-      search.onclick = () => { toast('🔒 Country search is a Pro feature — upgrade to unlock'); openModal(); };
-    }
-  }
-}else {
-    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
-    const modalCta = document.querySelector('.modal-cta');
-    if (modalCta) modalCta.style.display = '';
+  if (isPro) {
+    const box = document.getElementById('search');
+    if (box) { box.classList.remove('locked'); box.placeholder = 'Search country…'; }
   }
 }
 
@@ -3935,31 +3919,9 @@ function selCountry(iso){
   if(!iso||!store[iso])return;
 
   // Free tier: block panel for countries outside top 10
-  if(tier!=='pro'){
-    const idx=ranked.indexOf(iso);
-    if(idx>=10){
-      _doZoom(iso);
-      document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
-      document.getElementById('emptyState').style.display='none';
-      document.getElementById('panelContent').style.display='block';
-      const c=store[iso];
-      const col=sc(c.score);
-      document.getElementById('panelContent').innerHTML=`
-        <div style="padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
-          <div style="font-size:36px;">${c.flag}</div>
-          <div style="font-family:var(--fd);font-size:22px;font-weight:900;background:linear-gradient(135deg,#fff 20%,${col});-webkit-background-clip:text;background-clip:text;color:transparent;">${c.name}</div>
-          <div style="font-family:var(--fm);font-size:10px;color:${col};background:${col}18;border:1px solid ${col}33;border-radius:99px;padding:4px 12px;">Score: ${c.score}/100 · #${ranked.indexOf(iso)+1} globally</div>
-          <div style="background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));border:1px solid rgba(191,127,255,.22);border-radius:14px;padding:20px 18px;width:100%;max-width:320px;">
-            <div style="font-size:20px;margin-bottom:8px;">🔒</div>
-            <div style="font-family:var(--fd);font-size:17px;font-weight:800;color:var(--purple);margin-bottom:6px;">Pro Access Required</div>
-            <div style="font-family:var(--fm);font-size:10px;color:var(--tm);line-height:1.7;margin-bottom:14px;">Upgrade to Pro to unlock all ${ranked.length}+ countries.</div>
-            <button onclick="openModal()" style="background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:11px 20px;border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;font-size:11px;letter-spacing:.05em;width:100%;">⚡ Upgrade to Pro — $29/month</button>
-          </div>
-        </div>`;
-      window.history.pushState({country:iso},'',`${window.location.pathname}?country=${iso}`);
-      return;
-    }
-  }
+ if(tier!=='pro' && ranked.indexOf(iso)>=10){
+    const idx=-1;
+    if(true){
       // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
       _doZoom(iso);
       document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
@@ -4426,11 +4388,15 @@ function renderAIBrief(iso) {
 }
 function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
-document.getElementById('search').addEventListener('focus', e => {
-  if (tier !== 'pro') { e.target.blur(); toast('🔒 Country search is a Pro feature — upgrade to unlock'); openModal(); }
+document.getElementById('search').addEventListener('focus',e=>{
+  if(tier!=='pro'){
+    e.target.blur();
+    toast('🔒 Country search is a Pro feature — upgrade to unlock');
+    openModal();
+  }
 });
-document.getElementById('search').addEventListener('input', e => {
-  if (tier !== 'pro') { e.target.value = ''; return; }
+document.getElementById('search').addEventListener('input',e=>{
+  if(tier!=='pro'){e.target.value='';return;}
   renderRanking(e.target.value);
 });
 
