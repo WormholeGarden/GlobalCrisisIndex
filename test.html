@@ -1681,6 +1681,9 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 let isProUser = false;
 
 function unlockProFeatures(isPro) {
+  // Update the global tier
+  window.tier = isPro ? 'pro' : 'free';
+  
   // Show/hide lock banner
   const lockBanner = document.querySelector('.lock-banner');
   if (lockBanner) lockBanner.style.display = isPro ? 'none' : '';
@@ -1695,16 +1698,20 @@ function unlockProFeatures(isPro) {
   // Update search box
   const search = document.getElementById('search');
   if (search) {
-    search.classList.toggle('locked', !isPro);
-    search.placeholder = isPro ? 'Search country…' : '🔒 Pro only';
     if (isPro) {
+      search.classList.remove('locked');
+      search.placeholder = 'Search country…';
+      search.title = '';
+      search.disabled = false;
       search.style.opacity = '1';
       search.style.cursor = 'text';
-      search.disabled = false;
     } else {
+      search.classList.add('locked');
+      search.placeholder = '🔒 Pro only';
+      search.title = 'Upgrade to Pro to search countries';
+      search.disabled = true;
       search.style.opacity = '0.4';
       search.style.cursor = 'not-allowed';
-      search.disabled = true;
     }
   }
   
@@ -1713,13 +1720,14 @@ function unlockProFeatures(isPro) {
   if (pill) {
     pill.textContent = isPro ? 'PRO' : 'FREE';
     pill.className = `tier-pill ${isPro ? 'pro' : 'free'}`;
-    pill.onclick = isPro ? null : openModal;
     if (isPro) {
+      pill.onclick = null;
       pill.style.cursor = 'default';
       pill.style.background = 'rgba(191,127,255,0.2)';
       pill.style.borderColor = 'rgba(191,127,255,0.4)';
       pill.style.color = '#bf7fff';
     } else {
+      pill.onclick = openModal;
       pill.style.cursor = 'pointer';
       pill.style.background = 'rgba(100,120,160,0.12)';
       pill.style.borderColor = 'rgba(100,120,160,0.2)';
@@ -1727,10 +1735,11 @@ function unlockProFeatures(isPro) {
     }
   }
   
-  // Update the tier variable for renderRanking
-  window.tier = isPro ? 'pro' : 'free';
+  // Update PRO banner visibility
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) proBanner.style.display = isPro ? 'none' : 'flex';
   
-  // Re-render ranking with new tier
+  // Force re-render of ranking with new tier
   if (Object.keys(store).length > 0) {
     renderRanking(document.getElementById('search')?.value || '');
   }
@@ -1739,12 +1748,7 @@ function unlockProFeatures(isPro) {
   if (isPro && selectedIso && store[selectedIso]) {
     renderPanel(selectedIso, null);
   }
-  
-  // Update PRO banner visibility
-  const proBanner = document.getElementById('proBanner');
-  if (proBanner) proBanner.style.display = isPro ? 'none' : 'flex';
 }
-
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email || !email.includes('@')) { 
@@ -1756,22 +1760,22 @@ function login() {
   updateUILoggedIn(email);
   
   const isPro = PRO_EMAILS.includes(email);
-  isProUser = isPro;
-  tier = isPro ? 'pro' : 'free';
-  window.tier = tier;
+  window.tier = isPro ? 'pro' : 'free';
   
   // CRITICAL: Call unlockProFeatures to apply all changes
   unlockProFeatures(isPro);
   
   toast(isPro ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
   
-  // Force re-render of ranking and panel
-  if (Object.keys(store).length > 0) {
-    renderRanking(document.getElementById('search')?.value || '');
-    if (selectedIso && store[selectedIso]) {
-      renderPanel(selectedIso, null);
+  // Force re-render of ranking with the new tier
+  setTimeout(() => {
+    if (Object.keys(store).length > 0) {
+      renderRanking(document.getElementById('search')?.value || '');
+      if (selectedIso && store[selectedIso]) {
+        renderPanel(selectedIso, null);
+      }
     }
-  }
+  }, 100);
 }
 
 function logout() {
@@ -1783,18 +1787,17 @@ function logout() {
   const us = document.getElementById('userSpan');
   if (us) us.remove();
   
-  isProUser = false;
-  tier = 'free';
   window.tier = 'free';
   
   // CRITICAL: Unlock features as free user
   unlockProFeatures(false);
   
   document.getElementById('search').value = '';
-  if (Object.keys(store).length > 0) renderRanking('');
+  setTimeout(() => {
+    if (Object.keys(store).length > 0) renderRanking('');
+  }, 100);
   toast('Logged out');
 }
-
 function setProStatus(isPro) {
   tier = isPro ? 'pro' : 'free';
   window.tier = tier;
@@ -1826,10 +1829,13 @@ function checkExistingLogin() {
   if (email) { 
     updateUILoggedIn(email); 
     const isPro = PRO_EMAILS.includes(email);
-    isProUser = isPro;
-    tier = isPro ? 'pro' : 'free';
-    window.tier = tier;
+    window.tier = isPro ? 'pro' : 'free';
+    // CRITICAL: Call unlockProFeatures to apply changes
     unlockProFeatures(isPro);
+  } else {
+    // Ensure free tier is properly set
+    window.tier = 'free';
+    unlockProFeatures(false);
   }
 }
 // ============================================================================
@@ -3991,19 +3997,38 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 // RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
 // ============================================================================
 function renderRanking(filter=''){
+  // Make sure we have data
+  if (!store || Object.keys(store).length === 0) {
+    document.getElementById('rankList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--tm);font-size:11px;">Loading data...</div>';
+    return;
+  }
+  
   const active = new Set(prefs.filters);
   let all = ranked.filter(iso => store[iso] && store[iso].types.some(t => active.has(t)))
                   .filter(iso => !filter || store[iso].name.toLowerCase().includes(filter.toLowerCase()));
   
-  // Use window.tier which is set by unlockProFeatures
+  // CRITICAL: Use the global tier variable, not a local copy
   const isPro = (window.tier === 'pro');
+  
+  // For PRO users - show ALL countries
+  // For FREE users - show only top 10
   const shown = isPro ? all : all.slice(0, 10);
   const hidden = all.length - shown.length;
   
+  if (shown.length === 0) {
+    document.getElementById('rankList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--tm);font-size:11px;">No countries match your filters.</div>';
+    return;
+  }
+  
   document.getElementById('rankList').innerHTML = shown.map((iso,i)=>{
-    const c=store[iso], hist=(history[iso]||[]).map(h=>h.s), anom=cusum(hist), col=sc(c.score);
+    const c=store[iso];
+    if (!c) return '';
+    const hist=(history[iso]||[]).map(h=>h.s);
+    const anom=cusum(hist);
+    const col=sc(c.score);
     const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
-    const spkMx=Math.max(...spk), spkMn=Math.min(...spk,spkMx-8);
+    const spkMx=Math.max(...spk);
+    const spkMn=Math.min(...spk,spkMx-8);
     const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
     const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
     const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
@@ -4015,7 +4040,6 @@ function renderRanking(filter=''){
     document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
   }
 }
-
 // ============================================================================
 // FIX selCountry - Allow PRO users to view all countries
 // ============================================================================
@@ -4064,7 +4088,6 @@ function selCountry(iso){
   const newUrl=`${window.location.pathname}?country=${iso}`;
   window.history.pushState({country:iso},'',newUrl);
 }
-
 function _doZoom(iso){
   if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
   const stage=document.getElementById('mapStage');
@@ -4806,6 +4829,14 @@ document.getElementById('loginBtn').addEventListener('click', login);
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
+// Force a re-render of the ranking after data loads
+setTimeout(function checkRankingRender() {
+  if (Object.keys(store).length > 0) {
+    renderRanking(document.getElementById('search')?.value || '');
+  } else {
+    setTimeout(checkRankingRender, 500);
+  }
+}, 1000);
 buildFilters();updateSearchLockState();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
