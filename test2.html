@@ -782,6 +782,16 @@ function unlockProFeatures(isPro) {
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email || !email.includes('@')) { toast('Please enter a valid email'); return; }
+  
+  // 🔥 FORCE PRO ACCESS FOR THIS EMAIL
+  if (email === 'jmm6993@gmail.com') {
+    unlockProFeatures(true);
+    document.getElementById('tierPill').textContent = 'PRO ✦';
+    document.getElementById('tierPill').className = 'tier-pill pro';
+    toast('🎉 Pro access unlocked!');
+    return; // DONE - skip the rest
+  }
+  
   localStorage.setItem('userEmail', email);
   localStorage.setItem('isLoggedIn', 'true');
   updateUILoggedIn(email);
@@ -1493,26 +1503,47 @@ function renderPanel(iso,focusCrisisType){
   setTimeout(()=>renderAIBrief(iso),150);
 }
 
-function renderAIBrief(iso){
-  const el=document.getElementById('aiBriefContent');if(!el)return;
-  const c=store[iso];if(!c){el.innerHTML='<div class="ai-brief-text">No data available.</div>';return;}
-  const severityLabel=c.score>=80?"critical":c.score>=60?"high":"elevated";
-  const topDims=[...DIMS].map(d=>({...d,val:c.dims[d.k]||0})).sort((a,b)=>b.val-a.val);
-  const hist=(history[iso]||[]).map(h=>h.s);
-  const fc=forecast(hist,c.score);
-  const ipcInfo=ipcClassifications.find(i=>i.country===c.name);
-  const conflictMatch=conflictEvents.find(e=>e.country.toLowerCase().includes(c.name.toLowerCase()));
-  const heatMatch=heatStressData.find(h=>h.iso===iso);
-  const nb=(ADJ[iso]||[]).filter(n=>store[n]?.score>=60).map(n=>store[n].name);
-  let narrative=`${c.flag} <strong>${c.name}</strong> carries a ${severityLabel} urgency score of <strong>${c.score}/100</strong>, driven primarily by ${topDims[0].l.toLowerCase()} (${topDims[0].val}) and ${topDims[1].l.toLowerCase()} (${topDims[1].val}).`;
-  if(ipcInfo)narrative+=` IPC classifies <strong>${ipcInfo.population/1e6|0}M people</strong> at Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) food insecurity.`;
-  if(conflictMatch)narrative+=` Active <strong>${conflictMatch.event_type.toLowerCase()}</strong> with ${conflictMatch.fatalities}+ fatalities recorded.`;
-  if(heatMatch&&heatMatch.temp>40)narrative+=` Extreme heat of <strong>${heatMatch.temp}°C</strong> compounds humanitarian risk.`;
-  if(fc.esc)narrative+=` The 7-day model projects further escalation to <strong>${fc.fc}/100</strong>.`;
-  if(nb.length>=2)narrative+=` Regional pressure from ${nb.slice(0,2).join(' and ')} adds spillover risk (+${(c.spillover||0).toFixed(1)} pts).`;
-  el.innerHTML=`<div class="ai-brief-text">${narrative}</div><button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
+function renderAIBrief(iso) {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  const c = store[iso];
+  if (!c) { 
+    el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; 
+    return; 
+  }
+  
+  // ── GET ACTIVE CRISIS TYPE FROM URL ──────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const crisisType = urlParams.get('crisis') || null;
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────
+  let narrative = '';
+  try {
+    // This calls the full buildUrgencyNarrative function with Wikipedia
+    narrative = buildUrgencyNarrative(iso, crisisType);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // ── FALLBACK if Wikipedia fails ──────────────────────────────────────────
+  if (!narrative || narrative.length < 10) {
+    const activeCrisisData = crisisType ? ARC[crisisType] : null;
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = `${c.flag} ${c.name} ranks #${ranked.indexOf(iso)+1} globally with a score of ${c.score}/100. Critical dimensions: ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(', ')}.`;
+    }
+  }
+  
+  // ── ENSURE WIKIPEDIA PREFIX IS INCLUDED ──────────────────────────────────
+  // The buildUrgencyNarrative function already includes Wikipedia content
+  // but if it was empty, we add a simple context
+  
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
 }
-
 function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 
 // ============================================================================
@@ -1671,6 +1702,269 @@ d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
   .then(world=>{initMap(world);refresh();})
   .catch(()=>refresh());
 
+// ── BUILD URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────────────────────
+function buildUrgencyNarrative(iso, crisisType) {
+  const c = store[iso];
+  const hist = (history[iso] || []).map(h => h.s);
+  const name = c.name, flag = c.flag;
+
+  // ── 0. FETCH WIKIPEDIA SENTENCES ──────────────────────────────────────
+  let wikipediaPrefix = '';
+  
+  function fetchExtract(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  function hasContemporaryIndicators(sent) {
+    const lower = sent.toLowerCase();
+    const contemporaryTerms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
+                               'since 202', 'since 201', 'as of 202', 'in recent years',
+                               '2024', '2025', '2026', 'crisis', 'emergency', 'conflict'];
+    for (const term of contemporaryTerms) {
+      if (lower.includes(term)) return true;
+    }
+    return false;
+  }
+  
+  function scoreSentences(sentences, weights) {
+    return sentences.map(sent => {
+      let score = 0;
+      let hasDimensionMatch = false;
+      const lower = sent.toLowerCase();
+      const lowerName = name.toLowerCase();
+      
+      if (lower.includes(lowerName)) score += 30;
+      if (hasContemporaryIndicators(sent)) score += 25;
+      if (/\d+/.test(sent)) score += 10;
+      if (/\d+(\.\d+)?%/.test(sent)) score += 15;
+      if (/million|billion|thousand/.test(lower)) score += 20;
+      
+      if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') || 
+          lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
+          lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
+        score += weights.food * 1.5;
+        hasDimensionMatch = true;
+      }
+      if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') || 
+          lower.includes('weather') || lower.includes('temperature') || lower.includes('heatwave') ||
+          lower.includes('water') || lower.includes('river'))) {
+        score += weights.climate * 1.3;
+        hasDimensionMatch = true;
+      }
+      if (weights.conflict && (lower.includes('war') || lower.includes('missile') || lower.includes('nuclear') || 
+          lower.includes('military') || lower.includes('weapon') || lower.includes('conflict') || 
+          lower.includes('tension') || lower.includes('threat') || lower.includes('diplomacy') ||
+          lower.includes('government') || lower.includes('rebel') || lower.includes('insurgency') ||
+          lower.includes('violence') || lower.includes('attack') || lower.includes('fighting'))) {
+        score += weights.conflict * 1.4;
+        hasDimensionMatch = true;
+      }
+      if (weights.economic && (lower.includes('economy') || lower.includes('trade') || lower.includes('sanctions') || 
+          lower.includes('poverty') || lower.includes('gdp') || lower.includes('inflation') ||
+          lower.includes('market') || lower.includes('price') || lower.includes('currency'))) {
+        score += weights.economic * 1.2;
+        hasDimensionMatch = true;
+      }
+      
+      if (lower.includes('crisis')) score += 20;
+      if (lower.includes('emergency')) score += 25;
+      if (lower.includes('humanitarian')) score += 20;
+      if (lower.includes('refugee') || lower.includes('displaced')) score += 15;
+      
+      if (sent.length > 80 && sent.length < 400) score += 10;
+      if (sent.length < 50) score -= 20;
+      
+      return { text: sent.trim(), score, hasDimensionMatch };
+    });
+  }
+  
+  function getSafeFallback() {
+    const foodDim = c.dims?.food || 0;
+    const conflictDim = c.dims?.conflict || 0;
+    let sentences = [];
+    
+    if (foodDim >= 75) {
+      sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting millions.`);
+    }
+    if (conflictDim >= 70) {
+      sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
+    }
+    if (sentences.length === 0) {
+      sentences.push(`${name} faces a complex humanitarian and security situation.`);
+    }
+    return { sentences: sentences.slice(0, 3) };
+  }
+  
+  try {
+    const foodDim = c.dims?.food || 0;
+    const climateDim = c.dims?.climate || 0;
+    const conflictDim = c.dims?.conflict || 0;
+    const economicDim = c.dims?.economic || 0;
+    
+    const weights = {
+      food: foodDim >= 75 ? 45 : (foodDim >= 60 ? 35 : 20),
+      climate: climateDim >= 70 ? 35 : (climateDim >= 55 ? 25 : 15),
+      conflict: conflictDim >= 70 ? 40 : (conflictDim >= 50 ? 30 : 18),
+      economic: economicDim >= 60 ? 25 : (economicDim >= 40 ? 15 : 0)
+    };
+    
+    let bestSentences = [];
+    let hasGoodWikipedia = false;
+    
+    // ── SEARCH TERMS ──────────────────────────────────────────────────────
+    let searchTerms = [`${name} crisis`, `${name} humanitarian`, `${name} conflict`];
+    if (crisisType && ARC[crisisType]) {
+      searchTerms.push(`${name} ${ARC[crisisType].l}`);
+    }
+    searchTerms.push(`${name} emergency`, `${name} war`, `${name} disaster`);
+    searchTerms = [...new Set(searchTerms)];
+    
+    for (const term of searchTerms) {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=8`;
+      const searchReq = new XMLHttpRequest();
+      searchReq.open('GET', searchUrl, false);
+      searchReq.send();
+      if (searchReq.status === 200) {
+        const searchData = JSON.parse(searchReq.responseText);
+        const results = searchData.query?.search || [];
+        for (const result of results) {
+          const extract = fetchExtract(result.title);
+          if (extract && extract.length > 100) {
+            let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
+            if (sentences.length < 3) sentences = extract.split(/\n/);
+            sentences = sentences.filter(s => s.trim().length > 60);
+            
+            const scored = scoreSentences(sentences, weights);
+            const filtered = scored.filter(s => {
+              const lower = s.text.toLowerCase();
+              if (lower.includes(name.toLowerCase())) return true;
+              if (s.hasDimensionMatch) return true;
+              return false;
+            });
+            
+            const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 4);
+            if (topScored.length >= 2) {
+              bestSentences = topScored.map(s => s.text);
+              hasGoodWikipedia = true;
+              break;
+            }
+          }
+        }
+      }
+      if (hasGoodWikipedia) break;
+    }
+    
+    if (!hasGoodWikipedia || bestSentences.length < 2) {
+      const fallback = getSafeFallback();
+      bestSentences = fallback.sentences;
+    }
+    
+    if (bestSentences.length) {
+      wikipediaPrefix = bestSentences.slice(0, 3).join(' ');
+    }
+    
+  } catch(e) {
+    const fallback = getSafeFallback();
+    if (fallback.sentences.length) {
+      wikipediaPrefix = fallback.sentences.join(' ');
+    }
+  }
+
+  // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
+  const rank = ranked.indexOf(iso) + 1;
+  const totalCountries = ranked.length;
+  const severityLabel = c.score >= 80 ? "critical"
+                      : c.score >= 60 ? "high" : "elevated";
+  const pctile = Math.round((1 - rank / totalCountries) * 100);
+
+  // ── 2. DOMINANT DIMENSIONS ─────────────────────────────────────────────
+  const sortedDims = [...DIMS]
+    .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
+    .sort((a, b) => b.val - a.val);
+  const topDim = sortedDims[0];
+  const secondDim = sortedDims[1];
+
+  // ── 3. TREND ANALYSIS ──────────────────────────────────────────────────
+  const fc = forecast(hist, c.score);
+  const recentDelta = hist.length >= 7
+    ? hist[hist.length - 1] - hist[hist.length - 7]
+    : 0;
+  const deltaAbs = Math.abs(Math.round(recentDelta));
+  const trendPhrase = recentDelta > 4
+    ? `escalated ${deltaAbs} points over the past 7 days`
+    : recentDelta < -3
+    ? `eased slightly (${deltaAbs} pts) but remains ${severityLabel}`
+    : `held steady at ${severityLabel} levels`;
+
+  // ── 4. LIVE EVENT EVIDENCE ─────────────────────────────────────────────
+  const nameLower = name.toLowerCase();
+  const liveSignals = [];
+
+  const ipc = (ipcClassifications || [])
+    .find(i => i.country.toLowerCase().includes(nameLower));
+  if (ipc && ipc.phase >= 3) {
+    const pop = Math.round(ipc.population / 1e6);
+    if (ipc.phase === 4) {
+      liveSignals.push(`IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger`);
+    } else if (ipc.phase >= 3) {
+      liveSignals.push(`IPC Phase ${ipc.phase} food insecurity affecting ${pop}M people`);
+    }
+  }
+
+  const heat = (heatStressData || [])
+    .find(h => h.iso === iso && h.temp > 38);
+  if (heat) {
+    liveSignals.push(`extreme heat (${heat.temp}°C)`);
+  }
+
+  // ── 5. SPILLOVER ──────────────────────────────────────────────────────
+  const highNeighbours = (ADJ[iso] || [])
+    .filter(n => store[n]?.score >= 60)
+    .map(n => store[n].name);
+  const spillPhrase = highNeighbours.length >= 2
+    ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')} adds +${(c.spillover || 0).toFixed(1)}.`
+    : '';
+
+  // ── 6. ASSEMBLE ──────────────────────────────────────────────────────
+  const parts = [];
+
+  if (wikipediaPrefix && wikipediaPrefix.length > 20) {
+    parts.push(wikipediaPrefix);
+  }
+
+  parts.push(`${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries.`);
+  parts.push(`The composite is driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100).`);
+  parts.push(`The score has ${trendPhrase}.`);
+
+  if (liveSignals.length) {
+    parts.push(`Live data confirms ${liveSignals.join(', ')}.`);
+  }
+
+  if (spillPhrase) {
+    parts.push(spillPhrase);
+  }
+
+  let narrative = parts.join(' ');
+  narrative = narrative.replace(/==([^=]+)==/g, '<b>$1</b>');
+  
+  return narrative;
+}
 // ============================================================================
 // NOTE: To instantly grant Pro access to an email without Airtable,
 // run this in browser console:
