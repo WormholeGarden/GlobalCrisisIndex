@@ -1675,122 +1675,71 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 // ============================================================================
 function unlockProFeatures(isPro) {
   if (isPro) {
-    const lockBanner = document.querySelector('.lock-banner');
-    if (lockBanner) lockBanner.style.display = 'none';
-    // Only hide header upgrade button, NOT elements inside panelContent
-    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
-    const modalCta = document.querySelector('.modal-cta');
-    if (modalCta) modalCta.style.display = 'none';
-    // Re-render panel if a country is selected, clearing any upgrade wall
-  } else {
+    const lb = document.querySelector('.lock-banner');
+    if (lb) lb.style.display = 'none';
+  }
+  document.querySelectorAll('header .hbtn.upgrade').forEach(b => b.style.display = isPro ? 'none' : '');
+}else {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
   }
 }
 
-// ============================================================================
-// LOGIN FUNCTIONS
-// ============================================================================
+const PRO_EMAILS = ['jmm6993@gmail.com'];
+
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
-  if (!email || !email.includes('@')) {
-    toast('Please enter a valid email');
-    return;
-  }
+  if (!email || !email.includes('@')) { toast('Please enter a valid email'); return; }
   localStorage.setItem('userEmail', email);
-  localStorage.setItem('isLoggedIn', 'true');
-  checkProStatusAndUpdateUI(email);
   updateUILoggedIn(email);
-  toast(`Logged in as ${email}`);
+  setProStatus(PRO_EMAILS.includes(email));
+  toast(PRO_EMAILS.includes(email) ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
 }
 
 function logout() {
   localStorage.removeItem('userEmail');
-  localStorage.removeItem('isLoggedIn');
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginEmail').style.display = '';
-  document.getElementById('tierPill').textContent = 'FREE';
-  document.getElementById('tierPill').className = 'tier-pill free';
-  document.getElementById('tierPill').onclick = () => openModal();
-  tier = 'free';
-  unlockProFeatures(false);
-  updateSearchLockState();
-  document.getElementById('search').value='';
-  renderRanking('');
+  const us = document.getElementById('userSpan');
+  if (us) us.remove();
+  setProStatus(false);
+  document.getElementById('search').value = '';
+  if (Object.keys(store).length > 0) renderRanking('');
   toast('Logged out');
 }
 
-async function checkProStatusAndUpdateUI(email) {
-  try {
-    const response = await fetch(`https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`, {
-      headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' }
-    });
-    const data = await response.json();
-    const isPro = (data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro');
-    const tierPill = document.getElementById('tierPill');
-    const proBanner = document.getElementById('proBanner');
-    
-    if (isPro) {
-      tier = 'pro';
-      if (tierPill) {
-        tierPill.textContent = 'PRO';
-        tierPill.className = 'tier-pill pro';
-        tierPill.onclick = null;
-      }
-      // Hide pro banner for Pro users
-      if (proBanner) {
-        proBanner.style.display = 'none';
-      }
-      unlockProFeatures(true);
-      toast(`🎉 Pro member! Full access unlocked.`);
-    } else {
-      tier = 'free';
-      if (tierPill) {
-        tierPill.textContent = 'FREE';
-        tierPill.className = 'tier-pill free';
-        tierPill.onclick = () => openModal();
-      }
-      // Show pro banner for Free users
-      if (proBanner) {
-        proBanner.style.display = 'flex';
-      }
-      unlockProFeatures(false);
-    }
-    // REPLACE WITH:
-
-    return isPro;
-  } catch (err) {
-    console.error('Error checking Pro status:', err);
-    return false;
-  }
+function setProStatus(isPro) {
+  tier = isPro ? 'pro' : 'free';
+  const pill = document.getElementById('tierPill');
+  const banner = document.getElementById('proBanner');
+  if (pill) { pill.textContent = isPro ? 'PRO' : 'FREE'; pill.className = `tier-pill ${tier}`; pill.onclick = isPro ? null : openModal; }
+  if (banner) banner.style.display = isPro ? 'none' : 'flex';
+  unlockProFeatures(isPro);
+  updateSearchLockState();
+  if (Object.keys(store).length > 0) renderRanking(document.getElementById('search').value);
 }
+
 function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
   document.getElementById('loginEmail').style.display = 'none';
-  const headerRight = document.querySelector('.header-right');
-  let userSpan = document.getElementById('userSpan');
-  if (!userSpan) {
-    userSpan = document.createElement('span');
-    userSpan.id = 'userSpan';
-    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
-    headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
+  let us = document.getElementById('userSpan');
+  if (!us) {
+    us = document.createElement('span');
+    us.id = 'userSpan';
+    us.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
+    document.querySelector('.header-right').insertBefore(us, document.getElementById('loginBtn'));
   }
-  userSpan.textContent = email;
+  us.textContent = email;
 }
 
 function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
-  if (email) {
-    document.getElementById('loginEmail').value = email;
-    checkProStatusAndUpdateUI(email);
-    updateUILoggedIn(email);
-  }
+  if (email) { updateUILoggedIn(email); setProStatus(PRO_EMAILS.includes(email)); }
 }
-
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
 // ============================================================================
