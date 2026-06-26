@@ -1691,12 +1691,6 @@ function login() {
   localStorage.setItem('userEmail', email);
   updateUILoggedIn(email);
   setProStatus(PRO_EMAILS.includes(email));
-  // FORCE re-render with small delay to ensure store is ready
-  setTimeout(() => {
-    if (Object.keys(store).length > 0) {
-      renderRanking(document.getElementById('search')?.value || '');
-    }
-  }, 100);
   toast(PRO_EMAILS.includes(email) ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
 }
 
@@ -3905,6 +3899,10 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 // RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
 // ============================================================================
 function renderRanking(filter=''){
+  // --- ADD THIS ONE LINE ---
+  if (window.tier) tier = window.tier; // Sync with window.tier
+  const active = new Set(prefs.filters);
+
   const active=new Set(prefs.filters);
   let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
                   .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
