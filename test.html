@@ -1681,7 +1681,7 @@ function unlockProFeatures(isPro) {
   if (modalCta) modalCta.style.display = isPro ? 'none' : '';
   const search = document.getElementById('search');
   if (search) { search.classList.toggle('locked', !isPro); search.placeholder = isPro ? 'Search country…' : '🔒 Pro only'; }
-  if (isPro && Object.keys(store).length > 0) renderRanking('');
+  if (isPro && Object.keys(store).length > 0) { renderRanking(''); if (selectedIso) selCountry(selectedIso); }
 }
 const PRO_EMAILS = ['jmm6993@gmail.com'];
 
@@ -1710,6 +1710,7 @@ function logout() {
 
 function setProStatus(isPro) {
   tier = isPro ? 'pro' : 'free';
+  window.tier = tier;
   const pill = document.getElementById('tierPill');
   const banner = document.getElementById('proBanner');
   if (pill) { pill.textContent = isPro ? 'PRO' : 'FREE'; pill.className = `tier-pill ${tier}`; pill.onclick = isPro ? null : openModal; }
