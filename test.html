@@ -1670,10 +1670,7 @@ function openModal() { document.getElementById('modalBg').classList.add('open');
 function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
 function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
 
-// ============================================================================
-// PRO FEATURE UNLOCK
-// ============================================================================
-// ============================================================================
+// // ============================================================================
 // PRO FEATURE UNLOCK - FIXED VERSION
 // ============================================================================
 
@@ -1681,9 +1678,6 @@ function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.cl
 let isProUser = false;
 
 function unlockProFeatures(isPro) {
-  // Update the global tier
-  window.tier = isPro ? 'pro' : 'free';
-  
   // Show/hide lock banner
   const lockBanner = document.querySelector('.lock-banner');
   if (lockBanner) lockBanner.style.display = isPro ? 'none' : '';
@@ -1698,20 +1692,16 @@ function unlockProFeatures(isPro) {
   // Update search box
   const search = document.getElementById('search');
   if (search) {
+    search.classList.toggle('locked', !isPro);
+    search.placeholder = isPro ? 'Search country…' : '🔒 Pro only';
     if (isPro) {
-      search.classList.remove('locked');
-      search.placeholder = 'Search country…';
-      search.title = '';
-      search.disabled = false;
       search.style.opacity = '1';
       search.style.cursor = 'text';
+      search.disabled = false;
     } else {
-      search.classList.add('locked');
-      search.placeholder = '🔒 Pro only';
-      search.title = 'Upgrade to Pro to search countries';
-      search.disabled = true;
       search.style.opacity = '0.4';
       search.style.cursor = 'not-allowed';
+      search.disabled = true;
     }
   }
   
@@ -1720,14 +1710,13 @@ function unlockProFeatures(isPro) {
   if (pill) {
     pill.textContent = isPro ? 'PRO' : 'FREE';
     pill.className = `tier-pill ${isPro ? 'pro' : 'free'}`;
+    pill.onclick = isPro ? null : openModal;
     if (isPro) {
-      pill.onclick = null;
       pill.style.cursor = 'default';
       pill.style.background = 'rgba(191,127,255,0.2)';
       pill.style.borderColor = 'rgba(191,127,255,0.4)';
       pill.style.color = '#bf7fff';
     } else {
-      pill.onclick = openModal;
       pill.style.cursor = 'pointer';
       pill.style.background = 'rgba(100,120,160,0.12)';
       pill.style.borderColor = 'rgba(100,120,160,0.2)';
@@ -1735,11 +1724,11 @@ function unlockProFeatures(isPro) {
     }
   }
   
-  // Update PRO banner visibility
-  const proBanner = document.getElementById('proBanner');
-  if (proBanner) proBanner.style.display = isPro ? 'none' : 'flex';
+  // Update the tier variable for renderRanking
+  window.tier = isPro ? 'pro' : 'free';
+  tier = window.tier; // Sync the global variable
   
-  // Force re-render of ranking with new tier
+  // Re-render ranking with new tier
   if (Object.keys(store).length > 0) {
     renderRanking(document.getElementById('search')?.value || '');
   }
@@ -1748,7 +1737,13 @@ function unlockProFeatures(isPro) {
   if (isPro && selectedIso && store[selectedIso]) {
     renderPanel(selectedIso, null);
   }
+  
+  // Update PRO banner visibility
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) proBanner.style.display = isPro ? 'none' : 'flex';
 }
+
+// LOGIN FUNCTION - FIXED
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email || !email.includes('@')) { 
@@ -1760,22 +1755,22 @@ function login() {
   updateUILoggedIn(email);
   
   const isPro = PRO_EMAILS.includes(email);
-  window.tier = isPro ? 'pro' : 'free';
+  isProUser = isPro;
+  tier = isPro ? 'pro' : 'free';
+  window.tier = tier;
   
   // CRITICAL: Call unlockProFeatures to apply all changes
   unlockProFeatures(isPro);
   
   toast(isPro ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
   
-  // Force re-render of ranking with the new tier
-  setTimeout(() => {
-    if (Object.keys(store).length > 0) {
-      renderRanking(document.getElementById('search')?.value || '');
-      if (selectedIso && store[selectedIso]) {
-        renderPanel(selectedIso, null);
-      }
+  // Force re-render of ranking and panel
+  if (Object.keys(store).length > 0) {
+    renderRanking(document.getElementById('search')?.value || '');
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
     }
-  }, 100);
+  }
 }
 
 function logout() {
@@ -1787,27 +1782,33 @@ function logout() {
   const us = document.getElementById('userSpan');
   if (us) us.remove();
   
+  isProUser = false;
+  tier = 'free';
   window.tier = 'free';
   
   // CRITICAL: Unlock features as free user
   unlockProFeatures(false);
   
   document.getElementById('search').value = '';
-  setTimeout(() => {
-    if (Object.keys(store).length > 0) renderRanking('');
-  }, 100);
+  if (Object.keys(store).length > 0) renderRanking('');
   toast('Logged out');
 }
-function setProStatus(isPro) {
-  tier = isPro ? 'pro' : 'free';
-  window.tier = tier;
-  const pill = document.getElementById('tierPill');
-  const banner = document.getElementById('proBanner');
-  if (pill) { pill.textContent = isPro ? 'PRO' : 'FREE'; pill.className = `tier-pill ${tier}`; pill.onclick = isPro ? null : openModal; }
-  if (banner) banner.style.display = isPro ? 'none' : 'flex';
-  unlockProFeatures(isPro);
-  updateSearchLockState();
-  if (Object.keys(store).length > 0) renderRanking(document.getElementById('search').value);
+
+function checkExistingLogin() {
+  const email = localStorage.getItem('userEmail');
+  if (email) { 
+    updateUILoggedIn(email); 
+    const isPro = PRO_EMAILS.includes(email);
+    isProUser = isPro;
+    tier = isPro ? 'pro' : 'free';
+    window.tier = tier;
+    unlockProFeatures(isPro);
+  } else {
+    // Ensure free tier is properly set
+    tier = 'free';
+    window.tier = 'free';
+    unlockProFeatures(false);
+  }
 }
 
 function updateUILoggedIn(email) {
@@ -1822,21 +1823,6 @@ function updateUILoggedIn(email) {
     document.querySelector('.header-right').insertBefore(us, document.getElementById('loginBtn'));
   }
   us.textContent = email;
-}
-
-function checkExistingLogin() {
-  const email = localStorage.getItem('userEmail');
-  if (email) { 
-    updateUILoggedIn(email); 
-    const isPro = PRO_EMAILS.includes(email);
-    window.tier = isPro ? 'pro' : 'free';
-    // CRITICAL: Call unlockProFeatures to apply changes
-    unlockProFeatures(isPro);
-  } else {
-    // Ensure free tier is properly set
-    window.tier = 'free';
-    unlockProFeatures(false);
-  }
 }
 // ============================================================================
 // SAFE FETCH WITH TIMEOUT
@@ -3993,42 +3979,23 @@ function zoomToCountry(iso){
 }
 function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip${prefs.filters.includes(k)?' on':''}" data-f="${k}">${a.i} ${a.l}</div>`).join('');document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value)}));}
 
-// ============================================================================
-// RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
+// // ============================================================================
+// RENDER RANKING - FIXED: SHOWS ALL COUNTRIES FOR PRO USERS
 // ============================================================================
 function renderRanking(filter=''){
-  // Make sure we have data
-  if (!store || Object.keys(store).length === 0) {
-    document.getElementById('rankList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--tm);font-size:11px;">Loading data...</div>';
-    return;
-  }
-  
   const active = new Set(prefs.filters);
   let all = ranked.filter(iso => store[iso] && store[iso].types.some(t => active.has(t)))
                   .filter(iso => !filter || store[iso].name.toLowerCase().includes(filter.toLowerCase()));
   
-  // CRITICAL: Use the global tier variable, not a local copy
+  // Use window.tier which is set by unlockProFeatures
   const isPro = (window.tier === 'pro');
-  
-  // For PRO users - show ALL countries
-  // For FREE users - show only top 10
   const shown = isPro ? all : all.slice(0, 10);
   const hidden = all.length - shown.length;
   
-  if (shown.length === 0) {
-    document.getElementById('rankList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--tm);font-size:11px;">No countries match your filters.</div>';
-    return;
-  }
-  
   document.getElementById('rankList').innerHTML = shown.map((iso,i)=>{
-    const c=store[iso];
-    if (!c) return '';
-    const hist=(history[iso]||[]).map(h=>h.s);
-    const anom=cusum(hist);
-    const col=sc(c.score);
+    const c=store[iso], hist=(history[iso]||[]).map(h=>h.s), anom=cusum(hist), col=sc(c.score);
     const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
-    const spkMx=Math.max(...spk);
-    const spkMn=Math.min(...spk,spkMx-8);
+    const spkMx=Math.max(...spk), spkMn=Math.min(...spk,spkMx-8);
     const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
     const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
     const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
@@ -4088,6 +4055,7 @@ function selCountry(iso){
   const newUrl=`${window.location.pathname}?country=${iso}`;
   window.history.pushState({country:iso},'',newUrl);
 }
+
 function _doZoom(iso){
   if(!svgEl||!proj||!zoom||!CENTROIDS[iso])return zoomToCountry(iso);
   const stage=document.getElementById('mapStage');
@@ -4819,7 +4787,9 @@ function downloadCard() {
   }).finally(() => {
     document.body.removeChild(cloneCard);
   });
-}document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
+}document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();// Force re-render with current tier
+const currentTier = window.tier || 'free';
+renderRanking(document.getElementById('search')?.value || '');toast('✓ All filters active');});
 document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
 document.getElementById('pdfBtn').addEventListener('click',()=>{if(!selectedIso){toast('⚠ Select a country first');return}if(tier!=='pro'){if(confirm('PDF Reports are Pro. Generate watermarked preview?'))generatePDFReport(true);else openModal();}else generatePDFReport(false);});
 function generatePDFReport(isWatermarked){const c=store[selectedIso];const iso=selectedIso;toast('📄 Generating PDF...');const printFrame=document.createElement('iframe');printFrame.style.position='absolute';printFrame.style.width='0';printFrame.style.height='0';printFrame.style.border='none';document.body.appendChild(printFrame);const col=sc(c.score);const date=new Date().toLocaleString();const reportHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>GCIS Report — ${c.name}</title><style>body{font-family:sans-serif;padding:40px;}h1{color:${col};}</style></head><body>${isWatermarked?'<div style="position:fixed;top:50%;left:50%;transform:rotate(-45deg);font-size:60px;color:rgba(0,0,0,0.05);">PREVIEW</div>':''}<h1>GCIS Crisis Report</h1><p>${date} · ${c.name} ${c.flag}</p><h2>Urgency Score: ${c.score}/100</h2><div style="background:#e0e0e0;height:20px;"><div style="background:${col};width:${c.score}%;height:20px;"></div></div><p>Generated by GCIS Fusion · Live APIs</p></body></html>`;const frameDoc=printFrame.contentWindow.document;frameDoc.open();frameDoc.write(reportHTML);frameDoc.close();setTimeout(()=>{printFrame.contentWindow.focus();printFrame.contentWindow.print();setTimeout(()=>{document.body.removeChild(printFrame);toast(isWatermarked?'📄 Preview generated':'📄 Report generated');},500);},300);}
@@ -4829,14 +4799,6 @@ document.getElementById('loginBtn').addEventListener('click', login);
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('loginEmail').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
 checkExistingLogin();
-// Force a re-render of the ranking after data loads
-setTimeout(function checkRankingRender() {
-  if (Object.keys(store).length > 0) {
-    renderRanking(document.getElementById('search')?.value || '');
-  } else {
-    setTimeout(checkRankingRender, 500);
-  }
-}, 1000);
 buildFilters();updateSearchLockState();startRefreshTimer();
 d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{initMap(world);refresh();}).catch(()=>refresh());
 
@@ -5326,7 +5288,31 @@ setTimeout(updateDynamicTitle, 500);
 // Update every 30 seconds
 setInterval(updateDynamicTitle, 30000);
 
+// ============================================================================
+// FINAL INITIALIZATION - ENSURE TIER IS SET
+// ============================================================================
+// Make sure tier is properly set on page load
+if (typeof window.tier === 'undefined') {
+  window.tier = 'free';
+  tier = 'free';
+}
 
+// Force a re-render after store is populated
+const originalRefreshComplete = refresh;
+refresh = async function() {
+  await originalRefreshComplete.call(this);
+  // After refresh completes, make sure ranking shows correct tier
+  setTimeout(() => {
+    const currentTier = window.tier || 'free';
+    if (Object.keys(store).length > 0) {
+      renderRanking(document.getElementById('search')?.value || '');
+    }
+    updateSearchLockState();
+  }, 100);
+};
+
+console.log('🔓 PRO features fix loaded. Emails with PRO access:', PRO_EMAILS);
+console.log('Current tier:', window.tier);
 </script>
 
 
