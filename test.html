@@ -1671,27 +1671,108 @@ function closeModal() { document.getElementById('modalBg').classList.remove('ope
 function pickPlan(el, p) { document.querySelectorAll('.mplan').forEach(m => m.classList.remove('sp')); el.classList.add('sp'); }
 
 // ============================================================================
-// PRO FEATURE UNLOCK
+// PRO FEATURE UNLOCK - FIXED VERSION
 // ============================================================================
+
+// Store the tier globally and persist it
+let isProUser = false;
+
 function unlockProFeatures(isPro) {
+  // Show/hide lock banner
   const lockBanner = document.querySelector('.lock-banner');
   if (lockBanner) lockBanner.style.display = isPro ? 'none' : '';
+  
+  // Show/hide upgrade buttons in header
   document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = isPro ? 'none' : '');
+  
+  // Show/hide modal CTA
   const modalCta = document.querySelector('.modal-cta');
   if (modalCta) modalCta.style.display = isPro ? 'none' : '';
+  
+  // Update search box
   const search = document.getElementById('search');
-  if (search) { search.classList.toggle('locked', !isPro); search.placeholder = isPro ? 'Search country…' : '🔒 Pro only'; }
-  if (isPro && Object.keys(store).length > 0) { renderRanking(''); if(selectedIso) renderPanel(selectedIso, null); }
+  if (search) {
+    search.classList.toggle('locked', !isPro);
+    search.placeholder = isPro ? 'Search country…' : '🔒 Pro only';
+    if (isPro) {
+      search.style.opacity = '1';
+      search.style.cursor = 'text';
+      search.disabled = false;
+    } else {
+      search.style.opacity = '0.4';
+      search.style.cursor = 'not-allowed';
+      search.disabled = true;
+    }
+  }
+  
+  // Update tier pill
+  const pill = document.getElementById('tierPill');
+  if (pill) {
+    pill.textContent = isPro ? 'PRO' : 'FREE';
+    pill.className = `tier-pill ${isPro ? 'pro' : 'free'}`;
+    pill.onclick = isPro ? null : openModal;
+    if (isPro) {
+      pill.style.cursor = 'default';
+      pill.style.background = 'rgba(191,127,255,0.2)';
+      pill.style.borderColor = 'rgba(191,127,255,0.4)';
+      pill.style.color = '#bf7fff';
+    } else {
+      pill.style.cursor = 'pointer';
+      pill.style.background = 'rgba(100,120,160,0.12)';
+      pill.style.borderColor = 'rgba(100,120,160,0.2)';
+      pill.style.color = '#8090b0';
+    }
+  }
+  
+  // Update the tier variable for renderRanking
+  window.tier = isPro ? 'pro' : 'free';
+  
+  // Re-render ranking with new tier
+  if (Object.keys(store).length > 0) {
+    renderRanking(document.getElementById('search')?.value || '');
+  }
+  
+  // If we have a selected country and it's Pro, re-render the panel
+  if (isPro && selectedIso && store[selectedIso]) {
+    renderPanel(selectedIso, null);
+  }
+  
+  // Update PRO banner visibility
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) proBanner.style.display = isPro ? 'none' : 'flex';
 }
+
+// PRO emails list
 const PRO_EMAILS = ['jmm6993@gmail.com'];
 
+// LOGIN FUNCTION - FIXED
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
-  if (!email || !email.includes('@')) { toast('Please enter a valid email'); return; }
+  if (!email || !email.includes('@')) { 
+    toast('Please enter a valid email'); 
+    return; 
+  }
+  
   localStorage.setItem('userEmail', email);
   updateUILoggedIn(email);
-  setProStatus(PRO_EMAILS.includes(email));
-  toast(PRO_EMAILS.includes(email) ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
+  
+  const isPro = PRO_EMAILS.includes(email);
+  isProUser = isPro;
+  tier = isPro ? 'pro' : 'free';
+  window.tier = tier;
+  
+  // CRITICAL: Call unlockProFeatures to apply all changes
+  unlockProFeatures(isPro);
+  
+  toast(isPro ? '🎉 Pro member! Full access unlocked.' : `Logged in as ${email}`);
+  
+  // Force re-render of ranking and panel
+  if (Object.keys(store).length > 0) {
+    renderRanking(document.getElementById('search')?.value || '');
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
+    }
+  }
 }
 
 function logout() {
@@ -1702,24 +1783,17 @@ function logout() {
   document.getElementById('loginEmail').style.display = '';
   const us = document.getElementById('userSpan');
   if (us) us.remove();
-  setProStatus(false);
+  
+  isProUser = false;
+  tier = 'free';
+  window.tier = 'free';
+  
+  // CRITICAL: Unlock features as free user
+  unlockProFeatures(false);
+  
   document.getElementById('search').value = '';
   if (Object.keys(store).length > 0) renderRanking('');
   toast('Logged out');
-}
-
-function setProStatus(isPro) {
-  tier = isPro ? 'pro' : 'free';
-  window.tier = tier;
-  const pill = document.getElementById('tierPill');
-  const banner = document.getElementById('proBanner');
-  if (pill) { pill.textContent = isPro ? 'PRO' : 'FREE'; pill.className = `tier-pill ${tier}`; pill.onclick = isPro ? null : openModal; }
-  if (banner) banner.style.display = isPro ? 'none' : 'flex';
-  unlockProFeatures(isPro);
-  updateSearchLockState();
-  // Force re-render with all countries when Pro
-  const searchVal = document.getElementById('search')?.value || '';
-  if (Object.keys(store).length > 0) renderRanking(searchVal);
 }
 
 function updateUILoggedIn(email) {
@@ -1740,13 +1814,16 @@ function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
   if (email) { 
     updateUILoggedIn(email); 
-    setProStatus(PRO_EMAILS.includes(email));
-    // ✅ FIX: Re-render after a short delay to ensure store is populated
-    setTimeout(() => {
-      if (Object.keys(store).length > 0) {
-        renderRanking(document.getElementById('search')?.value || '');
-      }
-    }, 300);
+    const isPro = PRO_EMAILS.includes(email);
+    isProUser = isPro;
+    tier = isPro ? 'pro' : 'free';
+    window.tier = tier;
+    unlockProFeatures(isPro);
+  } else {
+    // Ensure free tier is properly set
+    tier = 'free';
+    window.tier = 'free';
+    unlockProFeatures(false);
   }
 }
 // ============================================================================
@@ -3908,16 +3985,15 @@ function buildFilters(){document.getElementById('filterGrid').innerHTML=Object.e
 // RENDER RANKING - SHOWS ALL 60+ COUNTRIES FOR PRO USERS
 // ============================================================================
 function renderRanking(filter=''){
-  // --- ADD THIS ONE LINE ---
-  if (window.tier) tier = window.tier; // Sync with window.tier
   const active = new Set(prefs.filters);
-
-  const active=new Set(prefs.filters);
-  let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
-                  .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
-  const isPro = (tier==='pro');
+  let all = ranked.filter(iso => store[iso] && store[iso].types.some(t => active.has(t)))
+                  .filter(iso => !filter || store[iso].name.toLowerCase().includes(filter.toLowerCase()));
+  
+  // Use window.tier which is set by unlockProFeatures
+  const isPro = (window.tier === 'pro');
   const shown = isPro ? all : all.slice(0, 10);
   const hidden = all.length - shown.length;
+  
   document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{
     const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
     const spk=hist.length>=2?hist.slice(-7):[c.score-2,c.score+1,c.score-1,c.score+2,c.score];
@@ -3927,7 +4003,9 @@ function renderRanking(filter=''){
     const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
     return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt · +${(c.spillover||0).toFixed(0)} spill${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
   }).join('');
-  if(tier==='free' && hidden>0){
+  
+  // Only show lock banner for free tier with hidden countries
+  if(!isPro && hidden > 0){
     document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 60+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
   }
 }
@@ -3935,8 +4013,10 @@ function renderRanking(filter=''){
 function selCountry(iso){
   if(!iso||!store[iso])return;
 
-  // Free tier: block panel for countries outside top 10
-if(tier!=='pro'){
+  // For PRO users, show everything
+  const isPro = (window.tier === 'pro');
+  
+  if(!isPro){
     const idx=ranked.indexOf(iso);
     if(idx>=10){
       // Still zoom/highlight the country on the map, but show upgrade prompt instead of panel
@@ -4405,29 +4485,43 @@ function renderAIBrief(iso) {
 }
 function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
 function startRefreshTimer(){if(refreshIntervalId)clearInterval(refreshIntervalId);refreshIntervalId=setInterval(()=>{refreshTimerSecs--;const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}},1000);}
-document.getElementById('search').addEventListener('focus',e=>{
-  if(tier!=='pro'){
-    e.target.blur();
+document.getElementById('search').addEventListener('focus', function(e) {
+  // Check if the user is PRO
+  const isPro = (window.tier === 'pro');
+  if(!isPro){
+    this.blur();
     toast('🔒 Country search is a Pro feature — upgrade to unlock');
     openModal();
   }
 });
-document.getElementById('search').addEventListener('input',e=>{
-  if(tier!=='pro'){e.target.value='';return;}
-  renderRanking(e.target.value);
+
+document.getElementById('search').addEventListener('input', function(e) {
+  const isPro = (window.tier === 'pro');
+  if(!isPro) {
+    this.value = '';
+    return;
+  }
+  renderRanking(this.value);
 });
 
-function updateSearchLockState(){
-  const box=document.getElementById('search');
-  if(!box)return;
-  if(tier==='pro'){
+function updateSearchLockState() {
+  const box = document.getElementById('search');
+  if (!box) return;
+  const isPro = (window.tier === 'pro');
+  if (isPro) {
     box.classList.remove('locked');
-    box.placeholder='Search country…';
-    box.title='';
+    box.placeholder = 'Search country…';
+    box.title = '';
+    box.disabled = false;
+    box.style.opacity = '1';
+    box.style.cursor = 'text';
   } else {
     box.classList.add('locked');
-    box.placeholder='🔒 Pro only';
-    box.title='Upgrade to Pro to search countries';
+    box.placeholder = '🔒 Pro only';
+    box.title = 'Upgrade to Pro to search countries';
+    box.disabled = true;
+    box.style.opacity = '0.4';
+    box.style.cursor = 'not-allowed';
   }
 }
 document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
@@ -5211,4 +5305,4 @@ setInterval(updateDynamicTitle, 30000);
 
 </div>
 </body>
-</html> 
+</html>
