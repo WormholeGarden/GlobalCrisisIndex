@@ -1759,8 +1759,9 @@ async function checkProStatusAndUpdateUI(email) {
       }
       unlockProFeatures(false);
     }
-    updateSearchLockState();
-    renderRanking(document.getElementById('search').value);
+    // REPLACE WITH:
+updateSearchLockState();
+if (Object.keys(store).length > 0) renderRanking(document.getElementById('search').value);
     return isPro;
   } catch (err) {
     console.error('Error checking Pro status:', err);
