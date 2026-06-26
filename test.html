@@ -1738,26 +1738,15 @@ function updateUILoggedIn(email) {
 
 function checkExistingLogin() {
   const email = localStorage.getItem('userEmail');
-  if (email) {
-    updateUILoggedIn(email);
+  if (email) { 
+    updateUILoggedIn(email); 
     setProStatus(PRO_EMAILS.includes(email));
-    // ✅ FIX: Re-render ranking after login to show all countries
-    // Use a small delay to ensure store is populated
+    // ✅ FIX: Re-render after a short delay to ensure store is populated
     setTimeout(() => {
       if (Object.keys(store).length > 0) {
         renderRanking(document.getElementById('search')?.value || '');
-      } else {
-        // If store isn't ready yet, check again in 500ms
-        const checkInterval = setInterval(() => {
-          if (Object.keys(store).length > 0) {
-            renderRanking(document.getElementById('search')?.value || '');
-            clearInterval(checkInterval);
-          }
-        }, 500);
-        // Stop checking after 5 seconds
-        setTimeout(() => clearInterval(checkInterval), 5000);
       }
-    }, 100);
+    }, 300);
   }
 }
 // ============================================================================
