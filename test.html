@@ -782,6 +782,16 @@ function unlockProFeatures(isPro) {
 function login() {
   const email = document.getElementById('loginEmail').value.trim();
   if (!email || !email.includes('@')) { toast('Please enter a valid email'); return; }
+  
+  // 🔥 FORCE PRO ACCESS FOR THIS EMAIL
+  if (email === 'jmm6993@gmail.com') {
+    unlockProFeatures(true);
+    document.getElementById('tierPill').textContent = 'PRO ✦';
+    document.getElementById('tierPill').className = 'tier-pill pro';
+    toast('🎉 Pro access unlocked!');
+    return; // DONE - skip the rest
+  }
+  
   localStorage.setItem('userEmail', email);
   localStorage.setItem('isLoggedIn', 'true');
   updateUILoggedIn(email);
@@ -809,29 +819,32 @@ function logout() {
 // *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
 async function checkProStatusAndUpdateUI(email) {
   try {
-    // LOCAL OVERRIDE: add emails to localStorage for instant pro access
-    // Usage: localStorage.setItem('proEmails', JSON.stringify(['you@example.com']))
-    let manualOverride = false;
-    try {
-      const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
-      manualOverride = proEmails.includes(email);
-    } catch(e) {}
-
-    let isPro = manualOverride;
-
-    if (!manualOverride) {
-      // Try Airtable
+    let isPro = false;
+    
+    // Check if email is jmm6993@gmail.com - AUTO PRO
+    if (email === 'jmm6993@gmail.com') {
+      isPro = true;
+    } else {
+      // LOCAL OVERRIDE for other emails
       try {
-        const response = await fetch(
-          `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
-          { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
+        const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
+        if (proEmails.includes(email)) isPro = true;
+      } catch(e) {}
+      
+      // If still not pro, try Airtable
+      if (!isPro) {
+        try {
+          const response = await fetch(
+            `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
+            { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
+          }
+        } catch(e) {
+          console.warn('Airtable check failed:', e);
         }
-      } catch(e) {
-        console.warn('Airtable check failed:', e);
       }
     }
 
