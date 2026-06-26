@@ -1211,8 +1211,15 @@ function initMap(world){
   mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);
   mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);
   const countries=topojson.feature(world,world.objects.countries);
+  
+  // ── FILTER OUT RUSSIA ──────────────────────────────────────────────────
   mapGroup.selectAll('.country-path')
-    .data(countries.features)
+    .data(countries.features.filter(d => {
+      const id = String(d.id);
+      const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+      // Filter out Russia (ID 643) and any variations of the name
+      return id !== '643' && name !== 'russia' && !name.includes('russian');
+    }))
     .enter().append('path')
     .attr('class','country-path')
     .attr('d',pathGen)
@@ -1252,12 +1259,17 @@ function initMap(world){
 function paintMap(){
   if(!mapGroup)return;
   mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{
+    // ── SKIP RUSSIA ──────────────────────────────────────────────────────
+    const id = String(d.id);
+    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+    if (id === '643' || name === 'russia' || name.includes('russian')) {
+      return 'transparent'; // Russia is invisible
+    }
     const iso=getIsoFromFeature(d);
     if(!iso||!store[iso])return'#1a2e45';
     return sc(store[iso].score)+'bb';
   });
 }
-
 function addPulseMarkers(){
   if(!mapGroup||!proj)return;
   mapGroup.selectAll('.pulse-marker').remove();
