@@ -115,36 +115,48 @@
       return headline;
     }
     async function loadBreakingHeadline() {
-      const headlineEl = document.getElementById("breaking-headline");
-      if (!headlineEl) return;
-      try {
-        const countries = await fetchAllCountries();
-        if (!countries || countries.length === 0) throw new Error("No country data");
-        const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
-        const topStory = sortedByScore[0];
-        const previousIso = localStorage.getItem('gcin_top_iso');
-        const currentIso = topStory.iso;
-        if (previousIso !== currentIso) {
+  const headlineEl = document.getElementById("breaking-headline");
+  if (!headlineEl) {
+    console.warn("breaking-headline element not found");
+    return;
+  }
+  try {
+    const countries = await fetchAllCountries();
+    if (!countries || countries.length === 0) throw new Error("No country data");
+    const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
+    const topStory = sortedByScore[0];
+    const previousIso = localStorage.getItem('gcin_top_iso');
+    const currentIso = topStory.iso;
+    if (previousIso !== currentIso) {
+      headlineEl.innerText = generateHeadline(topStory);
+      localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+      localStorage.setItem('gcin_top_iso', currentIso);
+    } else {
+      const stored = localStorage.getItem('gcin_top_anomaly');
+      if (stored) {
+        const oldStory = JSON.parse(stored);
+        if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
           headlineEl.innerText = generateHeadline(topStory);
           localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-          localStorage.setItem('gcin_top_iso', currentIso);
-        } else {
-          const stored = localStorage.getItem('gcin_top_anomaly');
-          if (stored) {
-            const oldStory = JSON.parse(stored);
-            if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
-              headlineEl.innerText = generateHeadline(topStory);
-              localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-            }
-          }
         }
-      } catch (err) {
-        headlineEl.innerText = "⚠️ Live feed unavailable.";
       }
     }
-    loadBreakingHeadline();
-    setInterval(loadBreakingHeadline, 10 * 60 * 1000);
-  })();
+  } catch (err) {
+    console.warn("GCIN headline error:", err);
+    // Show a fallback headline from localStorage if available
+    const stored = localStorage.getItem('gcin_top_anomaly');
+    if (stored) {
+      try {
+        const oldStory = JSON.parse(stored);
+        headlineEl.innerText = generateHeadline(oldStory);
+      } catch(e) {
+        headlineEl.innerText = "⚠️ Live feed unavailable. Check API.";
+      }
+    } else {
+      headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
+    }
+  }
+}
 </script>
 
 <script type="application/ld+json">
