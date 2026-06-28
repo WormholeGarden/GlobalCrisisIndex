@@ -1955,6 +1955,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
     </div>
 
+    <div id="conflictTimelineSlot"></div>
+
     <div class="ps">
       <div class="spill-box">
         <div class="spill-head">
@@ -2094,12 +2096,16 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
-  setTimeout(() => {
+ setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
     if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
     DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
+    buildConflictTimeline(iso, c).then(html => {
+      const slot = document.getElementById('conflictTimelineSlot');
+      if (slot) slot.outerHTML = html || '';
+    });
   }, 60);
 
   if (mapGroup) {
