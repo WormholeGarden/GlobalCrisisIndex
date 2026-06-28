@@ -1522,38 +1522,35 @@ async function buildConflictTimeline(iso, c) {
   const name = c.name;
   const events = [];
 
-  // ── 1. ACLED-style events from conflictEvents global ──────────────────
-  const localConflict = (conflictEvents || []).filter(e =>
+  // ── 1. ACLED conflict events ──────────────────────────────────────────
+  (conflictEvents || []).filter(e =>
     e.country && e.country.toLowerCase() === name.toLowerCase()
-  );
-  localConflict.forEach(e => {
+  ).forEach(e => {
     events.push({
       date: new Date(),
       label: e.event_type || 'Conflict Event',
       detail: e.fatalities ? `${e.fatalities}+ fatalities` : '',
       source: 'ACLED',
       severity: e.fatalities >= 50 ? 'critical' : e.fatalities >= 10 ? 'high' : 'moderate',
-      icon: '⚔️'
+      icon: '⚔️', category: 'conflict'
     });
   });
 
   // ── 2. ReliefWeb events ───────────────────────────────────────────────
-  const rwEvents = (apiResults.reliefweb_events || []).filter(e =>
+  (apiResults.reliefweb_events || []).filter(e =>
     e.country && e.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-  );
-  rwEvents.slice(0, 4).forEach(e => {
-    const typeIconMap = { 'Conflict': '⚔️', 'Flood': '🌊', 'Earthquake': '🌍', 'Epidemic': '🦠', 'Drought': '🏜️', 'Cyclone': '🌀' };
+  ).slice(0, 4).forEach(e => {
+    const typeIconMap = { 'Conflict':'⚔️','Flood':'🌊','Earthquake':'🌍','Epidemic':'🦠','Drought':'🏜️','Cyclone':'🌀','Storm':'⛈️','Wildfire':'🔥' };
     events.push({
       date: new Date(Date.now() - Math.random() * 12 * 86400000),
       label: e.title || e.type || 'Humanitarian Event',
-      detail: e.type || '',
-      source: 'ReliefWeb',
-      severity: 'high',
-      icon: typeIconMap[e.type] || '⚠️'
+      detail: e.type || 'ReliefWeb alert',
+      source: 'ReliefWeb', severity: 'high',
+      icon: typeIconMap[e.type] || '⚠️', category: 'humanitarian'
     });
   });
 
-  // ── 3. IPC food security event ────────────────────────────────────────
+  // ── 3. IPC food security ──────────────────────────────────────────────
   const ipc = (ipcClassifications || []).find(i =>
     i.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
   );
@@ -1561,10 +1558,10 @@ async function buildConflictTimeline(iso, c) {
     events.push({
       date: new Date(Date.now() - 3 * 86400000),
       label: `IPC Phase ${ipc.phase} — ${ipc.phase_name}`,
-      detail: `${Math.round(ipc.population / 1e6)}M people affected`,
+      detail: `${Math.round(ipc.population / 1e6)}M people facing acute hunger`,
       source: 'IPC/WFP',
       severity: ipc.phase >= 4 ? 'critical' : 'high',
-      icon: '🌾'
+      icon: '🌾', category: 'food'
     });
   }
 
@@ -1572,86 +1569,78 @@ async function buildConflictTimeline(iso, c) {
   (diseaseOutbreaks || []).filter(d =>
     d.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
   ).forEach(d => {
+    const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
     events.push({
       date: new Date(Date.now() - Math.floor(Math.random() * 8) * 86400000),
       label: `${d.disease} Outbreak`,
-      detail: `${d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : d.cases?.toLocaleString()+'+'} cases`,
+      detail: `${cases} cases confirmed`,
       source: 'WHO',
       severity: d.cases >= 10000 ? 'critical' : 'high',
-      icon: '🦠'
+      icon: '🦠', category: 'health'
     });
   });
 
-  // ── 5. Heat stress ────────────────────────────────────────────────────
+  // ── 5. Extreme heat ───────────────────────────────────────────────────
   const heat = (heatStressData || []).find(h => h.iso === iso && h.temp > 40);
   if (heat) {
     events.push({
       date: new Date(),
       label: 'Extreme Heat Warning',
-      detail: `${heat.temp}°C — Open-Meteo live`,
+      detail: `${heat.temp}°C recorded — dangerous conditions`,
       source: 'Open-Meteo',
       severity: heat.temp >= 45 ? 'critical' : 'high',
-      icon: '🥵'
+      icon: '🥵', category: 'climate'
     });
   }
 
-  // ── 6. GDELT processed events ─────────────────────────────────────────
-  const gdeltEvents = (apiResults.gdelt_processed || []).filter(f => {
-    if (!f.properties) return false;
-    const coord = CENTROIDS[iso];
-    if (!coord) return false;
+  // ── 6. GDELT signals ──────────────────────────────────────────────────
+  const coord = CENTROIDS[iso];
+  (apiResults.gdelt_processed || []).filter(f => {
+    if (!f.properties || !coord) return false;
     const [lng, lat] = f.geometry?.coordinates || [];
-    if (!lng || !lat) return false;
-    return Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
-  });
-  gdeltEvents.slice(0, 3).forEach(f => {
+    return lng && lat && Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
+  }).slice(0, 2).forEach(f => {
     events.push({
       date: new Date(Date.now() - Math.floor(Math.random() * 14) * 86400000),
-      label: f.properties?.name || 'GDELT Signal',
-      detail: 'Media conflict signal',
-      source: 'GDELT',
-      severity: 'moderate',
-      icon: '📡'
+      label: f.properties?.name || 'GDELT Media Signal',
+      detail: 'Conflict media coverage spike',
+      source: 'GDELT', severity: 'moderate',
+      icon: '📡', category: 'signal'
     });
   });
 
-  // ── 7. USGS earthquakes near country ──────────────────────────────────
-  const coord = CENTROIDS[iso];
+  // ── 7. USGS earthquakes ───────────────────────────────────────────────
   if (coord) {
-    const quakes = (apiResults.usgs_weekly?.features || []).filter(f => {
+    (apiResults.usgs_weekly?.features || []).filter(f => {
       const [qlng, qlat] = f.geometry?.coordinates || [];
       return Math.abs(qlng - coord[0]) < 10 && Math.abs(qlat - coord[1]) < 10 && f.properties?.mag >= 4.5;
-    });
-    quakes.slice(0, 2).forEach(q => {
-      const mag = q.properties.mag?.toFixed(1);
+    }).slice(0, 2).forEach(q => {
+      const mag = (+q.properties.mag).toFixed(1);
       events.push({
         date: new Date(q.properties.time),
         label: `M${mag} Earthquake`,
-        detail: q.properties.place?.split(',')[0] || '',
+        detail: q.properties.place?.split(',')[0] || 'Near region',
         source: 'USGS',
         severity: mag >= 6.5 ? 'critical' : mag >= 5.5 ? 'high' : 'moderate',
-        icon: '🌍'
+        icon: '🌍', category: 'seismic'
       });
     });
   }
 
-  // ── 8. Seed synthetic events from score history for context ───────────
+  // ── 8. Score history surges ───────────────────────────────────────────
   const hist = (history[iso] || []).map(h => h.s);
   if (hist.length >= 7) {
     for (let i = hist.length - 1; i >= Math.max(0, hist.length - 14); i--) {
-      const delta = i > 0 ? hist[i] - hist[i - 1] : 0;
+      const delta = i > 0 ? hist[i] - hist[i-1] : 0;
       if (Math.abs(delta) >= 4) {
         const daysAgo = hist.length - 1 - i;
-        const label = delta > 0
-          ? `Score Surge +${delta.toFixed(0)}`
-          : `Score Eased ${delta.toFixed(0)}`;
         events.push({
           date: new Date(Date.now() - daysAgo * 86400000),
-          label,
+          label: delta > 0 ? `Crisis Surge +${Math.round(delta)}pts` : `Situation Eased ${Math.round(delta)}pts`,
           detail: `Score moved to ${hist[i]}/100`,
-          source: 'GCIS',
+          source: 'GCIS Index',
           severity: delta > 6 ? 'critical' : delta > 3 ? 'high' : 'moderate',
-          icon: delta > 0 ? '📈' : '📉'
+          icon: delta > 0 ? '📈' : '📉', category: 'index'
         });
       }
     }
@@ -1659,81 +1648,164 @@ async function buildConflictTimeline(iso, c) {
 
   if (!events.length) return '';
 
-  // ── Sort by date descending ───────────────────────────────────────────
   events.sort((a, b) => b.date - a.date);
   const displayed = events.slice(0, 12);
+  const total = events.length;
 
-  const sevColor = { critical: '#ff375f', high: '#ff8c42', moderate: '#ffb020', low: '#3ec5ff' };
-  const sevBg    = { critical: 'rgba(255,55,95,0.10)', high: 'rgba(255,140,66,0.08)', moderate: 'rgba(255,176,32,0.07)', low: 'rgba(62,197,255,0.06)' };
-  const sevBorder= { critical: 'rgba(255,55,95,0.25)', high: 'rgba(255,140,66,0.2)', moderate: 'rgba(255,176,32,0.18)', low: 'rgba(62,197,255,0.15)' };
+  // ── Severity config ───────────────────────────────────────────────────
+  const SEV = {
+    critical: { color:'#ff375f', bg:'rgba(255,55,95,0.10)', border:'rgba(255,55,95,0.28)', glow:'rgba(255,55,95,0.35)', label:'CRITICAL' },
+    high:     { color:'#ff8c42', bg:'rgba(255,140,66,0.08)', border:'rgba(255,140,66,0.22)', glow:'rgba(255,140,66,0.3)', label:'HIGH' },
+    moderate: { color:'#ffb020', bg:'rgba(255,176,32,0.07)', border:'rgba(255,176,32,0.2)', glow:'rgba(255,176,32,0.25)', label:'MOD' },
+    low:      { color:'#3ec5ff', bg:'rgba(62,197,255,0.06)', border:'rgba(62,197,255,0.18)', glow:'rgba(62,197,255,0.2)', label:'LOW' }
+  };
 
+  // ── Category accent colors ────────────────────────────────────────────
+  const CAT_COLOR = {
+    conflict:'#ff375f', humanitarian:'#ff8c42', food:'#ffb020',
+    health:'#e879f9', climate:'#f97316', seismic:'#a78bfa',
+    signal:'#3ec5ff', index:'#00e5a0'
+  };
+
+  function relativeTime(date) {
+    const diff = Date.now() - date.getTime();
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (h < 1) return '<span style="color:#00e5a0;font-weight:700;">Just now</span>';
+    if (h < 24) return `<span style="color:#ffb020;">${h}h ago</span>`;
+    if (d === 1) return '<span style="color:var(--ts);">Yesterday</span>';
+    return `<span style="color:var(--tm);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+  }
+
+  // ── Count by severity for the header stats ────────────────────────────
+  const critCount = events.filter(e => e.severity === 'critical').length;
+  const highCount = events.filter(e => e.severity === 'high').length;
+
+  // ── Build rows ────────────────────────────────────────────────────────
   const rows = displayed.map((ev, idx) => {
-    const col = sevColor[ev.severity] || '#8bbdd8';
-    const bg  = sevBg[ev.severity]   || 'rgba(255,255,255,0.02)';
-    const bdr = sevBorder[ev.severity]|| 'rgba(255,255,255,0.06)';
-    const now = Date.now();
-    const diff = now - ev.date.getTime();
-    const daysAgo = Math.floor(diff / 86400000);
-    const hoursAgo = Math.floor(diff / 3600000);
-    const dateStr = daysAgo === 0
-      ? (hoursAgo === 0 ? 'Just now' : `${hoursAgo}h ago`)
-      : daysAgo === 1 ? 'Yesterday'
-      : `${ev.date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-
+    const sev = SEV[ev.severity] || SEV.moderate;
+    const catColor = CAT_COLOR[ev.category] || sev.color;
     const isLast = idx === displayed.length - 1;
+    const isFirst = idx === 0;
+    const isCritical = ev.severity === 'critical';
 
     return `
-      <div style="display:flex;gap:10px;position:relative;">
-        <!-- Timeline spine -->
-        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:18px;">
-          <div style="width:10px;height:10px;border-radius:50%;background:${col};box-shadow:0 0 7px ${col}99;flex-shrink:0;margin-top:3px;z-index:1;"></div>
-          ${!isLast ? `<div style="width:1.5px;flex:1;background:linear-gradient(to bottom,${col}55,transparent);min-height:18px;margin-top:2px;"></div>` : ''}
-        </div>
-        <!-- Event card -->
-        <div style="flex:1;background:${bg};border:1px solid ${bdr};border-radius:7px;padding:7px 10px;margin-bottom:${isLast?'0':'7px'};">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px;">
-            <div style="display:flex;align-items:center;gap:5px;">
-              <span style="font-size:11px;">${ev.icon}</span>
-              <span style="font-size:10px;font-weight:700;color:#ddeeff;line-height:1.3;">${ev.label}</span>
+      <div style="display:flex;gap:0;position:relative;${isFirst ? '' : ''}">
+
+        <!-- Left: timeline spine + dot -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:32px;flex-shrink:0;padding-top:2px;">
+          <!-- Dot -->
+          <div style="position:relative;width:14px;height:14px;flex-shrink:0;">
+            ${isCritical ? `<div style="position:absolute;inset:-3px;border-radius:50%;background:${sev.color};opacity:0.2;animation:pulse 2s ease-in-out infinite;"></div>` : ''}
+            <div style="width:14px;height:14px;border-radius:50%;background:${sev.bg};border:2px solid ${sev.color};box-shadow:0 0 8px ${sev.glow};display:flex;align-items:center;justify-content:center;position:relative;z-index:1;">
+              <div style="width:5px;height:5px;border-radius:50%;background:${sev.color};${isCritical ? `box-shadow:0 0 4px ${sev.color};` : ''}"></div>
             </div>
-            <span style="font-family:var(--fm);font-size:7px;color:${col};background:${bg};border:1px solid ${bdr};border-radius:99px;padding:1px 6px;white-space:nowrap;flex-shrink:0;">${ev.severity.toUpperCase()}</span>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
-            <span style="font-family:var(--fm);font-size:8px;color:var(--tm);">${ev.detail}</span>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-              <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${ev.source}</span>
-              <span style="font-family:var(--fm);font-size:7px;color:var(--tm);">· ${dateStr}</span>
+          <!-- Spine line -->
+          ${!isLast ? `<div style="width:2px;flex:1;min-height:14px;background:linear-gradient(to bottom,${sev.color}44,${(SEV[displayed[idx+1]?.severity]||SEV.moderate).color}22);margin-top:3px;border-radius:1px;"></div>` : ''}
+        </div>
+
+        <!-- Right: event card -->
+        <div style="flex:1;margin-bottom:${isLast?'0':'10px'};padding-bottom:${isLast?'0':'0'};">
+          <div style="
+            background:${sev.bg};
+            border:1px solid ${sev.border};
+            border-left:3px solid ${sev.color};
+            border-radius:0 8px 8px 0;
+            padding:8px 11px;
+            position:relative;
+            overflow:hidden;
+            transition:all 0.15s;
+          " onmouseover="this.style.background='${sev.bg.replace('0.10','0.16').replace('0.08','0.13').replace('0.07','0.11').replace('0.06','0.10')}';this.style.borderColor='${sev.color}';" onmouseout="this.style.background='${sev.bg}';this.style.border='1px solid ${sev.border}';this.style.borderLeft='3px solid ${sev.color}';">
+
+            <!-- Subtle category accent strip -->
+            <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:${catColor};opacity:0.4;border-radius:0 8px 8px 0;"></div>
+
+            <!-- Top row: icon + label + severity badge -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                <span style="font-size:13px;flex-shrink:0;line-height:1;">${ev.icon}</span>
+                <span style="font-size:10px;font-weight:700;color:#e8f4ff;line-height:1.3;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev.label}</span>
+              </div>
+              <span style="
+                font-family:var(--fm);font-size:6.5px;font-weight:800;
+                color:${sev.color};
+                background:${sev.bg};
+                border:1px solid ${sev.border};
+                border-radius:3px;
+                padding:2px 5px;
+                white-space:nowrap;flex-shrink:0;
+                letter-spacing:.06em;
+              ">${sev.label}</span>
+            </div>
+
+            <!-- Detail row -->
+            ${ev.detail ? `<div style="font-family:var(--fb);font-size:9px;color:var(--ts);margin-bottom:5px;line-height:1.4;padding-left:19px;">${ev.detail}</div>` : ''}
+
+            <!-- Footer: source + time -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-left:19px;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-family:var(--fm);font-size:7px;color:${catColor};background:${catColor}18;border:1px solid ${catColor}33;border-radius:3px;padding:1px 5px;font-weight:600;">${ev.source}</span>
+              </div>
+              <div style="font-family:var(--fm);font-size:7px;">${relativeTime(ev.date)}</div>
             </div>
           </div>
         </div>
       </div>`;
   }).join('');
 
+  // ── Header source pills ───────────────────────────────────────────────
+  const sources = [...new Set(displayed.map(e => e.source))].slice(0, 5);
+  const sourcePills = sources.map(s => `<span style="font-family:var(--fm);font-size:6px;color:var(--td);background:rgba(255,255,255,0.03);border:1px solid var(--b1);border-radius:3px;padding:1px 5px;">${s}</span>`).join('');
+
   return `
     <div class="ps">
-      <div style="background:rgba(255,255,255,0.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden;">
-        <div style="padding:8px 13px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span style="font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--tm);text-transform:uppercase;">⚡ Live Event Timeline</span>
-            <span style="font-family:var(--fm);font-size:7px;background:rgba(255,55,95,0.1);border:1px solid rgba(255,55,95,0.2);color:#ff375f;border-radius:99px;padding:1px 6px;">${displayed.length} events</span>
+      <div style="background:rgba(3,8,20,0.6);border:1px solid rgba(255,55,95,0.15);border-radius:12px;overflow:hidden;backdrop-filter:blur(12px);">
+
+        <!-- Header -->
+        <div style="
+          padding:10px 14px;
+          background:linear-gradient(135deg,rgba(255,55,95,0.08),rgba(255,140,66,0.04));
+          border-bottom:1px solid rgba(255,55,95,0.12);
+          display:flex;align-items:center;justify-content:space-between;gap:10px;
+        ">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="position:relative;width:8px;height:8px;flex-shrink:0;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:#ff375f;animation:pulse 2s ease-in-out infinite;opacity:0.4;"></div>
+              <div style="position:absolute;inset:1px;border-radius:50%;background:#ff375f;"></div>
+            </div>
+            <span style="font-family:var(--fd);font-size:13px;font-weight:800;letter-spacing:.04em;color:#fff;">Event Timeline</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${critCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);color:#ff375f;border-radius:4px;padding:1px 6px;font-weight:700;">${critCount} CRITICAL</span>` : ''}
+              ${highCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,140,66,0.1);border:1px solid rgba(255,140,66,0.25);color:#ff8c42;border-radius:4px;padding:1px 6px;">${highCount} HIGH</span>` : ''}
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:7px;color:var(--td);">
-            <div style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease-in-out infinite;"></div>
-            ACLED · GDELT · ReliefWeb · WHO · USGS
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+            ${sourcePills}
           </div>
         </div>
-        <div style="padding:11px 12px 4px;">
+
+        <!-- Timeline body -->
+        <div style="padding:14px 12px 6px 10px;">
           ${rows}
         </div>
-        ${events.length > 12 ? `
-        <div style="padding:6px 13px 10px;text-align:center;">
-          <span style="font-family:var(--fm);font-size:8px;color:var(--tm);">+${events.length - 12} more events · </span>
-          <span style="font-family:var(--fm);font-size:8px;color:var(--cyan);cursor:pointer;" onclick="openModal()">Upgrade for full history →</span>
-        </div>` : '<div style="height:6px;"></div>'}
+
+        <!-- Footer -->
+        <div style="
+          padding:8px 14px;
+          border-top:1px solid rgba(255,255,255,0.04);
+          display:flex;align-items:center;justify-content:space-between;
+        ">
+          <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${total} events detected · last 30 days</span>
+          ${total > 12 ? `
+          <span style="font-family:var(--fm);font-size:7.5px;cursor:pointer;color:var(--cyan);display:flex;align-items:center;gap:3px;" onclick="openModal()">
+            +${total - 12} more <span style="opacity:0.6;">· Upgrade →</span>
+          </span>` : `<span style="font-family:var(--fm);font-size:7px;color:var(--td);">showing all events</span>`}
+        </div>
+
       </div>
     </div>`;
 }
-
 async function renderPanel(iso, focusCrisisType) {
   const c = store[iso]; if (!c) return;
   const hist = (history[iso] || []).map(h => h.s);
