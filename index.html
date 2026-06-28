@@ -2361,7 +2361,7 @@ searchTerms = [...new Set(searchTerms)];
   }
 
   parts.push(`${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries.`);
-  parts.push(`The composite is driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100).`);
+  parts.push(`The ${name} composite is driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100).`);
   parts.push(`The score has ${trendPhrase}.`);
 
   if (liveSignals.length) {
