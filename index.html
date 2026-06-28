@@ -724,7 +724,7 @@ fetchBreakingNews();
 // ============================================================================
 // GLOBALS
 // ============================================================================
-let tier = 'free'; const NN = { weights: { training_count: 0, last_updated: Date.now() } };
+let tier = 'free';
 let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:[]};
 let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
 let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
@@ -1513,136 +1513,45 @@ function selCountry(iso){
   window.history.pushState({country:iso},'',`?country=${iso}`);
 }
 
-async function renderPanel(iso, focusCrisisType) {
-  const c = store[iso]; if (!c) return;
-  const hist = (history[iso] || []).map(h => h.s);
-  const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
-  const col = sc(c.score); const cir = 175.9;
+// ============================================================================
+// RENDER PANEL
+// ============================================================================
+function renderPanel(iso,focusCrisisType){
+  const c=store[iso];if(!c)return;
+  const hist=(history[iso]||[]).map(h=>h.s);
+  const fc=forecast(hist,c.score),anom=cusum(hist),vol=volatility(hist),ent=entropy(hist);
+  const col=sc(c.score);const cir=175.9;
+  const activeCrisis=focusCrisisType&&c.types.includes(focusCrisisType)?focusCrisisType:null;
+  const activeCrisisData=activeCrisis?ARC[activeCrisis]:null;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('panelContent').style.display='block';
 
-  // ── CRISIS PARAM: only show focused crisis if there's an active pulse marker for it ──
-  const activePulseIsos = new Set(ranked.filter(i => store[i]?.score >= 60).slice(0, 18).map(i => i));
-  const countryHasPulse = activePulseIsos.has(iso);
-  const crisisTypeValid = focusCrisisType && c.types.includes(focusCrisisType) && countryHasPulse;
-  const activeCrisis = crisisTypeValid ? focusCrisisType : null;
-  const activeCrisisData = activeCrisis ? ARC[activeCrisis] : null;
+  const needsFilter=activeCrisisData?activeCrisisData.n:c.needs;
+  const chs=CHARITIES.filter(ch=>ch.f.some(f=>needsFilter.includes(f)))
+    .map(ch=>{const nm=ch.f.filter(f=>needsFilter.includes(f)).length;const match=Math.min(99,Math.max(5,Math.floor(30+(nm/Math.max(1,ch.f.length))*45+(ch.e/100)*15+(c.score/100)*10)));return{...ch,match};})
+    .sort((a,b)=>b.match-a.match).slice(0,8);
 
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('panelContent').style.display = 'block';
+  const nb=(ADJ[iso]||[]).filter(n=>store[n]);
+  const spillPct=Math.min(100,(c.spillover||0)/15*100);
+  const nbHtml=nb.length?nb.map(n=>`<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join(''):'<span>No tracked neighbours</span>';
+  const fcHist=[...hist.slice(-8),fc.fc];
+  const fcChartSvg=miniLineChart(fcHist,320,36,col);
+  const ipcInfo=ipcClassifications.find(i=>i.country===c.name)||null;
 
-  const restrictedMap = {
-    "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
-    "Afghan Red Crescent": ["afghanistan"], "Somali Red Crescent": ["somalia"],
-    "Syrian American Medical Soc.": ["syria"], "Yemen Aid": ["yemen"]
-  };
+  const crisisBannerHtml=activeCrisisData?`<div style="padding:12px 13px;background:linear-gradient(135deg,rgba(255,55,95,0.12),rgba(255,140,66,0.08));border-bottom:1px solid rgba(255,55,95,0.25);display:flex;align-items:center;gap:10px;"><div style="font-size:22px;">${activeCrisisData.i}</div><div><div style="font-family:var(--fd);font-size:15px;font-weight:800;color:#ff375f;">${activeCrisisData.l} — ${c.name}</div><div style="font-family:var(--fm);font-size:6px;color:var(--tm);letter-spacing:.1em;">⚡ ACTIVE CRISIS · ${activeCrisis} CLASSIFICATION</div></div></div>`:'';
 
-  // If crisis focused, filter charities to that crisis type's needs
-  const needsFilter = activeCrisisData ? activeCrisisData.n : c.needs;
-  const chs = CHARITIES.filter(ch => {
-    let regionOk = true;
-    for (const [charity, allowed] of Object.entries(restrictedMap)) {
-      if (ch.n === charity) { regionOk = allowed.some(country => c.name.toLowerCase().includes(country)); break; }
-    }
-    return regionOk && ch.f.some(f => needsFilter.includes(f));
-  }).map(ch => {
-    const needsMatch = ch.f.filter(f => needsFilter.includes(f)).length;
-    const matchPercent = Math.min(99, Math.max(5, Math.floor(30 + (needsMatch / Math.max(1, ch.f.length)) * 45 + (ch.e / 100) * 15 + (c.score / 100) * 10)));
-    return { ...ch, match: matchPercent };
-  }).sort((a, b) => b.match - a.match).slice(0, 8);
+  const typeTagsHtml=c.types.slice(0,5).map(t=>{const isActive=t===activeCrisis;return`<span class="type-tag" onclick="selCountry('${iso}')" style="${isActive?'background:rgba(255,55,95,0.18);border-color:rgba(255,55,95,0.5);color:#ff375f;':''}">${ARC[t]?.i||'⚠️'} ${ARC[t]?.l||t}${isActive?' ●':''}</span>`;}).join('');
 
-  const nb = (ADJ[iso] || []).filter(n => store[n]);
-  const spillPct = Math.min(100, (c.spillover || 0) / 15 * 100);
-  const nbHtml = nb.length
-    ? nb.map(n => `<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join('')
-    : `<span>No tracked neighbours</span>`;
-  const fcHist = [...hist.slice(-8), fc.fc];
-  const fcChartSvg = miniLineChart(fcHist, 320, 36, col);
-  const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
-
-  // ── CRISIS FOCUS BANNER (shown only when pulse-verified) ──
-  const crisisBannerHtml = activeCrisisData ? `
-    <div id="crisisFocusBanner" style="
-      margin:0 0 0 0;
-      padding:12px 13px;
-      background:linear-gradient(135deg,rgba(255,55,95,0.12),rgba(255,140,66,0.08));
-      border-bottom:1px solid rgba(255,55,95,0.25);
-      display:flex;align-items:center;gap:10px;
-    ">
-      <div style="font-size:22px;flex-shrink:0;animation:float 3s ease-in-out infinite;">${activeCrisisData.i}</div>
-      <div style="flex:1;">
-        <div style="font-family:var(--fd);font-size:15px;font-weight:800;color:#ff375f;letter-spacing:-.01em;">
-          ${activeCrisisData.l} — ${c.name}
-        </div>
-        <div style="font-family:var(--fm);font-size:5.5px;color:var(--tm);margin-top:2px;letter-spacing:.1em;">
-          ⚡ ACTIVE CRISIS · LIVE PULSE DETECTED · ${activeCrisis} CLASSIFICATION
-        </div>
-      </div>
-      <div style="
-        background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);
-        border-radius:var(--r1);padding:3px 8px;
-        font-family:var(--fm);font-size:6px;font-weight:700;color:#ff375f;
-        display:flex;align-items:center;gap:4px;flex-shrink:0;
-      ">
-        <div style="width:5px;height:5px;border-radius:50%;background:#ff375f;animation:live-pulse 1.8s ease infinite;"></div>
-        LIVE
-      </div>
-    </div>
-    <div style="padding:8px 13px 0;border-bottom:1px solid var(--b1);">
-      <div style="font-family:var(--fm);font-size:5px;color:var(--tm);letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px;">
-        Crisis-Specific Needs
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:3px;padding-bottom:8px;">
-        ${activeCrisisData.n.map(n => `<span class="need ${n}">${n}</span>`).join('')}
-      </div>
-    </div>
-  ` : '';
-
-  // ── CRISIS TYPE PILLS (highlight active crisis if present) ──
-const typeTagsHtml = c.types.slice(0, 5).map(t => {
-    const isActive = t === activeCrisis;
-    return `<span class="type-tag${isActive ? ' active-crisis-tag' : ''}" data-type="${t}" onclick="window.location.href='/?country=${iso}&crisis=${t}'" style="cursor:pointer;${isActive
-      ? 'background:rgba(255,55,95,0.18);border-color:rgba(255,55,95,0.5);color:#ff375f;box-shadow:0 0 10px rgba(255,55,95,0.3);'
-      : ''}">${ARC[t]?.i || '⚠️'} ${ARC[t]?.l || t}${isActive ? ' ●' : ''}</span>`;
-  }).join('');
-
-  // ── CRISIS DIMENSION HIGHLIGHT: which dims are most relevant to this crisis ──
-  const crisisDimWeights = {
-    CE: { conflict: 1.0, displacement: 0.9, access: 0.8 },
-    CW: { conflict: 1.0, displacement: 0.8, political: 0.7 },
-    EQ: { displacement: 1.0, health: 0.8, economic: 0.7 },
-    FL: { displacement: 0.9, food: 0.7, economic: 0.7 },
-    DR: { food: 1.0, health: 0.8, economic: 0.7 },
-    FN: { food: 1.0, health: 0.9, displacement: 0.6 },
-    EP: { health: 1.0, access: 0.7, economic: 0.6 },
-    REF: { displacement: 1.0, protection: 0.9, political: 0.7 },
-    TC: { displacement: 0.9, economic: 0.8, health: 0.7 },
-    WF: { displacement: 0.8, economic: 0.7, health: 0.6 },
-    HEAT: { health: 1.0, food: 0.7, economic: 0.6 },
-    LS: { displacement: 0.9, health: 0.7, economic: 0.6 },
-    TSU: { displacement: 1.0, health: 0.8, economic: 0.8 },
-    VLC: { displacement: 0.9, health: 0.7, economic: 0.7 },
-    ST: { displacement: 0.8, economic: 0.7, food: 0.6 },
-  };
-  const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
-
-  document.getElementById('panelContent').innerHTML = `
+  document.getElementById('panelContent').innerHTML=`
     ${crisisBannerHtml}
     <div class="p-block">
       <div class="p-score-row">
         <div>
-          <div class="p-flag-row">
-            <div class="p-flag">${c.flag}</div>
-            <div>
-              <div class="p-name">${c.name}</div>
-              <div class="p-iso">${iso}${activeCrisis ? ` · ${activeCrisis}` : ''}</div>
-            </div>
-          </div>
+          <div class="p-flag-row"><div class="p-flag">${c.flag}</div><div><div class="p-name">${c.name}</div><div class="p-iso">${iso}</div></div></div>
           <div class="p-types">${typeTagsHtml}</div>
         </div>
         <div class="ring-wrap">
-          <svg width="68" height="68">
-            <circle class="ring-bg" cx="34" cy="34" r="28"/>
-            <circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/>
-          </svg>
+          <svg width="68" height="68"><circle class="ring-bg" cx="34" cy="34" r="28"/><circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/></svg>
           <div class="ring-val" style="color:${col}">${c.score}</div>
           <div class="ring-lbl">/100</div>
         </div>
@@ -1650,62 +1559,30 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div class="vol-strip">
         <div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div>
         <div class="vol-chip">∫ Ent ${ent}</div>
-        <div class="vol-chip">🌐 +${(c.spillover || 0).toFixed(1)}</div>
-        <div class="vol-chip">📅 ${c.events}</div>
-        ${activeCrisis ? `<div class="vol-chip" style="background:rgba(255,55,95,0.1);border-color:rgba(255,55,95,0.25);color:#ff375f;">⚡ ${activeCrisis} Focus</div>` : ''}
+        <div class="vol-chip">🌐 +${(c.spillover||0).toFixed(1)}</div>
+        <div class="vol-chip">📅 ${c.events} events</div>
       </div>
       <div class="urgency-bar-wrap">
         <div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div>
         <div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div>
       </div>
-      <div class="needs-strip">
-        ${[...new Set(activeCrisisData ? [...activeCrisisData.n, ...c.needs] : c.needs)].slice(0, 7).map(n =>
-          `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
-        ).join('')}
-      </div>
-      ${ipcInfo ? (() => {
-  // Determine if this is a Phase 4 (Emergency) population that needs clarification
-  const isPhase4 = ipcInfo.phase === 4;
-  const isYemen = c.name === 'Yemen';
-  const isSudan = c.name === 'Sudan';
-  
-  // For Yemen and Sudan Phase 4, the population figure is actually total acute (Phase 3+4+5)
-  // Display it correctly without misrepresenting
-  if (isPhase4 && (isYemen || isSudan)) {
-    const totalAcute = ipcInfo.population;
-    return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
-      <span>📊 IPC Food Security: Phase 4 (Emergency) — ${Math.round(totalAcute / 1e6)}M people facing acute hunger (IPC Phase 3+)</span>
-    </div>`;
-  }
-  
-  // For all other countries, display normally
-  return `<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;">
-    <span>📊 IPC Food Security: Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population / 1e6)}M people</span>
-  </div>`;
-})() : ''}
+      <div class="needs-strip">${[...new Set(needsFilter)].slice(0,7).map(n=>`<span class="need ${n}">${n}</span>`).join('')}</div>
+      ${ipcInfo?`<div style="margin-top:10px;padding:8px;background:rgba(255,55,95,0.1);border-radius:8px;font-size:10px;color:var(--ts);">📊 IPC Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) · ${Math.round(ipcInfo.population/1e6)}M people</div>`:''}
     </div>
 
-    <div class="ai-brief" id="aiBrief">
-      <div class="ai-brief-head">
-        <div class="ai-brief-badge">🤖 AI SITREP${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
-      </div>
-      <div id="aiBriefContent" class="ai-loading">
-        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        <span>Loading AI analysis...</span>
-      </div>
+    <div class="ai-brief">
+      <div class="ai-brief-head"><div class="ai-brief-badge">🤖 AI SITREP</div></div>
+      <div id="aiBriefContent" class="ai-loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Generating analysis…</span></div>
     </div>
 
     <div class="hist-block">
-      <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
-      <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
+      <div class="block-head"><span>Score History (28d)</span><span>Vol ${vol.toFixed(1)}</span></div>
+      ${hist.length>1?miniLineChart(hist,340,46,col):''}
     </div>
 
     <div class="ps">
       <div class="spill-box">
-        <div class="spill-head">
-          <div class="spill-title">🌐 Regional Spillover</div>
-          <div class="spill-score">+${(c.spillover || 0).toFixed(1)}</div>
-        </div>
+        <div class="spill-head"><div class="spill-title">🌐 Regional Spillover</div><div class="spill-score">+${(c.spillover||0).toFixed(1)}</div></div>
         <div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div>
         <div class="nbr-wrap">${nbHtml}</div>
       </div>
@@ -1713,110 +1590,42 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 
     <div class="ps">
       <div class="dims-box">
-        <div class="dims-head">
-          <span>📊 8-Dimension Analysis${activeCrisis ? ` · ${activeCrisis} weighted` : ''}</span>
-        </div>
+        <div class="dims-head"><span>📊 8-Dimension Analysis</span></div>
         <div class="dims-body">
           <div class="dims-bars">
-            ${DIMS.map(d => {
-              const v = c.dims[d.k] || 0;
-              const isHighlighted = activeDimHighlights[d.k] >= 0.7;
-              return `<div class="dim-row" style="${isHighlighted ? 'background:rgba(255,55,95,0.05);border-radius:4px;margin:0 -4px;padding:0 4px;' : ''}">
-                <div class="dim-icon">${d.i}</div>
-                <div class="dim-lbl" style="${isHighlighted ? 'color:var(--tp);font-weight:600;' : ''}">${d.l}${isHighlighted ? ' ◆' : ''}</div>
-                <div class="dim-track">
-                  <div class="dim-fill" id="df_${d.k}" style="background:${isHighlighted ? '#ff375f' : sc(v)};width:0;${isHighlighted ? 'box-shadow:0 0 6px rgba(255,55,95,0.5);' : ''}"></div>
-                </div>
-                <div class="dim-val" style="${isHighlighted ? 'color:#ff375f;font-weight:700;' : ''}">${v}</div>
-              </div>`;
-            }).join('')}
+            ${DIMS.map(d=>{const v=c.dims[d.k]||0;return`<div class="dim-row"><div class="dim-icon">${d.i}</div><div class="dim-lbl">${d.l}</div><div class="dim-track"><div class="dim-fill" id="df_${d.k}" style="background:${sc(v)};width:0"></div></div><div class="dim-val">${v}</div></div>`;}).join('')}
           </div>
           <div class="radar-wrap">${buildRadar(c.dims)}</div>
         </div>
       </div>
     </div>
 
-        <div class="ps">
-      <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
-        <div class="fc-head">
-          <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
-            <span>🧠 Neural Forecast</span>
-            <span id="nnStatus" style="font-family:var(--fm);font-size:6px;background:rgba(191,127,255,0.1);border:1px solid rgba(191,127,255,0.15);color:var(--purple);padding:1px 6px;border-radius:99px;white-space:nowrap;">
-              ${NN && NN.weights && NN.weights.training_count > 0 ? `learned ${NN.weights.training_count}` : 'initializing...'}
-            </span>
-          </div>
-          <div class="fc-dir ${fc.dc}" style="display:flex;align-items:center;gap:6px;">
-            ${fc.dir}
-            ${fc.confidence ? `<span style="font-size:7px;color:var(--tm);background:rgba(255,255,255,0.03);padding:1px 5px;border-radius:3px;font-family:var(--fm);">${Math.round(fc.confidence * 100)}%</span>` : ''}
-          </div>
-        </div>
-        
+    <div class="ps">
+      <div class="fc-box">
+        <div class="fc-head"><div class="fc-title">7-Day Forecast</div><div class="fc-dir ${fc.dc}">${fc.dir}</div></div>
         <div class="fc-body">
-          <div style="display:flex;align-items:baseline;gap:4px;">
-            <div class="fc-big">${fc.fc}</div>
-            <span style="font-family:var(--fm);font-size:9px;color:var(--tm);">/100</span>
-          </div>
+          <div class="fc-big">${fc.fc}</div>
           <div class="fc-meta">
-            <div class="fc-row"><span>Current</span><span style="font-weight:600;color:${sc(c.score)};">${c.score}</span></div>
-            <div class="fc-row"><span>Delta</span><span style="color:${fc.fc > c.score ? '#f87171' : '#00e5a0'};font-weight:700;">${fc.fc > c.score ? '▲ +' : '▼ '}${Math.abs(fc.fc - c.score)}</span></div>
-            ${fc.nnPred ? `<div class="fc-row"><span style="font-size:7px;color:var(--td);font-family:var(--fm);">NN component</span><span style="font-size:7px;color:var(--ts);font-family:var(--fm);">${fc.nnPred}</span></div>` : ''}
-            ${fc.tradPred ? `<div class="fc-row"><span style="font-size:7px;color:var(--td);font-family:var(--fm);">Trend component</span><span style="font-size:7px;color:var(--ts);font-family:var(--fm);">${fc.tradPred}</span></div>` : ''}
+            <div class="fc-row"><span>Current</span><span style="color:${col}">${c.score}</span></div>
+            <div class="fc-row"><span>Delta</span><span style="color:${fc.fc>c.score?'#f87171':'#00e5a0'}">${fc.fc>c.score?'▲ +':'▼ '}${Math.abs(fc.fc-c.score)}</span></div>
           </div>
         </div>
-        
-        <div style="position:relative;margin:4px 0 6px;">
-          ${fcChartSvg}
-          ${fc.confidence ? `<div style="position:absolute;right:4px;bottom:2px;font-family:var(--fm);font-size:6px;color:var(--td);">confidence: ${Math.round(fc.confidence * 100)}%</div>` : ''}
-        </div>
-        
-        <div class="fc-status ${fc.esc ? 'esc' : 'stab'}" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>${fc.esc ? '⚠️ Escalation projected' : '✅ Stable trajectory'}</span>
-          <span style="font-family:var(--fm);font-size:6px;color:var(--tm);background:rgba(255,255,255,0.02);padding:1px 5px;border-radius:3px;">
-            ${NN && NN.weights && NN.weights.training_count > 50 ? '🧠 learned' : '📊 learning...'}
-          </span>
-        </div>
-        
-        <!-- Anomaly Alert -->
-        ${anom && anom.detected ? `
-        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,55,95,0.08);border:1px solid rgba(255,55,95,0.2);border-radius:4px;display:flex;align-items:center;gap:6px;">
-          <span style="font-size:14px;">🚨</span>
-          <div style="flex:1;">
-            <div style="font-family:var(--fm);font-size:8px;color:#ff375f;font-weight:700;">ANOMALY DETECTED</div>
-            <div style="font-family:var(--fm);font-size:6px;color:var(--tm);">z-score: ${anom.z_score || '—'} · error: ${anom.error || '—'}</div>
-          </div>
-          <span style="font-family:var(--fm);font-size:6px;background:rgba(255,55,95,0.15);padding:1px 5px;border-radius:3px;color:#ff375f;">⚠️</span>
-        </div>
-        ` : ''}
-        
-        <!-- Learning progress -->
-        <div style="margin-top:4px;display:flex;justify-content:space-between;font-family:var(--fm);font-size:5px;color:var(--td);">
-          <span>🧠 ${NN && NN.weights && NN.weights.training_count ? NN.weights.training_count : 0} samples trained</span>
-          <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
-        </div>
+        ${fcChartSvg}
+        <div class="fc-status ${fc.esc?'esc':'stab'}">${fc.esc?'⚠️ Escalation projected':'✅ Stable trajectory'}</div>
+        ${anom.det?`<div style="margin-top:6px;padding:5px 8px;background:rgba(255,55,95,.08);border:1px solid rgba(255,55,95,.2);border-radius:4px;font-family:var(--fm);font-size:8px;color:#ff375f;">🚨 ANOMALY DETECTED · z=${anom.z}</div>`:''}
       </div>
-    </div>    <div class="charity-section">
-      <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
+    </div>
+
+    <div class="charity-section">
+      <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS</div>
       <div class="ch-cards">
-        ${chs.map(ch => `
-          <div class="ch-card">
-            <div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div>
-            <div class="ch-eff-row">
-              <div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div>
-              <span>${ch.e}%</span>
-            </div>
-            <div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div>
-          </div>
-        `).join('')}
+        ${chs.map(ch=>`<div class="ch-card"><div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div><div class="ch-eff-row"><div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div><span class="ch-eff-val">${ch.e}%</span></div><div class="ch-foot"><span class="ch-desc">${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div></div>`).join('')}
       </div>
     </div>
 
     <div class="impact-calc">
-      <div class="impact-head"><div class="impact-title">💚 Donation Impact${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div></div>
-      <div class="impact-body">
-        <span>$</span>
-        <input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')">
-        <div class="impact-result" id="impactResult"></div>
-      </div>
+      <div class="impact-head"><div class="impact-title">💚 Donation Impact</div></div>
+      <div class="impact-body"><span>$</span><input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')"><div class="impact-result" id="impactResult"></div></div>
     </div>
 
     <div class="pricing-box">
@@ -1824,47 +1633,30 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         <div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div>
         <div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div>
       </div>
-      <button class="price-cta" onclick="openModal()">⚡ Upgrade</button>
+      <button class="price-cta" onclick="openModal()">⚡ Upgrade to Pro</button>
     </div>
 
     <div class="alert-box">
-      <div class="alert-head"><span class="alert-title">✉️ Crisis Alerts${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</span></div>
-      <div class="alert-email-row">
-        <input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput">
-      </div>
-      <button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">
-        ${tier === 'pro' ? '✉️ Enable Alerts' : '🔒 Upgrade'}
-      </button>
-    </div>
-  `;
+      <div class="alert-head"><span class="alert-title">✉️ Crisis Alerts</span></div>
+      <div class="alert-email-row"><input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput"></div>
+      <button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled');">${tier==='pro'?'✉️ Enable Alerts':'🔒 Upgrade for Alerts'}</button>
+    </div>`;
 
-  // ── ANIMATE IN ──
-  setTimeout(() => {
-    const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
-    const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
-    const ring = document.getElementById('ringFill');
-    if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
-    DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
-  }, 60);
+  setTimeout(()=>{
+    const u=document.getElementById('uFill');if(u)u.style.width=c.score+'%';
+    const s=document.getElementById('sFill');if(s)s.style.width=spillPct+'%';
+    const ring=document.getElementById('ringFill');if(ring)ring.setAttribute('stroke-dasharray',`${(c.score/100*cir).toFixed(1)} ${cir}`);
+    DIMS.forEach(d=>{const el=document.getElementById(`df_${d.k}`);if(el)el.style.width=(c.dims[d.k]||0)+'%';});
+  },60);
 
-  if (mapGroup) {
-    mapGroup.selectAll('.country-path').classed('sel-path', false);
-    if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
+  if(mapGroup){
+    mapGroup.selectAll('.country-path').classed('sel-path',false);
+    if(ISO_NUM[iso])mapGroup.selectAll('.country-path').filter(d=>String(d.id)===ISO_NUM[iso]).classed('sel-path',true);
   }
-
-  setTimeout(() => calcImpact(iso), 100);
-
- // ── AI BRIEF: data-driven narrative ──
-  setTimeout(() => renderAIBrief(iso), 100);
-
-  // ── SCROLL TO CRISIS BANNER if crisis param active ──
-  if (activeCrisis) {
-    setTimeout(() => {
-      const banner = document.getElementById('crisisFocusBanner');
-      if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
-  }
+  setTimeout(()=>calcImpact(iso),100);
+  setTimeout(()=>renderAIBrief(iso),150);
 }
+
 function renderAIBrief(iso) {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
