@@ -2190,12 +2190,28 @@ function buildUrgencyNarrative(iso, crisisType) {
     let hasGoodWikipedia = false;
     
     // ── SEARCH TERMS ──────────────────────────────────────────────────────
-    let searchTerms = [`${name} crisis`, `${name} humanitarian`, `${name} conflict`];
-    if (crisisType && ARC[crisisType]) {
-      searchTerms.push(`${name} ${ARC[crisisType].l}`);
-    }
-    searchTerms.push(`${name} emergency`, `${name} war`, `${name} disaster`);
-    searchTerms = [...new Set(searchTerms)];
+    const crisisTermMap = {
+  REF: [`${name} refugee crisis`, `${name} displacement`, `${name} refugees`],
+  CW:  [`${name} civil war`, `${name} armed conflict`, `${name} war`],
+  CE:  [`${name} complex emergency`, `${name} humanitarian crisis`, `${name} conflict`],
+  FN:  [`${name} famine`, `${name} food crisis`, `${name} starvation`],
+  DR:  [`${name} drought`, `${name} food insecurity`, `${name} water crisis`],
+  FL:  [`${name} floods`, `${name} flooding`, `${name} flood disaster`],
+  EP:  [`${name} epidemic`, `${name} disease outbreak`, `${name} cholera`],
+  EQ:  [`${name} earthquake`, `${name} seismic`, `${name} tremor`],
+  TC:  [`${name} cyclone`, `${name} typhoon`, `${name} hurricane`],
+  WF:  [`${name} wildfire`, `${name} bushfire`, `${name} forest fire`],
+  HEAT:[`${name} heatwave`, `${name} heat crisis`, `${name} extreme heat`],
+  LS:  [`${name} landslide`, `${name} mudslide`, `${name} flooding`],
+  TSU: [`${name} tsunami`, `${name} earthquake`, `${name} coastal disaster`],
+  VLC: [`${name} volcano`, `${name} volcanic eruption`, `${name} eruption`],
+  ST:  [`${name} storm`, `${name} cyclone`, `${name} hurricane`],
+};
+
+let searchTerms = crisisType && crisisTermMap[crisisType]
+  ? [...crisisTermMap[crisisType], `${name} humanitarian`, `${name} crisis`]
+  : [`${name} humanitarian crisis`, `${name} conflict`, `${name} emergency`, `${name} war`, `${name} disaster`];
+searchTerms = [...new Set(searchTerms)];
     
     for (const term of searchTerms) {
       const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=8`;
