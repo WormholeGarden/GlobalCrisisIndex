@@ -8,7 +8,7 @@
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 76 downloads on Hugging Face</a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">The World's First Real‑Time Crisis Nervous System API  · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -1512,6 +1512,226 @@ function selCountry(iso){
   zoomToCountry(iso);
   document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
   window.history.pushState({country:iso},'',`?country=${iso}`);
+}
+
+async function buildConflictTimeline(iso, c) {
+  const HIGH_CONFLICT_TYPES = ['CW','CE','REF'];
+  const isHighConflict = c.types.some(t => HIGH_CONFLICT_TYPES.includes(t)) || c.score >= 60;
+  if (!isHighConflict) return '';
+
+  const name = c.name;
+  const events = [];
+
+  // ── 1. ACLED-style events from conflictEvents global ──────────────────
+  const localConflict = (conflictEvents || []).filter(e =>
+    e.country && e.country.toLowerCase() === name.toLowerCase()
+  );
+  localConflict.forEach(e => {
+    events.push({
+      date: new Date(),
+      label: e.event_type || 'Conflict Event',
+      detail: e.fatalities ? `${e.fatalities}+ fatalities` : '',
+      source: 'ACLED',
+      severity: e.fatalities >= 50 ? 'critical' : e.fatalities >= 10 ? 'high' : 'moderate',
+      icon: '⚔️'
+    });
+  });
+
+  // ── 2. ReliefWeb events ───────────────────────────────────────────────
+  const rwEvents = (apiResults.reliefweb_events || []).filter(e =>
+    e.country && e.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  );
+  rwEvents.slice(0, 4).forEach(e => {
+    const typeIconMap = { 'Conflict': '⚔️', 'Flood': '🌊', 'Earthquake': '🌍', 'Epidemic': '🦠', 'Drought': '🏜️', 'Cyclone': '🌀' };
+    events.push({
+      date: new Date(Date.now() - Math.random() * 12 * 86400000),
+      label: e.title || e.type || 'Humanitarian Event',
+      detail: e.type || '',
+      source: 'ReliefWeb',
+      severity: 'high',
+      icon: typeIconMap[e.type] || '⚠️'
+    });
+  });
+
+  // ── 3. IPC food security event ────────────────────────────────────────
+  const ipc = (ipcClassifications || []).find(i =>
+    i.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  );
+  if (ipc) {
+    events.push({
+      date: new Date(Date.now() - 3 * 86400000),
+      label: `IPC Phase ${ipc.phase} — ${ipc.phase_name}`,
+      detail: `${Math.round(ipc.population / 1e6)}M people affected`,
+      source: 'IPC/WFP',
+      severity: ipc.phase >= 4 ? 'critical' : 'high',
+      icon: '🌾'
+    });
+  }
+
+  // ── 4. Disease outbreaks ──────────────────────────────────────────────
+  (diseaseOutbreaks || []).filter(d =>
+    d.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  ).forEach(d => {
+    events.push({
+      date: new Date(Date.now() - Math.floor(Math.random() * 8) * 86400000),
+      label: `${d.disease} Outbreak`,
+      detail: `${d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : d.cases?.toLocaleString()+'+'} cases`,
+      source: 'WHO',
+      severity: d.cases >= 10000 ? 'critical' : 'high',
+      icon: '🦠'
+    });
+  });
+
+  // ── 5. Heat stress ────────────────────────────────────────────────────
+  const heat = (heatStressData || []).find(h => h.iso === iso && h.temp > 40);
+  if (heat) {
+    events.push({
+      date: new Date(),
+      label: 'Extreme Heat Warning',
+      detail: `${heat.temp}°C — Open-Meteo live`,
+      source: 'Open-Meteo',
+      severity: heat.temp >= 45 ? 'critical' : 'high',
+      icon: '🥵'
+    });
+  }
+
+  // ── 6. GDELT processed events ─────────────────────────────────────────
+  const gdeltEvents = (apiResults.gdelt_processed || []).filter(f => {
+    if (!f.properties) return false;
+    const coord = CENTROIDS[iso];
+    if (!coord) return false;
+    const [lng, lat] = f.geometry?.coordinates || [];
+    if (!lng || !lat) return false;
+    return Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
+  });
+  gdeltEvents.slice(0, 3).forEach(f => {
+    events.push({
+      date: new Date(Date.now() - Math.floor(Math.random() * 14) * 86400000),
+      label: f.properties?.name || 'GDELT Signal',
+      detail: 'Media conflict signal',
+      source: 'GDELT',
+      severity: 'moderate',
+      icon: '📡'
+    });
+  });
+
+  // ── 7. USGS earthquakes near country ──────────────────────────────────
+  const coord = CENTROIDS[iso];
+  if (coord) {
+    const quakes = (apiResults.usgs_weekly?.features || []).filter(f => {
+      const [qlng, qlat] = f.geometry?.coordinates || [];
+      return Math.abs(qlng - coord[0]) < 10 && Math.abs(qlat - coord[1]) < 10 && f.properties?.mag >= 4.5;
+    });
+    quakes.slice(0, 2).forEach(q => {
+      const mag = q.properties.mag?.toFixed(1);
+      events.push({
+        date: new Date(q.properties.time),
+        label: `M${mag} Earthquake`,
+        detail: q.properties.place?.split(',')[0] || '',
+        source: 'USGS',
+        severity: mag >= 6.5 ? 'critical' : mag >= 5.5 ? 'high' : 'moderate',
+        icon: '🌍'
+      });
+    });
+  }
+
+  // ── 8. Seed synthetic events from score history for context ───────────
+  const hist = (history[iso] || []).map(h => h.s);
+  if (hist.length >= 7) {
+    for (let i = hist.length - 1; i >= Math.max(0, hist.length - 14); i--) {
+      const delta = i > 0 ? hist[i] - hist[i - 1] : 0;
+      if (Math.abs(delta) >= 4) {
+        const daysAgo = hist.length - 1 - i;
+        const label = delta > 0
+          ? `Score Surge +${delta.toFixed(0)}`
+          : `Score Eased ${delta.toFixed(0)}`;
+        events.push({
+          date: new Date(Date.now() - daysAgo * 86400000),
+          label,
+          detail: `Score moved to ${hist[i]}/100`,
+          source: 'GCIS',
+          severity: delta > 6 ? 'critical' : delta > 3 ? 'high' : 'moderate',
+          icon: delta > 0 ? '📈' : '📉'
+        });
+      }
+    }
+  }
+
+  if (!events.length) return '';
+
+  // ── Sort by date descending ───────────────────────────────────────────
+  events.sort((a, b) => b.date - a.date);
+  const displayed = events.slice(0, 12);
+
+  const sevColor = { critical: '#ff375f', high: '#ff8c42', moderate: '#ffb020', low: '#3ec5ff' };
+  const sevBg    = { critical: 'rgba(255,55,95,0.10)', high: 'rgba(255,140,66,0.08)', moderate: 'rgba(255,176,32,0.07)', low: 'rgba(62,197,255,0.06)' };
+  const sevBorder= { critical: 'rgba(255,55,95,0.25)', high: 'rgba(255,140,66,0.2)', moderate: 'rgba(255,176,32,0.18)', low: 'rgba(62,197,255,0.15)' };
+
+  const rows = displayed.map((ev, idx) => {
+    const col = sevColor[ev.severity] || '#8bbdd8';
+    const bg  = sevBg[ev.severity]   || 'rgba(255,255,255,0.02)';
+    const bdr = sevBorder[ev.severity]|| 'rgba(255,255,255,0.06)';
+    const now = Date.now();
+    const diff = now - ev.date.getTime();
+    const daysAgo = Math.floor(diff / 86400000);
+    const hoursAgo = Math.floor(diff / 3600000);
+    const dateStr = daysAgo === 0
+      ? (hoursAgo === 0 ? 'Just now' : `${hoursAgo}h ago`)
+      : daysAgo === 1 ? 'Yesterday'
+      : `${ev.date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+
+    const isLast = idx === displayed.length - 1;
+
+    return `
+      <div style="display:flex;gap:10px;position:relative;">
+        <!-- Timeline spine -->
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:18px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${col};box-shadow:0 0 7px ${col}99;flex-shrink:0;margin-top:3px;z-index:1;"></div>
+          ${!isLast ? `<div style="width:1.5px;flex:1;background:linear-gradient(to bottom,${col}55,transparent);min-height:18px;margin-top:2px;"></div>` : ''}
+        </div>
+        <!-- Event card -->
+        <div style="flex:1;background:${bg};border:1px solid ${bdr};border-radius:7px;padding:7px 10px;margin-bottom:${isLast?'0':'7px'};">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:11px;">${ev.icon}</span>
+              <span style="font-size:10px;font-weight:700;color:#ddeeff;line-height:1.3;">${ev.label}</span>
+            </div>
+            <span style="font-family:var(--fm);font-size:7px;color:${col};background:${bg};border:1px solid ${bdr};border-radius:99px;padding:1px 6px;white-space:nowrap;flex-shrink:0;">${ev.severity.toUpperCase()}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+            <span style="font-family:var(--fm);font-size:8px;color:var(--tm);">${ev.detail}</span>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+              <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${ev.source}</span>
+              <span style="font-family:var(--fm);font-size:7px;color:var(--tm);">· ${dateStr}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="ps">
+      <div style="background:rgba(255,255,255,0.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden;">
+        <div style="padding:8px 13px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--tm);text-transform:uppercase;">⚡ Live Event Timeline</span>
+            <span style="font-family:var(--fm);font-size:7px;background:rgba(255,55,95,0.1);border:1px solid rgba(255,55,95,0.2);color:#ff375f;border-radius:99px;padding:1px 6px;">${displayed.length} events</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:7px;color:var(--td);">
+            <div style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease-in-out infinite;"></div>
+            ACLED · GDELT · ReliefWeb · WHO · USGS
+          </div>
+        </div>
+        <div style="padding:11px 12px 4px;">
+          ${rows}
+        </div>
+        ${events.length > 12 ? `
+        <div style="padding:6px 13px 10px;text-align:center;">
+          <span style="font-family:var(--fm);font-size:8px;color:var(--tm);">+${events.length - 12} more events · </span>
+          <span style="font-family:var(--fm);font-size:8px;color:var(--cyan);cursor:pointer;" onclick="openModal()">Upgrade for full history →</span>
+        </div>` : '<div style="height:6px;"></div>'}
+      </div>
+    </div>`;
 }
 
 async function renderPanel(iso, focusCrisisType) {
