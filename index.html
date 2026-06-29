@@ -1238,6 +1238,82 @@ async function refresh(){
   adv(5,78);
 
   const refreshSeed=Math.floor(Date.now()/60000);
+
+  // ── Pre-index live evidence per country name for O(1) lookup ──────────
+  const liveIpcByName = {};
+  ipcClassifications.forEach(i => { liveIpcByName[i.country] = i; });
+  const liveHeatByIso = {};
+  heatStressData.forEach(h => { liveHeatByIso[h.iso] = h; });
+  const liveDiseaseByName = {};
+  diseaseOutbreaks.forEach(d => { (liveDiseaseByName[d.country] ||= []).push(d); });
+  const liveConflictByName = {};
+  conflictEvents.forEach(e => { (liveConflictByName[e.country] ||= []).push(e); });
+  const liveReliefByName = {};
+  (apiResults.reliefweb_events || []).forEach(e => { (liveReliefByName[e.country] ||= []).push(e); });
+  const liveGdeltCoords = (apiResults.gdelt_processed || []).map(f => f.geometry?.coordinates).filter(Boolean);
+  const liveQuakes = (apiResults.usgs_weekly?.features || []).filter(f => f.properties?.mag >= 4.5);
+
+  // ── Compute a bounded live-evidence boost (0–22 points) per country ───
+  function computeLiveBoost(name, iso) {
+    let boost = 0;
+    const coord = CENTROIDS[iso];
+
+    // IPC food security: scales with phase severity (3=Crisis, 4=Emergency, 5=Catastrophe)
+    const ipc = liveIpcByName[name];
+    if (ipc) {
+      if (ipc.phase >= 5) boost += 9;
+      else if (ipc.phase === 4) boost += 6.5;
+      else if (ipc.phase === 3) boost += 3.5;
+    }
+
+    // Extreme heat: scales with degrees above 42°C threshold
+    const heat = liveHeatByIso[iso];
+    if (heat && heat.temp >= 42) {
+      boost += Math.min(6, 3 + (heat.temp - 42) * 0.4);
+    }
+
+    // Disease outbreaks: scales with total case volume across all outbreaks
+    const diseases = liveDiseaseByName[name];
+    if (diseases) {
+      const totalCases = diseases.reduce((s, d) => s + (d.cases || 0), 0);
+      boost += totalCases >= 20000 ? 5 : totalCases >= 5000 ? 3.5 : 2;
+    }
+
+    // ACLED conflict events: scales with fatality count
+    const conflicts = liveConflictByName[name];
+    if (conflicts) {
+      const totalFatalities = conflicts.reduce((s, e) => s + (e.fatalities || 0), 0);
+      boost += totalFatalities >= 100 ? 6 : totalFatalities >= 30 ? 4 : 2;
+    }
+
+    // ReliefWeb humanitarian disaster declarations
+    const relief = liveReliefByName[name];
+    if (relief && relief.length) {
+      boost += Math.min(3, relief.length * 1.2);
+    }
+
+    // GDELT media signal density near country centroid (conflict attention)
+    if (coord) {
+      const nearbySignals = liveGdeltCoords.filter(([lng, lat]) =>
+        Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8
+      ).length;
+      if (nearbySignals > 0) boost += Math.min(2.5, nearbySignals * 0.6);
+
+      // USGS earthquakes near centroid, scaled by magnitude
+      const nearbyQuakes = liveQuakes.filter(f => {
+        const [qlng, qlat] = f.geometry.coordinates;
+        return Math.abs(qlng - coord[0]) < 10 && Math.abs(qlat - coord[1]) < 10;
+      });
+      if (nearbyQuakes.length) {
+        const maxMag = Math.max(...nearbyQuakes.map(f => f.properties.mag));
+        boost += maxMag >= 6.5 ? 5 : maxMag >= 5.5 ? 3 : 1.5;
+      }
+    }
+
+    // Cap total live boost so it adjusts the base score, never dominates it
+    return Math.min(22, Math.round(boost * 10) / 10);
+  }
+
   let newStore={};
   for(let iso of Object.keys(BASE_SCORES)){
     const name=NAMES[iso]||iso;
@@ -1247,67 +1323,16 @@ async function refresh(){
     const base=BASE_SCORES[iso]||42;
     const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
     const rawBase=Math.min(99,Math.max(5,base+variation));
-    const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(rawBase/14)));
-    const dims=buildDims(rawBase,types);
-    const baseScore=Math.min(99,Math.max(1,Math.round(composite(dims))));
 
-    // ── LIVE EVIDENCE BOOST: every signal shown in renderPanel + timeline ──
-    let liveBoost=0;
-    const nameLower=name.toLowerCase();
+    // ── Apply live-evidence boost to the base before building dimensions ──
+    const liveBoost = computeLiveBoost(name, iso);
+    const evidenceAdjustedBase = Math.min(99, rawBase + liveBoost);
 
-    // IPC food security — Phase 3 (Crisis) or higher
-    const ipcHit=ipcClassifications.find(i=>i.country.toLowerCase().includes(nameLower.split(' ')[0]));
-    if(ipcHit){
-      if(ipcHit.phase>=4)liveBoost+=8;
-      else if(ipcHit.phase>=3)liveBoost+=5;
-    }
-
-    // Extreme heat ≥42°C
-    const heatHit=heatStressData.find(h=>h.iso===iso&&h.temp>=42);
-    if(heatHit)liveBoost+=heatHit.temp>=46?6:4;
-
-    // Active disease outbreaks
-    const diseaseHits=diseaseOutbreaks.filter(d=>d.country.toLowerCase().includes(nameLower.split(' ')[0]));
-    diseaseHits.forEach(d=>{liveBoost+=d.cases>=10000?5:3;});
-
-    // ACLED conflict events with fatalities
-    const conflictHit=conflictEvents.find(e=>e.country&&e.country.toLowerCase()===nameLower);
-    if(conflictHit){
-      const fat=conflictHit.fatalities||0;
-      liveBoost+=fat>=50?7:fat>=10?5:3;
-    }
-
-    // FEWS NET food security alerts (only if no IPC hit, avoid double-count)
-    const fewsHit=foodSecurityAlerts.find(f=>f.country.toLowerCase().includes(nameLower.split(' ')[0]));
-    if(fewsHit&&!ipcHit)liveBoost+=fewsHit.phase==='Emergency'?5:3;
-
-    // ReliefWeb active humanitarian disaster events
-    const rwHits=(apiResults.reliefweb_events||[]).filter(e=>e.country&&e.country.toLowerCase().includes(nameLower.split(' ')[0]));
-    if(rwHits.length)liveBoost+=Math.min(4,rwHits.length*1.5);
-
-    // GDELT media conflict signal proximity
-    const coordForGdelt=CENTROIDS[iso];
-    if(coordForGdelt){
-      const gdeltHits=(apiResults.gdelt_processed||[]).filter(f=>{
-        if(!f.properties)return false;
-        const[lng,lat]=f.geometry?.coordinates||[];
-        return lng&&lat&&Math.abs(lng-coordForGdelt[0])<8&&Math.abs(lat-coordForGdelt[1])<8;
-      });
-      if(gdeltHits.length)liveBoost+=Math.min(3,gdeltHits.length);
-    }
-
-    // USGS significant earthquakes (M≥4.5) near country
-    if(coordForGdelt){
-      const quakeHits=(apiResults.usgs_weekly?.features||[]).filter(f=>{
-        const[qlng,qlat]=f.geometry?.coordinates||[];
-        return Math.abs(qlng-coordForGdelt[0])<10&&Math.abs(qlat-coordForGdelt[1])<10&&f.properties?.mag>=4.5;
-      });
-      quakeHits.forEach(q=>{const mag=q.properties.mag;liveBoost+=mag>=6.5?6:mag>=5.5?4:2;});
-    }
-
-    // ── Apply boost as an objective adjustment to the existing composite score ──
-    const score=Math.min(99,Math.max(1,Math.round(baseScore+liveBoost)));
+    const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(evidenceAdjustedBase/14)));
+    const dims=buildDims(evidenceAdjustedBase,types);
+    const score=Math.min(99,Math.max(1,Math.round(composite(dims))));
     newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0,liveBoost};
+  }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
   store=newStore;
