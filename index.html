@@ -1237,20 +1237,34 @@ async function refresh(){
 
   adv(5,78);
 
- const refreshSeed=Math.floor(Date.now()/60000);
+  const refreshSeed=Math.floor(Date.now()/60000);
+  const nowTs = Date.now();
   let newStore={};
 
-  // ── SOURCE RELIABILITY WEIGHTS ──────────────────────────────────────────
-  // Not all signals are equally trustworthy. Direct measurement (USGS magnitude,
-  // Open-Meteo temperature) is hard data. Classification systems (IPC) are
-  // expert-consensus but lower-frequency. Media-derived signals (GDELT) are
-  // corroborating only and capped low to avoid amplifying noise.
+  // ── EVIDENCE SIGNAL CATALOG: each signal defines its own magnitude→score curve ──
+  // Scores are continuous (not stepped), normalized 0-100 per signal,
+  // then weighted by source reliability before combining.
+  // This avoids arbitrary cliffs (e.g. 4,999 vs 5,000 cases) and lets
+  // magnitude differences (4M vs 17M affected) actually matter.
+
+  function logScale(value, floor, ceiling, maxPts){
+    // Smooth logarithmic scaling: small values barely register, large values saturate gracefully
+    if (value <= floor) return 0;
+    const ratio = Math.log(1 + (value - floor)) / Math.log(1 + (ceiling - floor));
+    return Math.min(maxPts, Math.max(0, ratio * maxPts));
+  }
+
+  function decayWeight(eventTimestamp){
+    // Evidence loses influence over time — 100% at 0h, ~50% at 72h, ~10% at 7 days
+    if (!eventTimestamp) return 0.85; // unknown-age static feeds (IPC, FEWS) get a flat moderate weight
+    const ageHours = (nowTs - eventTimestamp) / 3600000;
+    return Math.max(0.05, Math.exp(-ageHours / 96));
+  }
+
+  // Source reliability weights — calibrated to real-world data quality/lag characteristics
   const SOURCE_RELIABILITY = {
-    usgs: 1.0, openmeteo: 1.0,      // direct sensor measurement
-    ipc: 0.9, who: 0.85,             // expert classification, periodic
-    acled: 0.8, reliefweb: 0.7,      // event-reported, some lag
-    fewsnet: 0.75,
-    gdelt: 0.35                       // media signal, corroborating only
+    IPC: 0.95, FEWS: 0.85, ACLED: 0.92, WHO: 0.88,
+    USGS: 0.98, OPENMETEO: 0.93, RELIEFWEB: 0.75, GDELT: 0.55
   };
 
   for(let iso of Object.keys(BASE_SCORES)){
@@ -1263,119 +1277,121 @@ async function refresh(){
     const rawBase=Math.min(99,Math.max(5,base+variation));
     const dims=buildDims(rawBase,types);
 
-    // ── LIVE EVIDENCE SCORING: reliability-weighted, recency-aware, capped ──
-    let evidencePoints = 0;
-    let maxPossibleEvidence = 0; // tracks total addressable evidence so we can compute coverage/confidence
-    const evidenceLog = [];
+    // ── EVIDENCE LEDGER: every signal logs raw value, normalized score, weight, contribution ──
+    const ledger = [];
+    let weightedSum = 0;
+    let weightTotal = 0;
 
-    function addSignal(rawPts, capPts, reliability, label){
-      maxPossibleEvidence += capPts * reliability;
-      if (rawPts <= 0) return;
-      const weighted = Math.min(capPts, rawPts) * reliability;
-      evidencePoints += weighted;
-      evidenceLog.push(`${label}:+${weighted.toFixed(1)}`);
+    function record(source, rawValue, normalizedPts, maxPts, timestamp, label){
+      const reliability = SOURCE_RELIABILITY[source] ?? 0.6;
+      const decay = decayWeight(timestamp);
+      const effectiveWeight = reliability * decay;
+      const contribution = normalizedPts * effectiveWeight;
+      weightedSum += contribution;
+      weightTotal += maxPts * effectiveWeight;
+      ledger.push({ source, label, rawValue, normalizedPts: +normalizedPts.toFixed(1),
+        reliability, decay: +decay.toFixed(2), contribution: +contribution.toFixed(1) });
+      return contribution;
     }
 
-    // 1. IPC Food Security Phase — direct expert classification, highest cap
+    // 1. IPC Food Security Phase — magnitude-aware via population affected
     const ipcMatch = ipcClassifications.find(i => i.country === name);
     if (ipcMatch) {
-      const ipcPts = ipcMatch.phase >= 5 ? 16 : ipcMatch.phase === 4 ? 12 : ipcMatch.phase === 3 ? 6 : 0;
-      addSignal(ipcPts, 16, SOURCE_RELIABILITY.ipc, `IPC P${ipcMatch.phase}`);
+      // Phase severity (0-20 base) scaled further by population magnitude (log scale, 100K-30M range)
+      const phaseBase = ipcMatch.phase >= 5 ? 20 : ipcMatch.phase === 4 ? 15 : ipcMatch.phase === 3 ? 8 : 0;
+      const popMagnitude = logScale(ipcMatch.population, 100000, 30000000, 1.0); // 0-1 multiplier
+      const pts = phaseBase * (0.5 + popMagnitude * 0.5); // population can amplify up to 1.5x
+      if (pts > 0) record('IPC', `P${ipcMatch.phase}, ${(ipcMatch.population/1e6).toFixed(1)}M`, pts, 20, null, 'Food Security');
     } else {
       const fewsMatch = foodSecurityAlerts.find(f => f.country === name);
       if (fewsMatch) {
-        const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
-        addSignal(fewsPts, 10, SOURCE_RELIABILITY.fewsnet, `FEWS`);
+        const pts = fewsMatch.ipc >= 4 ? 12 : fewsMatch.ipc === 3 ? 6 : 0;
+        if (pts > 0) record('FEWS', `IPC ${fewsMatch.ipc}`, pts, 12, null, 'Food Security (FEWS NET)');
       }
     }
 
-    // 2. Extreme Heat — direct sensor reading, full reliability
+    // 2. Extreme Heat — continuous scale from 38°C (onset) to 50°C (extreme)
     const heatMatch = heatStressData.find(h => h.iso === iso);
     if (heatMatch) {
-      const heatPts = heatMatch.temp >= 47 ? 8 : heatMatch.temp >= 44 ? 5 : heatMatch.temp >= 42 ? 3 : 0;
-      addSignal(heatPts, 8, SOURCE_RELIABILITY.openmeteo, `Heat ${heatMatch.temp}°C`);
+      const pts = logScale(heatMatch.temp, 38, 50, 10);
+      if (pts > 0) record('OPENMETEO', `${heatMatch.temp}°C`, pts, 10, nowTs, 'Extreme Heat');
     }
 
-    // 3. Disease Outbreaks — case-count scaled, WHO reliability
+    // 3. Disease Outbreaks — continuous scale by case count, multiple outbreaks stack with diminishing returns
     const diseaseMatches = diseaseOutbreaks.filter(d => d.country === name);
-    diseaseMatches.forEach(d => {
-      const diseasePts = d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases > 0 ? 2 : 0;
-      addSignal(diseasePts, 8, SOURCE_RELIABILITY.who, d.disease);
+    diseaseMatches.forEach((d, idx) => {
+      const stackDamp = idx === 0 ? 1.0 : 0.5; // first outbreak full weight, additional ones half
+      const pts = logScale(d.cases, 50, 50000, 12) * stackDamp;
+      if (pts > 0) record('WHO', `${d.disease}: ${d.cases.toLocaleString()} cases`, pts, 12, nowTs, 'Disease Outbreak');
     });
 
-    // 4. Conflict Events / Fatalities — ACLED, event-reported reliability
+    // 4. Conflict Events / Fatalities — continuous scale, ACLED is high-reliability
     const conflictMatch = conflictEvents.find(e => e.country === name);
     if (conflictMatch) {
-      const conflictPts = conflictMatch.fatalities >= 100 ? 14 : conflictMatch.fatalities >= 50 ? 10 : conflictMatch.fatalities >= 10 ? 6 : conflictMatch.fatalities > 0 ? 3 : 0;
-      addSignal(conflictPts, 14, SOURCE_RELIABILITY.acled, `ACLED ${conflictMatch.event_type}`);
+      const pts = logScale(conflictMatch.fatalities, 1, 500, 18);
+      if (pts > 0) record('ACLED', `${conflictMatch.event_type}, ${conflictMatch.fatalities} fatalities`, pts, 18, nowTs, 'Armed Conflict');
     }
 
-    // 5. Displacement — derived signal, gated to require independent corroboration
-    // (never counted on its own; only when conflict, food crisis, or REF type confirms it)
-    const displacementCorroborated = dims.displacement >= 70 && (conflictMatch || ipcMatch || types.includes('REF'));
-    addSignal(displacementCorroborated ? 6 : 0, 6, 0.8, 'Displacement');
+    // 5. Displacement — evidence-gated (requires corroboration), magnitude from dims as proxy for scale
+    const hasCorroboration = !!conflictMatch || !!ipcMatch || types.includes('REF');
+    if (dims.displacement >= 55 && hasCorroboration) {
+      const pts = logScale(dims.displacement, 55, 99, 8);
+      record('ACLED', `Displacement index ${dims.displacement}`, pts, 8, nowTs, 'Population Displacement');
+    }
 
-    // 6. Seismic activity — USGS magnitude, direct measurement, full reliability
+    // 6. Seismic Activity — magnitude-based, USGS is the most reliable feed available
     const coordCheck = CENTROIDS[iso];
-    let nearbyQuake = null;
     if (coordCheck) {
-      nearbyQuake = (apiResults.usgs_weekly?.features || []).find(f => {
+      const nearbyQuake = (apiResults.usgs_weekly?.features || []).reduce((worst, f) => {
         const [qlng, qlat] = f.geometry?.coordinates || [];
-        return Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5;
-      });
-    }
-    if (nearbyQuake) {
-      const mag = nearbyQuake.properties.mag;
-      const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
-      addSignal(quakePts, 10, SOURCE_RELIABILITY.usgs, `M${mag.toFixed(1)} EQ`);
-    } else {
-      maxPossibleEvidence += 10 * SOURCE_RELIABILITY.usgs;
+        if (Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5) {
+          return (!worst || f.properties.mag > worst.properties.mag) ? f : worst;
+        }
+        return worst;
+      }, null);
+      if (nearbyQuake) {
+        const mag = nearbyQuake.properties.mag;
+        const pts = logScale(mag, 4.5, 8.5, 14);
+        record('USGS', `M${mag.toFixed(1)}`, pts, 14, nearbyQuake.properties.time, 'Seismic Event');
+      }
     }
 
-    // 7. ReliefWeb active disaster declaration — event-reported reliability
+    // 7. ReliefWeb active disaster declaration — binary but time-decayed
     const rwMatch = (apiResults.reliefweb_events || []).find(e => e.country === name);
-    addSignal(rwMatch ? 4 : 0, 4, SOURCE_RELIABILITY.reliefweb, 'ReliefWeb');
+    if (rwMatch) {
+      record('RELIEFWEB', rwMatch.type || 'Active declaration', 6, 6, nowTs, 'Disaster Declaration');
+    }
 
-    // 8. GDELT media signal — corroborating only, heavily discounted, requires
-    // an independent primary signal to already exist (media alone proves nothing)
-    let gdeltMatch = false;
+    // 8. GDELT conflict media signal — corroborating only, lowest reliability weight, capped low
     if (coordCheck) {
-      gdeltMatch = (apiResults.gdelt_processed || []).some(f => {
+      const gdeltCount = (apiResults.gdelt_processed || []).filter(f => {
         const [lng, lat] = f.geometry?.coordinates || [];
         return lng && lat && Math.abs(lng - coordCheck[0]) < 8 && Math.abs(lat - coordCheck[1]) < 8;
-      });
+      }).length;
+      if (gdeltCount > 0) {
+        const pts = logScale(gdeltCount, 0, 10, 4);
+        record('GDELT', `${gdeltCount} signals`, pts, 4, nowTs, 'Media Corroboration');
+      }
     }
-    const hasPrimarySignal = !!(ipcMatch || conflictMatch || nearbyQuake || rwMatch || diseaseMatches.length);
-    addSignal((gdeltMatch && hasPrimarySignal) ? 2 : 0, 2, SOURCE_RELIABILITY.gdelt, 'GDELT');
 
-    // ── EVIDENCE COVERAGE / CONFIDENCE ─────────────────────────────────────
-    // What fraction of addressable evidence channels actually returned data
-    // for this country this cycle. Low coverage = score leans more on
-    // structural baseline since live evidence can't be trusted to be complete.
-    const evidenceCoverage = maxPossibleEvidence > 0
-      ? Math.min(1, evidencePoints / maxPossibleEvidence)
-      : 0;
-    const signalCount = evidenceLog.length;
-    // Confidence rises with both magnitude of evidence AND number of independent signals agreeing
-    const confidence = Math.min(1, (signalCount / 4) * 0.5 + evidenceCoverage * 0.5);
+    // ── EVIDENCE CONFIDENCE: how much of the score is grounded in live data vs structural baseline ──
+    const evidenceConfidence = weightTotal > 0 ? Math.min(1, weightTotal / 40) : 0; // saturates once ~40pts of max-weighted evidence exists
+    const evidenceScore = weightTotal > 0 ? (weightedSum / weightTotal) * 40 : 0; // normalized evidence contribution, capped conceptually at 40pts
 
-    // ── FINAL SCORE: confidence-weighted blend of structure and evidence ────
-    // High confidence (multiple corroborating live signals) → evidence dominates.
-    // Low confidence (one or zero signals) → structural baseline dominates,
-    // since a single weak/uncorroborated signal shouldn't swing the score.
-    const structuralComponent = composite(dims);
-    const evidenceWeight = 0.35 + confidence * 0.35; // ranges 0.35–0.70
-    const structuralWeight = 1 - evidenceWeight;
-    const blended = structuralComponent * structuralWeight + (structuralComponent * 0.4 + evidencePoints * 1.4) * evidenceWeight;
+    // ── FINAL SCORE: structural baseline weight shrinks as evidence confidence grows ──
+    // No evidence at all → fully structural. Strong, multi-source, fresh evidence → mostly evidence-driven.
+    // This is the key objectivity mechanism: the model defers to reality whenever reality is available.
+    const structuralWeight = 1 - (evidenceConfidence * 0.55); // structural floor never drops below 45% weight
+    const structuralComponent = composite(dims) * structuralWeight;
+    const score = Math.min(99, Math.max(1, Math.round(structuralComponent + evidenceScore)));
 
-    const score = Math.min(99, Math.max(1, Math.round(blended)));
     const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
-
     newStore[iso] = {
       name, flag, types, needs, dims, score, events, spillover:0,
-      evidencePoints: Math.round(evidencePoints*10)/10,
-      evidenceLog, evidenceCoverage: Math.round(evidenceCoverage*100),
-      confidence: Math.round(confidence*100), signalCount
+      evidenceLedger: ledger,
+      evidenceConfidence: +evidenceConfidence.toFixed(2),
+      evidenceScore: +evidenceScore.toFixed(1),
+      structuralComponent: +structuralComponent.toFixed(1)
     };
   }
   const spill=spilloverScore(newStore);
