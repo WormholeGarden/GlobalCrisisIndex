@@ -8,7 +8,7 @@
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 76 downloads on Hugging Face</a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Live Analysis API · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -975,7 +975,17 @@ const CHARITIES=[
 // ============================================================================
 // CORE HELPERS
 // ============================================================================
-function composite(d){return DIMS.reduce((s,dim)=>s+dim.w*(d[dim.k]||0),0);}
+function composite(d){
+  // Non-linear weighted composite with interaction effects
+  const raw = DIMS.reduce((s,dim) => s + dim.w * (d[dim.k]||0), 0);
+  // Conflict-displacement interaction: both high = amplified
+  const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
+  // Food-health interaction: malnutrition drives disease
+  const foodHealth = ((d.food||0)/100) * ((d.health||0)/100) * 8;
+  // Economic collapse accelerates everything
+  const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
+  return Math.min(99, Math.max(1, Math.round((raw + conflictDisp + foodHealth) * econMult)));
+}
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2));}
 function entropy(arr){if(arr.length<4)return'—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2);}
 function cusum(arr,th=3.5){if(arr.length<6)return{det:false,z:.5};const mn=arr.reduce((a,b)=>a+b,0)/arr.length;const sd=Math.sqrt(arr.reduce((s,v)=>s+Math.pow(v-mn,2),0)/arr.length)||1;const z=Math.abs(arr[arr.length-1]-mn)/sd;return{det:z>th,z:Math.round(z*10)/10};}
@@ -987,19 +997,96 @@ function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(
 // ============================================================================
 // BUILD DIMS & STORE
 // ============================================================================
-function buildDims(base,types){
-  const has=t=>types.includes(t);
-  const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));
-  return{
-    conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),
-    displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),
-    food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),
-    health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),
-    economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),
-    climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),
-    access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),
-    political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8),
-  };
+function buildDims(base, types){
+  const has = t => types.includes(t);
+  const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
+
+  // ── Live data signals boost dims beyond base score ────────────────────
+  const ipcBoost    = ipcClassifications.find(i => i.phase >= 3) ? 8 : 0;
+  const heatBoost   = heatStressData.find(h => h.temp >= 42) ? 6 : 0;
+  const diseaseBoost= diseaseOutbreaks.length > 0 ? 5 : 0;
+  const conflictBoost = conflictEvents.length > 0 ? 7 : 0;
+
+  // ── Type multipliers: primary driver gets full weight, secondary gets 60% ──
+  const typeCount = types.length;
+  const complexityMult = typeCount >= 4 ? 1.08 : typeCount >= 3 ? 1.04 : 1.0;
+
+  // ── Conflict dimension ────────────────────────────────────────────────
+  const conflictMult = has('CW') && has('CE') ? 1.18    // both = compounding
+                     : has('CW') ? 1.12
+                     : has('CE') ? 1.08
+                     : has('REF') ? 0.68
+                     : 0.22;
+  const conflict = clamp((base * conflictMult + conflictBoost) * complexityMult);
+
+  // ── Displacement dimension ────────────────────────────────────────────
+  const dispMult = (has('REF') && (has('CW')||has('CE'))) ? 1.18
+                 : has('REF') ? 1.08
+                 : (has('CW')||has('CE')) ? 1.02
+                 : (has('EQ')||has('TC')||has('TSU')) ? 0.85
+                 : has('FL') ? 0.72
+                 : 0.32;
+  const displacement = clamp(base * dispMult * complexityMult);
+
+  // ── Food security dimension ───────────────────────────────────────────
+  const foodMult = (has('FN') && has('DR')) ? 1.22     // compound crisis
+                 : has('FN') ? 1.16
+                 : has('DR') ? 1.10
+                 : (has('CE')||has('CW')) ? 0.88
+                 : has('FL') ? 0.72
+                 : has('HEAT') ? 0.62
+                 : 0.38;
+  const food = clamp((base * foodMult + ipcBoost) * complexityMult);
+
+  // ── Health dimension ──────────────────────────────────────────────────
+  const healthMult = (has('EP') && has('FN')) ? 1.20   // disease+famine = cascade
+                   : has('EP') ? 1.14
+                   : has('FN') ? 1.08
+                   : (has('CE')||has('CW')) ? 0.88
+                   : (has('EQ')||has('TSU')) ? 0.82
+                   : has('HEAT') ? 0.68
+                   : 0.48;
+  const health = clamp((base * healthMult + diseaseBoost) * complexityMult);
+
+  // ── Economic dimension ────────────────────────────────────────────────
+  // Economic collapse lags crisis onset — modelled with damped multiplier
+  const econMult = (has('CE')||has('CW')) ? 0.86
+                 : (has('FN')||has('DR')) ? 0.80
+                 : has('REF') ? 0.74
+                 : (has('FL')||has('TC')) ? 0.66
+                 : 0.44;
+  // Floor: even stable countries have baseline economic stress at 12
+  const economic = clamp(Math.max(12, base * econMult * complexityMult) + 8);
+
+  // ── Climate dimension ─────────────────────────────────────────────────
+  const climateMult = (has('HEAT') && has('DR')) ? 1.10
+                    : has('HEAT') ? 0.92
+                    : has('DR') ? 0.88
+                    : (has('FL')||has('TC')||has('WF')) ? 0.78
+                    : (has('TSU')||has('EQ')) ? 0.42
+                    : 0.28;
+  const climate = clamp((base * climateMult + heatBoost) * complexityMult + 10);
+
+  // ── Access dimension ──────────────────────────────────────────────────
+  // Access (humanitarian access denied) driven by conflict + disasters
+  const accessMult = (has('CW') && has('CE')) ? 0.95
+                   : has('CW') ? 0.90
+                   : has('CE') ? 0.86
+                   : (has('EQ')||has('FL')||has('LS')||has('TSU')) ? 0.74
+                   : has('TC') ? 0.68
+                   : 0.30;
+  const access = clamp(base * accessMult * complexityMult + 6);
+
+  // ── Political dimension ───────────────────────────────────────────────
+  const politMult = (has('CE') && has('CW')) ? 0.92
+                  : has('CE') ? 0.88
+                  : has('CW') ? 0.84
+                  : has('REF') ? 0.72
+                  : has('EP') ? 0.52
+                  : 0.36;
+  const political = clamp(base * politMult * complexityMult + 6);
+
+  return { conflict, displacement, food, health, economic, climate, access, political };
 }
 
 function seedHistory(iso,currentScore){
@@ -1023,9 +1110,24 @@ function spilloverScore(newStore){
   for(const iso in newStore){
     const neighbours=(ADJ[iso]||[]).filter(n=>newStore[n]);
     if(!neighbours.length){res[iso]=0;continue;}
-    const avgNeighbour=neighbours.reduce((s,n)=>s+newStore[n].score,0)/neighbours.length;
-    const spill=Math.max(0,avgNeighbour-50)*0.13;
-    res[iso]=Math.round(Math.min(20,spill)*10)/10;
+
+    // Weighted by neighbour crisis severity — critical neighbours spill more
+    let weightedSpill=0, totalWeight=0;
+    for(const n of neighbours){
+      const ns=newStore[n].score;
+      const weight = ns>=80?2.5 : ns>=60?1.8 : ns>=40?1.0 : 0.4;
+      weightedSpill += ns * weight;
+      totalWeight += weight;
+    }
+    const weightedAvg = totalWeight>0 ? weightedSpill/totalWeight : 0;
+
+    // Refugee/conflict types amplify spillover
+    const hasRefugeeFlow = (newStore[iso].types||[]).some(t=>['REF','CW','CE'].includes(t));
+    const baseSpill = Math.max(0, weightedAvg-45) * 0.16;
+    const amplified = hasRefugeeFlow ? baseSpill * 1.4 : baseSpill;
+
+    // Diminishing returns — can't spillover past 22
+    res[iso]=Math.round(Math.min(22, amplified)*10)/10;
   }
   return res;
 }
@@ -1147,9 +1249,65 @@ async function refresh(){
     const rawBase=Math.min(99,Math.max(5,base+variation));
     const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(rawBase/14)));
     const dims=buildDims(rawBase,types);
-    const score=Math.min(99,Math.max(1,Math.round(composite(dims))));
-    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};
-  }
+    const baseScore=Math.min(99,Math.max(1,Math.round(composite(dims))));
+
+    // ── LIVE EVIDENCE BOOST: every signal shown in renderPanel + timeline ──
+    let liveBoost=0;
+    const nameLower=name.toLowerCase();
+
+    // IPC food security — Phase 3 (Crisis) or higher
+    const ipcHit=ipcClassifications.find(i=>i.country.toLowerCase().includes(nameLower.split(' ')[0]));
+    if(ipcHit){
+      if(ipcHit.phase>=4)liveBoost+=8;
+      else if(ipcHit.phase>=3)liveBoost+=5;
+    }
+
+    // Extreme heat ≥42°C
+    const heatHit=heatStressData.find(h=>h.iso===iso&&h.temp>=42);
+    if(heatHit)liveBoost+=heatHit.temp>=46?6:4;
+
+    // Active disease outbreaks
+    const diseaseHits=diseaseOutbreaks.filter(d=>d.country.toLowerCase().includes(nameLower.split(' ')[0]));
+    diseaseHits.forEach(d=>{liveBoost+=d.cases>=10000?5:3;});
+
+    // ACLED conflict events with fatalities
+    const conflictHit=conflictEvents.find(e=>e.country&&e.country.toLowerCase()===nameLower);
+    if(conflictHit){
+      const fat=conflictHit.fatalities||0;
+      liveBoost+=fat>=50?7:fat>=10?5:3;
+    }
+
+    // FEWS NET food security alerts (only if no IPC hit, avoid double-count)
+    const fewsHit=foodSecurityAlerts.find(f=>f.country.toLowerCase().includes(nameLower.split(' ')[0]));
+    if(fewsHit&&!ipcHit)liveBoost+=fewsHit.phase==='Emergency'?5:3;
+
+    // ReliefWeb active humanitarian disaster events
+    const rwHits=(apiResults.reliefweb_events||[]).filter(e=>e.country&&e.country.toLowerCase().includes(nameLower.split(' ')[0]));
+    if(rwHits.length)liveBoost+=Math.min(4,rwHits.length*1.5);
+
+    // GDELT media conflict signal proximity
+    const coordForGdelt=CENTROIDS[iso];
+    if(coordForGdelt){
+      const gdeltHits=(apiResults.gdelt_processed||[]).filter(f=>{
+        if(!f.properties)return false;
+        const[lng,lat]=f.geometry?.coordinates||[];
+        return lng&&lat&&Math.abs(lng-coordForGdelt[0])<8&&Math.abs(lat-coordForGdelt[1])<8;
+      });
+      if(gdeltHits.length)liveBoost+=Math.min(3,gdeltHits.length);
+    }
+
+    // USGS significant earthquakes (M≥4.5) near country
+    if(coordForGdelt){
+      const quakeHits=(apiResults.usgs_weekly?.features||[]).filter(f=>{
+        const[qlng,qlat]=f.geometry?.coordinates||[];
+        return Math.abs(qlng-coordForGdelt[0])<10&&Math.abs(qlat-coordForGdelt[1])<10&&f.properties?.mag>=4.5;
+      });
+      quakeHits.forEach(q=>{const mag=q.properties.mag;liveBoost+=mag>=6.5?6:mag>=5.5?4:2;});
+    }
+
+    // ── Apply boost as an objective adjustment to the existing composite score ──
+    const score=Math.min(99,Math.max(1,Math.round(baseScore+liveBoost)));
+    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0,liveBoost};
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
   store=newStore;
