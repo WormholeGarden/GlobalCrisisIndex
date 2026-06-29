@@ -1956,60 +1956,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
         ).join('')}
       </div>
-      ${(() => {
-  const signals = [];
-
-  // IPC Food Security
-  if (ipcInfo) {
-    const isPhase4 = ipcInfo.phase === 4;
-    const isYemen = c.name === 'Yemen';
-    const isSudan = c.name === 'Sudan';
-    if (isPhase4 && (isYemen || isSudan)) {
-      signals.push(`📊 IPC Phase 4 (Emergency) — ${Math.round(ipcInfo.population / 1e6)}M facing acute hunger (Phase 3+)`);
-    } else {
-      signals.push(`📊 IPC Phase ${ipcInfo.phase} (${ipcInfo.phase_name}) — ${Math.round(ipcInfo.population / 1e6)}M people`);
-    }
-  }
-
-  // Displacement
-  const dispEvent = conflictEvents.find(e => e.country === c.name && e.event_type && e.event_type.toLowerCase().includes('displac'));
-  if (c.dims?.displacement >= 60) {
-    const dispM = (c.dims.displacement / 100 * 8).toFixed(1);
-    signals.push(`🚶 ${dispM}M displaced`);
-  }
-
-  // Disease outbreaks
-  const diseases = diseaseOutbreaks.filter(d => d.country === c.name);
-  diseases.forEach(d => {
-    const casesStr = d.cases >= 10000 ? `${Math.round(d.cases / 1000)}K` : d.cases.toLocaleString();
-    signals.push(`🦠 ${d.disease} outbreak (${casesStr}+ cases)`);
-  });
-
-  // Extreme heat
-  const heat = heatStressData.find(h => h.iso === iso && h.temp > 38);
-  if (heat) {
-    signals.push(`🥵 Extreme heat (${heat.temp}°C)`);
-  }
-
-  // Conflict fatalities
-  const conflict = conflictEvents.find(e => e.country === c.name && !e.event_type?.toLowerCase().includes('displac'));
-  if (conflict) {
-    signals.push(`⚔️ ${conflict.event_type} (${conflict.fatalities}+ fatalities)`);
-  }
-
-  // Food security alerts from FEWS NET
-  const fews = foodSecurityAlerts.find(f => f.country === c.name);
-  if (fews && !ipcInfo) {
-    signals.push(`🌾 FEWS NET: ${fews.phase} food security alert`);
-  }
-
-  if (!signals.length) return '';
-
-  return `<div style="margin-top:10px;padding:9px 11px;background:rgba(255,55,95,0.08);border:1px solid rgba(255,55,95,0.2);border-radius:8px;display:flex;flex-direction:column;gap:4px;">
-    <div style="font-family:var(--fm);font-size:7px;color:var(--tm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px;">⚡ Live Evidence</div>
-    ${signals.map(s => `<div style="font-family:var(--fm);font-size:9px;color:var(--ts);display:flex;align-items:baseline;gap:6px;"><span style="flex-shrink:0;">${s}</span></div>`).join('')}
-  </div>`;
-})()}
+      <div id="inlinTimelineSlot"></div>
     </div>
 
     <div class="ai-brief" id="aiBrief">
@@ -2026,8 +1973,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
       <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
     </div>
-
-    <div id="conflictTimelineSlot"></div>
 
     <div class="ps">
       <div class="spill-box">
@@ -2168,18 +2113,17 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
- setTimeout(() => {
+setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
     if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
     DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
     buildConflictTimeline(iso, c).then(html => {
-      const slot = document.getElementById('conflictTimelineSlot');
+      const slot = document.getElementById('inlinTimelineSlot');
       if (slot) slot.outerHTML = html || '';
     });
   }, 60);
-
   if (mapGroup) {
     mapGroup.selectAll('.country-path').classed('sel-path', false);
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
