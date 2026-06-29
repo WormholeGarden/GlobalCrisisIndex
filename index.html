@@ -8,7 +8,7 @@
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 76 downloads on Hugging Face</a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">The Global Crisis Index API analysis · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -1143,12 +1143,162 @@ async function refresh(){
     const types=CTYPES[iso]||DEFAULT_T;
     const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];
     const base=BASE_SCORES[iso]||42;
-    const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
-    const rawBase=Math.min(99,Math.max(5,base+variation));
-    const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(rawBase/14)));
-    const dims=buildDims(rawBase,types);
-    const score=Math.min(99,Math.max(1,Math.round(composite(dims))));
-    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};
+    // ── LIVE EVIDENCE SCORING ─────────────────────────────────────────────
+    // Start from a structural floor (20% of base) then build purely from evidence
+    let liveScore = Math.round(base * 0.20);
+    const liveSignalsApplied = [];
+
+    // 1. IPC Food Security (max +30)
+    const ipcMatch = ipcClassifications.find(i =>
+      i.country.toLowerCase() === name.toLowerCase() ||
+      name.toLowerCase().includes(i.country.toLowerCase().split(' ')[0])
+    );
+    if (ipcMatch) {
+      const ipcPoints = ipcMatch.phase === 5 ? 30
+                      : ipcMatch.phase === 4 ? 24
+                      : ipcMatch.phase === 3 ? 14
+                      : ipcMatch.phase === 2 ? 6 : 0;
+      const popBonus = ipcMatch.population >= 10000000 ? 4
+                     : ipcMatch.population >= 5000000 ? 2 : 0;
+      liveScore += ipcPoints + popBonus;
+      if (ipcPoints > 0) liveSignalsApplied.push(`IPC P${ipcMatch.phase}+${ipcPoints+popBonus}`);
+    }
+
+    // 2. ACLED Conflict Events (max +28)
+    const conflictMatch = conflictEvents.find(e =>
+      e.country && e.country.toLowerCase() === name.toLowerCase()
+    );
+    if (conflictMatch) {
+      const fatPoints = conflictMatch.fatalities >= 500 ? 28
+                      : conflictMatch.fatalities >= 100 ? 22
+                      : conflictMatch.fatalities >= 50  ? 16
+                      : conflictMatch.fatalities >= 10  ? 10
+                      : conflictMatch.fatalities > 0    ? 6 : 4;
+      liveScore += fatPoints;
+      liveSignalsApplied.push(`ACLED+${fatPoints}`);
+    }
+
+    // 3. Disease Outbreaks / WHO (max +18)
+    const diseaseMatch = diseaseOutbreaks.find(d =>
+      d.country && d.country.toLowerCase() === name.toLowerCase()
+    );
+    if (diseaseMatch) {
+      const casePoints = diseaseMatch.cases >= 50000 ? 18
+                       : diseaseMatch.cases >= 10000 ? 13
+                       : diseaseMatch.cases >= 1000  ? 8
+                       : 4;
+      liveScore += casePoints;
+      liveSignalsApplied.push(`WHO+${casePoints}`);
+    }
+
+    // 4. Heat Stress / Open-Meteo (max +12)
+    const heatMatch = heatStressData.find(h => h.iso === iso);
+    if (heatMatch) {
+      const heatPoints = heatMatch.temp >= 48 ? 12
+                       : heatMatch.temp >= 45 ? 9
+                       : heatMatch.temp >= 42 ? 6
+                       : heatMatch.temp >= 38 ? 3 : 0;
+      liveScore += heatPoints;
+      if (heatPoints > 0) liveSignalsApplied.push(`HEAT+${heatPoints}`);
+    }
+
+    // 5. ReliefWeb Active Disasters (max +12)
+    const rwMatch = (apiResults.reliefweb_events || []).filter(e =>
+      e.country && e.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+    );
+    if (rwMatch.length) {
+      const rwPoints = Math.min(12, rwMatch.length * 4);
+      liveScore += rwPoints;
+      liveSignalsApplied.push(`RW+${rwPoints}`);
+    }
+
+    // 6. FEWS NET Food Security Alerts (max +10)
+    const fewsMatch = foodSecurityAlerts.find(f =>
+      f.country && f.country.toLowerCase() === name.toLowerCase()
+    );
+    if (fewsMatch) {
+      const fewsPoints = fewsMatch.ipc >= 4 ? 10
+                       : fewsMatch.ipc >= 3 ? 7
+                       : 4;
+      liveScore += fewsPoints;
+      liveSignalsApplied.push(`FEWS+${fewsPoints}`);
+    }
+
+    // 7. USGS Earthquakes near country (max +10)
+    const countryCoord = CENTROIDS[iso];
+    if (countryCoord) {
+      const nearQuakes = (apiResults.usgs_weekly?.features || []).filter(f => {
+        const [qlng, qlat] = f.geometry?.coordinates || [];
+        return Math.abs(qlng - countryCoord[0]) < 10 &&
+               Math.abs(qlat - countryCoord[1]) < 10 &&
+               f.properties?.mag >= 4.5;
+      });
+      if (nearQuakes.length) {
+        const maxMag = Math.max(...nearQuakes.map(q => q.properties.mag || 0));
+        const quakePoints = maxMag >= 7.5 ? 10
+                          : maxMag >= 7.0 ? 8
+                          : maxMag >= 6.5 ? 6
+                          : maxMag >= 6.0 ? 4
+                          : maxMag >= 5.0 ? 2 : 1;
+        liveScore += quakePoints;
+        liveSignalsApplied.push(`USGS M${maxMag.toFixed(1)}+${quakePoints}`);
+      }
+    }
+
+    // 8. GDELT Media Conflict Signal (max +8)
+    if (countryCoord) {
+      const gdeltNear = (apiResults.gdelt_processed || []).filter(f => {
+        const [lng, lat] = f.geometry?.coordinates || [];
+        return lng && lat &&
+               Math.abs(lng - countryCoord[0]) < 8 &&
+               Math.abs(lat - countryCoord[1]) < 8;
+      });
+      if (gdeltNear.length) {
+        const gdeltPoints = Math.min(8, gdeltNear.length * 2);
+        liveScore += gdeltPoints;
+        liveSignalsApplied.push(`GDELT+${gdeltPoints}`);
+      }
+    }
+
+    // 9. Displacement from UNHCR/WB refugees indicator (max +8)
+    if (c.dims?.displacement >= 60 || types.some(t => t === 'REF')) {
+      const dispPoints = types.includes('REF') ? 8 : 4;
+      liveScore += dispPoints;
+      liveSignalsApplied.push(`DISP+${dispPoints}`);
+    }
+
+    // 10. NASA EONET active natural events near country (max +6)
+    if (countryCoord) {
+      const eonetNear = (apiResults.nasa_eonet?.events || []).filter(ev => {
+        const coords = ev.geometry?.[0]?.coordinates || ev.geometry?.coordinates || [];
+        const [elng, elat] = Array.isArray(coords[0]) ? coords[0] : coords;
+        return elng && elat &&
+               Math.abs(elng - countryCoord[0]) < 12 &&
+               Math.abs(elat - countryCoord[1]) < 12;
+      });
+      if (eonetNear.length) {
+        const eonetPoints = Math.min(6, eonetNear.length * 2);
+        liveScore += eonetPoints;
+        liveSignalsApplied.push(`NASA+${eonetPoints}`);
+      }
+    }
+
+    // ── If zero live signals fired, fall back to structural base ─────────
+    const hasAnyLiveSignal = liveSignalsApplied.length > 0;
+    if (!hasAnyLiveSignal) {
+      // Pure structural score for data-dark countries
+      liveScore = Math.round(base * 0.72 +
+        (seededRand(refreshSeed + iso.charCodeAt(0)*137 + (iso.charCodeAt(1)||0)*31) - 0.5) * 4);
+    }
+
+    const score = Math.min(99, Math.max(1, liveScore));
+    const events = Math.min(80, Math.max(4, Math.round(score * 0.55 + types.length * 3.2)));
+    const dims = buildDims(score, types);
+
+    newStore[iso] = {
+      name, flag, types, needs, dims, score, events, spillover: 0,
+      liveSignals: liveSignalsApplied, hasLiveData: hasAnyLiveSignal
+    };
   }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
