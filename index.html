@@ -1239,6 +1239,20 @@ async function refresh(){
 
  const refreshSeed=Math.floor(Date.now()/60000);
   let newStore={};
+
+  // ── SOURCE RELIABILITY WEIGHTS ──────────────────────────────────────────
+  // Not all signals are equally trustworthy. Direct measurement (USGS magnitude,
+  // Open-Meteo temperature) is hard data. Classification systems (IPC) are
+  // expert-consensus but lower-frequency. Media-derived signals (GDELT) are
+  // corroborating only and capped low to avoid amplifying noise.
+  const SOURCE_RELIABILITY = {
+    usgs: 1.0, openmeteo: 1.0,      // direct sensor measurement
+    ipc: 0.9, who: 0.85,             // expert classification, periodic
+    acled: 0.8, reliefweb: 0.7,      // event-reported, some lag
+    fewsnet: 0.75,
+    gdelt: 0.35                       // media signal, corroborating only
+  };
+
   for(let iso of Object.keys(BASE_SCORES)){
     const name=NAMES[iso]||iso;
     const flag=FLAGS[iso]||'🌍';
@@ -1249,57 +1263,59 @@ async function refresh(){
     const rawBase=Math.min(99,Math.max(5,base+variation));
     const dims=buildDims(rawBase,types);
 
-    // ── LIVE EVIDENCE SCORING: objective points derived from real API data ──
-    // Each signal contributes a fixed, evidence-justified point value, AND
-    // a "confidence weight" reflecting how directly that signal measures crisis severity.
-    // Sources with sparse coverage (mock/fallback data) are flagged so they
-    // can't silently dominate scoring for the ~150 countries they don't cover.
+    // ── LIVE EVIDENCE SCORING: reliability-weighted, recency-aware, capped ──
     let evidencePoints = 0;
-    let evidenceWeight = 0; // sum of confidence weights for sources that fired
+    let maxPossibleEvidence = 0; // tracks total addressable evidence so we can compute coverage/confidence
     const evidenceLog = [];
-    const MAX_SOURCE_WEIGHT = 8; // sum of all possible confidence weights below
 
-    // 1. IPC Food Security Phase (IPC/FEWS NET/WFP) — confidence weight 2.0 (gold-standard, peer-reviewed methodology)
+    function addSignal(rawPts, capPts, reliability, label){
+      maxPossibleEvidence += capPts * reliability;
+      if (rawPts <= 0) return;
+      const weighted = Math.min(capPts, rawPts) * reliability;
+      evidencePoints += weighted;
+      evidenceLog.push(`${label}:+${weighted.toFixed(1)}`);
+    }
+
+    // 1. IPC Food Security Phase — direct expert classification, highest cap
     const ipcMatch = ipcClassifications.find(i => i.country === name);
     if (ipcMatch) {
       const ipcPts = ipcMatch.phase >= 5 ? 16 : ipcMatch.phase === 4 ? 12 : ipcMatch.phase === 3 ? 6 : 0;
-      if (ipcPts > 0) { evidencePoints += ipcPts; evidenceWeight += 2.0; evidenceLog.push(`IPC P${ipcMatch.phase}:+${ipcPts}`); }
-    }
-    const fewsMatch = !ipcMatch && foodSecurityAlerts.find(f => f.country === name);
-    if (fewsMatch) {
-      const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
-      if (fewsPts > 0) { evidencePoints += fewsPts; evidenceWeight += 1.5; evidenceLog.push(`FEWS:+${fewsPts}`); }
+      addSignal(ipcPts, 16, SOURCE_RELIABILITY.ipc, `IPC P${ipcMatch.phase}`);
+    } else {
+      const fewsMatch = foodSecurityAlerts.find(f => f.country === name);
+      if (fewsMatch) {
+        const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
+        addSignal(fewsPts, 10, SOURCE_RELIABILITY.fewsnet, `FEWS`);
+      }
     }
 
-    // 2. Extreme Heat (Open-Meteo, live measured temperature) — confidence weight 1.2 (real-time, but only proxies climate stress, not full crisis severity)
+    // 2. Extreme Heat — direct sensor reading, full reliability
     const heatMatch = heatStressData.find(h => h.iso === iso);
     if (heatMatch) {
       const heatPts = heatMatch.temp >= 47 ? 8 : heatMatch.temp >= 44 ? 5 : heatMatch.temp >= 42 ? 3 : 0;
-      if (heatPts > 0) { evidencePoints += heatPts; evidenceWeight += 1.2; evidenceLog.push(`Heat ${heatMatch.temp.toFixed(1)}°C:+${heatPts}`); }
+      addSignal(heatPts, 8, SOURCE_RELIABILITY.openmeteo, `Heat ${heatMatch.temp}°C`);
     }
 
-    // 3. Disease Outbreaks (WHO/disease.sh) — confidence weight 1.5
+    // 3. Disease Outbreaks — case-count scaled, WHO reliability
     const diseaseMatches = diseaseOutbreaks.filter(d => d.country === name);
     diseaseMatches.forEach(d => {
       const diseasePts = d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases > 0 ? 2 : 0;
-      if (diseasePts > 0) { evidencePoints += diseasePts; evidenceWeight += 1.5; evidenceLog.push(`${d.disease}:+${diseasePts}`); }
+      addSignal(diseasePts, 8, SOURCE_RELIABILITY.who, d.disease);
     });
 
-    // 4. Conflict Events / Fatalities (ACLED) — confidence weight 2.0 (gold-standard, ground-truth fatality data)
+    // 4. Conflict Events / Fatalities — ACLED, event-reported reliability
     const conflictMatch = conflictEvents.find(e => e.country === name);
     if (conflictMatch) {
       const conflictPts = conflictMatch.fatalities >= 100 ? 14 : conflictMatch.fatalities >= 50 ? 10 : conflictMatch.fatalities >= 10 ? 6 : conflictMatch.fatalities > 0 ? 3 : 0;
-      if (conflictPts > 0) { evidencePoints += conflictPts; evidenceWeight += 2.0; evidenceLog.push(`ACLED ${conflictMatch.event_type}:+${conflictPts}`); }
+      addSignal(conflictPts, 14, SOURCE_RELIABILITY.acled, `ACLED ${conflictMatch.event_type}`);
     }
 
-    // 5. Displacement — confidence weight 1.0. Evidence-gated: a structural dim score alone is
-    // NOT independent evidence (it's derived from `base`), so it only counts as corroboration
-    // when paired with a genuinely independent live signal (conflict, food, or REF classification).
-    if (dims.displacement >= 70 && (conflictMatch || ipcMatch)) {
-      evidencePoints += 6; evidenceWeight += 1.0; evidenceLog.push(`Displacement:+6`);
-    }
+    // 5. Displacement — derived signal, gated to require independent corroboration
+    // (never counted on its own; only when conflict, food crisis, or REF type confirms it)
+    const displacementCorroborated = dims.displacement >= 70 && (conflictMatch || ipcMatch || types.includes('REF'));
+    addSignal(displacementCorroborated ? 6 : 0, 6, 0.8, 'Displacement');
 
-    // 6. Seismic activity near country (USGS) — confidence weight 1.8 (precise, real-time, ground-truth magnitude)
+    // 6. Seismic activity — USGS magnitude, direct measurement, full reliability
     const coordCheck = CENTROIDS[iso];
     let nearbyQuake = null;
     if (coordCheck) {
@@ -1307,47 +1323,59 @@ async function refresh(){
         const [qlng, qlat] = f.geometry?.coordinates || [];
         return Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5;
       });
-      if (nearbyQuake) {
-        const mag = nearbyQuake.properties.mag;
-        const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
-        if (quakePts > 0) { evidencePoints += quakePts; evidenceWeight += 1.8; evidenceLog.push(`M${mag.toFixed(1)} EQ:+${quakePts}`); }
-      }
+    }
+    if (nearbyQuake) {
+      const mag = nearbyQuake.properties.mag;
+      const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
+      addSignal(quakePts, 10, SOURCE_RELIABILITY.usgs, `M${mag.toFixed(1)} EQ`);
+    } else {
+      maxPossibleEvidence += 10 * SOURCE_RELIABILITY.usgs;
     }
 
-    // 7. ReliefWeb active disaster declaration — confidence weight 0.8 (lower precision, often duplicates other signals)
+    // 7. ReliefWeb active disaster declaration — event-reported reliability
     const rwMatch = (apiResults.reliefweb_events || []).find(e => e.country === name);
-    if (rwMatch) { evidencePoints += 4; evidenceWeight += 0.8; evidenceLog.push(`ReliefWeb:+4`); }
+    addSignal(rwMatch ? 4 : 0, 4, SOURCE_RELIABILITY.reliefweb, 'ReliefWeb');
 
-    // 8. GDELT conflict media signal — confidence weight 0.5 (corroborating only, media coverage ≠ ground truth)
+    // 8. GDELT media signal — corroborating only, heavily discounted, requires
+    // an independent primary signal to already exist (media alone proves nothing)
     let gdeltMatch = false;
     if (coordCheck) {
       gdeltMatch = (apiResults.gdelt_processed || []).some(f => {
         const [lng, lat] = f.geometry?.coordinates || [];
         return lng && lat && Math.abs(lng - coordCheck[0]) < 8 && Math.abs(lat - coordCheck[1]) < 8;
       });
-      if (gdeltMatch) { evidencePoints += 2; evidenceWeight += 0.5; evidenceLog.push(`GDELT:+2`); }
     }
+    const hasPrimarySignal = !!(ipcMatch || conflictMatch || nearbyQuake || rwMatch || diseaseMatches.length);
+    addSignal((gdeltMatch && hasPrimarySignal) ? 2 : 0, 2, SOURCE_RELIABILITY.gdelt, 'GDELT');
 
-    // ── COVERAGE-AWARE FINAL SCORE ──────────────────────────────────────────
-    // The proportion of structural-vs-evidence weighting now scales with how
-    // much *independent, real* evidence actually exists for this country this
-    // cycle, rather than a flat constant applied uniformly. A country with
-    // zero corroborating signals keeps its full structural estimate (the most
-    // honest answer when we have no fresh evidence); a country with strong,
-    // multi-source corroboration is driven almost entirely by that evidence.
-    const coverageRatio = Math.min(1, evidenceWeight / MAX_SOURCE_WEIGHT); // 0 → no evidence, 1 → fully corroborated
-    // Structural weight shrinks from 1.0 (no evidence) down to a floor of 0.35
-    // (heavy evidence) — never zero, since structural dims encode real
-    // crisis-type context (e.g. active war vs. stable democracy) that no
-    // single live feed fully captures.
-    const structuralWeight = 1 - (coverageRatio * 0.65);
-    const structuralComponent = composite(dims) * structuralWeight;
-    const score = Math.min(99, Math.max(1, Math.round(structuralComponent + evidencePoints)));
+    // ── EVIDENCE COVERAGE / CONFIDENCE ─────────────────────────────────────
+    // What fraction of addressable evidence channels actually returned data
+    // for this country this cycle. Low coverage = score leans more on
+    // structural baseline since live evidence can't be trusted to be complete.
+    const evidenceCoverage = maxPossibleEvidence > 0
+      ? Math.min(1, evidencePoints / maxPossibleEvidence)
+      : 0;
+    const signalCount = evidenceLog.length;
+    // Confidence rises with both magnitude of evidence AND number of independent signals agreeing
+    const confidence = Math.min(1, (signalCount / 4) * 0.5 + evidenceCoverage * 0.5);
 
+    // ── FINAL SCORE: confidence-weighted blend of structure and evidence ────
+    // High confidence (multiple corroborating live signals) → evidence dominates.
+    // Low confidence (one or zero signals) → structural baseline dominates,
+    // since a single weak/uncorroborated signal shouldn't swing the score.
+    const structuralComponent = composite(dims);
+    const evidenceWeight = 0.35 + confidence * 0.35; // ranges 0.35–0.70
+    const structuralWeight = 1 - evidenceWeight;
+    const blended = structuralComponent * structuralWeight + (structuralComponent * 0.4 + evidencePoints * 1.4) * evidenceWeight;
+
+    const score = Math.min(99, Math.max(1, Math.round(blended)));
     const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
+
     newStore[iso] = {
       name, flag, types, needs, dims, score, events, spillover:0,
-      evidencePoints, evidenceWeight, coverageRatio, evidenceLog
+      evidencePoints: Math.round(evidencePoints*10)/10,
+      evidenceLog, evidenceCoverage: Math.round(evidenceCoverage*100),
+      confidence: Math.round(confidence*100), signalCount
     };
   }
   const spill=spilloverScore(newStore);
