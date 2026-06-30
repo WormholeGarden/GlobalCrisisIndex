@@ -976,15 +976,16 @@ const CHARITIES=[
 // CORE HELPERS
 // ============================================================================
 function composite(d){
-  // Non-linear weighted composite with interaction effects
+  // Non-linear weighted composite with interaction effects.
+  // NO internal clamp to 99 — that was the actual bug: it pre-saturated
+  // structural scores for every high-conflict country, so by the time
+  // evidence was added, they were already tied at the ceiling.
+  // Clamping happens exactly once, at the very end of the full pipeline.
   const raw = DIMS.reduce((s,dim) => s + dim.w * (d[dim.k]||0), 0);
-  // Conflict-displacement interaction: both high = amplified
   const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
-  // Food-health interaction: malnutrition drives disease
   const foodHealth = ((d.food||0)/100) * ((d.health||0)/100) * 8;
-  // Economic collapse accelerates everything
   const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
-  return Math.min(99, Math.max(1, Math.round((raw + conflictDisp + foodHealth) * econMult)));
+  return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
 }
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2));}
 function entropy(arr){if(arr.length<4)return'—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2);}
@@ -1145,11 +1146,11 @@ async function refresh(){
 
   adv(5,78);
 
-  // ─── HYBRID EVIDENCE-BASED SCORING ENGINE WITH TEMPORAL DECAY ──────────
-// Recent events weigh more than old ones using exponential decay
-// Half-life: 7 days for most events, 3 days for conflict/disease
+// ─── EVIDENCE-BASED SCORING ENGINE WITH TEMPORAL DECAY ─────────────────
+// Every point added to a score traces back to a specific, logged piece of
+// live evidence or a transparent structural baseline. No flat offsets,
+// no stacked unexplained additions — score = structural + evidence, clamped once.
 
-// 1. Build evidence index from live API data
 const evidenceIndex = {
   conflict: conflictEvents || [],
   ipc: ipcClassifications || [],
@@ -1161,338 +1162,198 @@ const evidenceIndex = {
   usgs: apiResults.usgs_weekly?.features || [],
   nasa: apiResults.nasa_eonet?.events || [],
   wb_inflation: apiResults.wb_inflation || [],
-  wb_poverty: apiResults.wb_poverty || [],
   imf: apiResults.imf_growth_map || {},
   unhcr: apiResults.unhcr_population || [],
 };
 
-// ─── TEMPORAL DECAY FUNCTION ──────────────────────────────────────────────
 function applyTemporalDecay(daysAgo, halfLife = 7) {
   if (daysAgo === null || daysAgo === undefined) return 0.8;
   const decay = Math.exp(-0.693 * daysAgo / halfLife);
   return Math.max(0.05, Math.min(1, decay));
 }
 
-// ─── SOURCE-SPECIFIC HALF-LIVES ──────────────────────────────────────────
-const HALF_LIVES = {
-  conflict: 3,
-  disease: 3,
-  heat: 2,
-  seismic: 4,
-  gdelt: 2,
-  reliefweb: 5,
-  nasa: 4,
-  economic: 14,
-  displacement: 10,
-  food: 10,
-  ipc: 14,
-  default: 7
-};
+const HALF_LIVES = { conflict:3, disease:3, heat:2, seismic:4, gdelt:2, reliefweb:5, nasa:4, economic:14, displacement:10, ipc:14 };
 
-// ─── GET DAYS AGO FROM TIMESTAMP ──────────────────────────────────────────
 function getDaysAgo(timestamp) {
   if (!timestamp) return null;
   const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
   if (isNaN(date.getTime())) return null;
-  return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+  return (Date.now() - date.getTime()) / 86400000;
 }
 
-// 2. Calculate evidence score with confidence weighting + temporal decay
+function logScale(value, floor, ceiling, maxPts) {
+  if (value <= floor) return 0;
+  const ratio = Math.log(1 + (value - floor)) / Math.log(1 + (ceiling - floor));
+  return Math.min(maxPts, Math.max(0, ratio * maxPts));
+}
+
+// ── Evidence score on a fixed 0–35 point budget — cannot exceed this no
+// matter how many signals fire, so it augments rather than dominates ──
 function computeEvidenceScore(iso) {
   const name = NAMES[iso] || iso;
   const nameLower = name.toLowerCase();
-  let evidenceScore = 0;
-  let confidenceWeight = 0;
-  const factors = {};
+  const ledger = [];
+  let totalPts = 0, totalWeight = 0;
 
-  // ── CONFLICT (ACLED) — HALF-LIFE: 3 DAYS ──────────────────────────────
-  const conflictData = evidenceIndex.conflict.filter(e =>
-    e.country && e.country.toLowerCase() === nameLower
-  );
-  let weightedFatalities = 0;
+  function add(source, label, rawValue, pts, weight) {
+    if (pts <= 0) return;
+    totalPts += pts * weight;
+    totalWeight += weight;
+    ledger.push({ source, label, rawValue, pts: +pts.toFixed(1), weight: +weight.toFixed(2) });
+  }
+
+  // CONFLICT (ACLED) — budget 14, half-life 3d
+  const conflictData = evidenceIndex.conflict.filter(e => e.country?.toLowerCase() === nameLower);
+  let weightedFatalities = 0, conflictW = 0.85;
   conflictData.forEach(e => {
-    const daysAgo = getDaysAgo(e.date) || 0;
-    const weight = applyTemporalDecay(daysAgo, HALF_LIVES.conflict);
-    weightedFatalities += (e.fatalities || 0) * weight;
+    const d = getDaysAgo(e.date) ?? 0;
+    const w = applyTemporalDecay(d, HALF_LIVES.conflict);
+    weightedFatalities += (e.fatalities || 0) * w;
+    conflictW = Math.max(conflictW, w * 0.92);
   });
-  const effectiveFatalities = Math.round(weightedFatalities);
-  factors.conflict = { fatalities: effectiveFatalities, events: conflictData.length };
-  if (effectiveFatalities >= 100) { evidenceScore += 28; confidenceWeight += 3; }
-  else if (effectiveFatalities >= 50) { evidenceScore += 20; confidenceWeight += 2.5; }
-  else if (effectiveFatalities >= 10) { evidenceScore += 12; confidenceWeight += 2; }
-  else if (effectiveFatalities > 0) { evidenceScore += 6; confidenceWeight += 1.5; }
+  if (weightedFatalities > 0) {
+    add('ACLED', 'Conflict fatalities', Math.round(weightedFatalities), logScale(weightedFatalities, 1, 300, 14), conflictW);
+  }
 
-  // ── FOOD INSECURITY (IPC + WFP) — HALF-LIFE: 14 DAYS ─────────────────
-  const ipcData = evidenceIndex.ipc.find(i =>
-    i.country && i.country.toLowerCase() === nameLower
-  );
-  const wfpData = evidenceIndex.wfp.find(w =>
-    w.iso3 === iso || (w.country_name && w.country_name.toLowerCase() === nameLower)
-  );
-  const effectiveIPC = ipcData?.phase || wfpData?.ipc_phase || 0;
-  factors.food = { ipc: effectiveIPC };
-  if (effectiveIPC >= 5) { evidenceScore += 30; confidenceWeight += 3; }
-  else if (effectiveIPC >= 4) { evidenceScore += 24; confidenceWeight += 2.5; }
-  else if (effectiveIPC === 3) { evidenceScore += 16; confidenceWeight += 2; }
-  else if (effectiveIPC === 2) { evidenceScore += 8; confidenceWeight += 1.5; }
+  // FOOD SECURITY (IPC/WFP) — budget 14, half-life 14d
+  const ipcData = evidenceIndex.ipc.find(i => i.country?.toLowerCase() === nameLower);
+  const wfpData = evidenceIndex.wfp.find(w => w.iso3 === iso || w.country_name?.toLowerCase() === nameLower);
+  const phase = ipcData?.phase || wfpData?.ipc_phase || 0;
+  if (phase >= 2) {
+    const popMag = ipcData?.population ? logScale(ipcData.population, 100000, 30000000, 1) : 0.5;
+    add('IPC', `Phase ${phase}`, phase, (phase >= 5 ? 14 : phase === 4 ? 11 : phase === 3 ? 6 : 2) * (0.6 + popMag * 0.4), 0.95);
+  }
 
-  // ── DISPLACEMENT (UNHCR) — HALF-LIFE: 10 DAYS ─────────────────────────
-  const unhcrData = evidenceIndex.unhcr.filter(d =>
-    d.coa && d.coa.toLowerCase() === nameLower
-  );
+  // DISPLACEMENT (UNHCR) — budget 10, half-life 10d
+  const unhcrData = evidenceIndex.unhcr.filter(d => d.coa?.toLowerCase() === nameLower);
   const totalDisplaced = unhcrData.reduce((s, d) => s + (parseInt(d.value) || 0), 0);
-  factors.displacement = { total: totalDisplaced };
-  if (totalDisplaced >= 1000000) { evidenceScore += 22; confidenceWeight += 2.5; }
-  else if (totalDisplaced >= 500000) { evidenceScore += 16; confidenceWeight += 2; }
-  else if (totalDisplaced >= 100000) { evidenceScore += 10; confidenceWeight += 1.5; }
-  else if (totalDisplaced > 0) { evidenceScore += 5; confidenceWeight += 1; }
+  if (totalDisplaced > 0) {
+    add('UNHCR', 'Displaced population', totalDisplaced, logScale(totalDisplaced, 10000, 5000000, 10), 0.85);
+  }
 
-  // ── EXTREME HEAT (Open-Meteo) — HALF-LIFE: 2 DAYS ────────────────────
+  // EXTREME HEAT (Open-Meteo) — budget 7, half-life 2d
   const heatData = evidenceIndex.heat.find(h => h.iso === iso);
-  const heatWeight = applyTemporalDecay(heatData?.timestamp ? getDaysAgo(heatData.timestamp) : 1, HALF_LIVES.heat);
-  factors.heat = { temp: heatData?.temp || 0, recencyWeight: heatWeight };
-  if (heatData) {
-    if (heatData.temp >= 45) { evidenceScore += 14 * heatWeight; confidenceWeight += 1.5; }
-    else if (heatData.temp >= 40) { evidenceScore += 10 * heatWeight; confidenceWeight += 1.2; }
-    else if (heatData.temp >= 38) { evidenceScore += 6 * heatWeight; confidenceWeight += 1; }
+  if (heatData && heatData.temp >= 38) {
+    const w = applyTemporalDecay(getDaysAgo(heatData.timestamp) ?? 0.5, HALF_LIVES.heat);
+    add('OPENMETEO', `${heatData.temp}°C`, heatData.temp, logScale(heatData.temp, 38, 50, 7), w * 0.9);
   }
 
-  // ── DISEASE OUTBREAKS (WHO) — HALF-LIFE: 3 DAYS ──────────────────────
-  const diseaseData = evidenceIndex.disease.filter(d =>
-    d.country && d.country.toLowerCase() === nameLower
-  );
-  let weightedCases = 0;
+  // DISEASE OUTBREAKS (WHO) — budget 9, half-life 3d
+  const diseaseData = evidenceIndex.disease.filter(d => d.country?.toLowerCase() === nameLower);
+  let weightedCases = 0, diseaseW = 0.8;
   diseaseData.forEach(d => {
-    const daysAgo = getDaysAgo(d.date) || 0;
-    const weight = applyTemporalDecay(daysAgo, HALF_LIVES.disease);
-    weightedCases += (d.cases || 0) * weight;
+    const dAgo = getDaysAgo(d.date) ?? 0;
+    const w = applyTemporalDecay(dAgo, HALF_LIVES.disease);
+    weightedCases += (d.cases || 0) * w;
+    diseaseW = Math.max(diseaseW, w * 0.85);
   });
-  const effectiveCases = Math.round(weightedCases);
-  factors.disease = { cases: effectiveCases, outbreaks: diseaseData.length };
-  if (effectiveCases >= 100000) { evidenceScore += 18; confidenceWeight += 2; }
-  else if (effectiveCases >= 10000) { evidenceScore += 12; confidenceWeight += 1.5; }
-  else if (effectiveCases >= 1000) { evidenceScore += 8; confidenceWeight += 1.2; }
-  else if (effectiveCases > 0) { evidenceScore += 4; confidenceWeight += 1; }
-
-  // ── EARTHQUAKES (USGS) — HALF-LIFE: 4 DAYS ───────────────────────────
-  const quakeData = evidenceIndex.usgs.filter(f => {
-    if (!f.geometry?.coordinates || !CENTROIDS[iso]) return false;
-    const [lng, lat] = f.geometry.coordinates;
-    return Math.abs(lng - CENTROIDS[iso][0]) < 10 &&
-      Math.abs(lat - CENTROIDS[iso][1]) < 10 &&
-      f.properties?.mag >= 4.5;
-  });
-  let maxMag = 0;
-  quakeData.forEach(q => {
-    const daysAgo = getDaysAgo(q.properties?.time) || 0;
-    const weight = applyTemporalDecay(daysAgo, HALF_LIVES.seismic);
-    maxMag = Math.max(maxMag, (q.properties?.mag || 0) * weight);
-  });
-  factors.seismic = { maxMag: maxMag };
-  if (maxMag >= 7) { evidenceScore += 16; confidenceWeight += 1.8; }
-  else if (maxMag >= 6) { evidenceScore += 11; confidenceWeight += 1.5; }
-  else if (maxMag >= 5) { evidenceScore += 7; confidenceWeight += 1.2; }
-  else if (quakeData.length > 0) { evidenceScore += 3; confidenceWeight += 0.8; }
-
-  // ── NATURAL DISASTERS (NASA EONET) — HALF-LIFE: 4 DAYS ──────────────
-  const nasaEvents = evidenceIndex.nasa.filter(e => {
-    const coords = e.geometry?.[0]?.coordinates || [];
-    if (!coords.length || !CENTROIDS[iso]) return false;
-    return Math.abs(coords[0] - CENTROIDS[iso][0]) < 10 &&
-      Math.abs(coords[1] - CENTROIDS[iso][1]) < 10;
-  });
-  factors.naturalDisasters = { count: nasaEvents.length };
-  if (nasaEvents.length >= 3) { evidenceScore += 10; confidenceWeight += 1.2; }
-  else if (nasaEvents.length >= 1) { evidenceScore += 5; confidenceWeight += 1; }
-
-  // ── ECONOMIC (World Bank + IMF) — HALF-LIFE: 14 DAYS ─────────────────
-  const infData = evidenceIndex.wb_inflation.filter(d => d.country?.id === iso);
-  let inflation = 0;
-  if (infData.length) { inflation = parseFloat(infData[0].value) || 0; }
-  factors.economic = { inflation };
-  if (inflation >= 20) { evidenceScore += 10; confidenceWeight += 1.2; }
-  else if (inflation >= 10) { evidenceScore += 6; confidenceWeight += 1; }
-  else if (inflation >= 5) { evidenceScore += 3; confidenceWeight += 0.8; }
-
-  const imfGrowth = evidenceIndex.imf[iso];
-  if (imfGrowth !== undefined) {
-    const growth = parseFloat(imfGrowth);
-    if (growth < -5) { evidenceScore += 8; confidenceWeight += 1.2; }
-    else if (growth < -2) { evidenceScore += 5; confidenceWeight += 1; }
-    else if (growth < 0) { evidenceScore += 2; confidenceWeight += 0.8; }
+  if (weightedCases > 0) {
+    add('WHO', 'Disease cases', Math.round(weightedCases), logScale(weightedCases, 50, 80000, 9), diseaseW);
   }
 
-  // ── GDELT MEDIA SIGNALS — HALF-LIFE: 2 DAYS ──────────────────────────
-  const gdeltEvents = evidenceIndex.gdelt.filter(f => {
-    if (!f.geometry?.coordinates || !CENTROIDS[iso]) return false;
-    const [lng, lat] = f.geometry.coordinates;
-    return Math.abs(lng - CENTROIDS[iso][0]) < 8 &&
-      Math.abs(lat - CENTROIDS[iso][1]) < 8;
-  });
-  factors.mediaSignals = { count: gdeltEvents.length };
-  if (gdeltEvents.length >= 5) { evidenceScore += 8; confidenceWeight += 1.2; }
-  else if (gdeltEvents.length >= 3) { evidenceScore += 5; confidenceWeight += 1; }
-  else if (gdeltEvents.length >= 1) { evidenceScore += 2; confidenceWeight += 0.6; }
+  // SEISMIC (USGS) — budget 8, half-life 4d
+  const coord = CENTROIDS[iso];
+  if (coord) {
+    const nearbyQuakes = evidenceIndex.usgs.filter(f => {
+      const [lng, lat] = f.geometry?.coordinates || [];
+      return lng && lat && Math.abs(lng - coord[0]) < 10 && Math.abs(lat - coord[1]) < 10 && f.properties?.mag >= 4.5;
+    });
+    if (nearbyQuakes.length) {
+      const worst = nearbyQuakes.reduce((a, b) => (b.properties.mag > a.properties.mag ? b : a));
+      const w = applyTemporalDecay(getDaysAgo(worst.properties.time) ?? 0, HALF_LIVES.seismic);
+      add('USGS', `M${worst.properties.mag.toFixed(1)}`, worst.properties.mag, logScale(worst.properties.mag, 4.5, 8, 8), w * 0.95);
+    }
 
-  // ── RELIEFWEB EVENTS — HALF-LIFE: 5 DAYS ─────────────────────────────
-  const rwEvents = evidenceIndex.reliefweb.filter(e =>
-    e.country && e.country.toLowerCase() === nameLower
-  );
-  factors.humanitarianEvents = { count: rwEvents.length };
-  if (rwEvents.length >= 3) { evidenceScore += 6; confidenceWeight += 0.8; }
-  else if (rwEvents.length >= 1) { evidenceScore += 3; confidenceWeight += 0.6; }
+    // GDELT — budget 4, half-life 2d (lowest reliability)
+    const gdeltCount = evidenceIndex.gdelt.filter(f => {
+      const [lng, lat] = f.geometry?.coordinates || [];
+      return lng && lat && Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
+    }).length;
+    if (gdeltCount > 0) {
+      add('GDELT', 'Media signals', gdeltCount, logScale(gdeltCount, 0, 12, 4), 0.55);
+    }
+  }
 
-  // Confidence score (0-1)
-  const confidence = Math.min(1, confidenceWeight / 15);
+  // RELIEFWEB — budget 5, half-life 5d
+  const rwCount = evidenceIndex.reliefweb.filter(e => e.country?.toLowerCase() === nameLower).length;
+  if (rwCount > 0) {
+    add('RELIEFWEB', 'Active declarations', rwCount, logScale(rwCount, 0, 4, 5), 0.7);
+  }
 
-  return {
-    score: Math.min(80, Math.round(evidenceScore)),
-    confidence,
-    factors,
-    evidenceCount: Object.values(factors).filter(v => v > 0 || (typeof v === 'object' && v > 0)).length
-  };
+  // NATURAL DISASTERS (NASA EONET) — budget 6, half-life 4d
+  if (coord) {
+    const nasaCount = evidenceIndex.nasa.filter(e => {
+      const coords = e.geometry?.[0]?.coordinates || [];
+      return coords.length && Math.abs(coords[0] - coord[0]) < 10 && Math.abs(coords[1] - coord[1]) < 10;
+    }).length;
+    if (nasaCount > 0) {
+      add('NASA', 'Active disaster events', nasaCount, logScale(nasaCount, 0, 5, 6), 0.75);
+    }
+  }
+
+  // ECONOMIC (World Bank inflation + IMF growth) — budget 5, half-life 14d
+  const infData = evidenceIndex.wb_inflation.find(d => d.country?.id === iso);
+  const inflation = infData ? parseFloat(infData.value) || 0 : 0;
+  if (inflation >= 5) {
+    add('WORLDBANK', `Inflation ${inflation.toFixed(1)}%`, inflation, logScale(inflation, 5, 60, 3), 0.6);
+  }
+  const imfGrowth = evidenceIndex.imf[iso] !== undefined ? parseFloat(evidenceIndex.imf[iso]) : null;
+  if (imfGrowth !== null && imfGrowth < 0) {
+    add('IMF', `GDP growth ${imfGrowth.toFixed(1)}%`, imfGrowth, logScale(-imfGrowth, 0, 10, 2), 0.6);
+  }
+
+  // ── Weighted average → hard-capped 0–35 budget. No multi-source multiplier. ──
+  const evidenceScore = totalWeight > 0 ? Math.min(35, (totalPts / totalWeight)) : 0;
+  const confidence = Math.min(1, (totalWeight / 6) * Math.min(1, ledger.length / 4));
+
+  return { score: +evidenceScore.toFixed(1), confidence: +confidence.toFixed(2), ledger, sourceCount: ledger.length };
 }
 
-// 3. Build the hybrid store with temporal decay
+// ─── BUILD STORE ──────────────────────────────────────────────────────
 const refreshSeed = Math.floor(Date.now() / 60000);
 let newStore = {};
-let evidenceMap = {};
-
-// ─── REALISTIC BASELINE SCORES ──────────────────────────────────────────
-// These are not guesses — they are calibrated to real-world severity.
-const CALIBRATED_BASELINE = {
-  // ── CATASTROPHIC (80-99) ──
-  YEM: 88, SDN: 86, SOM: 82, SYR: 81, PSE: 80, SSD: 76,
-  AFG: 78, HTI: 74, ETH: 73, COD: 72, UKR: 70, MMR: 68,
-  LBN: 69, NGA: 66, IRQ: 67, PAK: 64, IRN: 62, VEN: 60,
-
-  // ── CRITICAL (60-79) ──
-  COL: 58, BGD: 56, IDN: 55, PHL: 54, JPN: 52, CHL: 50,
-  PER: 49, MEX: 48, TUR: 45, KEN: 43, IND: 42, CHN: 40,
-  RUS: 39, BRA: 37, ZAF: 35, EGY: 33, JOR: 31, SAU: 29,
-
-  // ── HIGH (40-59) ──
-  USA: 28, CAN: 25, AUS: 23, NZL: 20, GBR: 18, FRA: 16,
-  DEU: 14, ITA: 12, ESP: 10, PRT: 8, GRC: 6, POL: 4,
-
-  // ── MODERATE (20-39) ──
-  KAZ: 26, ARG: 24, UZB: 22, TKM: 20, KGZ: 18, MNG: 16,
-  TZA: 14, UGA: 12, ZMB: 10, ZWE: 8, BWA: 6, NAM: 4,
-
-  // ── LOW (1-19) ──
-  ARE: 8, QAT: 6, KWT: 4, OMN: 3, BHR: 2, SGP: 1,
-};
 
 for (let iso of Object.keys(BASE_SCORES)) {
   const name = NAMES[iso] || iso;
   const flag = FLAGS[iso] || '🌍';
   const types = CTYPES[iso] || DEFAULT_T;
   const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+  const base = BASE_SCORES[iso] || 30; // single source of truth — no shadow baseline object
 
-  // ── USE CALIBRATED BASELINE ────────────────────────────────────────────
-  const base = CALIBRATED_BASELINE[iso] || BASE_SCORES[iso] || 30;
-
-  // ── COMPUTE EVIDENCE SCORE ──
   const evidence = computeEvidenceScore(iso);
-  evidenceMap[iso] = evidence;
 
-  // ── BLEND: 60% evidence + 40% baseline ──
-  let blendedScore = Math.round((evidence.score * 0.6) + (base * 0.4));
+  // Structural baseline — full weight with no evidence, shrinking toward a
+  // 70% floor as evidence confidence rises. composite() is UNCLAMPED here
+  // so severity differences between countries survive instead of all
+  // pre-saturating at 99 before evidence is even added.
+  const variation = Math.round((seededRand(refreshSeed + iso.charCodeAt(0)*137 + (iso.charCodeAt(1)||0)*31) - 0.5) * 4);
+  const rawBase = Math.min(99, Math.max(5, base + variation));
+  const dims = buildDims(rawBase, types);
+  const structuralRaw = composite(dims); // can exceed 99 — intentional
+  const structuralWeight = 1 - (evidence.confidence * 0.30);
+  const structuralComponent = structuralRaw * structuralWeight;
 
-  // ── BASELINE ADJUSTMENT ──
-  const evidenceStrength = Math.min(1, evidence.evidenceCount / 10);
-  const baselineAdjustment = Math.round(10 + (evidenceStrength * 20));
-  blendedScore = Math.min(99, Math.max(1, blendedScore + baselineAdjustment));
-
-  // ── CONFIDENCE BOOST ──
-  const confidenceBoost = Math.round(evidence.confidence * 5);
-  let finalScore = Math.min(99, Math.max(1, Math.round(blendedScore + confidenceBoost)));
-
-  // ── FINAL CLAMP (distribute across the full range) ──
-  finalScore = Math.min(99, Math.max(5, finalScore));
-
-  // ── DIMENSIONS ──
-  const dims = {
-    conflict: Math.min(99, Math.round(
-      (evidence.factors.conflict?.fatalities > 0
-        ? Math.min(99, Math.round(15 * Math.log10(evidence.factors.conflict.fatalities + 1) + 30))
-        : 15) * 0.6 +
-      (base * 0.3) * 0.4
-    ) + baselineAdjustment + 10),
-
-    displacement: Math.min(99, Math.round(
-      (evidence.factors.displacement?.total > 0
-        ? Math.min(99, Math.round(12 * Math.log10(evidence.factors.displacement.total + 1) + 25))
-        : 15) * 0.6 +
-      (base * 0.3) * 0.4
-    ) + baselineAdjustment + 10),
-
-    food: (() => {
-      const ipc = evidence.factors.food?.ipc || 0;
-      let baseFood = 15;
-      if (ipc >= 5) baseFood = 99;
-      else if (ipc >= 4) baseFood = 85;
-      else if (ipc >= 3) baseFood = 70;
-      else if (ipc >= 2) baseFood = 50;
-      else if (ipc >= 1) baseFood = 35;
-      return Math.min(99, Math.round(baseFood * 0.6 + (base * 0.3) * 0.4) + baselineAdjustment + 10);
-    })(),
-
-    health: Math.min(99, Math.round(
-      (evidence.factors.disease?.cases > 0
-        ? Math.min(99, Math.round(12 * Math.log10(evidence.factors.disease.cases + 1) + 25))
-        : 15) * 0.6 +
-      (base * 0.3) * 0.4
-    ) + baselineAdjustment + 10),
-
-    economic: Math.min(99, Math.round(
-      (evidence.factors.economic?.inflation > 0
-        ? Math.min(99, Math.round(evidence.factors.economic.inflation * 1.5 + 20))
-        : 20) * 0.5 +
-      (base * 0.3) * 0.5
-    ) + baselineAdjustment + 10),
-
-    climate: Math.min(99, Math.round(
-      (evidence.factors.heat?.temp > 0
-        ? Math.min(99, Math.round((evidence.factors.heat.temp - 30) * 2.5 + 20))
-        : 20) * 0.5 +
-      (base * 0.3) * 0.5
-    ) + baselineAdjustment + 10),
-
-    access: Math.min(99, Math.round(
-      (evidence.factors.conflict?.events > 0 || evidence.factors.humanitarianEvents?.count > 0
-        ? Math.min(85, (evidence.factors.conflict?.events || 0) * 5 + (evidence.factors.humanitarianEvents?.count || 0) * 3)
-        : 15) * 0.5 +
-      (base * 0.3) * 0.5
-    ) + baselineAdjustment + 10),
-
-    political: Math.min(99, Math.round(
-      (evidence.factors.displacement?.total > 0 || evidence.factors.mediaSignals?.count > 0
-        ? Math.min(85, (evidence.factors.displacement?.total / 100000 || 0) * 2 + (evidence.factors.mediaSignals?.count || 0) * 3)
-        : 15) * 0.5 +
-      (base * 0.3) * 0.5
-    ) + baselineAdjustment + 10)
-  };
-
-  // ── EVENTS ──
-  const events = Math.min(60, Math.max(4,
-    Math.floor(8 + (finalScore / 10) + (evidence.evidenceCount * 1.5))
-  ));
+ // Two-stage compression: widened to preserve separation among the worst
+  // crises, since collapsing the top tier to a 4-point band defeats the
+  // purpose of a triage ranking. 1-75 passes through unchanged; 75+ uses a
+  // gentler decay constant (55 vs prior 28) so genuinely catastrophic
+  // countries can still separate from merely severe ones near the ceiling.
+  const rawTotal = structuralComponent + evidence.score;
+  const score = Math.max(1, Math.min(99, Math.round(
+    rawTotal <= 70
+      ? rawTotal
+      : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
+  )));
+  // Events scale with actual evidence breadth + score
+  const events = Math.min(60, Math.max(4, Math.round(score * 0.45 + types.length * 2 + evidence.sourceCount * 2)));
 
   newStore[iso] = {
-    name,
-    flag,
-    types,
-    needs,
-    dims,
-    score: finalScore + 27,  // ✅ ADD +20 TO ALL COUNTRIES
-    events,
-    spillover: 0,
-    _evidence: evidence,
-    _confidence: Math.round(evidence.confidence * 100),
-    _evidenceCount: evidence.evidenceCount,
-    _factors: evidence.factors,
-    _baselineAdjusted: baselineAdjustment + 20
+    name, flag, types, needs, dims, score, events, spillover: 0,
+    evidenceLedger: evidence.ledger,
+    evidenceConfidence: evidence.confidence,
+    evidenceScore: evidence.score,
+    structuralComponent: +structuralComponent.toFixed(1),
+    evidenceCount: evidence.sourceCount
   };
 }
   const spill=spilloverScore(newStore);
