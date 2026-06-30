@@ -1247,88 +1247,10 @@ async function refresh(){
     const base=BASE_SCORES[iso]||42;
     const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
     const rawBase=Math.min(99,Math.max(5,base+variation));
+    const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(rawBase/14)));
     const dims=buildDims(rawBase,types);
-
-    // ── LIVE EVIDENCE SCORING: objective points derived from real API data ──
-    // Each signal contributes a fixed, evidence-justified point value.
-    // No signal present = no points. Score is the sum of base risk + verified evidence.
-    let evidencePoints = 0;
-    const evidenceLog = [];
-
-    // 1. IPC Food Security Phase (IPC/FEWS NET/WFP)
-    const ipcMatch = ipcClassifications.find(i => i.country === name);
-    if (ipcMatch) {
-      const ipcPts = ipcMatch.phase >= 5 ? 16 : ipcMatch.phase === 4 ? 12 : ipcMatch.phase === 3 ? 6 : 0;
-      if (ipcPts > 0) { evidencePoints += ipcPts; evidenceLog.push(`IPC P${ipcMatch.phase}:+${ipcPts}`); }
-    }
-    const fewsMatch = !ipcMatch && foodSecurityAlerts.find(f => f.country === name);
-    if (fewsMatch) {
-      const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
-      if (fewsPts > 0) { evidencePoints += fewsPts; evidenceLog.push(`FEWS:+${fewsPts}`); }
-    }
-
-    // 2. Extreme Heat (Open-Meteo, live temperature data)
-    const heatMatch = heatStressData.find(h => h.iso === iso);
-    if (heatMatch) {
-      const heatPts = heatMatch.temp >= 47 ? 8 : heatMatch.temp >= 44 ? 5 : heatMatch.temp >= 42 ? 3 : 0;
-      if (heatPts > 0) { evidencePoints += heatPts; evidenceLog.push(`Heat ${heatMatch.temp}°C:+${heatPts}`); }
-    }
-
-    // 3. Disease Outbreaks (WHO/disease.sh)
-    const diseaseMatches = diseaseOutbreaks.filter(d => d.country === name);
-    diseaseMatches.forEach(d => {
-      const diseasePts = d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases > 0 ? 2 : 0;
-      if (diseasePts > 0) { evidencePoints += diseasePts; evidenceLog.push(`${d.disease}:+${diseasePts}`); }
-    });
-
-    // 4. Conflict Events / Fatalities (ACLED)
-    const conflictMatch = conflictEvents.find(e => e.country === name);
-    if (conflictMatch) {
-      const conflictPts = conflictMatch.fatalities >= 100 ? 14 : conflictMatch.fatalities >= 50 ? 10 : conflictMatch.fatalities >= 10 ? 6 : conflictMatch.fatalities > 0 ? 3 : 0;
-      if (conflictPts > 0) { evidencePoints += conflictPts; evidenceLog.push(`ACLED ${conflictMatch.event_type}:+${conflictPts}`); }
-    }
-
-    // 5. Displacement signal (derived from dims, evidence-gated: only counts if conflict/disaster types are confirmed active)
-    if (dims.displacement >= 70 && (conflictMatch || ipcMatch || types.includes('REF'))) {
-      evidencePoints += 6; evidenceLog.push(`Displacement:+6`);
-    }
-
-    // 6. Seismic activity near country (USGS)
-    const coordCheck = CENTROIDS[iso];
-    if (coordCheck) {
-      const nearbyQuake = (apiResults.usgs_weekly?.features || []).find(f => {
-        const [qlng, qlat] = f.geometry?.coordinates || [];
-        return Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5;
-      });
-      if (nearbyQuake) {
-        const mag = nearbyQuake.properties.mag;
-        const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
-        if (quakePts > 0) { evidencePoints += quakePts; evidenceLog.push(`M${mag.toFixed(1)} EQ:+${quakePts}`); }
-      }
-    }
-
-    // 7. ReliefWeb active disaster declaration
-    const rwMatch = (apiResults.reliefweb_events || []).find(e => e.country === name);
-    if (rwMatch) { evidencePoints += 4; evidenceLog.push(`ReliefWeb:+4`); }
-
-    // 8. GDELT conflict media signal (corroborating, near country)
-    if (coordCheck) {
-      const gdeltMatch = (apiResults.gdelt_processed || []).some(f => {
-        const [lng, lat] = f.geometry?.coordinates || [];
-        return lng && lat && Math.abs(lng - coordCheck[0]) < 8 && Math.abs(lat - coordCheck[1]) < 8;
-      });
-      if (gdeltMatch) { evidencePoints += 2; evidenceLog.push(`GDELT:+2`); }
-    }
-
-    // ── FINAL SCORE: structural baseline (dampened) + objective live evidence ──
-    // Baseline risk profile is compressed to 60% weight; live evidence drives the rest.
-    // This makes the score track reality rather than static assumptions.
-    const structuralComponent = composite(dims) * 0.6;
-    const score = Math.min(99, Math.max(1, Math.round(structuralComponent + evidencePoints)));
-
-    const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
-    newStore[iso] = {name, flag, types, needs, dims, score, events, spillover:0, evidencePoints, evidenceLog};
-  
+    const score=Math.min(99,Math.max(1,Math.round(composite(dims))));
+    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};
   }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
