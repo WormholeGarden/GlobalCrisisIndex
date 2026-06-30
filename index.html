@@ -997,96 +997,19 @@ function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(
 // ============================================================================
 // BUILD DIMS & STORE
 // ============================================================================
-function buildDims(base, types){
-  const has = t => types.includes(t);
-  const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
-
-  // ── Live data signals boost dims beyond base score ────────────────────
-  const ipcBoost    = ipcClassifications.find(i => i.phase >= 3) ? 8 : 0;
-  const heatBoost   = heatStressData.find(h => h.temp >= 42) ? 6 : 0;
-  const diseaseBoost= diseaseOutbreaks.length > 0 ? 5 : 0;
-  const conflictBoost = conflictEvents.length > 0 ? 7 : 0;
-
-  // ── Type multipliers: primary driver gets full weight, secondary gets 60% ──
-  const typeCount = types.length;
-  const complexityMult = typeCount >= 4 ? 1.08 : typeCount >= 3 ? 1.04 : 1.0;
-
-  // ── Conflict dimension ────────────────────────────────────────────────
-  const conflictMult = has('CW') && has('CE') ? 1.18    // both = compounding
-                     : has('CW') ? 1.12
-                     : has('CE') ? 1.08
-                     : has('REF') ? 0.68
-                     : 0.22;
-  const conflict = clamp((base * conflictMult + conflictBoost) * complexityMult);
-
-  // ── Displacement dimension ────────────────────────────────────────────
-  const dispMult = (has('REF') && (has('CW')||has('CE'))) ? 1.18
-                 : has('REF') ? 1.08
-                 : (has('CW')||has('CE')) ? 1.02
-                 : (has('EQ')||has('TC')||has('TSU')) ? 0.85
-                 : has('FL') ? 0.72
-                 : 0.32;
-  const displacement = clamp(base * dispMult * complexityMult);
-
-  // ── Food security dimension ───────────────────────────────────────────
-  const foodMult = (has('FN') && has('DR')) ? 1.22     // compound crisis
-                 : has('FN') ? 1.16
-                 : has('DR') ? 1.10
-                 : (has('CE')||has('CW')) ? 0.88
-                 : has('FL') ? 0.72
-                 : has('HEAT') ? 0.62
-                 : 0.38;
-  const food = clamp((base * foodMult + ipcBoost) * complexityMult);
-
-  // ── Health dimension ──────────────────────────────────────────────────
-  const healthMult = (has('EP') && has('FN')) ? 1.20   // disease+famine = cascade
-                   : has('EP') ? 1.14
-                   : has('FN') ? 1.08
-                   : (has('CE')||has('CW')) ? 0.88
-                   : (has('EQ')||has('TSU')) ? 0.82
-                   : has('HEAT') ? 0.68
-                   : 0.48;
-  const health = clamp((base * healthMult + diseaseBoost) * complexityMult);
-
-  // ── Economic dimension ────────────────────────────────────────────────
-  // Economic collapse lags crisis onset — modelled with damped multiplier
-  const econMult = (has('CE')||has('CW')) ? 0.86
-                 : (has('FN')||has('DR')) ? 0.80
-                 : has('REF') ? 0.74
-                 : (has('FL')||has('TC')) ? 0.66
-                 : 0.44;
-  // Floor: even stable countries have baseline economic stress at 12
-  const economic = clamp(Math.max(12, base * econMult * complexityMult) + 8);
-
-  // ── Climate dimension ─────────────────────────────────────────────────
-  const climateMult = (has('HEAT') && has('DR')) ? 1.10
-                    : has('HEAT') ? 0.92
-                    : has('DR') ? 0.88
-                    : (has('FL')||has('TC')||has('WF')) ? 0.78
-                    : (has('TSU')||has('EQ')) ? 0.42
-                    : 0.28;
-  const climate = clamp((base * climateMult + heatBoost) * complexityMult + 10);
-
-  // ── Access dimension ──────────────────────────────────────────────────
-  // Access (humanitarian access denied) driven by conflict + disasters
-  const accessMult = (has('CW') && has('CE')) ? 0.95
-                   : has('CW') ? 0.90
-                   : has('CE') ? 0.86
-                   : (has('EQ')||has('FL')||has('LS')||has('TSU')) ? 0.74
-                   : has('TC') ? 0.68
-                   : 0.30;
-  const access = clamp(base * accessMult * complexityMult + 6);
-
-  // ── Political dimension ───────────────────────────────────────────────
-  const politMult = (has('CE') && has('CW')) ? 0.92
-                  : has('CE') ? 0.88
-                  : has('CW') ? 0.84
-                  : has('REF') ? 0.72
-                  : has('EP') ? 0.52
-                  : 0.36;
-  const political = clamp(base * politMult * complexityMult + 6);
-
-  return { conflict, displacement, food, health, economic, climate, access, political };
+function buildDims(base,types){
+  const has=t=>types.includes(t);
+  const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));
+  return{
+    conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),
+    displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),
+    food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),
+    health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),
+    economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),
+    climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),
+    access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),
+    political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8),
+  };
 }
 
 function seedHistory(iso,currentScore){
@@ -1247,87 +1170,10 @@ async function refresh(){
     const base=BASE_SCORES[iso]||42;
     const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
     const rawBase=Math.min(99,Math.max(5,base+variation));
+    const events=Math.min(60,Math.max(4,Math.floor(10)+Math.floor(rawBase/14)));
     const dims=buildDims(rawBase,types);
-
-    // ── LIVE EVIDENCE SCORING: objective points derived from real API data ──
-    // Each signal contributes a fixed, evidence-justified point value.
-    // No signal present = no points. Score is the sum of base risk + verified evidence.
-    let evidencePoints = 0;
-    const evidenceLog = [];
-
-    // 1. IPC Food Security Phase (IPC/FEWS NET/WFP)
-    const ipcMatch = ipcClassifications.find(i => i.country === name);
-    if (ipcMatch) {
-      const ipcPts = ipcMatch.phase >= 5 ? 16 : ipcMatch.phase === 4 ? 12 : ipcMatch.phase === 3 ? 6 : 0;
-      if (ipcPts > 0) { evidencePoints += ipcPts; evidenceLog.push(`IPC P${ipcMatch.phase}:+${ipcPts}`); }
-    }
-    const fewsMatch = !ipcMatch && foodSecurityAlerts.find(f => f.country === name);
-    if (fewsMatch) {
-      const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
-      if (fewsPts > 0) { evidencePoints += fewsPts; evidenceLog.push(`FEWS:+${fewsPts}`); }
-    }
-
-    // 2. Extreme Heat (Open-Meteo, live temperature data)
-    const heatMatch = heatStressData.find(h => h.iso === iso);
-    if (heatMatch) {
-      const heatPts = heatMatch.temp >= 47 ? 8 : heatMatch.temp >= 44 ? 5 : heatMatch.temp >= 42 ? 3 : 0;
-      if (heatPts > 0) { evidencePoints += heatPts; evidenceLog.push(`Heat ${heatMatch.temp}°C:+${heatPts}`); }
-    }
-
-    // 3. Disease Outbreaks (WHO/disease.sh)
-    const diseaseMatches = diseaseOutbreaks.filter(d => d.country === name);
-    diseaseMatches.forEach(d => {
-      const diseasePts = d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases > 0 ? 2 : 0;
-      if (diseasePts > 0) { evidencePoints += diseasePts; evidenceLog.push(`${d.disease}:+${diseasePts}`); }
-    });
-
-    // 4. Conflict Events / Fatalities (ACLED)
-    const conflictMatch = conflictEvents.find(e => e.country === name);
-    if (conflictMatch) {
-      const conflictPts = conflictMatch.fatalities >= 100 ? 14 : conflictMatch.fatalities >= 50 ? 10 : conflictMatch.fatalities >= 10 ? 6 : conflictMatch.fatalities > 0 ? 3 : 0;
-      if (conflictPts > 0) { evidencePoints += conflictPts; evidenceLog.push(`ACLED ${conflictMatch.event_type}:+${conflictPts}`); }
-    }
-
-    // 5. Displacement signal (derived from dims, evidence-gated: only counts if conflict/disaster types are confirmed active)
-    if (dims.displacement >= 70 && (conflictMatch || ipcMatch || types.includes('REF'))) {
-      evidencePoints += 6; evidenceLog.push(`Displacement:+6`);
-    }
-
-    // 6. Seismic activity near country (USGS)
-    const coordCheck = CENTROIDS[iso];
-    if (coordCheck) {
-      const nearbyQuake = (apiResults.usgs_weekly?.features || []).find(f => {
-        const [qlng, qlat] = f.geometry?.coordinates || [];
-        return Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5;
-      });
-      if (nearbyQuake) {
-        const mag = nearbyQuake.properties.mag;
-        const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
-        if (quakePts > 0) { evidencePoints += quakePts; evidenceLog.push(`M${mag.toFixed(1)} EQ:+${quakePts}`); }
-      }
-    }
-
-    // 7. ReliefWeb active disaster declaration
-    const rwMatch = (apiResults.reliefweb_events || []).find(e => e.country === name);
-    if (rwMatch) { evidencePoints += 4; evidenceLog.push(`ReliefWeb:+4`); }
-
-    // 8. GDELT conflict media signal (corroborating, near country)
-    if (coordCheck) {
-      const gdeltMatch = (apiResults.gdelt_processed || []).some(f => {
-        const [lng, lat] = f.geometry?.coordinates || [];
-        return lng && lat && Math.abs(lng - coordCheck[0]) < 8 && Math.abs(lat - coordCheck[1]) < 8;
-      });
-      if (gdeltMatch) { evidencePoints += 2; evidenceLog.push(`GDELT:+2`); }
-    }
-
-    // ── FINAL SCORE: structural baseline (dampened) + objective live evidence ──
-    // Baseline risk profile is compressed to 60% weight; live evidence drives the rest.
-    // This makes the score track reality rather than static assumptions.
-    const structuralComponent = composite(dims) * 0.6;
-    const score = Math.min(99, Math.max(1, Math.round(structuralComponent + evidencePoints)));
-
-    const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
-    newStore[iso] = {name, flag, types, needs, dims, score, events, spillover:0, evidencePoints, evidenceLog};
+    const score=Math.min(99,Math.max(1,Math.round(composite(dims))));
+    newStore[iso]={name,flag,types,needs,dims,score,events,spillover:0};
   }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
