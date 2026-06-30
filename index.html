@@ -1328,6 +1328,7 @@ async function refresh(){
 
     const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
     newStore[iso] = {name, flag, types, needs, dims, score, events, spillover:0, evidencePoints, evidenceLog};
+  
   }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
