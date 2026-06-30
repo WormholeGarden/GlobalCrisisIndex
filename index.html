@@ -1237,265 +1237,97 @@ async function refresh(){
 
   adv(5,78);
 
-  const refreshSeed = Math.floor(Date.now() / 60000);
-  let newStore = {};
+  const refreshSeed=Math.floor(Date.now()/60000);
+  let newStore={};
+  for(let iso of Object.keys(BASE_SCORES)){
+    const name=NAMES[iso]||iso;
+    const flag=FLAGS[iso]||'🌍';
+    const types=CTYPES[iso]||DEFAULT_T;
+    const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];
+    const base=BASE_SCORES[iso]||42;
+    const variation=Math.round((seededRand(refreshSeed+iso.charCodeAt(0)*137+(iso.charCodeAt(1)||0)*31)-0.5)*5);
+    const rawBase=Math.min(99,Math.max(5,base+variation));
+    const dims=buildDims(rawBase,types);
 
-  for (let iso of Object.keys(BASE_SCORES)) {
-    const name  = NAMES[iso] || iso;
-    const flag  = FLAGS[iso] || '🌍';
-    const types = CTYPES[iso] || DEFAULT_T;
-    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-    const base  = BASE_SCORES[iso] || 42;
-
-    // ── Micro-variation: subtle live drift, not a noise blanket ──────────
-    // Slow daily shift ±4 reflects structural changes; fast ±1 is sensor noise.
-    const dailyDrift = (seededRand(Math.floor(Date.now()/86400000) + iso.charCodeAt(0)*137 + (iso.charCodeAt(1)||0)*31) - 0.5) * 8;
-    const liveNoise  = (seededRand(refreshSeed + iso.charCodeAt(0)*97 + (iso.charCodeAt(2)||0)*53) - 0.5) * 2;
-    const rawBase    = Math.min(99, Math.max(5, Math.round(base + dailyDrift + liveNoise)));
-    const dims       = buildDims(rawBase, types);
-
-    // ════════════════════════════════════════════════════════════════════
-    // LIVE EVIDENCE ENGINE
-    // Principle: every point added must be traceable to a specific,
-    // verifiable data source. No point is added without a confirmed signal.
-    // Sources are weighted by: data quality > recency > severity > scale.
-    // Signals are de-duplicated — overlapping sources for the same event
-    // do not stack (e.g. IPC + FEWS for same country = only the higher one).
-    // ════════════════════════════════════════════════════════════════════
+    // ── LIVE EVIDENCE SCORING: objective points derived from real API data ──
+    // Each signal contributes a fixed, evidence-justified point value.
+    // No signal present = no points. Score is the sum of base risk + verified evidence.
     let evidencePoints = 0;
-    const evidenceLog  = [];
-    const coordC       = CENTROIDS[iso];
+    const evidenceLog = [];
 
-    // ── SIGNAL 1: IPC Acute Food Insecurity Phase Classification ─────────
-    // Source: Integrated Food Security Phase Classification (global gold standard)
-    // Scale: phase 3 = crisis, 4 = emergency, 5 = famine (catastrophic)
-    // Weight: highest food-security weight — UN-validated, peer-reviewed methodology
-    const ipcMatch = ipcClassifications.find(i =>
-      i.country === name || i.country?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-    );
-    let ipcPts = 0;
+    // 1. IPC Food Security Phase (IPC/FEWS NET/WFP)
+    const ipcMatch = ipcClassifications.find(i => i.country === name);
     if (ipcMatch) {
-      const popScale = ipcMatch.population >= 10e6 ? 1.3 : ipcMatch.population >= 3e6 ? 1.1 : 1.0;
-      ipcPts = ipcMatch.phase >= 5 ? Math.round(18 * popScale)
-             : ipcMatch.phase === 4 ? Math.round(13 * popScale)
-             : ipcMatch.phase === 3 ? Math.round(7  * popScale)
-             : 0;
-      if (ipcPts > 0) { evidencePoints += ipcPts; evidenceLog.push(`IPC Phase ${ipcMatch.phase} (${Math.round(ipcMatch.population/1e6)}M):+${ipcPts}`); }
+      const ipcPts = ipcMatch.phase >= 5 ? 16 : ipcMatch.phase === 4 ? 12 : ipcMatch.phase === 3 ? 6 : 0;
+      if (ipcPts > 0) { evidencePoints += ipcPts; evidenceLog.push(`IPC P${ipcMatch.phase}:+${ipcPts}`); }
+    }
+    const fewsMatch = !ipcMatch && foodSecurityAlerts.find(f => f.country === name);
+    if (fewsMatch) {
+      const fewsPts = fewsMatch.ipc >= 4 ? 10 : fewsMatch.ipc === 3 ? 5 : 0;
+      if (fewsPts > 0) { evidencePoints += fewsPts; evidenceLog.push(`FEWS:+${fewsPts}`); }
     }
 
-    // ── SIGNAL 2: FEWS NET Early Warning (non-duplicate with IPC) ────────
-    // Source: Famine Early Warning Systems Network — US Gov funded, independent
-    // Only applied when no IPC classification exists for same country
-    if (!ipcMatch) {
-      const fewsMatch = foodSecurityAlerts.find(f =>
-        f.country === name || f.country?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-      );
-      if (fewsMatch) {
-        const fewsPts = fewsMatch.ipc >= 4 ? 11 : fewsMatch.ipc >= 3 ? 6 : fewsMatch.phase === 'Emergency' ? 9 : fewsMatch.phase === 'Crisis' ? 5 : 0;
-        if (fewsPts > 0) { evidencePoints += fewsPts; evidenceLog.push(`FEWS NET ${fewsMatch.phase||'P'+fewsMatch.ipc}:+${fewsPts}`); }
-      }
-    }
-
-    // ── SIGNAL 3: WFP HungerMap Live ─────────────────────────────────────
-    // Source: WFP real-time food consumption monitoring (mVAM survey data)
-    const wfpMatch = (apiResults.wfp_hunger_map || []).find(w =>
-      w.iso3 === iso || w.country_name?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-    );
-    if (wfpMatch && wfpMatch.ipc_phase >= 3) {
-      // WFP corroborates IPC — additive only if independent source
-      const wfpPts = ipcMatch ? 0 : wfpMatch.ipc_phase >= 4 ? 8 : 4;
-      if (wfpPts > 0) { evidencePoints += wfpPts; evidenceLog.push(`WFP HungerMap P${wfpMatch.ipc_phase}:+${wfpPts}`); }
-    }
-
-    // ── SIGNAL 4: ACLED Conflict Fatalities ──────────────────────────────
-    // Source: Armed Conflict Location & Event Data Project
-    // Weight: fatalities are the hardest, least-manipulable conflict metric
-    // Scale: non-linear — 100+ fatalities = qualitative threshold (mass violence)
-    const acledMatch = conflictEvents.find(e =>
-      e.country === name || e.country?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-    );
-    if (acledMatch) {
-      const fat = acledMatch.fatalities || 0;
-      const acledPts = fat >= 500 ? 18 : fat >= 200 ? 15 : fat >= 100 ? 12
-                     : fat >= 50  ? 9  : fat >= 20  ? 6  : fat >= 10 ? 4
-                     : fat > 0    ? 2  : 1; // 1pt for confirmed event even with unknown fatalities
-      evidencePoints += acledPts;
-      evidenceLog.push(`ACLED ${acledMatch.event_type} (${fat} fatalities):+${acledPts}`);
-    }
-
-    // ── SIGNAL 5: WHO / Disease Outbreaks ────────────────────────────────
-    // Source: WHO RSs + OpenDisease API
-    // Weight: scaled by case count AND disease severity class
-    const HIGH_SEVERITY_DISEASES = ['cholera','ebola','mpox','plague','yellow fever','marburg','typhoid'];
-    const diseaseMatches = diseaseOutbreaks.filter(d =>
-      d.country === name || d.country?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-    );
-    let diseasePtsTotal = 0;
-    diseaseMatches.forEach(d => {
-      const isHighSev = HIGH_SEVERITY_DISEASES.some(hsd => d.disease?.toLowerCase().includes(hsd));
-      const severityMult = isHighSev ? 1.6 : 1.0;
-      const casePts = d.cases >= 50000 ? 10 : d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases >= 1000 ? 3 : d.cases > 0 ? 1 : 0;
-      const pts = Math.round(casePts * severityMult);
-      if (pts > 0) { diseasePtsTotal += pts; evidenceLog.push(`${d.disease} (${d.cases?.toLocaleString()} cases):+${pts}`); }
-    });
-    // Cap total disease contribution at 16 — multiple outbreaks amplify but don't dominate
-    const diseasePtsCapped = Math.min(16, diseasePtsTotal);
-    evidencePoints += diseasePtsCapped;
-
-    // ── SIGNAL 6: USGS Seismic Activity ──────────────────────────────────
-    // Source: USGS Earthquake Hazards Program — real-time, authoritative
-    // Radius: 10° (~1100km) — captures regional impact, not just epicentre country
-    // Recency weight: quakes in last 7 days score full; older = reduced
-    if (coordC) {
-      const quakes = (apiResults.usgs_weekly?.features || []).filter(f => {
-        const [qlng, qlat] = f.geometry?.coordinates || [];
-        return qlng && qlat
-          && Math.abs(qlng - coordC[0]) < 10
-          && Math.abs(qlat - coordC[1]) < 10
-          && f.properties?.mag >= 4.5;
-      });
-      // Take the worst quake only — don't stack aftershocks
-      if (quakes.length > 0) {
-        const worst = quakes.reduce((a, b) => (b.properties.mag > a.properties.mag ? b : a));
-        const mag = worst.properties.mag;
-        const ageHours = (Date.now() - worst.properties.time) / 3600000;
-        const recencyMult = ageHours < 24 ? 1.2 : ageHours < 72 ? 1.0 : 0.7;
-        const basePts = mag >= 7.5 ? 14 : mag >= 7.0 ? 11 : mag >= 6.5 ? 8 : mag >= 6.0 ? 5 : mag >= 5.0 ? 3 : 1;
-        const quakePts = Math.round(basePts * recencyMult);
-        evidencePoints += quakePts;
-        evidenceLog.push(`USGS M${mag.toFixed(1)} (${Math.round(ageHours)}h ago):+${quakePts}`);
-      }
-    }
-
-    // ── SIGNAL 7: Open-Meteo Extreme Heat ────────────────────────────────
-    // Source: Open-Meteo — open-source weather API, 5km resolution
-    // Threshold: 42°C = dangerous; 47°C+ = life-threatening without shelter
-    // Context-gated: heat in already-fragile countries = compounding crisis
+    // 2. Extreme Heat (Open-Meteo, live temperature data)
     const heatMatch = heatStressData.find(h => h.iso === iso);
     if (heatMatch) {
-      const fragile = rawBase >= 55; // only high-scoring countries get full heat weight
-      const heatBase = heatMatch.temp >= 48 ? 9 : heatMatch.temp >= 45 ? 6 : heatMatch.temp >= 42 ? 3 : 0;
-      const heatPts  = fragile ? heatBase : Math.round(heatBase * 0.5);
-      if (heatPts > 0) { evidencePoints += heatPts; evidenceLog.push(`Heat ${heatMatch.temp}°C (${fragile?'fragile state':'stable state'}):+${heatPts}`); }
+      const heatPts = heatMatch.temp >= 47 ? 8 : heatMatch.temp >= 44 ? 5 : heatMatch.temp >= 42 ? 3 : 0;
+      if (heatPts > 0) { evidencePoints += heatPts; evidenceLog.push(`Heat ${heatMatch.temp}°C:+${heatPts}`); }
     }
 
-    // ── SIGNAL 8: ReliefWeb Active Disaster Declaration ──────────────────
-    // Source: ReliefWeb — UN OCHA managed, requires formal declaration threshold
-    // A ReliefWeb listing = disaster has crossed the international response threshold
-    const rwMatch = (apiResults.reliefweb_events || []).find(e =>
-      e.country === name || e.country?.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-    );
-    if (rwMatch) {
-      // Weight by event type
-      const rwTypePts = rwMatch.type === 'Conflict' ? 7 : rwMatch.type === 'Flood' ? 5
-                      : rwMatch.type === 'Epidemic' ? 5 : rwMatch.type === 'Drought' ? 4
-                      : rwMatch.type === 'Earthquake' ? 0 // already covered by USGS
-                      : 3;
-      if (rwTypePts > 0) { evidencePoints += rwTypePts; evidenceLog.push(`ReliefWeb ${rwMatch.type||'Disaster'}:+${rwTypePts}`); }
+    // 3. Disease Outbreaks (WHO/disease.sh)
+    const diseaseMatches = diseaseOutbreaks.filter(d => d.country === name);
+    diseaseMatches.forEach(d => {
+      const diseasePts = d.cases >= 20000 ? 8 : d.cases >= 5000 ? 5 : d.cases > 0 ? 2 : 0;
+      if (diseasePts > 0) { evidencePoints += diseasePts; evidenceLog.push(`${d.disease}:+${diseasePts}`); }
+    });
+
+    // 4. Conflict Events / Fatalities (ACLED)
+    const conflictMatch = conflictEvents.find(e => e.country === name);
+    if (conflictMatch) {
+      const conflictPts = conflictMatch.fatalities >= 100 ? 14 : conflictMatch.fatalities >= 50 ? 10 : conflictMatch.fatalities >= 10 ? 6 : conflictMatch.fatalities > 0 ? 3 : 0;
+      if (conflictPts > 0) { evidencePoints += conflictPts; evidenceLog.push(`ACLED ${conflictMatch.event_type}:+${conflictPts}`); }
     }
 
-    // ── SIGNAL 9: GDELT Conflict Media Intensity ─────────────────────────
-    // Source: GDELT — global media monitoring, 15-min updates
-    // Role: corroborating signal only — media coverage confirms crisis visibility
-    // Weight: low (2pts) — media ≠ ground truth, but silence is also informative
-    if (coordC) {
-      const gdeltSignals = (apiResults.gdelt_processed || []).filter(f => {
-        const [lng, lat] = f.geometry?.coordinates || [];
-        return lng && lat && Math.abs(lng - coordC[0]) < 8 && Math.abs(lat - coordC[1]) < 8;
-      }).length;
-      const gdeltPts = gdeltSignals >= 5 ? 4 : gdeltSignals >= 2 ? 2 : gdeltSignals >= 1 ? 1 : 0;
-      if (gdeltPts > 0) { evidencePoints += gdeltPts; evidenceLog.push(`GDELT (${gdeltSignals} signals):+${gdeltPts}`); }
+    // 5. Displacement signal (derived from dims, evidence-gated: only counts if conflict/disaster types are confirmed active)
+    if (dims.displacement >= 70 && (conflictMatch || ipcMatch || types.includes('REF'))) {
+      evidencePoints += 6; evidenceLog.push(`Displacement:+6`);
     }
 
-    // ── SIGNAL 10: UNHCR Forced Displacement Population ──────────────────
-    // Source: UNHCR Population Statistics — annual, authoritative
-    // Weight: population scale matters — 1M+ displaced = structural crisis indicator
-    const unhcrMatch = (apiResults.unhcr_pop?.results || []).find(r =>
-      r.coa_iso === iso || r.coo_iso === iso
-    );
-    if (unhcrMatch) {
-      const displaced = (unhcrMatch.refugees || 0) + (unhcrMatch.asylum_seekers || 0);
-      const unhcrPts = displaced >= 3000000 ? 8 : displaced >= 1000000 ? 5 : displaced >= 500000 ? 3 : displaced >= 100000 ? 1 : 0;
-      if (unhcrPts > 0) { evidencePoints += unhcrPts; evidenceLog.push(`UNHCR ${Math.round(displaced/1000)}K displaced:+${unhcrPts}`); }
-    }
-
-    // ── SIGNAL 11: World Bank Economic Stress Indicators ─────────────────
-    // Source: World Bank Open Data — poverty, inflation, child mortality
-    // Role: structural economic evidence that compounds humanitarian risk
-    const wbPoverty = (apiResults.wb_poverty?.[1] || []).find(r => r.countryiso3code === iso && r.value);
-    if (wbPoverty?.value >= 20) {
-      const povPts = wbPoverty.value >= 50 ? 7 : wbPoverty.value >= 35 ? 5 : wbPoverty.value >= 20 ? 3 : 0;
-      if (povPts > 0) { evidencePoints += povPts; evidenceLog.push(`WB Poverty ${wbPoverty.value.toFixed(0)}%:+${povPts}`); }
-    }
-    const wbInflation = (apiResults.wb_inflation?.[1] || []).find(r => r.countryiso3code === iso && r.value);
-    if (wbInflation?.value >= 25) {
-      const infPts = wbInflation.value >= 100 ? 6 : wbInflation.value >= 50 ? 4 : wbInflation.value >= 25 ? 2 : 0;
-      if (infPts > 0) { evidencePoints += infPts; evidenceLog.push(`WB Inflation ${wbInflation.value.toFixed(0)}%:+${infPts}`); }
-    }
-    const wbMortality = (apiResults.wb_mortality?.[1] || []).find(r => r.countryiso3code === iso && r.value);
-    if (wbMortality?.value >= 50) {
-      const mortPts = wbMortality.value >= 100 ? 6 : wbMortality.value >= 70 ? 4 : 2;
-      if (mortPts > 0) { evidencePoints += mortPts; evidenceLog.push(`WB Child Mortality ${wbMortality.value.toFixed(0)}:+${mortPts}`); }
-    }
-
-    // ── SIGNAL 12: NASA EONET Active Natural Events ───────────────────────
-    // Source: NASA Earth Observatory Natural Event Tracker — satellite confirmed
-    // Only events active in last 7 days count
-    if (coordC) {
-      const eonetMatch = (apiResults.nasa_eonet?.events || []).find(ev => {
-        const geom = ev.geometry?.[0] || ev.geometry;
-        const coords = geom?.coordinates;
-        if (!coords || !Array.isArray(coords)) return false;
-        const [elng, elat] = Array.isArray(coords[0]) ? coords[0] : coords;
-        return elng && elat && Math.abs(elng - coordC[0]) < 12 && Math.abs(elat - coordC[1]) < 12;
+    // 6. Seismic activity near country (USGS)
+    const coordCheck = CENTROIDS[iso];
+    if (coordCheck) {
+      const nearbyQuake = (apiResults.usgs_weekly?.features || []).find(f => {
+        const [qlng, qlat] = f.geometry?.coordinates || [];
+        return Math.abs(qlng - coordCheck[0]) < 10 && Math.abs(qlat - coordCheck[1]) < 10 && f.properties?.mag >= 4.5;
       });
-      if (eonetMatch) {
-        const eonetCat = (eonetMatch.categories?.[0]?.title || '').toLowerCase();
-        const eonetPts = eonetCat.includes('wildfire') ? 5 : eonetCat.includes('flood') ? 4 : eonetCat.includes('storm') ? 4 : eonetCat.includes('volcano') ? 6 : 3;
-        evidencePoints += eonetPts;
-        evidenceLog.push(`NASA EONET ${eonetMatch.categories?.[0]?.title||'Event'}:+${eonetPts}`);
+      if (nearbyQuake) {
+        const mag = nearbyQuake.properties.mag;
+        const quakePts = mag >= 7 ? 10 : mag >= 6 ? 6 : mag >= 5 ? 3 : 0;
+        if (quakePts > 0) { evidencePoints += quakePts; evidenceLog.push(`M${mag.toFixed(1)} EQ:+${quakePts}`); }
       }
     }
 
-    // ════════════════════════════════════════════════════════════════════
-    // FINAL SCORE COMPOSITION
-    // Formula: (structural_baseline × 0.45) + live_evidence_points
-    //
-    // Rationale for 45% structural weight:
-    // - Structural risk (crisis types, historical pattern) is the prior probability
-    // - Live evidence updates that prior in real time — Bayesian logic
-    // - 45% structural prevents wild swings from single noisy signals
-    // - evidencePoints uncapped sum across 12 sources gives live data full control
-    //   when multiple signals converge (as they do in true crises)
-    //
-    // A country with ZERO live evidence scores at most 45% of its structural max.
-    // A country with converging live evidence can reach 99 regardless of base.
-    // ════════════════════════════════════════════════════════════════════
-    const structuralComponent = composite(dims) * 0.45;
+    // 7. ReliefWeb active disaster declaration
+    const rwMatch = (apiResults.reliefweb_events || []).find(e => e.country === name);
+    if (rwMatch) { evidencePoints += 4; evidenceLog.push(`ReliefWeb:+4`); }
 
-    // Evidence credibility gate: single weak signal (≤3pts) from one source
-    // gets no structural amplification — prevents false alarms
-    const evidenceCredible = evidenceLog.length >= 2 || evidencePoints >= 6;
-    const credibleEvidence = evidenceCredible ? evidencePoints : evidencePoints * 0.5;
+    // 8. GDELT conflict media signal (corroborating, near country)
+    if (coordCheck) {
+      const gdeltMatch = (apiResults.gdelt_processed || []).some(f => {
+        const [lng, lat] = f.geometry?.coordinates || [];
+        return lng && lat && Math.abs(lng - coordCheck[0]) < 8 && Math.abs(lat - coordCheck[1]) < 8;
+      });
+      if (gdeltMatch) { evidencePoints += 2; evidenceLog.push(`GDELT:+2`); }
+    }
 
-    const rawScore = structuralComponent + credibleEvidence;
+    // ── FINAL SCORE: structural baseline (dampened) + objective live evidence ──
+    // Baseline risk profile is compressed to 60% weight; live evidence drives the rest.
+    // This makes the score track reality rather than static assumptions.
+    const structuralComponent = composite(dims) * 0.6;
+    const score = Math.min(99, Math.max(1, Math.round(structuralComponent + evidencePoints)));
 
-    // Convergence bonus: when 4+ independent sources agree, crisis is real
-    // This is the most important accuracy mechanism — multi-source confirmation
-    const sourceCount = evidenceLog.length;
-    const convergenceBonus = sourceCount >= 6 ? 6 : sourceCount >= 4 ? 3 : sourceCount >= 2 ? 1 : 0;
-
-    const score = Math.min(99, Math.max(1, Math.round(rawScore + convergenceBonus)));
-    const events = Math.min(80, Math.max(4, Math.round(score * 0.55 + sourceCount * 2.5)));
-
-    newStore[iso] = {
-      name, flag, types, needs, dims, score, events, spillover: 0,
-      evidencePoints: Math.round(credibleEvidence),
-      evidenceLog,
-      sourceCount,
-      convergenceBonus,
-      structuralComponent: Math.round(structuralComponent)
-    };
+    const events = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score/14)));
+    newStore[iso] = {name, flag, types, needs, dims, score, events, spillover:0, evidencePoints, evidenceLog};
   }
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
