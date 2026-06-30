@@ -1163,14 +1163,14 @@ async function refresh(){
   const refreshSeed = Math.floor(Date.now() / 60000);
 let newStore = {};
 
-// ─── EVIDENCE-BASED SCORING ENGINE ──────────────────────────────────────
+// ─── BALANCED EVIDENCE-BASED SCORING ENGINE ──────────────────────────────
 
 function computeEvidenceScore(iso, liveData) {
   const evidence = [];
-  const dims = { conflict: 25, displacement: 25, food: 25, health: 25, 
-                 economic: 25, climate: 25, access: 25, political: 25 };
+  const dims = { conflict: 20, displacement: 20, food: 20, health: 20, 
+                 economic: 20, climate: 20, access: 20, political: 20 };
   
-  // ── 1. CONFLICT (ACLED) ──────────────────────────────────────────────
+  // ── 1. CONFLICT (ACLED) — scaled 0-85 ──────────────────────────────
   const name = NAMES[iso] || iso;
   const nameLower = name.toLowerCase();
   const conflictEvents = (liveData.conflictEvents || []).filter(e => 
@@ -1178,67 +1178,66 @@ function computeEvidenceScore(iso, liveData) {
   );
   const totalFatalities = conflictEvents.reduce((sum, e) => sum + (e.fatalities || 0), 0);
   
-  if (totalFatalities >= 100) { dims.conflict = 85; evidence.push('100+ conflict fatalities (ACLED)'); }
-  else if (totalFatalities >= 50) { dims.conflict = 70; evidence.push('50-99 conflict fatalities (ACLED)'); }
-  else if (totalFatalities >= 10) { dims.conflict = 55; evidence.push('10-49 conflict fatalities (ACLED)'); }
-  else if (totalFatalities > 0) { dims.conflict = 35; evidence.push('Active conflict events (ACLED)'); }
+  // LOGARITHMIC SCALING - prevents everyone from maxing out
+  if (totalFatalities >= 5000) { dims.conflict = 85; evidence.push('⚔️ 5,000+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 2000) { dims.conflict = 78; evidence.push('⚔️ 2,000+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 1000) { dims.conflict = 70; evidence.push('⚔️ 1,000+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 500) { dims.conflict = 62; evidence.push('⚔️ 500+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 200) { dims.conflict = 52; evidence.push('⚔️ 200+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 100) { dims.conflict = 42; evidence.push('⚔️ 100+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 50) { dims.conflict = 32; evidence.push('⚔️ 50+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities >= 10) { dims.conflict = 22; evidence.push('⚔️ 10+ conflict fatalities (ACLED)'); }
+  else if (totalFatalities > 0) { dims.conflict = 15; evidence.push('⚔️ Active conflict events (ACLED)'); }
   
-  // ── 2. FOOD INSECURITY (IPC) ──────────────────────────────────────────
+  // ── 2. FOOD INSECURITY (IPC) — scaled 0-80 ────────────────────────────
   const ipcData = (liveData.ipcClassifications || []).find(i =>
     i.country && i.country.toLowerCase().includes(nameLower)
   );
   
   if (ipcData) {
     const pop = Math.round(ipcData.population / 1e6);
-    if (ipcData.phase >= 4) {
-      dims.food = 90;
-      evidence.push(`IPC Phase ${ipcData.phase} (Emergency) — ${pop}M people affected`);
+    // Scale: Phase 5 = 80, Phase 4 = 65, Phase 3 = 48, Phase 2 = 30
+    if (ipcData.phase >= 5) {
+      dims.food = 80;
+      evidence.push(`🌾 IPC Phase 5 (Famine) — ${pop}M people affected`);
+    } else if (ipcData.phase === 4) {
+      dims.food = 65;
+      evidence.push(`🌾 IPC Phase 4 (Emergency) — ${pop}M people affected`);
     } else if (ipcData.phase === 3) {
-      dims.food = 70;
-      evidence.push(`IPC Phase ${ipcData.phase} (Crisis) — ${pop}M people affected`);
+      dims.food = 48;
+      evidence.push(`🌾 IPC Phase 3 (Crisis) — ${pop}M people affected`);
     } else if (ipcData.phase === 2) {
-      dims.food = 50;
-      evidence.push(`IPC Phase ${ipcData.phase} (Stress) — ${pop}M people affected`);
+      dims.food = 30;
+      evidence.push(`🌾 IPC Phase 2 (Stress) — ${pop}M people affected`);
     }
   }
   
-  // ── 3. DISPLACEMENT ────────────────────────────────────────────────────
+  // ── 3. DISPLACEMENT (UNHCR) — scaled 0-80 ─────────────────────────────
   const unhcrData = (liveData.unhcrPopulation || []).filter(d =>
     d.coa && d.coa.toLowerCase().includes(nameLower)
   );
   const totalDisplaced = unhcrData.reduce((sum, d) => sum + (parseInt(d.value) || 0), 0);
   
-  if (totalDisplaced >= 1000000) {
-    dims.displacement = 88;
-    evidence.push(`${Math.round(totalDisplaced/1e6)}M+ displaced persons (UNHCR)`);
-  } else if (totalDisplaced >= 500000) {
-    dims.displacement = 75;
-    evidence.push(`${Math.round(totalDisplaced/1e3)}K displaced persons (UNHCR)`);
-  } else if (totalDisplaced >= 100000) {
-    dims.displacement = 60;
-    evidence.push(`${Math.round(totalDisplaced/1e3)}K displaced (UNHCR)`);
-  } else if (totalDisplaced > 0) {
-    dims.displacement = 40;
-    evidence.push(`${totalDisplaced.toLocaleString()} displaced (UNHCR)`);
-  }
+  if (totalDisplaced >= 5000000) { dims.displacement = 80; evidence.push(`🚶 5M+ displaced (UNHCR)`); }
+  else if (totalDisplaced >= 2000000) { dims.displacement = 70; evidence.push(`🚶 2M+ displaced (UNHCR)`); }
+  else if (totalDisplaced >= 1000000) { dims.displacement = 60; evidence.push(`🚶 1M+ displaced (UNHCR)`); }
+  else if (totalDisplaced >= 500000) { dims.displacement = 48; evidence.push(`🚶 500K+ displaced (UNHCR)`); }
+  else if (totalDisplaced >= 200000) { dims.displacement = 35; evidence.push(`🚶 200K+ displaced (UNHCR)`); }
+  else if (totalDisplaced >= 100000) { dims.displacement = 25; evidence.push(`🚶 100K+ displaced (UNHCR)`); }
+  else if (totalDisplaced > 0) { dims.displacement = 18; evidence.push(`🚶 ${totalDisplaced.toLocaleString()} displaced`); }
   
-  // ── 4. CLIMATE (Open-Meteo + NASA) ────────────────────────────────────
+  // ── 4. CLIMATE EXTREMES — scaled 0-65 ──────────────────────────────────
   const heatData = (liveData.heatStressData || []).find(h => h.iso === iso);
   
   if (heatData) {
-    if (heatData.temp >= 45) {
-      dims.climate = 82;
-      evidence.push(`${heatData.temp}°C — extreme heat warning (Open-Meteo)`);
-    } else if (heatData.temp >= 40) {
-      dims.climate = 65;
-      evidence.push(`${heatData.temp}°C — dangerous heat (Open-Meteo)`);
-    } else if (heatData.temp >= 38) {
-      dims.climate = 50;
-      evidence.push(`${heatData.temp}°C — elevated heat risk (Open-Meteo)`);
-    }
+    if (heatData.temp >= 50) { dims.climate = 65; evidence.push(`🥵 50°C+ — extreme heat`); }
+    else if (heatData.temp >= 47) { dims.climate = 55; evidence.push(`🥵 47°C+ — dangerous heat`); }
+    else if (heatData.temp >= 44) { dims.climate = 45; evidence.push(`🥵 44°C+ — severe heat`); }
+    else if (heatData.temp >= 41) { dims.climate = 35; evidence.push(`🥵 41°C+ — high heat`); }
+    else if (heatData.temp >= 38) { dims.climate = 25; evidence.push(`🥵 38°C+ — elevated heat`); }
   }
   
-  // NASA EONET disasters
+  // NASA EONET — adds up to 15 points
   const nasaEvents = (liveData.nasa_eonet?.events || [])
     .filter(e => {
       const coords = e.geometry?.[0]?.coordinates || [];
@@ -1249,15 +1248,10 @@ function computeEvidenceScore(iso, liveData) {
         ['Wildfires', 'Floods', 'Severe Storms', 'Drought'].includes(c.title)
       );
     });
-  if (nasaEvents.length >= 2) {
-    dims.climate = Math.min(90, dims.climate + 15);
-    evidence.push(`${nasaEvents.length} NASA EONET natural disaster events`);
-  } else if (nasaEvents.length === 1) {
-    dims.climate = Math.min(85, dims.climate + 8);
-    evidence.push(`NASA EONET: ${nasaEvents[0].title?.substring(0, 40)}`);
-  }
+  if (nasaEvents.length >= 3) { dims.climate = Math.min(65, dims.climate + 15); evidence.push(`🔥 ${nasaEvents.length} NASA disaster events`); }
+  else if (nasaEvents.length >= 1) { dims.climate = Math.min(65, dims.climate + 8); evidence.push(`⚠️ NASA EONET: ${nasaEvents[0].title?.substring(0, 35)}`); }
   
-  // ── 5. DISEASE OUTBREAKS (WHO) ────────────────────────────────────────
+  // ── 5. DISEASE OUTBREAKS — scaled 0-70 ─────────────────────────────────
   const diseaseData = (liveData.diseaseOutbreaks || []).filter(d =>
     d.country && d.country.toLowerCase().includes(nameLower)
   );
@@ -1265,70 +1259,39 @@ function computeEvidenceScore(iso, liveData) {
   if (diseaseData.length) {
     const totalCases = diseaseData.reduce((sum, d) => sum + (d.cases || 0), 0);
     const outbreakNames = diseaseData.map(d => d.disease).join(', ');
-    if (totalCases >= 100000) {
-      dims.health = 88;
-      evidence.push(`${outbreakNames} — ${Math.round(totalCases/1e3)}K+ cases (WHO)`);
-    } else if (totalCases >= 10000) {
-      dims.health = 72;
-      evidence.push(`${outbreakNames} — ${Math.round(totalCases/1e3)}K+ cases`);
-    } else if (totalCases >= 1000) {
-      dims.health = 55;
-      evidence.push(`${outbreakNames} — ${totalCases.toLocaleString()}+ cases`);
-    } else if (totalCases > 0) {
-      dims.health = 38;
-      evidence.push(`${outbreakNames} outbreak detected`);
-    }
+    if (totalCases >= 1000000) { dims.health = 70; evidence.push(`🦠 ${outbreakNames} — 1M+ cases`); }
+    else if (totalCases >= 500000) { dims.health = 60; evidence.push(`🦠 ${outbreakNames} — 500K+ cases`); }
+    else if (totalCases >= 100000) { dims.health = 50; evidence.push(`🦠 ${outbreakNames} — 100K+ cases`); }
+    else if (totalCases >= 50000) { dims.health = 40; evidence.push(`🦠 ${outbreakNames} — 50K+ cases`); }
+    else if (totalCases >= 10000) { dims.health = 30; evidence.push(`🦠 ${outbreakNames} — 10K+ cases`); }
+    else if (totalCases >= 1000) { dims.health = 20; evidence.push(`🦠 ${outbreakNames} — ${totalCases.toLocaleString()}+ cases`); }
+    else if (totalCases > 0) { dims.health = 15; evidence.push(`🦠 ${outbreakNames} outbreak`); }
   }
   
-  // ── 6. ECONOMIC (World Bank + IMF) ────────────────────────────────────
+  // ── 6. ECONOMIC — scaled 0-60 ──────────────────────────────────────────
   // World Bank inflation
   const inflationData = (liveData.wb_inflation || [])
     .filter(d => d.country && d.country.id === iso);
   if (inflationData.length) {
     const inflation = parseFloat(inflationData[0].value);
-    if (inflation >= 20) {
-      dims.economic = Math.max(dims.economic, 75);
-      evidence.push(`${inflation.toFixed(1)}% inflation (World Bank)`);
-    } else if (inflation >= 10) {
-      dims.economic = Math.max(dims.economic, 55);
-      evidence.push(`${inflation.toFixed(1)}% inflation`);
-    } else if (inflation >= 5) {
-      dims.economic = Math.max(dims.economic, 35);
-      evidence.push(`${inflation.toFixed(1)}% inflation`);
-    }
-  }
-  
-  // World Bank poverty
-  const povertyData = (liveData.wb_poverty || [])
-    .filter(d => d.country && d.country.id === iso);
-  if (povertyData.length) {
-    const poverty = parseFloat(povertyData[0].value);
-    if (poverty >= 30) {
-      dims.economic = Math.max(dims.economic, 65);
-      evidence.push(`${poverty.toFixed(1)}% population in poverty`);
-    } else if (poverty >= 15) {
-      dims.economic = Math.max(dims.economic, 45);
-      evidence.push(`${poverty.toFixed(1)}% poverty rate`);
-    }
+    if (inflation >= 50) { dims.economic = Math.max(dims.economic, 60); evidence.push(`📈 50%+ inflation (WB)`); }
+    else if (inflation >= 30) { dims.economic = Math.max(dims.economic, 50); evidence.push(`📈 30%+ inflation (WB)`); }
+    else if (inflation >= 20) { dims.economic = Math.max(dims.economic, 38); evidence.push(`📈 20%+ inflation (WB)`); }
+    else if (inflation >= 10) { dims.economic = Math.max(dims.economic, 25); evidence.push(`📈 10%+ inflation (WB)`); }
+    else if (inflation >= 5) { dims.economic = Math.max(dims.economic, 15); evidence.push(`📈 ${inflation.toFixed(1)}% inflation`); }
   }
   
   // IMF GDP growth
   const imfData = (liveData.imf_growth_map || {})[iso];
   if (imfData !== undefined) {
     const growth = parseFloat(imfData);
-    if (growth < -5) {
-      dims.economic = Math.max(dims.economic, 70);
-      evidence.push(`${growth.toFixed(1)}% GDP contraction (IMF)`);
-    } else if (growth < -2) {
-      dims.economic = Math.max(dims.economic, 50);
-      evidence.push(`${growth.toFixed(1)}% GDP contraction`);
-    } else if (growth < 0) {
-      dims.economic = Math.max(dims.economic, 30);
-      evidence.push(`Negative GDP growth (IMF)`);
-    }
+    if (growth < -10) { dims.economic = Math.max(dims.economic, 55); evidence.push(`📉 10%+ GDP contraction (IMF)`); }
+    else if (growth < -5) { dims.economic = Math.max(dims.economic, 42); evidence.push(`📉 5%+ GDP contraction (IMF)`); }
+    else if (growth < -2) { dims.economic = Math.max(dims.economic, 30); evidence.push(`📉 ${growth.toFixed(1)}% GDP contraction`); }
+    else if (growth < 0) { dims.economic = Math.max(dims.economic, 18); evidence.push(`📉 Negative GDP growth`); }
   }
   
-  // ── 7. EARTHQUAKES (USGS) ─────────────────────────────────────────────
+  // ── 7. SEISMIC — scaled 0-40 ────────────────────────────────────────────
   const usgsEvents = (liveData.usgs_weekly?.features || [])
     .filter(f => {
       if (!CENTROIDS[iso]) return false;
@@ -1340,61 +1303,57 @@ function computeEvidenceScore(iso, liveData) {
     });
   
   const maxMag = usgsEvents.reduce((max, f) => Math.max(max, f.properties?.mag || 0), 0);
-  if (maxMag >= 7) {
-    dims.access = Math.max(dims.access, 85);
-    evidence.push(`M${maxMag.toFixed(1)} earthquake — major seismic event (USGS)`);
-  } else if (maxMag >= 6) {
-    dims.access = Math.max(dims.access, 70);
-    evidence.push(`M${maxMag.toFixed(1)} earthquake (USGS)`);
-  } else if (maxMag >= 5) {
-    dims.access = Math.max(dims.access, 50);
-    evidence.push(`M${maxMag.toFixed(1)} earthquake (USGS)`);
-  } else if (usgsEvents.length) {
-    dims.access = Math.max(dims.access, 30);
-    evidence.push(`Seismic activity detected (USGS)`);
-  }
+  if (maxMag >= 7.5) { dims.access = Math.max(dims.access, 40); evidence.push(`🌍 M${maxMag.toFixed(1)} — catastrophic earthquake`); }
+  else if (maxMag >= 7.0) { dims.access = Math.max(dims.access, 32); evidence.push(`🌍 M${maxMag.toFixed(1)} — major earthquake`); }
+  else if (maxMag >= 6.0) { dims.access = Math.max(dims.access, 22); evidence.push(`🌍 M${maxMag.toFixed(1)} — strong earthquake`); }
+  else if (maxMag >= 5.0) { dims.access = Math.max(dims.access, 14); evidence.push(`🌍 M${maxMag.toFixed(1)} — moderate earthquake`); }
+  else if (usgsEvents.length) { dims.access = Math.max(dims.access, 8); evidence.push(`🌍 Seismic activity detected`); }
   
-  // ── 8. POLITICAL INSTABILITY (World Bank refugees + GDELT) ────────────
-  // Use refugee data as proxy for political instability
-  const refugeeData = (liveData.wb_refugees || [])
-    .filter(d => d.country && d.country.id === iso);
-  if (refugeeData.length) {
-    const refugees = parseFloat(refugeeData[0].value);
-    if (refugees >= 1000000) {
-      dims.political = Math.max(dims.political, 80);
-      evidence.push(`${Math.round(refugees/1e6)}M+ refugees (World Bank)`);
-    } else if (refugees >= 500000) {
-      dims.political = Math.max(dims.political, 65);
-      evidence.push(`${Math.round(refugees/1e3)}K+ refugees (World Bank)`);
-    } else if (refugees >= 100000) {
-      dims.political = Math.max(dims.political, 50);
-      evidence.push(`${Math.round(refugees/1e3)}K+ refugees (World Bank)`);
-    } else if (refugees > 0) {
-      dims.political = Math.max(dims.political, 30);
-      evidence.push(`Refugee population detected (World Bank)`);
-    }
-  }
-  
-  // ── 9. COMPOSITE SCORE ─────────────────────────────────────────────────
-  // Weighted average with interaction bonuses
+  // ── 8. COMPOSITE SCORE with DIMINISHING RETURNS ──────────────────────
+  // Weighted average - but each dimension is capped so no single one dominates
   const weights = {
-    conflict: 0.25, displacement: 0.18, food: 0.18, health: 0.12,
-    climate: 0.10, economic: 0.08, access: 0.05, political: 0.04
+    conflict: 0.28,
+    displacement: 0.20, 
+    food: 0.18,
+    health: 0.12,
+    climate: 0.10,
+    economic: 0.07,
+    access: 0.03,
+    political: 0.02
   };
   
   let weightedTotal = 0;
+  let activeDims = 0;
   for (const [key, weight] of Object.entries(weights)) {
-    weightedTotal += (dims[key] || 25) * weight;
+    const val = dims[key] || 20;
+    if (val > 25) activeDims++;
+    weightedTotal += val * weight;
   }
   
-  // Interaction bonuses
+  // Interaction bonuses (diminishing - smaller increments)
   let bonus = 0;
-  if (dims.conflict >= 60 && dims.displacement >= 60) bonus += 4;
-  if (dims.food >= 60 && dims.health >= 50) bonus += 3;
-  if (dims.climate >= 60 && dims.food >= 50) bonus += 2;
+  if (dims.conflict >= 50 && dims.displacement >= 50) bonus += 3;
+  if (dims.food >= 50 && dims.health >= 40) bonus += 2;
+  if (dims.climate >= 40 && dims.food >= 40) bonus += 1.5;
+  if (dims.conflict >= 60 && dims.food >= 50 && dims.displacement >= 40) bonus += 2; // triple crisis
   
-  const rawScore = weightedTotal + bonus;
-  const finalScore = Math.min(99, Math.max(5, Math.round(rawScore)));
+  // Active dimension bonus - penalizes if only one dimension is high
+  const dimPenalty = activeDims < 3 ? -3 : 0;
+  
+  let rawScore = weightedTotal + bonus + dimPenalty;
+  
+  // Ensure scores are distributed - apply a curve that prevents clustering at top
+  // This spreads scores out more naturally
+  if (rawScore > 70) {
+    // Squeeze the top end: 70-99 maps to 70-92
+    rawScore = 70 + (rawScore - 70) * 0.65;
+  }
+  if (rawScore > 85) {
+    // Even tighter squeeze at the very top
+    rawScore = 85 + (rawScore - 85) * 0.5;
+  }
+  
+  const finalScore = Math.min(95, Math.max(5, Math.round(rawScore)));
   
   return { score: finalScore, dims, evidence };
 }
@@ -1430,14 +1389,14 @@ for (let iso of Object.keys(BASE_SCORES)) {
   const dims = result.dims;
   const evidence = result.evidence || [];
   
-  // Events derived from evidence count + base
-  const evidenceEvents = Math.min(20, Math.floor(evidence.length * 1.5));
-  const baseEvents = Math.min(60, Math.max(4, Math.floor(10) + Math.floor(score / 14)));
-  const events = Math.min(90, baseEvents + evidenceEvents);
+  // Events: base + evidence count (capped to prevent all 16s)
+  const evidenceEvents = Math.min(8, Math.floor(evidence.length * 0.8));
+  const baseEvents = Math.min(40, Math.max(4, Math.floor(8) + Math.floor(score / 20)));
+  const events = Math.min(50, baseEvents + evidenceEvents);
   
   newStore[iso] = { 
     name, flag, types, needs, dims, score, events, spillover: 0,
-    _evidence: evidence // Store evidence for display
+    _evidence: evidence
   };
   evidenceMap[iso] = evidence;
 }
