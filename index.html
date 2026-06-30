@@ -1145,189 +1145,375 @@ async function refresh(){
 
   adv(5,78);
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // EVIDENCE-BASED CRISIS SCORING ENGINE — v2.0
-  // Every point tied to live API evidence. No seeded randomness.
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ============================================================================
+// EVIDENCE-BASED CRISIS SCORING — LIVE API DATA ONLY
+// ============================================================================
+
+// First, build a live data context for scoring
+const liveContext = {
+  conflictEvents: conflictEvents || [],
+  ipcClassifications: ipcClassifications || [],
+  heatStressData: heatStressData || [],
+  diseaseOutbreaks: diseaseOutbreaks || [],
+  gdelt_processed: gdeltEvents || [],
+  reliefweb_events: reliefEvents || [],
+  wfp_hunger_map: wfpData || [],
+  usgs_weekly: apiResults.usgs_weekly || null,
+  nasa_eonet: apiResults.nasa_eonet || null,
+  wb_inflation: apiResults.wb_inflation || null,
+  wb_poverty: apiResults.wb_poverty || null,
+  wb_refugees: apiResults.wb_refugees || null,
+  imf_growth_map: apiResults.imf_growth_map || null,
+  who_rss: apiResults.who_rss || null,
+  unhcr_population: unhcrPopulation || [],
+  _store: null
+};
+
+// Score each country from live evidence only
+let newStore = {};
+let evidenceMap = {};
+
+for (let iso of Object.keys(BASE_SCORES)) {
+  const name = NAMES[iso] || iso;
+  const flag = FLAGS[iso] || '🌍';
+  const types = CTYPES[iso] || DEFAULT_T;
+  const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+  const nameLower = name.toLowerCase();
   
-  function computeEvidenceScore(iso, live) {
-    const name = NAMES[iso] || iso;
-    const nameLower = name.toLowerCase();
-    const evidence = [];
-    const dims = { conflict:25, displacement:25, food:25, health:25, economic:25, climate:25, access:25, political:25 };
-    
-    // ── 1. CONFLICT (ACLED + GDELT) ──────────────────────────────────────
-    const conflictEvents = (live.conflictEvents || []).filter(e => 
-      e.country && e.country.toLowerCase() === nameLower
-    );
-    const fatalities = conflictEvents.reduce((s, e) => s + (e.fatalities || 0), 0);
-    if (fatalities >= 100) { dims.conflict = 92; evidence.push('⚔️ 100+ conflict fatalities (ACLED)'); }
-    else if (fatalities >= 50) { dims.conflict = 78; evidence.push('⚔️ 50-99 conflict fatalities (ACLED)'); }
-    else if (fatalities >= 10) { dims.conflict = 62; evidence.push('⚔️ 10-49 conflict fatalities (ACLED)'); }
-    else if (fatalities > 0) { dims.conflict = 45; evidence.push('⚔️ Active conflict events reported (ACLED)'); }
-    
-    // GDELT signal amplification
-    const gdeltSignals = (live.gdelt_processed || []).filter(f => {
-      if (!f.properties || !CENTROIDS[iso]) return false;
-      const [lng, lat] = f.geometry?.coordinates || [];
-      return lng && lat && Math.abs(lng - CENTROIDS[iso][0]) < 8 && 
-             Math.abs(lat - CENTROIDS[iso][1]) < 8;
-    });
-    if (gdeltSignals.length > 5) { dims.conflict = Math.min(95, dims.conflict + 8); evidence.push(`📡 ${gdeltSignals.length} GDELT media signals`); }
-    
-    // ── 2. FOOD INSECURITY (IPC + WFP) ──────────────────────────────────
-    const ipcData = (live.ipcClassifications || []).find(i =>
-      i.country && i.country.toLowerCase() === nameLower
-    );
-    if (ipcData) {
-      const pop = Math.round(ipcData.population / 1e6);
-      if (ipcData.phase >= 4) { dims.food = 92; evidence.push(`🌾 IPC Phase ${ipcData.phase} (Emergency) — ${pop}M people affected`); }
-      else if (ipcData.phase === 3) { dims.food = 75; evidence.push(`🌾 IPC Phase ${ipcData.phase} (Crisis) — ${pop}M people affected`); }
-      else if (ipcData.phase === 2) { dims.food = 55; evidence.push(`🌾 IPC Phase ${ipcData.phase} (Stress) — ${pop}M people affected`); }
+  // ─── EVIDENCE COLLECTION ────────────────────────────────────────────────
+  const evidence = [];
+  let dims = { conflict: 25, displacement: 25, food: 25, health: 25, 
+               economic: 25, climate: 25, access: 25, political: 25 };
+  let scoreComponents = [];
+
+  // 1. CONFLICT (ACLED)
+  const conflictEvents = (liveContext.conflictEvents || [])
+    .filter(e => e.country && e.country.toLowerCase().includes(nameLower));
+  const totalFatalities = conflictEvents.reduce((s, e) => s + (e.fatalities || 0), 0);
+  if (totalFatalities >= 100) {
+    dims.conflict = 85;
+    dims.displacement = Math.max(dims.displacement, 70);
+    dims.access = Math.max(dims.access, 65);
+    evidence.push(`⚔️ ${totalFatalities}+ conflict fatalities (ACLED)`);
+    scoreComponents.push({ dim: 'conflict', value: 85, weight: 0.25 });
+  } else if (totalFatalities >= 50) {
+    dims.conflict = 70;
+    dims.displacement = Math.max(dims.displacement, 60);
+    evidence.push(`⚔️ ${totalFatalities}+ conflict fatalities (ACLED)`);
+    scoreComponents.push({ dim: 'conflict', value: 70, weight: 0.25 });
+  } else if (totalFatalities >= 10) {
+    dims.conflict = 55;
+    dims.displacement = Math.max(dims.displacement, 45);
+    evidence.push(`⚔️ ${totalFatalities}+ conflict fatalities (ACLED)`);
+    scoreComponents.push({ dim: 'conflict', value: 55, weight: 0.25 });
+  } else if (conflictEvents.length > 0) {
+    dims.conflict = 35;
+    evidence.push(`⚔️ Active conflict events (ACLED)`);
+    scoreComponents.push({ dim: 'conflict', value: 35, weight: 0.25 });
+  }
+
+  // 2. FOOD INSECURITY (IPC + WFP)
+  const ipcData = (liveContext.ipcClassifications || [])
+    .find(i => i.country && i.country.toLowerCase().includes(nameLower));
+  if (ipcData) {
+    const pop = Math.round(ipcData.population / 1e6);
+    if (ipcData.phase >= 4) {
+      dims.food = 90;
+      dims.health = Math.max(dims.health, 75);
+      evidence.push(`🌾 IPC Phase ${ipcData.phase} (Emergency) — ${pop}M affected`);
+      scoreComponents.push({ dim: 'food', value: 90, weight: 0.18 });
+    } else if (ipcData.phase === 3) {
+      dims.food = 70;
+      dims.health = Math.max(dims.health, 60);
+      evidence.push(`🌾 IPC Phase ${ipcData.phase} (Crisis) — ${pop}M affected`);
+      scoreComponents.push({ dim: 'food', value: 70, weight: 0.18 });
+    } else if (ipcData.phase === 2) {
+      dims.food = 50;
+      evidence.push(`🌾 IPC Phase ${ipcData.phase} (Stress) — ${pop}M affected`);
+      scoreComponents.push({ dim: 'food', value: 50, weight: 0.18 });
     }
-    const wfpData = (live.wfp_hunger_map || []).find(w =>
-      w.iso3 === iso || (w.country_name && w.country_name.toLowerCase() === nameLower)
-    );
-    if (wfpData && wfpData.ipc_phase >= 3) {
-      dims.food = Math.max(dims.food, 65 + (wfpData.ipc_phase - 2) * 10);
-      evidence.push(`🍚 WFP confirms food crisis (Phase ${wfpData.ipc_phase})`);
+  }
+  // WFP cross-check
+  const wfpData = (liveContext.wfp_hunger_map || [])
+    .find(w => w.iso3 === iso || (w.country_name && w.country_name.toLowerCase().includes(nameLower)));
+  if (wfpData && wfpData.ipc_phase >= 3 && !ipcData) {
+    dims.food = Math.max(dims.food, 65 + (wfpData.ipc_phase - 2) * 10);
+    evidence.push(`🍚 WFP: Phase ${wfpData.ipc_phase} food insecurity`);
+    scoreComponents.push({ dim: 'food', value: dims.food, weight: 0.18 });
+  }
+
+  // 3. DISPLACEMENT (UNHCR)
+  const unhcrData = (liveContext.unhcr_population || [])
+    .filter(d => d.coa && d.coa.toLowerCase().includes(nameLower));
+  const totalDisplaced = unhcrData.reduce((s, d) => s + (parseInt(d.value) || 0), 0);
+  if (totalDisplaced >= 1000000) {
+    dims.displacement = 88;
+    dims.political = Math.max(dims.political, 65);
+    evidence.push(`🚶 ${Math.round(totalDisplaced/1e6)}M+ displaced (UNHCR)`);
+    scoreComponents.push({ dim: 'displacement', value: 88, weight: 0.15 });
+  } else if (totalDisplaced >= 500000) {
+    dims.displacement = 75;
+    evidence.push(`🚶 ${Math.round(totalDisplaced/1e3)}K displaced (UNHCR)`);
+    scoreComponents.push({ dim: 'displacement', value: 75, weight: 0.15 });
+  } else if (totalDisplaced >= 100000) {
+    dims.displacement = 60;
+    evidence.push(`🚶 ${Math.round(totalDisplaced/1e3)}K displaced (UNHCR)`);
+    scoreComponents.push({ dim: 'displacement', value: 60, weight: 0.15 });
+  } else if (totalDisplaced > 0) {
+    dims.displacement = 40;
+    evidence.push(`🚶 ${totalDisplaced.toLocaleString()} displaced (UNHCR)`);
+    scoreComponents.push({ dim: 'displacement', value: 40, weight: 0.15 });
+  }
+
+  // 4. EXTREME HEAT (Open-Meteo)
+  const heatData = (liveContext.heatStressData || []).find(h => h.iso === iso);
+  if (heatData && heatData.temp >= 38) {
+    if (heatData.temp >= 45) {
+      dims.climate = 82;
+      dims.health = Math.max(dims.health, 70);
+      evidence.push(`🥵 ${heatData.temp}°C — extreme heat warning`);
+      scoreComponents.push({ dim: 'climate', value: 82, weight: 0.12 });
+    } else if (heatData.temp >= 40) {
+      dims.climate = 65;
+      dims.health = Math.max(dims.health, 55);
+      evidence.push(`🥵 ${heatData.temp}°C — dangerous heat`);
+      scoreComponents.push({ dim: 'climate', value: 65, weight: 0.12 });
+    } else if (heatData.temp >= 38) {
+      dims.climate = 50;
+      evidence.push(`🥵 ${heatData.temp}°C — elevated heat risk`);
+      scoreComponents.push({ dim: 'climate', value: 50, weight: 0.12 });
     }
-    
-    // ── 3. DISPLACEMENT (UNHCR + World Bank refugee data) ──────────────
-    const unhcrData = (live.unhcr_population || []).filter(d =>
-      d.coa && d.coa.toLowerCase() === nameLower
-    );
-    const displaced = unhcrData.reduce((s, d) => s + (parseInt(d.value) || 0), 0);
-    if (displaced >= 1000000) { dims.displacement = 90; evidence.push(`🚶 ${Math.round(displaced/1e6)}M+ displaced persons (UNHCR)`); }
-    else if (displaced >= 500000) { dims.displacement = 78; evidence.push(`🚶 ${Math.round(displaced/1e3)}K displaced (UNHCR)`); }
-    else if (displaced >= 100000) { dims.displacement = 65; evidence.push(`🚶 ${Math.round(displaced/1e3)}K displaced (UNHCR)`); }
-    else if (displaced > 0) { dims.displacement = 45; evidence.push(`🚶 ${displaced.toLocaleString()} displaced (UNHCR)`); }
-    
-    // ── 4. CLIMATE (Open-Meteo + NASA EONET) ────────────────────────────
-    const heatData = (live.heatStressData || []).find(h => h.iso === iso);
-    if (heatData) {
-      if (heatData.temp >= 45) { dims.climate = 85; evidence.push(`🥵 ${heatData.temp}°C — extreme heat warning`); }
-      else if (heatData.temp >= 40) { dims.climate = 70; evidence.push(`🥵 ${heatData.temp}°C — dangerous heat`); }
-      else if (heatData.temp >= 38) { dims.climate = 55; evidence.push(`🥵 ${heatData.temp}°C — elevated heat risk`); }
-    }
-    const nasaEvents = (live.nasa_eonet?.events || []).filter(e => {
-      const coords = e.geometry?.[0]?.coordinates || [];
-      if (!coords.length || !CENTROIDS[iso]) return false;
-      const dist = Math.sqrt(Math.pow(coords[0] - CENTROIDS[iso][0], 2) + Math.pow(coords[1] - CENTROIDS[iso][1], 2));
-      return dist < 10 && (e.categories || []).some(c => ['Wildfires','Floods','Severe Storms','Drought'].includes(c.title));
-    });
-    if (nasaEvents.length >= 2) { dims.climate = Math.min(92, dims.climate + 12); evidence.push(`🔥 ${nasaEvents.length} NASA EONET disasters`); }
-    else if (nasaEvents.length === 1) { dims.climate = Math.min(88, dims.climate + 6); evidence.push(`⚠️ NASA EONET: ${nasaEvents[0].title?.substring(0, 40)}`); }
-    
-    // ── 5. DISEASE (WHO + Disease.sh) ──────────────────────────────────
-    const diseaseData = (live.diseaseOutbreaks || []).filter(d =>
-      d.country && d.country.toLowerCase() === nameLower
-    );
-    const cases = diseaseData.reduce((s, d) => s + (d.cases || 0), 0);
-    if (cases >= 100000) { dims.health = 90; evidence.push(`🦠 ${diseaseData.map(d=>d.disease).join(', ')} — ${Math.round(cases/1e3)}K+ cases`); }
-    else if (cases >= 10000) { dims.health = 75; evidence.push(`🦠 ${diseaseData.map(d=>d.disease).join(', ')} — ${Math.round(cases/1e3)}K+ cases`); }
-    else if (cases >= 1000) { dims.health = 58; evidence.push(`🦠 ${diseaseData.map(d=>d.disease).join(', ')} — ${cases.toLocaleString()}+ cases`); }
-    else if (cases > 0) { dims.health = 40; evidence.push(`🦠 ${diseaseData.map(d=>d.disease).join(', ')} outbreak detected`); }
-    
-    const whoAlerts = (live.who_rss?.items || []).filter(item =>
-      item.title && item.title.toLowerCase().includes(nameLower) &&
-      /outbreak|epidemic|pandemic|cases|death/i.test(item.title)
-    );
-    if (whoAlerts.length) { dims.health = Math.min(92, dims.health + 8); evidence.push(`🏥 ${whoAlerts.length} WHO disease alerts`); }
-    
-    // ── 6. SEISMIC (USGS) ────────────────────────────────────────────────
-    const usgsEvents = (live.usgs_weekly?.features || []).filter(f => {
+  }
+
+  // 5. DISEASE OUTBREAKS (WHO + Disease.sh)
+  const diseaseData = (liveContext.diseaseOutbreaks || [])
+    .filter(d => d.country && d.country.toLowerCase().includes(nameLower));
+  const totalCases = diseaseData.reduce((s, d) => s + (d.cases || 0), 0);
+  const outbreakNames = diseaseData.map(d => d.disease).join(', ');
+  if (totalCases >= 100000) {
+    dims.health = 88;
+    evidence.push(`🦠 ${outbreakNames} — ${Math.round(totalCases/1e3)}K+ cases (WHO)`);
+    scoreComponents.push({ dim: 'health', value: 88, weight: 0.10 });
+  } else if (totalCases >= 10000) {
+    dims.health = 72;
+    evidence.push(`🦠 ${outbreakNames} — ${Math.round(totalCases/1e3)}K+ cases`);
+    scoreComponents.push({ dim: 'health', value: 72, weight: 0.10 });
+  } else if (totalCases >= 1000) {
+    dims.health = 55;
+    evidence.push(`🦠 ${outbreakNames} — ${totalCases.toLocaleString()}+ cases`);
+    scoreComponents.push({ dim: 'health', value: 55, weight: 0.10 });
+  } else if (diseaseData.length > 0) {
+    dims.health = 38;
+    evidence.push(`🦠 ${outbreakNames} outbreak detected`);
+    scoreComponents.push({ dim: 'health', value: 38, weight: 0.10 });
+  }
+  // WHO RSS alerts
+  const whoAlerts = (liveContext.who_rss?.items || [])
+    .filter(item => item.title && 
+      item.title.toLowerCase().includes(nameLower) &&
+      /outbreak|epidemic|pandemic|cases|death/i.test(item.title));
+  if (whoAlerts.length && !diseaseData.length) {
+    dims.health = Math.max(dims.health, 50);
+    evidence.push(`🏥 ${whoAlerts.length} WHO disease alerts`);
+    scoreComponents.push({ dim: 'health', value: 50, weight: 0.10 });
+  }
+
+  // 6. EARTHQUAKES (USGS)
+  const usgsEvents = (liveContext.usgs_weekly?.features || [])
+    .filter(f => {
       if (!CENTROIDS[iso]) return false;
       const [lng, lat] = f.geometry?.coordinates || [];
       if (!lng || !lat) return false;
-      const dist = Math.sqrt(Math.pow(lng - CENTROIDS[iso][0], 2) + Math.pow(lat - CENTROIDS[iso][1], 2));
+      const dist = Math.sqrt(Math.pow(lng - CENTROIDS[iso][0], 2) + 
+                            Math.pow(lat - CENTROIDS[iso][1], 2));
       return dist < 10 && f.properties?.mag >= 4.5;
     });
-    const maxMag = usgsEvents.reduce((max, f) => Math.max(max, f.properties?.mag || 0), 0);
-    if (maxMag >= 7) { dims.economic = Math.max(dims.economic, 82); evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake — major event (USGS)`); }
-    else if (maxMag >= 6) { dims.economic = Math.max(dims.economic, 68); evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake (USGS)`); }
-    else if (maxMag >= 5) { dims.economic = Math.max(dims.economic, 50); evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake (USGS)`); }
-    
-    // ── 7. ECONOMIC (World Bank + IMF) ──────────────────────────────────
-    const inflationData = (live.wb_inflation || []).filter(d => d.country?.id === iso);
-    if (inflationData.length) {
-      const inf = parseFloat(inflationData[0].value);
-      if (inf >= 20) { dims.economic = Math.max(dims.economic, 78); evidence.push(`📈 ${inf.toFixed(1)}% inflation (World Bank)`); }
-      else if (inf >= 10) { dims.economic = Math.max(dims.economic, 58); evidence.push(`📈 ${inf.toFixed(1)}% inflation`); }
-      else if (inf >= 5) { dims.economic = Math.max(dims.economic, 38); evidence.push(`📈 ${inf.toFixed(1)}% inflation`); }
-    }
-    const povertyData = (live.wb_poverty || []).filter(d => d.country?.id === iso);
-    if (povertyData.length) {
-      const pov = parseFloat(povertyData[0].value);
-      if (pov >= 30) { dims.economic = Math.max(dims.economic, 68); evidence.push(`📊 ${pov.toFixed(1)}% in poverty`); }
-      else if (pov >= 15) { dims.economic = Math.max(dims.economic, 48); evidence.push(`📊 ${pov.toFixed(1)}% poverty rate`); }
-    }
-    const imfData = (live.imf_growth_map || {})[iso];
-    if (imfData !== undefined) {
-      const growth = parseFloat(imfData);
-      if (growth < -5) { dims.economic = Math.max(dims.economic, 72); evidence.push(`📉 ${growth.toFixed(1)}% GDP contraction (IMF)`); }
-      else if (growth < -2) { dims.economic = Math.max(dims.economic, 52); evidence.push(`📉 ${growth.toFixed(1)}% GDP contraction`); }
-      else if (growth < 0) { dims.economic = Math.max(dims.economic, 32); evidence.push(`📉 Negative GDP growth`); }
-    }
-    
-    // ── 8. ACCESS (derived from conflict + displacement) ──────────────────
-    dims.access = Math.min(90, Math.max(20, Math.round((dims.conflict * 0.5 + dims.displacement * 0.5) * 0.8 + 15)));
-    dims.political = Math.min(90, Math.max(20, Math.round((dims.conflict * 0.6 + dims.displacement * 0.4) * 0.7 + 18)));
-    
-    // ── 9. COMPOSITE SCORE ──────────────────────────────────────────────────
-    const weights = { conflict:0.26, food:0.18, displacement:0.15, climate:0.12, health:0.10, economic:0.08, access:0.06, political:0.05 };
-    let weightedTotal = 0;
-    for (const [k, w] of Object.entries(weights)) {
-      weightedTotal += (dims[k] || 25) * w;
-    }
-    // Synergy bonuses
-    let bonus = 0;
-    if (dims.conflict >= 60 && dims.displacement >= 60) bonus += 4;
-    if (dims.food >= 60 && dims.health >= 50) bonus += 3;
-    if (dims.climate >= 60 && dims.food >= 50) bonus += 2;
-    
-    const finalScore = Math.min(99, Math.max(1, Math.round(weightedTotal + bonus)));
-    
-    return { score: finalScore, dims, evidence, dims };
+  const maxMag = usgsEvents.reduce((max, f) => Math.max(max, f.properties?.mag || 0), 0);
+  if (maxMag >= 7) {
+    dims.climate = Math.max(dims.climate, 75);
+    dims.displacement = Math.max(dims.displacement, 55);
+    evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake — major seismic event (USGS)`);
+    scoreComponents.push({ dim: 'climate', value: 75, weight: 0.12 });
+  } else if (maxMag >= 6) {
+    dims.climate = Math.max(dims.climate, 60);
+    evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake (USGS)`);
+    scoreComponents.push({ dim: 'climate', value: 60, weight: 0.12 });
+  } else if (maxMag >= 5) {
+    dims.climate = Math.max(dims.climate, 45);
+    evidence.push(`🌍 M${maxMag.toFixed(1)} earthquake (USGS)`);
+    scoreComponents.push({ dim: 'climate', value: 45, weight: 0.12 });
+  } else if (usgsEvents.length) {
+    dims.climate = Math.max(dims.climate, 30);
+    evidence.push(`🌍 Seismic activity detected (USGS)`);
+    scoreComponents.push({ dim: 'climate', value: 30, weight: 0.12 });
   }
+
+  // 7. NASA Natural Disasters
+  const nasaEvents = (liveContext.nasa_eonet?.events || [])
+    .filter(e => {
+      const coords = e.geometry?.[0]?.coordinates || [];
+      if (!coords.length || !CENTROIDS[iso]) return false;
+      const dist = Math.sqrt(Math.pow(coords[0] - CENTROIDS[iso][0], 2) + 
+                            Math.pow(coords[1] - CENTROIDS[iso][1], 2));
+      return dist < 10 && (e.categories || []).some(c => 
+        ['Wildfires', 'Floods', 'Severe Storms', 'Drought'].includes(c.title)
+      );
+    });
+  if (nasaEvents.length >= 2) {
+    dims.climate = Math.min(90, dims.climate + 15);
+    evidence.push(`🔥 ${nasaEvents.length} NASA EONET natural disaster events`);
+  } else if (nasaEvents.length === 1) {
+    dims.climate = Math.min(85, dims.climate + 8);
+    evidence.push(`⚠️ NASA EONET: ${nasaEvents[0].title?.substring(0, 40)}`);
+  }
+
+  // 8. ECONOMIC (World Bank + IMF)
+  // Inflation
+  const inflationData = (liveContext.wb_inflation || [])
+    .filter(d => d.country && d.country.id === iso);
+  if (inflationData.length) {
+    const inflation = parseFloat(inflationData[0].value);
+    if (inflation >= 20) {
+      dims.economic = Math.max(dims.economic, 75);
+      evidence.push(`📈 ${inflation.toFixed(1)}% inflation (World Bank)`);
+      scoreComponents.push({ dim: 'economic', value: 75, weight: 0.08 });
+    } else if (inflation >= 10) {
+      dims.economic = Math.max(dims.economic, 55);
+      evidence.push(`📈 ${inflation.toFixed(1)}% inflation`);
+      scoreComponents.push({ dim: 'economic', value: 55, weight: 0.08 });
+    } else if (inflation >= 5) {
+      dims.economic = Math.max(dims.economic, 35);
+      evidence.push(`📈 ${inflation.toFixed(1)}% inflation`);
+      scoreComponents.push({ dim: 'economic', value: 35, weight: 0.08 });
+    }
+  }
+  // Poverty
+  const povertyData = (liveContext.wb_poverty || [])
+    .filter(d => d.country && d.country.id === iso);
+  if (povertyData.length) {
+    const poverty = parseFloat(povertyData[0].value);
+    if (poverty >= 30) {
+      dims.economic = Math.max(dims.economic, 65);
+      evidence.push(`📊 ${poverty.toFixed(1)}% population in poverty`);
+      scoreComponents.push({ dim: 'economic', value: 65, weight: 0.08 });
+    } else if (poverty >= 15) {
+      dims.economic = Math.max(dims.economic, 45);
+      evidence.push(`📊 ${poverty.toFixed(1)}% poverty rate`);
+      scoreComponents.push({ dim: 'economic', value: 45, weight: 0.08 });
+    }
+  }
+  // IMF GDP
+  const imfData = (liveContext.imf_growth_map || {})[iso];
+  if (imfData !== undefined) {
+    const growth = parseFloat(imfData);
+    if (growth < -5) {
+      dims.economic = Math.max(dims.economic, 70);
+      evidence.push(`📉 ${growth.toFixed(1)}% GDP contraction (IMF)`);
+      scoreComponents.push({ dim: 'economic', value: 70, weight: 0.08 });
+    } else if (growth < -2) {
+      dims.economic = Math.max(dims.economic, 50);
+      evidence.push(`📉 ${growth.toFixed(1)}% GDP contraction`);
+      scoreComponents.push({ dim: 'economic', value: 50, weight: 0.08 });
+    } else if (growth < 0) {
+      dims.economic = Math.max(dims.economic, 30);
+      evidence.push(`📉 Negative GDP growth`);
+      scoreComponents.push({ dim: 'economic', value: 30, weight: 0.08 });
+    }
+  }
+
+  // 9. RELIEFWEB EVENTS
+  const reliefwebEvents = (liveContext.reliefweb_events || [])
+    .filter(e => e.country && e.country.toLowerCase().includes(nameLower));
+  if (reliefwebEvents.length >= 3) {
+    evidence.push(`📋 ${reliefwebEvents.length} ReliefWeb humanitarian events`);
+    dims.access = Math.max(dims.access, 55);
+  } else if (reliefwebEvents.length >= 1) {
+    evidence.push(`📋 ${reliefwebEvents[0].title?.substring(0, 50) || 'ReliefWeb alert'}`);
+    dims.access = Math.max(dims.access, 40);
+  }
+
+  // ─── COMPUTE WEIGHTED SCORE ──────────────────────────────────────────────
+  // If no evidence found, use a minimal base score
+  if (scoreComponents.length === 0) {
+    // Check if any live data exists at all
+    const hasLiveData = usgsEvents.length || ipcData || conflictEvents.length || 
+                        diseaseData.length || heatData || unhcrData.length ||
+                        nasaEvents.length || reliefwebEvents.length;
+    if (!hasLiveData) {
+      // No live data — minimal score with warning
+      dims = { conflict: 15, displacement: 15, food: 15, health: 15, 
+               economic: 15, climate: 15, access: 15, political: 15 };
+      evidence.push('⏳ No live data available — check API connectivity');
+    }
+    // If we have some data but no components, score from dims directly
+  }
+
+  // Apply dimension caps and compute weighted score
+  for (const key of Object.keys(dims)) {
+    dims[key] = Math.min(99, Math.max(5, Math.round(dims[key] || 15)));
+  }
+
+  // Weighted average of evidence components
+  let weightedTotal = 0;
+  let totalWeight = 0;
+  if (scoreComponents.length > 0) {
+    for (const comp of scoreComponents) {
+      weightedTotal += comp.value * comp.weight;
+      totalWeight += comp.weight;
+    }
+    // Normalize
+    if (totalWeight > 0) {
+      weightedTotal = weightedTotal / totalWeight;
+    }
+  } else {
+    // Fallback: average of dims
+    const dimValues = Object.values(dims);
+    weightedTotal = dimValues.reduce((a, b) => a + b, 0) / dimValues.length;
+  }
+
+  // Apply interaction bonuses (synergy penalties)
+  let interactionBonus = 0;
+  if (dims.conflict >= 60 && dims.displacement >= 60) {
+    interactionBonus += 4;
+    evidence.push('⚡ Conflict-displacement feedback loop');
+  }
+  if (dims.food >= 60 && dims.health >= 50) {
+    interactionBonus += 3;
+    evidence.push('⚡ Food-health crisis coupling');
+  }
+  if (dims.climate >= 60 && dims.food >= 50) {
+    interactionBonus += 2;
+    evidence.push('⚡ Climate-driven food insecurity');
+  }
+
+  // Final score (0-99)
+  let finalScore = Math.min(99, Math.max(5, Math.round(weightedTotal + interactionBonus)));
   
-  // ── BUILD STORE FROM EVIDENCE ──────────────────────────────────────────
-  const liveContext = {
-    conflictEvents, ipcClassifications, heatStressData, diseaseOutbreaks,
-    gdelt_processed: gdeltEvents, reliefweb_events: reliefEvents,
-    wfp_hunger_map: wfpData, unhcr_population: unhcrPopulation,
-    usgs_weekly: apiResults.usgs_weekly, nasa_eonet: apiResults.nasa_eonet,
-    wb_inflation: apiResults.wb_inflation, wb_poverty: apiResults.wb_poverty,
-    imf_growth_map: apiResults.imf_growth_map, who_rss: apiResults.who_rss
+  // Events: derived from evidence count and score
+  const evidenceEvents = Math.min(30, Math.floor(evidence.length * 2.5));
+  const scoreEvents = Math.min(40, Math.floor(finalScore / 4));
+  const events = Math.min(90, Math.max(4, evidenceEvents + scoreEvents));
+
+  // ─── STORE ──────────────────────────────────────────────────────────────────
+  newStore[iso] = {
+    name,
+    flag,
+    types,
+    needs,
+    dims,
+    score: finalScore,
+    events: events,
+    spillover: 0,
+    _evidence: evidence.slice(0, 10),
+    _evidenceCount: evidence.length,
+    _isLiveScored: evidence.length > 0
   };
   
-  let newStore = {};
-  let allEvidence = {};
-  for (let iso of Object.keys(BASE_SCORES)) {
-    const result = computeEvidenceScore(iso, liveContext);
-    const types = CTYPES[iso] || DEFAULT_T;
-    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-    // Events: evidence-derived + base
-    const evidenceCount = result.evidence?.length || 0;
-    const baseEvents = Math.floor(10 + result.score / 14);
-    const events = Math.min(60, Math.max(4, baseEvents + Math.floor(evidenceCount * 0.5)));
-    
-    newStore[iso] = {
-      name: NAMES[iso] || iso,
-      flag: FLAGS[iso] || '🌍',
-      types,
-      needs,
-      dims: result.dims,
-      score: result.score,
-      events,
-      spillover: 0,
-      _evidence: result.evidence || []
-    };
-    allEvidence[iso] = result.evidence || [];
-  }
-  
-  // ── STORE EVIDENCE GLOBALLY FOR PANEL DISPLAY ──────────────────────────
-  window._evidenceMap = allEvidence;
+  evidenceMap[iso] = evidence.slice(0, 10);
+}
+
+// Store evidence map globally
+window._evidenceMap = evidenceMap;
   const spill=spilloverScore(newStore);
   for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
   store=newStore;
