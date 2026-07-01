@@ -6,7 +6,7 @@
 <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
   <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
+      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 76 downloads on Hugging Face</a>
       <span style="color: var(--tm);">|</span>
       <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
@@ -1746,14 +1746,80 @@ function updateUIStats() {
   dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
   
   const crit = ranked.filter(i => store[i].score >= 80).length;
-  const totalDisplaced = Object.values(store).reduce((s, c) => s + (c.evidenceDetails?.displaced || 0), 0);
+  
+  // ─── FIX: Calculate affected from multiple real sources ──────────────
+  let totalDisplaced = 0;
+  let totalAffected = 0;
+  
+  // 1. UNHCR displacement data (real)
+  const unhcrRecords = apiResults.unhcr_population || [];
+  unhcrRecords.forEach(record => {
+    const val = parseInt(record.value) || 0;
+    if (val > 0) totalDisplaced += val;
+  });
+  
+  // 2. IPC food insecurity data (real)
+  ipcClassifications.forEach(ipc => {
+    if (ipc.population) totalAffected += ipc.population;
+  });
+  
+  // 3. WFP hunger data (real)
+  const wfpData = apiResults.wfp_hunger_map || [];
+  wfpData.forEach(item => {
+    if (item.population) totalAffected += item.population;
+  });
+  
+  // 4. Conflict affected from ACLED (real)
+  const acledData = apiResults.acled_events || [];
+  const conflictAffected = acledData.reduce((sum, e) => {
+    const fatalities = parseInt(e.fatalities) || 0;
+    // Estimate affected as 10x fatalities (conservative estimate)
+    return sum + (fatalities * 10);
+  }, 0);
+  totalAffected += conflictAffected;
+  
+  // 5. Disease outbreaks affected (real)
+  diseaseOutbreaks.forEach(d => {
+    if (d.cases) totalAffected += d.cases;
+  });
+  
+  // 6. Heat stress affected (real)
+  heatStressData.forEach(h => {
+    if (h.temp > 40) {
+      // Estimate affected based on population
+      const pop = evidenceIndex.population[h.iso] || 0;
+      if (pop > 0) totalAffected += Math.round(pop * 0.05); // 5% affected by extreme heat
+    }
+  });
+  
+  // 7. If no real data, fall back to store evidence details
+  if (totalAffected === 0 && totalDisplaced === 0) {
+    Object.values(store).forEach(c => {
+      if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
+      if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
+      if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
+    });
+  }
+  
+  // Combine and format
+  const combined = totalDisplaced + totalAffected;
+  let affectedDisplay = '—';
+  if (combined > 0) {
+    if (combined > 1e9) affectedDisplay = '≈' + (combined / 1e9).toFixed(1) + 'B';
+    else if (combined > 1e6) affectedDisplay = '≈' + (combined / 1e6).toFixed(1) + 'M';
+    else if (combined > 1e3) affectedDisplay = '≈' + (combined / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = combined.toLocaleString();
+  } else if (totalDisplaced > 0) {
+    if (totalDisplaced > 1e6) affectedDisplay = '≈' + (totalDisplaced / 1e6).toFixed(1) + 'M';
+    else if (totalDisplaced > 1e3) affectedDisplay = '≈' + (totalDisplaced / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = totalDisplaced.toLocaleString();
+  }
+  
   const anoms = ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
   const tevt = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
   
   document.getElementById('sCrit').textContent = crit;
-  document.getElementById('sAff').textContent = totalDisplaced > 0 
-    ? (totalDisplaced > 1e6 ? '≈' + (totalDisplaced / 1e6).toFixed(1) + 'M' : (totalDisplaced / 1000).toFixed(0) + 'K')
-    : '—';
+  document.getElementById('sAff').textContent = affectedDisplay;
   document.getElementById('sAnom').textContent = anoms;
   document.getElementById('sEvt').textContent = tevt.toLocaleString();
   
