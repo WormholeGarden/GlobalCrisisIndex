@@ -2918,6 +2918,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div id="inlinTimelineSlot"></div>
     </div>
 
+    
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -3307,7 +3308,69 @@ function buildUrgencyNarrative(iso, crisisType) {
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
 
-  // ── 0. FETCH WIKIPEDIA SENTENCES ──────────────────────────────────────
+  // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+    // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+  let countryIntro = '';
+  
+  function fetchExtractIntro(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&exintro=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  // Get country intro (first 2-3 sentences)
+  const introExtract = fetchExtractIntro(name);
+  if (introExtract && introExtract.length > 50) {
+    // Clean up the text first
+    let cleanText = introExtract
+      .replace(/\s+/g, ' ')                    // Normalize whitespace
+      .replace(/\([^)]*\)/g, '')                // Remove anything in parentheses (like "()" or "(country)")
+      .replace(/\s+,\s*/g, ', ')                // Fix "word , word" → "word, word"
+      .replace(/\s+\./g, '.')                   // Fix "word ." → "word."
+      .replace(/\s{2,}/g, ' ')                  // Remove any double spaces
+      .trim();
+    
+    // Split into sentences
+    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+    
+    // Take first 2-3 sentences (min 2, max 3)
+    let introText = sentences.slice(0, 3).join(' ');
+    
+    // Only truncate if it's REALLY long (keep full sentences)
+    if (introText.length > 500) {
+      // Try to find the last complete sentence within 500 chars
+      const truncated = introText.slice(0, 500);
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+      if (lastSentenceEnd > 200) {
+        introText = introText.slice(0, lastSentenceEnd + 1);
+      } else {
+        // If no good sentence boundary, just keep what we have
+        introText = truncated.trim();
+      }
+    }
+    
+    countryIntro = introText;
+  }
+
+  // ── 1. FETCH WIKIPEDIA SENTENCES (EXISTING CODE - UNCHANGED) ──────────
   let wikipediaPrefix = '';
   
   function fetchExtract(pageTitle) {
@@ -3555,14 +3618,18 @@ searchTerms = [...new Set(searchTerms)];
   const spillPhrase = highNeighbours.length >= 2
     ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')} adds +${(c.spillover || 0).toFixed(1)}.`
     : '';
-
   // ── 6. ASSEMBLE ──────────────────────────────────────────────────────
   const parts = [];
 
+  // ── ADD COUNTRY INTRO FIRST ──────────────────────────────────────────
+  if (countryIntro && countryIntro.length > 20) {
+    parts.push(`📖 ${countryIntro}`);
+  }
+
+  // ── THEN ADD EXISTING WIKIPEDIA CRISIS CONTEXT ──────────────────────
   if (wikipediaPrefix && wikipediaPrefix.length > 20) {
     parts.push(wikipediaPrefix);
   }
-
   parts.push(`${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries.`);
 parts.push(`Driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100),`);
 parts.push(`${name}’s score has ${trendPhrase}.`);
