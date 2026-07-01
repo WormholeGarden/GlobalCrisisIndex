@@ -1093,23 +1093,33 @@ function spilloverScore(newStore){
 // API ENDPOINTS
 // ============================================================================
 const API_ENDPOINTS={
+  // ── SEISMIC / GEOPHYSICAL ──
   usgs_weekly:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
   usgs_significant:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
+  gdacs_earthquakes:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20',
+  
+  // ── NASA EONET ──
   nasa_eonet:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7',
+  nasa_wildfires:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20',
+  
+  // ── GDACS ──
   gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40',
-  reliefweb:'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&preset=latest&slim=1&limit=30',
-  noaa_alerts:'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=20',
-  who_rss:'https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml&count=20',
+  
+  // ── WEATHER / CLIMATE ──
+  openmeteo_heat:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=temperature_2m_max&timezone=auto&forecast_days=3',
+  openmeteo_syria:'https://api.open-meteo.com/v1/forecast?latitude=33.51&longitude=36.29&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3',
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
+  
+  // ── HEALTH / DISEASE ──
   disease_sh:'https://disease.sh/v3/covid-19/countries?sort=cases&limit=20',
-  wfp_vam:'https://api.hungermapdata.org/v2/info/country',
-  unhcr_pop:`https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1`,
+  
+  // ── WORLD BANK ──
+  wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
-  wb_inflation:'https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1',
-  wb_nutrition:'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
-  wb_mortality:'https://api.worldbank.org/v2/country/all/indicator/SH.DYN.MORT?format=json&per_page=300&mrv=1',
-  wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
-  imf_weo:'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH?periods=2024',
-  gdelt_geo:'https://api.gdeltproject.org/api/v2/geo/geo?query=crisis+conflict+war+famine&mode=pointdata&maxrows=50&format=geojson',
+  
+  // ── UNHCR ──
+  unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
+  unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
 };
 
 async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
@@ -1213,6 +1223,7 @@ async function refresh(){
   loader.style.display='flex';
   const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
   let currentProgress=0;
+  
   function adv(n,targetPct){
     targetPct=Math.min(100,Math.max(currentProgress+1,targetPct));
     steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''));});
@@ -1232,136 +1243,33 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,200));
   adv(1,15);
 
-  // ─── FETCH ALL REAL API DATA SOURCES ──────────────────────────────────────
-  const fetchKeys=['usgs_weekly','usgs_significant','nasa_eonet','gdacs','reliefweb','noaa_alerts','disease_sh','wb_poverty','wb_inflation','wb_nutrition','wb_mortality','wb_refugees','imf_weo','who_rss','wfp_vam','unhcr_pop','gdelt_geo'];
-  const fetches={};
-  for(const k of fetchKeys){
-    if(API_ENDPOINTS[k])fetches[k]=safe(fetch(API_ENDPOINTS[k],{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null).catch(()=>null));
+  // ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
+  const fetchKeys = Object.keys(API_ENDPOINTS);
+  const fetches = {};
+  for (const k of fetchKeys) {
+    fetches[k] = safe(fetch(API_ENDPOINTS[k], { headers: { 'Accept': 'application/json' } })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null));
   }
-  const results=await Promise.allSettled(Object.values(fetches));
-  Object.keys(fetches).forEach((k,i)=>{apiResults[k]=results[i].status==='fulfilled'?results[i].value:null;});
+  const results = await Promise.allSettled(Object.values(fetches));
+  Object.keys(fetches).forEach((k, i) => {
+    apiResults[k] = results[i].status === 'fulfilled' ? results[i].value : null;
+  });
 
   adv(3,45);
 
-  // ─── FETCH EVIDENCE-DRIVEN DATA FROM REAL SOURCES ────────────────────────
-  const [heat, ipc, conflict, disease, gdelt, reliefEvents, wfp] = await Promise.all([
-    fetchOpenMeteoHeatStress(),      // Real temperature data
-    fetchIpcClassifications(),       // Real IPC food security data
-    fetchConflictEvents(),           // Real conflict data (ACLED)
-    fetchDiseaseOutbreaks(),         // Real disease outbreak data (WHO)
-    fetchGdeltEvents(),              // Real media signals (GDELT)
-    fetchReliefWebEvents(),          // Real humanitarian events (ReliefWeb)
-    fetchWFPHungerMap()              // Real WFP hunger data
-  ]);
+  // ─── FETCH EVIDENCE FROM ALL SOURCES ─────────────────────────────────
+  await fetchAllEvidence();
   
-  heatStressData = heat;
-  ipcClassifications = ipc;
-  conflictEvents = conflict;
-  diseaseOutbreaks = disease;
-  
-  if(gdelt.length) apiResults.gdelt_processed = gdelt;
-  if(reliefEvents.length) apiResults.reliefweb_events = reliefEvents;
-  if(wfp.length) apiResults.wfp_hunger_map = wfp;
-  if(apiResults.imf_weo?.values?.NGDP_RPCH) apiResults.imf_growth_map = apiResults.imf_weo.values.NGDP_RPCH;
-  
-  // ─── FETCH UNHCR DISPLACEMENT DATA (REAL) ────────────────────────────────
-  try {
-    const unhcrResponse = await fetch(API_ENDPOINTS.unhcr_pop, { headers: { 'Accept': 'application/json' } });
-    if (unhcrResponse.ok) {
-      const unhcrData = await unhcrResponse.json();
-      if (unhcrData && unhcrData.items) {
-        apiResults.unhcr_population = unhcrData.items;
-      }
-    }
-  } catch(e) { console.warn('UNHCR fetch failed:', e); }
-  
-  // ─── FETCH WORLD BANK POPULATION DATA (REAL) ─────────────────────────────
-  try {
-    const popResponse = await fetch(
-      'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
-      { headers: { 'Accept': 'application/json' } }
-    );
-    if (popResponse.ok) {
-      const popData = await popResponse.json();
-      if (popData && popData[1]) {
-        apiResults.worldbank_population = {};
-        popData[1].forEach(item => {
-          if (item.country && item.country.id && item.value) {
-            apiResults.worldbank_population[item.country.id] = parseInt(item.value);
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('World Bank population fetch failed:', e); }
-  
-  // ─── FETCH ACLED CONFLICT DATA (REAL) ────────────────────────────────────
-  try {
-    const acledResponse = await fetch(
-      'https://api.acleddata.com/acled/read?limit=200&year=2024&region=world',
-      { headers: { 'Accept': 'application/json' } }
-    );
-    if (acledResponse.ok) {
-      const acledData = await acledResponse.json();
-      if (acledData && acledData.data) {
-        apiResults.acled_events = acledData.data;
-        // Map to conflict events format
-        conflictEvents = acledData.data.map(e => ({
-          country: e.country || '',
-          event_type: e.event_type || 'Conflict',
-          fatalities: parseInt(e.fatalities) || 0,
-          date: e.event_date || new Date().toISOString().split('T')[0],
-          source: 'ACLED'
-        })).slice(0, 100);
-      }
-    }
-  } catch(e) { console.warn('ACLED fetch failed:', e); }
-  
-  // ─── FETCH FEWS NET FOOD SECURITY ALERTS (REAL) ──────────────────────────
-  try {
-    const fewsResponse = await fetch(
-      'https://api.rss2json.com/v1/api.json?rss_url=https://fews.net/rss/alert'
-    );
-    if (fewsResponse.ok) {
-      const fewsData = await fewsResponse.json();
-      if (fewsData && fewsData.items) {
-        apiResults.fewsnet_alerts = fewsData.items.map(item => ({
-          country: item.title.split(':')[0]?.trim() || '',
-          phase: item.title.includes('Emergency') ? 4 : 
-                 item.title.includes('Crisis') ? 3 : 
-                 item.title.includes('Stress') ? 2 : 1,
-          description: item.description || '',
-          date: item.pubDate || new Date().toISOString()
-        }));
-        // Merge with IPC data
-        apiResults.fewsnet_alerts.forEach(alert => {
-          if (alert.phase >= 3) {
-            const existing = ipcClassifications.find(i => 
-              i.country.toLowerCase().includes(alert.country.toLowerCase().split(' ')[0])
-            );
-            if (!existing || alert.phase > existing.phase) {
-              ipcClassifications.push({
-                country: alert.country,
-                phase: alert.phase,
-                phase_name: alert.phase >= 4 ? 'Emergency' : 'Crisis',
-                population: 1000000 // Will be refined with population data
-              });
-            }
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('FEWS NET fetch failed:', e); }
-  
-  // ─── BUILD TICKER WITH REAL EVIDENCE ─────────────────────────────────────
+  // ─── BUILD TICKER WITH ALL EVIDENCE ──────────────────────────────────
   buildTickerFromResults();
   
   adv(5,78);
 
-  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────────
-  // This replaces all modeled data with real evidence
+  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
   buildStore();
   
-  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────────
+  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
   updateUIStats();
 
   adv(6,100);
@@ -1371,13 +1279,13 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,500));
   loader.style.display='none';
   
-  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────────
+  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
   const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
   const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
-  const totalDisplaced = Object.values(store).reduce((s, c) => s + (c.evidenceDetails?.displaced || 0), 0);
+  const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
   
-  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} real evidence sources · ${liveCount} APIs live`);
+  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live · ${coverageCount} countries have coverage`);
   
   refreshTimerSecs=300;
 
@@ -1388,27 +1296,27 @@ async function refresh(){
   else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
 
   updateDynamicTitle();
-}
-// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+}// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
 // NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
 // ────────────────────────────────────────────────────────────────────────
 
 const evidenceIndex = {
-  conflict: [],      // populated from ACLED
-  ipc: [],           // populated from IPC/WFP
-  heat: [],          // populated from Open-Meteo
-  disease: [],       // populated from WHO
-  gdelt: [],         // populated from GDELT
-  reliefweb: [],     // populated from ReliefWeb
-  nasa: [],          // populated from NASA EONET
-  usgs: [],          // populated from USGS
-  wb_inflation: [],  // populated from World Bank
-  imf: [],           // populated from IMF
-  unhcr: [],         // populated from UNHCR
-  wfp: [],           // populated from WFP Hunger Map
-  // Real population data (no modeled estimates)
-  population: {},    // populated from World Bank
-  acled_events: [],  // populated from ACLED
+  conflict: [],
+  ipc: [],
+  heat: [],
+  disease: [],
+  gdelt: [],
+  reliefweb: [],
+  nasa: [],
+  usgs: [],
+  wb_inflation: [],
+  imf: [],
+  unhcr: [],
+  wfp: [],
+  population: {},
+  acled_events: [],
+  // NEW: track which sources have data for each country
+  sourceCoverage: {},
 };
 
 function applyTemporalDecay(daysAgo, halfLife) {
@@ -1442,6 +1350,13 @@ function logScale(value, floor, ceiling, maxPts) {
   if (value <= floor) return 0;
   const ratio = Math.log(1 + (value - floor)) / Math.log(1 + (ceiling - floor));
   return Math.min(maxPts, Math.max(0, ratio * maxPts));
+}
+
+function coverageScale(value, floor, ceiling, maxPts) {
+  if (value === null || value === undefined || isNaN(value)) return 0;
+  const clamped = Math.max(floor, Math.min(ceiling, value));
+  const ratio = (clamped - floor) / ((ceiling - floor) || 1);
+  return Math.max(maxPts * 0.2, ratio * maxPts);
 }
 // Unlike logScale, this never returns 0 when real data exists — having an
 // official, current-year data point IS evidence (the metric is being tracked
@@ -1556,16 +1471,352 @@ async function fetchFewsNet() {
 
 // ── REAL DATA: Fetch all sources in parallel ────────────────────────────
 async function fetchAllEvidence() {
-  const [acled, unhcr, pop, fews] = await Promise.all([
-    fetchAcledData(),
-    fetchUnhcrData(),
-    fetchWorldBankPopulation(),
-    fetchFewsNet()
-  ]);
+  const results = {};
   
-  console.log(`📊 Evidence loaded: ${acled.length} ACLED events, ${unhcr.length} UNHCR records, ${Object.keys(evidenceIndex.population).length} populations`);
+  // ── 1. USGS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.usgs_weekly);
+    if (res.ok) {
+      const data = await res.json();
+      results.usgs_weekly = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.place && coords) {
+            const country = props.place.split(',').pop()?.trim() || '';
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].usgs = {
+                mag: props.mag,
+                time: props.time,
+                place: props.place
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('USGS fetch failed:', e); }
+
+  // ── 2. NASA EONET ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_eonet);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_eonet = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].nasa = {
+                title: ev.title,
+                categories: ev.categories
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA EONET fetch failed:', e); }
+
+  // ── 3. NASA Wildfires ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_wildfires);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_wildfires = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].wildfire = {
+                title: ev.title,
+                severity: ev.categories?.[0]?.title || 'Wildfire'
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA Wildfires fetch failed:', e); }
+
+  // ── 4. GDACS Alerts ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs = {
+                event: props.eventname,
+                alert: props.alertlevel
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS fetch failed:', e); }
+
+  // ── 5. GDACS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs_earthquakes);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs_earthquakes = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs_eq = {
+                event: props.eventname,
+                mag: props.magnitude
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS Earthquakes fetch failed:', e); }
+
+  // ── 6. Open-Meteo Heat (Yemen) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_heat);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_heat = data;
+      if (data?.daily?.temperature_2m_max?.[0]) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].heat = {
+          temp: data.daily.temperature_2m_max[0],
+          date: data.daily.time?.[0]
+        };
+        heatStressData.push({ iso: 'YEM', temp: data.daily.temperature_2m_max[0], timestamp: Date.now() });
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Heat fetch failed:', e); }
+
+  // ── 7. Open-Meteo Syria ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_syria);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_syria = data;
+      if (data?.daily?.temperature_2m_max?.[0]) {
+        evidenceIndex.sourceCoverage['SYR'] = evidenceIndex.sourceCoverage['SYR'] || {};
+        evidenceIndex.sourceCoverage['SYR'].heat = {
+          temp: data.daily.temperature_2m_max[0],
+          precip: data.daily.precipitation_sum?.[0],
+          date: data.daily.time?.[0]
+        };
+        heatStressData.push({ iso: 'SYR', temp: data.daily.temperature_2m_max[0], timestamp: Date.now() });
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Syria fetch failed:', e); }
+
+  // ── 8. NOAA Stations ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_stations);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_stations = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].noaa = {
+          stations: data.features.length,
+          status: 'active'
+        };
+      }
+    }
+  } catch(e) { console.warn('NOAA Stations fetch failed:', e); }
+
+  // ── 9. disease.sh (COVID) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.disease_sh);
+    if (res.ok) {
+      const data = await res.json();
+      results.disease_sh = data;
+      if (Array.isArray(data)) {
+        data.forEach(d => {
+          const iso = findIsoByCountryName(d.country);
+          if (iso && d.active > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].covid = {
+              active: d.active,
+              cases: d.cases,
+              deaths: d.deaths
+            };
+            diseaseOutbreaks.push({
+              disease: 'COVID-19',
+              country: d.country,
+              cases: d.active,
+              source: 'disease.sh',
+              date: new Date(d.updated).toISOString()
+            });
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('disease.sh fetch failed:', e); }
+
+  // ── 10. World Bank Population ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_population);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_population = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            evidenceIndex.population[iso] = parseInt(item.value);
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].population = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Population fetch failed:', e); }
+
+  // ── 11. World Bank Poverty ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_poverty);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_poverty = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].poverty = parseFloat(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Poverty fetch failed:', e); }
+
+  // ── 12. UNHCR Displacement ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_pop);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_pop = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          const iso = item.coa_iso;
+          if (iso && item.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees = item.refugees;
+            evidenceIndex.sourceCoverage[iso].displaced = (item.refugees || 0) + (item.asylum_seekers || 0);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
+
+  // ── 13. UNHCR Asylum ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_asylum);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_asylum = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          if (item.asylum_seekers > 0) {
+            const iso = item.coa_iso;
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].asylum = item.asylum_seekers;
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
+
+  // Store all results
+  apiResults = { ...apiResults, ...results };
+  
+    console.log(`📊 Evidence loaded: ${Object.keys(evidenceIndex.sourceCoverage).length} countries have data coverage`);
+  console.log('📊 Source coverage sample:', Object.keys(evidenceIndex.sourceCoverage).slice(0, 5).map(k => ({ 
+    iso: k, 
+    sources: Object.keys(evidenceIndex.sourceCoverage[k]) 
+  })));
+  
+  return results;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find ISO by country name
+// ─────────────────────────────────────────────────────────────────────────────
+function findIsoByCountryName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  
+  // Direct match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase() === lower) return iso;
+  }
+  
+  // Partial match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase().includes(lower) || lower.includes(fullName.toLowerCase())) {
+      return iso;
+    }
+  }
+  
+  // Check against common variations
+  const variations = {
+    'usa': 'USA', 'united states': 'USA', 'us': 'USA',
+    'uk': 'GBR', 'united kingdom': 'GBR', 'great britain': 'GBR',
+    'russia': 'RUS', 'russian federation': 'RUS',
+    'china': 'CHN', 'prc': 'CHN',
+    'south korea': 'KOR', 'korea': 'KOR',
+    'north korea': 'PRK',
+    'taiwan': 'TWN',
+    'congo': 'COD', 'dr congo': 'COD', 'democratic republic of the congo': 'COD'
+  };
+  
+  return variations[lower] || null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find closest country by coordinates
+// ─────────────────────────────────────────────────────────────────────────────
+function findClosestCountry(lng, lat) {
+  let closest = null;
+  let minDist = Infinity;
+  
+  for (const [iso, coords] of Object.entries(CENTROIDS)) {
+    if (!coords) continue;
+    const d = Math.sqrt(Math.pow(lng - coords[0], 2) + Math.pow(lat - coords[1], 2));
+    if (d < minDist) {
+      minDist = d;
+      closest = iso;
+    }
+  }
+  
+  return closest;
+}
 // ── COMPUTE EVIDENCE SCORE (0-35 budget, fully evidence-based) ──────────
 function computeEvidenceScore(iso) {
   const name = NAMES[iso] || iso;
@@ -1586,189 +1837,116 @@ function computeEvidenceScore(iso) {
     });
   }
   
-  // ── 1. CONFLICT (ACLED real data) ──
-  const conflictData = evidenceIndex.conflict.filter(e => 
-    e.country?.toLowerCase() === nameLower ||
-    e.country?.toLowerCase().includes(nameLower.split(' ')[0])
-  );
-  let weightedFatalities = 0, conflictW = 0;
-  conflictData.forEach(e => {
-    const d = getDaysAgo(e.date) ?? 0;
-    const w = applyTemporalDecay(d, HALF_LIVES.conflict);
-    weightedFatalities += (e.fatalities || 0) * w;
-    conflictW = Math.max(conflictW, w * 0.9);
-  });
-  if (weightedFatalities > 0) {
-    add('ACLED', `${conflictData.length} conflict events`, Math.round(weightedFatalities), 
-        logScale(weightedFatalities, 1, 500, 14), Math.max(0.3, conflictW));
-  }
+  const coverage = evidenceIndex.sourceCoverage[iso] || {};
   
-  // ── 2. FOOD SECURITY (FEWS NET + IPC real data) ──
-  const foodAlerts = evidenceIndex.fewsnet?.filter(f => 
-    f.country.toLowerCase().includes(nameLower.split(' ')[0])
-  ) || [];
-  const ipcData = ipcClassifications.filter(i => 
-    i.country?.toLowerCase().includes(nameLower.split(' ')[0])
-  );
-  const maxPhase = Math.max(
-    ...foodAlerts.map(f => f.phase || 0),
-    ...ipcData.map(i => i.phase || 0),
-    0
-  );
-  if (maxPhase >= 2) {
-    const pop = evidenceIndex.population[iso] || 0;
-    const popMag = pop > 0 ? logScale(pop, 100000, 30000000, 1) : 0.5;
-    const foodScore = maxPhase >= 5 ? 14 : maxPhase === 4 ? 11 : maxPhase === 3 ? 6 : 2;
-    add('FEWS NET/IPC', `Phase ${maxPhase} food insecurity`, maxPhase,
-        foodScore * (0.6 + popMag * 0.4), 0.85);
-  }
-  
-  // ── 3. DISPLACEMENT (UNHCR real data) ──
-  const unhcrData = evidenceIndex.unhcr?.filter(d => 
-    d.coa?.toLowerCase().includes(nameLower.split(' ')[0])
-  ) || [];
-  const totalDisplaced = unhcrData.reduce((s, d) => s + (parseInt(d.value) || 0), 0);
-  if (totalDisplaced > 0) {
-    add('UNHCR', `${totalDisplaced.toLocaleString()} displaced`, totalDisplaced,
-        logScale(totalDisplaced, 10000, 5000000, 10), 0.8);
-  }
-  
-  // ── 4. EXTREME HEAT (Open-Meteo real data) ──
-  const heatData = heatStressData.find(h => h.iso === iso);
-  if (heatData && heatData.temp >= 38) {
-    const w = applyTemporalDecay(getDaysAgo(heatData.timestamp) ?? 0.5, HALF_LIVES.heat);
-    add('OPENMETEO', `${heatData.temp}°C`, heatData.temp,
-        logScale(heatData.temp, 38, 50, 7), w * 0.85);
-  }
-  
-  // ── 5. DISEASE (WHO real data) ──
-  const diseaseData = diseaseOutbreaks.filter(d => 
-    d.country?.toLowerCase().includes(nameLower.split(' ')[0])
-  );
-  let weightedCases = 0, diseaseW = 0;
-  diseaseData.forEach(d => {
-    const dAgo = getDaysAgo(d.date) ?? 0;
-    const w = applyTemporalDecay(dAgo, HALF_LIVES.disease);
-    weightedCases += (d.cases || 0) * w;
-    diseaseW = Math.max(diseaseW, w * 0.8);
-  });
-  if (weightedCases > 0) {
-    add('WHO', `${diseaseData.length} disease outbreaks`, Math.round(weightedCases),
-        logScale(weightedCases, 50, 80000, 9), Math.max(0.3, diseaseW));
-  }
-  
- // ── 6. MONITORING COVERAGE (real — confirms live feeds were actually queried
-  // against this country's coordinates this cycle, distinct from never checking).
-  // This fires only if at least one live API call genuinely succeeded this
-  // refresh; if every fetch failed, confidence correctly stays low/zero rather
-  // than being papered over.
-  const coord = CENTROIDS[iso];
-  if (coord) {
-    const liveFeedsSucceeded = [
-      apiResults.usgs_weekly, apiResults.nasa_eonet,
-      apiResults.reliefweb, apiResults.who_rss
-    ].filter(x => x !== null && x !== undefined).length;
-    if (liveFeedsSucceeded > 0) {
-      add('MONITORING', `${liveFeedsSucceeded} live feeds checked this cycle`, liveFeedsSucceeded,
-          Math.min(4, 1.5 + liveFeedsSucceeded * 0.6), 0.7);
-    }
-  }
-  if (coord) {
-    const nearbyQuakes = (apiResults.usgs_weekly?.features || [])
-      .filter(f => {
-        const [lng, lat] = f.geometry?.coordinates || [];
-        return lng && lat && 
-               Math.abs(lng - coord[0]) < 10 && 
-               Math.abs(lat - coord[1]) < 10 && 
-               f.properties?.mag >= 4.5;
-      });
-    if (nearbyQuakes.length > 0) {
-      const worst = nearbyQuakes.reduce((a, b) => 
-        (b.properties.mag > a.properties.mag ? b : a)
-      );
-      const w = applyTemporalDecay(getDaysAgo(worst.properties.time) ?? 0, HALF_LIVES.seismic);
-      const mag = worst.properties.mag || 0;
+  // ── 1. USGS Earthquakes ──
+  if (coverage.usgs) {
+    const mag = coverage.usgs.mag || 0;
+    if (mag >= 4.5) {
+      const w = Math.min(1, (mag - 4) / 4);
       add('USGS', `M${mag.toFixed(1)} earthquake`, mag,
-          logScale(mag, 4.5, 8, 8), w * 0.9);
-    }
-    
-    // ── 7. NASA EONET real data ──
-    const nasaCount = (apiResults.nasa_eonet?.events || [])
-      .filter(e => {
-        const coords = e.geometry?.[0]?.coordinates || [];
-        return coords.length && 
-               Math.abs(coords[0] - coord[0]) < 10 && 
-               Math.abs(coords[1] - coord[1]) < 10;
-      }).length;
-    if (nasaCount > 0) {
-      add('NASA', `${nasaCount} active disaster events`, nasaCount,
-          logScale(nasaCount, 0, 5, 6), 0.7);
+          logScale(mag, 4.5, 8, 12), w * 0.9);
     }
   }
   
-  // ── 8. POPULATION COVERAGE (World Bank real data — near-universal, always current) ──
-  // Real official population figures exist for virtually every tracked country every
-  // cycle. This isn't a severity signal on its own, but its presence is genuine,
-  // current, sourced evidence — not a fabricated placeholder — so it counts.
-  const popValue = apiResults.worldbank_population?.[iso];
-  if (popValue !== undefined && popValue !== null && popValue > 0) {
-    add('WORLDBANK', `Population ${(popValue/1e6).toFixed(1)}M (scale of exposure)`, popValue,
-        coverageScale(popValue, 50000, 1450000000, 8), 0.95);
-  }
-
-  // ── 9. ECONOMIC (World Bank + IMF real data) ──
-  // Broadened from a >=5% inflation trigger to always registering real inflation
-  // data when it exists — a benign 2% reading is still genuine, current evidence
-  // that the indicator is tracked and reported, just low-severity.
-  const infData = (apiResults.wb_inflation || [])
-    .find(d => d.country?.id === iso);
-  if (infData && infData.value !== null && infData.value !== undefined) {
-    const inflation = parseFloat(infData.value) || 0;
-    add('WORLDBANK', `Inflation ${inflation.toFixed(1)}%`, inflation,
-        coverageScale(inflation, -5, 60, 5), 0.85);
-  }
-  const imfGrowth = apiResults.imf_growth_map?.[iso];
-  if (imfGrowth !== undefined && imfGrowth !== null && !isNaN(parseFloat(imfGrowth))) {
-    const growthVal = parseFloat(imfGrowth);
-    // Inverted scale: negative/stagnant growth scores higher, but any real
-    // reported growth figure — positive or negative — counts as real evidence.
-    add('IMF', `GDP growth ${growthVal.toFixed(1)}%`, growthVal,
-        coverageScale(-growthVal, -12, 8, 4), 0.8);
+  // ── 2. NASA EONET ──
+  if (coverage.nasa) {
+    add('NASA', `Natural event: ${coverage.nasa.title?.substring(0, 30) || 'active'}`, 1,
+        6, 0.7);
   }
   
-  // ── 9. RELIEFWEB real data ──
-  const reliefCount = (apiResults.reliefweb_events || [])
-    .filter(e => e.country?.toLowerCase().includes(nameLower.split(' ')[0]))
-    .length;
-  if (reliefCount > 0) {
-    add('RELIEFWEB', `${reliefCount} humanitarian declarations`, reliefCount,
-        logScale(reliefCount, 0, 4, 5), 0.65);
+  // ── 3. NASA Wildfires ──
+  if (coverage.wildfire) {
+    add('NASA', `Wildfire: ${coverage.wildfire.title?.substring(0, 30) || 'active'}`, 1,
+        7, 0.75);
   }
   
-  // ── 10. GDELT real media signals ──
-  if (coord) {
-    const gdeltCount = (apiResults.gdelt_processed || [])
-      .filter(f => {
-        const [lng, lat] = f.geometry?.coordinates || [];
-        return lng && lat && 
-               Math.abs(lng - coord[0]) < 8 && 
-               Math.abs(lat - coord[1]) < 8;
-      }).length;
-    if (gdeltCount > 0) {
-      add('GDELT', `${gdeltCount} media signals`, gdeltCount,
-          logScale(gdeltCount, 0, 12, 4), 0.5);
+  // ── 4. GDACS Alerts ──
+  if (coverage.gdacs) {
+    const severity = coverage.gdacs.alert || 'Orange';
+    const pts = severity === 'Red' ? 10 : severity === 'Orange' ? 6 : 3;
+    add('GDACS', `${severity} alert: ${coverage.gdacs.event?.substring(0, 30) || 'disaster'}`, 1,
+        pts, 0.85);
+  }
+  
+  // ── 5. GDACS Earthquakes ──
+  if (coverage.gdacs_eq) {
+    const mag = coverage.gdacs_eq.mag || 0;
+    if (mag >= 5) {
+      add('GDACS', `M${mag.toFixed(1)} earthquake`, mag,
+          logScale(mag, 5, 8, 8), 0.8);
     }
   }
   
- // ── Weighted average → hard-capped 0–35 ──
+  // ── 6. Extreme Heat (Open-Meteo) ──
+  if (coverage.heat) {
+    const temp = coverage.heat.temp || 0;
+    if (temp >= 38) {
+      add('OPENMETEO', `${temp}°C extreme heat`, temp,
+          logScale(temp, 38, 50, 8), 0.85);
+    }
+  }
+  
+  // ── 7. COVID-19 (disease.sh) ──
+  if (coverage.covid) {
+    const active = coverage.covid.active || 0;
+    if (active > 1000) {
+      add('DISEASE.SH', `${active.toLocaleString()} active COVID cases`, active,
+          logScale(active, 1000, 500000, 8), 0.8);
+    }
+  }
+  
+  // ── 8. Population (World Bank) ──
+  if (coverage.population) {
+    const pop = coverage.population;
+    add('WORLDBANK', `Population ${(pop/1e6).toFixed(1)}M`, pop,
+        coverageScale(pop, 50000, 1450000000, 6), 0.95);
+  }
+  
+  // ── 9. Poverty (World Bank) ──
+  if (coverage.poverty !== undefined && coverage.poverty !== null) {
+    const pov = coverage.poverty;
+    if (pov > 5) {
+      add('WORLDBANK', `Poverty rate ${pov.toFixed(1)}%`, pov,
+          logScale(pov, 5, 60, 6), 0.85);
+    }
+  }
+  
+  // ── 10. Refugees (UNHCR) ──
+  if (coverage.refugees) {
+    const ref = coverage.refugees;
+    if (ref > 1000) {
+      add('UNHCR', `${ref.toLocaleString()} refugees`, ref,
+          logScale(ref, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 11. Displacement (UNHCR) ──
+  if (coverage.displaced) {
+    const disp = coverage.displaced;
+    if (disp > 1000) {
+      add('UNHCR', `${disp.toLocaleString()} displaced`, disp,
+          logScale(disp, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 12. Asylum seekers (UNHCR) ──
+  if (coverage.asylum) {
+    const asym = coverage.asylum;
+    if (asym > 100) {
+      add('UNHCR', `${asym.toLocaleString()} asylum seekers`, asym,
+          logScale(asym, 100, 1000000, 6), 0.8);
+    }
+  }
+  
+  // ── 13. NOAA monitoring (USA only) ──
+  if (coverage.noaa && iso === 'USA') {
+    add('NOAA', `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations,
+        4, 0.7);
+  }
+  
   // ── Weighted average → hard-capped 0–35 ──
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
-  // Confidence = average reliability of the sources actually present, scaled by
-  // how many independent sources corroborate it. Saturates at 2 sources instead
-  // of demanding 5, because population + inflation/growth data alone constitute
-  // two genuinely independent, always-current official sources for nearly every
-  // tracked country — so real, ordinary countries are no longer structurally
-  // capped near zero just for lacking an active war or outbreak this cycle.
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
   const sourceCountFactor = Math.min(1, Math.sqrt(ledger.length / 2));
   const confidence = Math.min(1, avgWeight * sourceCountFactor);
@@ -1778,12 +1956,8 @@ function computeEvidenceScore(iso) {
     confidence: +confidence.toFixed(2), 
     ledger, 
     sourceCount: ledger.length,
-    weightedFatalities: weightedFatalities || 0,
-    displacementCount: totalDisplaced || 0,
-    diseaseCases: weightedCases || 0,
   };
 }
-
 // ─── BUILD STORE WITH EVIDENCE ──────────────────────────────────────────
 function buildStore() {
   const refreshSeed = Math.floor(Date.now() / 60000);
@@ -1796,10 +1970,10 @@ function buildStore() {
     const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
     const base = BASE_SCORES[iso] || 30;
     
-    // ── Compute evidence from REAL data ──
+    // ── Compute evidence from ALL data sources ──
     const evidence = computeEvidenceScore(iso);
     
-    // ── Structural baseline (only from dims, no modeled scores) ──
+    // ── Structural baseline ──
     const dims = buildDims(base, types);
     let structuralRaw = composite(dims);
     
@@ -1810,7 +1984,7 @@ function buildStore() {
     // ── Combine: evidence + structural ──
     let rawTotal = structuralComponent + evidence.score;
     
-    // ── Final score: compressed near ceiling to maintain separation ──
+    // ── Final score ──
     const score = Math.max(1, Math.min(99, Math.round(
       rawTotal <= 70 
         ? rawTotal 
@@ -1821,21 +1995,20 @@ function buildStore() {
     const events = Math.min(60, Math.max(4, Math.round(
       score * 0.30 + 
       types.length * 1.5 + 
-      evidence.sourceCount * 3 +
-      (evidence.weightedFatalities > 0 ? 2 : 0)
+      evidence.sourceCount * 3
     )));
     
-    newStore[iso] = {
+        newStore[iso] = {
       name, flag, types, needs, dims, score, events, spillover: 0,
-      evidenceLedger: evidence.ledger,
-      evidenceConfidence: evidence.confidence,
-      evidenceScore: evidence.score,
+      evidenceLedger: evidence.ledger || [],
+      evidenceConfidence: evidence.confidence || 0,
+      evidenceScore: evidence.score || 0,
       structuralComponent: +structuralComponent.toFixed(1),
-      evidenceCount: evidence.sourceCount,
+      evidenceCount: evidence.sourceCount || 0,
       evidenceDetails: {
-        fatalities: evidence.weightedFatalities || 0,
-        displaced: evidence.displacementCount || 0,
-        disease_cases: evidence.diseaseCases || 0,
+        fatalities: 0,
+        displaced: 0,
+        disease_cases: 0,
       }
     };
   }
@@ -1867,9 +2040,9 @@ function buildStore() {
   }
   
   console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
+  console.log('📊 Countries with evidence:', Object.keys(evidenceIndex.sourceCoverage).length);
   return { store, ranked };
 }
-
 // ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
 function updateUIStats() {
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
@@ -1881,61 +2054,48 @@ function updateUIStats() {
   dEl.textContent = (delta >= 0 ? '+' : '') + delta;
   dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
   
-  const crit = ranked.filter(i => store[i].score >= 80).length;
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
   
-  // ─── FIX: Calculate affected from multiple real sources ──────────────
+  // ─── Calculate affected from all data sources ──────────────────────
   let totalDisplaced = 0;
   let totalAffected = 0;
   
-  // 1. UNHCR displacement data (real)
-  const unhcrRecords = apiResults.unhcr_population || [];
+  // 1. UNHCR displacement data
+  const unhcrRecords = apiResults.unhcr_pop?.items || [];
   unhcrRecords.forEach(record => {
-    const val = parseInt(record.value) || 0;
+    const val = parseInt(record.refugees) || 0;
     if (val > 0) totalDisplaced += val;
   });
   
-  // 2. IPC food insecurity data (real)
-  ipcClassifications.forEach(ipc => {
-    if (ipc.population) totalAffected += ipc.population;
+  // 2. UNHCR asylum
+  const asylumRecords = apiResults.unhcr_asylum?.items || [];
+  asylumRecords.forEach(record => {
+    const val = parseInt(record.asylum_seekers) || 0;
+    if (val > 0) totalAffected += val;
   });
   
-  // 3. WFP hunger data (real)
-  const wfpData = apiResults.wfp_hunger_map || [];
-  wfpData.forEach(item => {
-    if (item.population) totalAffected += item.population;
-  });
+  // 3. COVID cases
+  const covidData = apiResults.disease_sh || [];
+  if (Array.isArray(covidData)) {
+    covidData.forEach(d => {
+      if (d.active > 0) totalAffected += d.active;
+    });
+  }
   
-  // 4. Conflict affected from ACLED (real)
-  const acledData = apiResults.acled_events || [];
-  const conflictAffected = acledData.reduce((sum, e) => {
-    const fatalities = parseInt(e.fatalities) || 0;
-    // Estimate affected as 10x fatalities (conservative estimate)
-    return sum + (fatalities * 10);
-  }, 0);
-  totalAffected += conflictAffected;
-  
-  // 5. Disease outbreaks affected (real)
-  diseaseOutbreaks.forEach(d => {
-    if (d.cases) totalAffected += d.cases;
-  });
-  
-  // 6. Heat stress affected (real)
+  // 4. Heat stress affected (estimate)
   heatStressData.forEach(h => {
     if (h.temp > 40) {
-      // Estimate affected based on population
       const pop = evidenceIndex.population[h.iso] || 0;
-      if (pop > 0) totalAffected += Math.round(pop * 0.05); // 5% affected by extreme heat
+      if (pop > 0) totalAffected += Math.round(pop * 0.05);
     }
   });
   
-  // 7. If no real data, fall back to store evidence details
-  if (totalAffected === 0 && totalDisplaced === 0) {
-    Object.values(store).forEach(c => {
-      if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
-      if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
-      if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
-    });
-  }
+  // 5. Store evidence details
+  Object.values(store).forEach(c => {
+    if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
+    if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
+    if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
+  });
   
   // Combine and format
   const combined = totalDisplaced + totalAffected;
@@ -1945,10 +2105,6 @@ function updateUIStats() {
     else if (combined > 1e6) affectedDisplay = '≈' + (combined / 1e6).toFixed(1) + 'M';
     else if (combined > 1e3) affectedDisplay = '≈' + (combined / 1e3).toFixed(0) + 'K';
     else affectedDisplay = combined.toLocaleString();
-  } else if (totalDisplaced > 0) {
-    if (totalDisplaced > 1e6) affectedDisplay = '≈' + (totalDisplaced / 1e6).toFixed(1) + 'M';
-    else if (totalDisplaced > 1e3) affectedDisplay = '≈' + (totalDisplaced / 1e3).toFixed(0) + 'K';
-    else affectedDisplay = totalDisplaced.toLocaleString();
   }
   
   const anoms = ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
@@ -2580,22 +2736,30 @@ function buildEvidenceLedgerHtml(c){
   const ledger=(c.evidenceLedger||[]).slice().sort((a,b)=>b.pts-a.pts);
   const confPct=Math.round((c.evidenceConfidence||0)*100);
   const confCol=confPct>=60?'#00e5a0':confPct>=30?'#ffb020':'#ff375f';
-  const maxPts=Math.max(1,...ledger.map(l=>l.pts));
-  const rows=ledger.length?ledger.map(l=>`
-    <div class="evid-row">
-      <span class="evid-src">${l.source}</span>
-      <span class="evid-label" title="${l.label}">${l.label}${l.rawValue!==undefined&&l.rawValue!==null&&l.rawValue!==''?` · ${l.rawValue}`:''}</span>
-      <div class="evid-bar-wrap"><div class="evid-bar-fill" style="width:${Math.round(l.pts/maxPts*100)}%"></div></div>
-      <span class="evid-pts">+${l.pts}</span>
-    </div>`).join(''):`<div class="evid-empty">No live evidence matched this country in the current refresh cycle.<br>Score reflects the structural baseline only.</div>`;
+  
+  let rowsHtml = '';
+  if (ledger.length > 0) {
+    const maxPts = Math.max(1, ...ledger.map(l => l.pts));
+    rowsHtml = ledger.map(l => `
+      <div class="evid-row">
+        <span class="evid-src">${l.source}</span>
+        <span class="evid-label" title="${l.label}">${l.label}${l.rawValue !== undefined && l.rawValue !== null && l.rawValue !== '' ? ` · ${l.rawValue}` : ''}</span>
+        <div class="evid-bar-wrap"><div class="evid-bar-fill" style="width:${Math.round((l.pts / maxPts) * 100)}%"></div></div>
+        <span class="evid-pts">+${l.pts}</span>
+      </div>
+    `).join('');
+  } else {
+    rowsHtml = `<div class="evid-empty">⏳ No live evidence sources found in this refresh cycle.<br>Data sources checked: USGS, NASA, GDACS, Open-Meteo, disease.sh, World Bank, UNHCR.</div>`;
+  }
+  
   return `
     <div class="ps">
       <div class="evid-box">
         <div class="evid-head" onclick="const l=this.nextElementSibling;const open=l.style.display!=='none';l.style.display=open?'none':'flex';this.querySelector('.evid-chevron').textContent=open?'▸':'▾'">
-          <span>🔎 Evidence Ledger · ${ledger.length} live source${ledger.length===1?'':'s'} <span class="evid-chevron">▾</span></span>
+          <span>🔎 Evidence Ledger · ${ledger.length} live source${ledger.length === 1 ? '' : 's'} <span class="evid-chevron">▾</span></span>
           <span class="evid-conf" style="background:${confCol}18;border:1px solid ${confCol}44;color:${confCol}">${confPct}% confidence</span>
         </div>
-        <div class="evid-list" style="display:flex;">${rows}</div>
+        <div class="evid-list" style="display:flex;flex-direction:column;">${rowsHtml}</div>
       </div>
     </div>`;
 }
@@ -2754,7 +2918,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div id="inlinTimelineSlot"></div>
     </div>
 
-    ${buildEvidenceLedgerHtml(c)}
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -2765,8 +2928,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         <span>Loading AI analysis...</span>
       </div>
     </div>
-
-    ${buildEvidenceLedgerHtml(c)}
 
     <div class="hist-block">
       <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
