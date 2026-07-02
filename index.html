@@ -771,7 +771,7 @@ fetchBreakingNews();
 // ============================================================================
 let tier = 'free'; const NN = { weights: { training_count: 0, last_updated: Date.now() } };
 let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:[]};
-let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
+let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[],airQualityData=[];
 let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
 
 // ============================================================================
@@ -1117,12 +1117,23 @@ const API_ENDPOINTS={
   wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
   
-  // ── UNHCR ──
+// ── UNHCR ──
   unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
   unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
+
+  // ── EMSC (secondary seismic network — verified live via test harness) ──
+  emsc_earthquakes:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=50&minmag=4.5&orderby=time',
+
+  // ── IFRC GO Platform (real Red Cross/Red Crescent field operations — verified live) ──
+  ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
+
+  // ── World Bank Refugees (displacement cross-check to UNHCR — verified live) ──
+  wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
 };
 
 async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+async function fetchOpenMeteoAirQuality(){const pollutionProneIsos=['IND','PAK','BGD','CHN','NGA','EGY','IRN','IDN','VNM','THA','MEX','TUR','PHL','ETH','COD'];const results=[];for(const iso of pollutionProneIsos){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coord[1]}&longitude=${coord[0]}&hourly=pm2_5&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));const pm25=res?.hourly?.pm2_5?.[0];if(pm25!==undefined&&pm25!==null){results.push({iso,pm25});}}return results;}
+
 async function fetchIpcClassifications(){
   try{
     const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
@@ -1734,7 +1745,7 @@ async function fetchAllEvidence() {
     }
   } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
 
-  // ── 13. UNHCR Asylum ──
+// ── 13. UNHCR Asylum ──
   try {
     const res = await fetch(API_ENDPOINTS.unhcr_asylum);
     if (res.ok) {
@@ -1753,6 +1764,85 @@ async function fetchAllEvidence() {
       }
     }
   } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
+
+  // ── 14. EMSC Earthquakes (secondary seismic network — verified via test harness) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emsc_earthquakes);
+    if (res.ok) {
+      const data = await res.json();
+      results.emsc_earthquakes = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.mag && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              const existingUsgs = evidenceIndex.sourceCoverage[iso].usgs;
+              if (!existingUsgs || props.mag > existingUsgs.mag) {
+                evidenceIndex.sourceCoverage[iso].emsc = {
+                  mag: props.mag,
+                  time: props.time,
+                  place: props.flynn_region || 'Unknown region'
+                };
+              }
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('EMSC fetch failed:', e); }
+
+  // ── 15. IFRC GO Platform (real Red Cross/Red Crescent field operations) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.ifrc_go);
+    if (res.ok) {
+      const data = await res.json();
+      results.ifrc_go = data;
+      if (data?.results) {
+        data.results.forEach(ev => {
+          const countryEntry = Array.isArray(ev.country) ? ev.country[0] : null;
+          const iso = countryEntry?.iso3 || findIsoByCountryName(countryEntry?.name || '');
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].ifrc = {
+              name: ev.name || 'Field operation',
+              dtype: ev.dtype?.name || 'Emergency response'
+            };
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('IFRC GO fetch failed:', e); }
+
+  // ── 16. World Bank Refugee Population (cross-check to UNHCR) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_refugees);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_refugees = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees_wb = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
+
+  // ── 17. Open-Meteo Air Quality (PM2.5, pollution-prone countries) ──
+  try {
+    const airResults = await fetchOpenMeteoAirQuality();
+    airQualityData = airResults;
+    airResults.forEach(a => {
+      if (!evidenceIndex.sourceCoverage[a.iso]) evidenceIndex.sourceCoverage[a.iso] = {};
+      evidenceIndex.sourceCoverage[a.iso].airquality = { pm25: a.pm25 };
+    });
+  } catch(e) { console.warn('Open-Meteo Air Quality fetch failed:', e); }
 
   // Store all results
   apiResults = { ...apiResults, ...results };
@@ -1930,7 +2020,7 @@ function computeEvidenceScore(iso) {
     }
   }
   
-  // ── 12. Asylum seekers (UNHCR) ──
+// ── 12. Asylum seekers (UNHCR) ──
   if (coverage.asylum) {
     const asym = coverage.asylum;
     if (asym > 100) {
@@ -1938,8 +2028,41 @@ function computeEvidenceScore(iso) {
           logScale(asym, 100, 1000000, 6), 0.8);
     }
   }
-  
-  // ── 13. NOAA monitoring (USA only) ──
+
+  // ── 13. EMSC secondary seismic confirmation ──
+  if (coverage.emsc) {
+    const mag = coverage.emsc.mag || 0;
+    if (mag >= 4.5) {
+      add('EMSC', `M${mag.toFixed(1)} earthquake (EMSC)`, mag,
+          logScale(mag, 4.5, 8, 6), 0.75);
+    }
+  }
+
+  // ── 14. IFRC GO active field operation ──
+  if (coverage.ifrc) {
+    add('IFRC', `Active response: ${coverage.ifrc.dtype}`, 1,
+        7, 0.85);
+  }
+
+  // ── 15. World Bank refugee population (cross-check) ──
+  if (coverage.refugees_wb) {
+    const ref = coverage.refugees_wb;
+    if (ref > 1000) {
+      add('WORLDBANK', `${ref.toLocaleString()} refugees (WB)`, ref,
+          logScale(ref, 1000, 5000000, 6), 0.75);
+    }
+  }
+
+  // ── 16. Air quality (PM2.5) ──
+  if (coverage.airquality) {
+    const pm25 = coverage.airquality.pm25 || 0;
+    if (pm25 >= 35) {
+      add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)}µg/m³`, pm25,
+          logScale(pm25, 35, 250, 5), 0.7);
+    }
+  }
+
+  // ── 17. NOAA monitoring (USA only) ──
   if (coverage.noaa && iso === 'USA') {
     add('NOAA', `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations,
         4, 0.7);
