@@ -1299,7 +1299,7 @@ async function refresh(){
   const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
   const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
   
-  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live · ${coverageCount} countries have coverage`);
+  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live`);
   
   refreshTimerSecs=300;
 
