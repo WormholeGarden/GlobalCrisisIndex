@@ -1217,7 +1217,9 @@ function buildTickerFromResults(){
   ipcClassifications.forEach(i=>{let c='#ff375f',l=i.phase>=4?'CRITICAL':'HIGH';const pop=Math.round(i.population/1e6);items.push({l,c,t:`🌾 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${pop}M people`});});
   conflictEvents.slice(0,5).forEach(c=>{items.push({l:'HIGH',c:'#ff8c42',t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`});});
   diseaseOutbreaks.slice(0,4).forEach(d=>{items.push({l:'HIGH',c:'#ff8c42',t:`🦠 ${d.disease} outbreak in ${d.country} · ${d.cases?.toLocaleString()||''}+ cases`});});
-  (apiResults.who_rss?.items||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.title||'').substring(0,65)}`});});
+ (apiResults.who_rss?.items||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.title||'').substring(0,65)}`});});
+  (apiResults.emsc_seismic?.features||[]).forEach(f=>{const mag=+(f.properties?.mag||0).toFixed(1);if(mag<4.5)return;let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 EMSC: M${mag} — ${f.properties?.flynn_region||''}`});});
+  (apiResults.ifrc_go?.results||[]).slice(0,5).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔴 IFRC: ${(ev.name||'').substring(0,60)}`});});
   if(!items.length)return;
   const uniq=items.slice(0,80);
   const doubled=[...uniq,...uniq];
