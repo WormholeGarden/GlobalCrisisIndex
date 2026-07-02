@@ -1117,9 +1117,21 @@ const API_ENDPOINTS={
   wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
   
-  // ── UNHCR ──
+// ── UNHCR ──
   unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
   unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
+
+  // ── NEW: SEISMIC (secondary network) ──
+  emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
+
+  // ── NEW: MULTI-HAZARD (verified operational field reports) ──
+  ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
+
+  // ── NEW: AIR QUALITY (health/climate signal) ──
+  openmeteo_air_quality:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
+
+  // ── NEW: ECONOMIC (displacement cross-check vs UNHCR) ──
+  wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
 };
 
 async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
@@ -1734,7 +1746,7 @@ async function fetchAllEvidence() {
     }
   } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
 
-  // ── 13. UNHCR Asylum ──
+// ── 13. UNHCR Asylum ──
   try {
     const res = await fetch(API_ENDPOINTS.unhcr_asylum);
     if (res.ok) {
@@ -1753,6 +1765,93 @@ async function fetchAllEvidence() {
       }
     }
   } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
+
+  // ── 14. EMSC Seismic (secondary earthquake network — catches events USGS may miss) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emsc_seismic);
+    if (res.ok) {
+      const data = await res.json();
+      results.emsc_seismic = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const mag = f.properties?.mag;
+          const coords = f.geometry?.coordinates; // [lng, lat, depth]
+          if (mag >= 4.5 && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              // Only overwrite USGS entry if this quake is stronger, so the two sources corroborate rather than double-count
+              const existingMag = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
+              if (mag > existingMag) {
+                evidenceIndex.sourceCoverage[iso].emsc = {
+                  mag,
+                  time: f.properties?.time,
+                  place: f.properties?.flynn_region || f.properties?.place
+                };
+              }
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('EMSC fetch failed:', e); }
+
+  // ── 15. IFRC GO Platform (real Red Cross/Red Crescent field operations — comes with iso3 built in, no coordinate guessing needed) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.ifrc_go);
+    if (res.ok) {
+      const data = await res.json();
+      results.ifrc_go = data;
+      if (data?.results) {
+        data.results.forEach(ev => {
+          const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].ifrc = {
+              name: ev.name,
+              dtype: ev.dtype?.name || 'Field operation',
+              date: ev.disaster_start_date
+            };
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('IFRC GO fetch failed:', e); }
+
+  // ── 16. Open-Meteo Air Quality (pinned test location — Delhi, India; expand to more cities later) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_air_quality);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_air_quality = data;
+      const pm25 = data?.hourly?.pm2_5?.[0];
+      if (pm25 !== undefined && pm25 !== null) {
+        evidenceIndex.sourceCoverage['IND'] = evidenceIndex.sourceCoverage['IND'] || {};
+        evidenceIndex.sourceCoverage['IND'].air_quality = { pm25 };
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Air Quality fetch failed:', e); }
+
+  // ── 17. World Bank Refugee Population (independent cross-check against UNHCR, doesn't replace it) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_refugees);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_refugees = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees_wb = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
+
+  // Store all results
+  apiResults = { ...apiResults, ...results };
 
   // Store all results
   apiResults = { ...apiResults, ...results };
@@ -1939,12 +2038,45 @@ function computeEvidenceScore(iso) {
     }
   }
   
-  // ── 13. NOAA monitoring (USA only) ──
+// ── 13. NOAA monitoring (USA only) ──
   if (coverage.noaa && iso === 'USA') {
     add('NOAA', `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations,
         4, 0.7);
   }
-  
+
+  // ── 14. EMSC seismic (secondary network — corroborates or catches what USGS missed) ──
+  if (coverage.emsc) {
+    const mag = coverage.emsc.mag || 0;
+    if (mag >= 4.5) {
+      add('EMSC', `M${mag.toFixed(1)} earthquake (secondary network)`, mag,
+          logScale(mag, 4.5, 8, 8), 0.75);
+    }
+  }
+
+  // ── 15. IFRC GO field operations (real, dated Red Cross/Red Crescent response — high reliability, direct iso3 match) ──
+  if (coverage.ifrc) {
+    add('IFRC', `${coverage.ifrc.dtype}: ${(coverage.ifrc.name || '').substring(0, 30)}`, 1,
+        6, 0.85);
+  }
+
+  // ── 16. Air quality (pinned coverage only — currently India/Delhi as proof of concept) ──
+  if (coverage.air_quality) {
+    const pm25 = coverage.air_quality.pm25 || 0;
+    if (pm25 >= 35) {
+      add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)} µg/m³`, pm25,
+          logScale(pm25, 35, 300, 5), 0.7);
+    }
+  }
+
+  // ── 17. World Bank refugee population (independent cross-check, not a replacement for UNHCR) ──
+  if (coverage.refugees_wb) {
+    const ref = coverage.refugees_wb;
+    if (ref > 1000) {
+      add('WORLDBANK', `${ref.toLocaleString()} refugees (WB cross-check)`, ref,
+          logScale(ref, 1000, 5000000, 5), 0.75);
+    }
+  }
+
   // ── Weighted average → hard-capped 0–35 ──
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
