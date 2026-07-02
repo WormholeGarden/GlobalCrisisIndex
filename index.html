@@ -1092,6 +1092,7 @@ function spilloverScore(newStore){
 // ============================================================================
 // API ENDPOINTS
 // ============================================================================
+// Replace this section with:
 const API_ENDPOINTS={
   // ── SEISMIC / GEOPHYSICAL ──
   usgs_weekly:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
@@ -1117,20 +1118,28 @@ const API_ENDPOINTS={
   wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
   
-// ── UNHCR ──
+  // ── UNHCR ──
   unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
   unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
 
-  // ── NEW: SEISMIC (secondary network) ──
+  // ── SEISMIC (secondary network) ──
   emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
 
-  // ── NEW: MULTI-HAZARD (verified operational field reports) ──
+  // ── MULTI-HAZARD (verified operational field reports) ──
   ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
 
-  // ── NEW: AIR QUALITY (health/climate signal) ──
-  openmeteo_air_quality:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
+  // ── AIR QUALITY (multi-city loop test) ──
+  openmeteo_air_quality_lagos:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=6.5&longitude=3.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_air_quality_delhi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
+  openmeteo_air_quality_beijing:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_air_quality_mumbai:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.1&longitude=72.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_air_quality_dhaka:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=23.8&longitude=90.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_air_quality_cairo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1',
 
-  // ── NEW: ECONOMIC (displacement cross-check vs UNHCR) ──
+  // ── ECONOMIC: World Bank Inflation (CPI) ──
+  wb_inflation:'https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1',
+
+  // ── ECONOMIC: World Bank Refugees (cross-check) ──
   wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
 };
 
@@ -1851,7 +1860,56 @@ async function fetchAllEvidence() {
       }
     }
   } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
+// ── 18. Open-Meteo Air Quality (multi-city loop — Lagos, Delhi, Beijing, Mumbai, Dhaka, Cairo) ──
+const AQ_CITIES = [
+  { iso: 'NGA', lat: 6.5, lon: 3.4, name: 'Lagos' },
+  { iso: 'IND', lat: 28.6, lon: 77.2, name: 'Delhi' },
+  { iso: 'CHN', lat: 39.9, lon: 116.4, name: 'Beijing' },
+  { iso: 'IND', lat: 19.1, lon: 72.9, name: 'Mumbai' },
+  { iso: 'BGD', lat: 23.8, lon: 90.4, name: 'Dhaka' },
+  { iso: 'EGY', lat: 30.0, lon: 31.2, name: 'Cairo' }
+];
 
+for (const city of AQ_CITIES) {
+  try {
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const pm25 = data?.hourly?.pm2_5?.[0];
+      if (pm25 !== undefined && pm25 !== null) {
+        const iso = city.iso;
+        if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+        evidenceIndex.sourceCoverage[iso].air_quality = { 
+          pm25, 
+          city: city.name,
+          timestamp: new Date().toISOString()
+        };
+        console.log(`🌍 AQ: ${city.name} PM2.5 = ${pm25} µg/m³`);
+      }
+    }
+  } catch(e) { /* silent fail for individual cities */ }
+}
+
+// ── 19. World Bank Inflation (CPI) ──
+try {
+  const res = await fetch(API_ENDPOINTS.wb_inflation);
+  if (res.ok) {
+    const data = await res.json();
+    results.wb_inflation = data;
+    if (data && data[1]) {
+      data[1].forEach(item => {
+        if (item.country?.id && item.value !== null && item.value !== undefined) {
+          const iso = item.country.id;
+          if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+          evidenceIndex.sourceCoverage[iso].inflation = parseFloat(item.value);
+          evidenceIndex.sourceCoverage[iso].inflation_year = item.date;
+        }
+      });
+      console.log(`📊 Inflation data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+    }
+  }
+} catch(e) { console.warn('World Bank Inflation fetch failed:', e); }
   // Store all results
   apiResults = { ...apiResults, ...results };
 
@@ -2061,14 +2119,15 @@ function computeEvidenceScore(iso) {
         6, 0.85);
   }
 
-  // ── 16. Air quality (pinned coverage only — currently India/Delhi as proof of concept) ──
-  if (coverage.air_quality) {
-    const pm25 = coverage.air_quality.pm25 || 0;
-    if (pm25 >= 35) {
-      add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)} µg/m³`, pm25,
-          logScale(pm25, 35, 300, 5), 0.7);
-    }
+ // ── 16. Air quality (multi-city — Lagos, Delhi, Beijing, Mumbai, Dhaka, Cairo) ──
+if (coverage.air_quality) {
+  const pm25 = coverage.air_quality.pm25 || 0;
+  const city = coverage.air_quality.city || 'monitored city';
+  if (pm25 >= 35) {
+    add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25,
+        logScale(pm25, 35, 300, 5), 0.7);
   }
+}
 
   // ── 17. World Bank refugee population (independent cross-check, not a replacement for UNHCR) ──
   if (coverage.refugees_wb) {
@@ -2078,7 +2137,14 @@ function computeEvidenceScore(iso) {
           logScale(ref, 1000, 5000000, 5), 0.75);
     }
   }
-
+// ── 18. Inflation (World Bank CPI) ──
+if (coverage.inflation !== undefined && coverage.inflation !== null) {
+  const infl = coverage.inflation;
+  if (infl > 0) {
+    add('WORLDBANK', `Inflation rate ${infl.toFixed(1)}% (${coverage.inflation_year || 'latest'})`, infl,
+        logScale(infl, 5, 50, 6), 0.75);
+  }
+}
   // ── Weighted average → hard-capped 0–35 ──
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
