@@ -1114,8 +1114,11 @@ const API_ENDPOINTS={
   openmeteo_wind:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1',
   openmeteo_precipitation:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3',
   openmeteo_uv:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3',
+  openmeteo_cloudcover:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3',
+  openmeteo_lightning:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1',
   noaa_stations:'https://api.weather.gov/stations?limit=20',
   noaa_alerts:'https://api.weather.gov/alerts/active?severity=Extreme',
+  noaa_storm_reports:'https://api.weather.gov/alerts/active?severity=Severe',
   
   // ── FLOOD RISK ──
   openmeteo_flood:'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3',
@@ -1135,12 +1138,14 @@ const API_ENDPOINTS={
   wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
   wb_food_prices:'https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=10&mrv=1',
   wb_water:'https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=10&mrv=1',
+  wb_trade:'https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=10&mrv=1',
   
   // ── UNHCR ──
   unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
   unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
   unhcr_operations:'https://api.unhcr.org/operations/v1/operations?limit=20',
   unhcr_emergency:'https://api.unhcr.org/emergency/v1/emergencies?limit=20',
+  unhcr_statistics:'https://api.unhcr.org/statistics/v1/refugees?limit=20',
 
   // ── SEISMIC (secondary network) ──
   emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
@@ -1159,6 +1164,11 @@ const API_ENDPOINTS={
   openmeteo_aq_mexico:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.4&longitude=-99.1&hourly=pm2_5&forecast_days=1',
   openmeteo_aq_saopaulo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-23.5&longitude=-46.6&hourly=pm2_5&forecast_days=1',
   openmeteo_aq_johannesburg:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.0&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_karachi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=24.9&longitude=67.1&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_bangkok:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.8&longitude=100.5&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_istanbul:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.0&longitude=28.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_buenosaires:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-34.6&longitude=-58.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_moscow:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=55.8&longitude=37.6&hourly=pm2_5&forecast_days=1',
 
   // ── INFRASTRUCTURE ──
   osm_hospitals:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;',
@@ -1170,7 +1180,6 @@ const API_ENDPOINTS={
   // ── CLIMATE TRACE ──
   climate_trace:'https://api.climatetrace.org/v1/emissions?country=US&sector=all',
 };
-
 async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
 async function fetchIpcClassifications(){
   try{
@@ -1447,6 +1456,48 @@ function buildTickerFromResults(){
     emergencies.slice(0, 3).forEach(em => {
       if (em.name) {
         items.push({l:'HIGH', c:'#bf7fff', t:`🚨 UNHCR: ${em.name.substring(0,40)} ${em.level ? '('+em.level+')' : ''}`});
+      }
+    });
+  }
+
+  // ── Cloud Cover (NEW) ──
+  if (apiResults.openmeteo_cloudcover?.hourly?.cloudcover) {
+    const avgCloud = apiResults.openmeteo_cloudcover.hourly.cloudcover.reduce((a, b) => a + b, 0) / apiResults.openmeteo_cloudcover.hourly.cloudcover.length;
+    if (avgCloud > 70) {
+      items.push({l:'INFO', c:'#3ec5ff', t:`☁️ Cloud cover: ${avgCloud.toFixed(0)}% in Yemen`});
+    }
+  }
+  
+  // ── Lightning Potential (NEW) ──
+  if (apiResults.openmeteo_lightning?.hourly?.lightning_potential) {
+    const maxLightning = Math.max(...apiResults.openmeteo_lightning.hourly.lightning_potential);
+    if (maxLightning > 100) {
+      items.push({l:'HIGH', c:'#ff8c42', t:`⚡ Lightning potential: ${maxLightning} J/kg (storm risk)`});
+    }
+  }
+  
+  // ── NOAA Storm Reports (NEW) ──
+  if (apiResults.noaa_storm_reports?.features?.length > 0) {
+    items.push({l:'HIGH', c:'#ff375f', t:`⛈️ NOAA: ${apiResults.noaa_storm_reports.features.length} severe storm alerts`});
+  }
+  
+  // ── UNHCR Statistics (NEW) ──
+  if (apiResults.unhcr_statistics?.data) {
+    const stats = Array.isArray(apiResults.unhcr_statistics.data) ? apiResults.unhcr_statistics.data : [];
+    stats.slice(0, 3).forEach(stat => {
+      if (stat.refugees > 10000 && stat.country) {
+        const refugeesM = (stat.refugees / 1e6).toFixed(1);
+        items.push({l:'HIGH', c:'#bf7fff', t:`🏕️ UNHCR: ${stat.country} ${refugeesM}M refugees (${stat.year || '2024'})`});
+      }
+    });
+  }
+  
+  // ── World Bank Trade (NEW) ──
+  if (apiResults.wb_trade?.[1]) {
+    const tradeData = apiResults.wb_trade[1].filter(i => i.value !== null && i.value > 100 && i.country?.value);
+    tradeData.slice(0, 3).forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'INFO', c:'#00e5a0', t:`📊 Trade: ${item.country.value} ${item.value.toFixed(1)}% of GDP`});
       }
     });
   }
@@ -2473,6 +2524,98 @@ async function fetchAllEvidence() {
       }
     }
   } catch(e) { console.warn('UNHCR Emergency fetch failed:', e); }
+  // ── 36. Open-Meteo Cloud Cover (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_cloudcover);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_cloudcover = data;
+      const avgCloud = data?.hourly?.cloudcover?.reduce((a, b) => a + b, 0) / data.hourly.cloudcover.length || 0;
+      if (avgCloud > 70) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].cloudcover = {
+          avg: avgCloud,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`☁️ Cloud cover: ${avgCloud}% average in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Cloud Cover fetch failed:', e); }
+
+  // ── 37. Open-Meteo Lightning Potential (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_lightning);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_lightning = data;
+      const maxLightning = Math.max(...(data?.hourly?.lightning_potential || [0]));
+      if (maxLightning > 100) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].lightning = {
+          max: maxLightning,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`⚡ Lightning potential: ${maxLightning} J/kg in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Lightning fetch failed:', e); }
+
+  // ── 38. NOAA Storm Reports (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_storm_reports);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_storm_reports = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].storm_reports = data.features.length;
+        console.log(`⛈️ NOAA: ${data.features.length} severe storm alerts`);
+      }
+    }
+  } catch(e) { console.warn('NOAA Storm Reports fetch failed:', e); }
+
+  // ── 39. UNHCR Statistics (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_statistics);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_statistics = data;
+      if (data?.data || data?.items) {
+        const stats = data.data || data.items || [];
+        stats.forEach(stat => {
+          const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
+          if (iso && stat.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_stats = {
+              refugees: stat.refugees,
+              asylum_seekers: stat.asylum_seekers || 0,
+              year: stat.year || '2024'
+            };
+          }
+        });
+        console.log(`📊 UNHCR statistics loaded`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Statistics fetch failed:', e); }
+
+  // ── 40. World Bank Trade Data (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_trade);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_trade = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].trade_gdp = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 Trade data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Trade fetch failed:', e); }
   // Store all results
   apiResults = { ...apiResults, ...results };
   
@@ -2845,6 +2988,51 @@ function computeEvidenceScore(iso) {
     const pts = level === 'critical' ? 5 : level === 'high' ? 3 : 1;
     add('UNHCR', `Emergency: ${coverage.unhcr_emergency.name} (${level})`, 1,
         pts, 0.7);
+  }
+
+  // ── 35. Cloud Cover (Open-Meteo) (NEW) ──
+  if (coverage.cloudcover) {
+    const avg = coverage.cloudcover.avg || 0;
+    if (avg > 70) {
+      add('OPENMETEO', `Cloud cover ${avg.toFixed(0)}% (weather disruption)`, avg,
+          coverageScale(avg, 70, 100, 3), 0.5);
+    }
+  }
+  
+  // ── 36. Lightning Potential (Open-Meteo) (NEW) ──
+  if (coverage.lightning) {
+    const max = coverage.lightning.max || 0;
+    if (max > 100) {
+      add('OPENMETEO', `Lightning potential ${max} J/kg (storm risk)`, max,
+          logScale(max, 100, 500, 4), 0.6);
+    }
+  }
+  
+  // ── 37. NOAA Storm Reports (NEW) ──
+  if (coverage.storm_reports) {
+    const reports = coverage.storm_reports;
+    if (reports > 0) {
+      add('NOAA', `${reports} severe storm alerts`, reports,
+          coverageScale(reports, 1, 50, 4), 0.6);
+    }
+  }
+  
+  // ── 38. UNHCR Statistics (NEW) ──
+  if (coverage.unhcr_stats) {
+    const refugees = coverage.unhcr_stats.refugees || 0;
+    if (refugees > 1000) {
+      add('UNHCR', `${refugees.toLocaleString()} refugees (${coverage.unhcr_stats.year})`, refugees,
+          logScale(refugees, 1000, 5000000, 7), 0.8);
+    }
+  }
+  
+  // ── 39. Trade as % of GDP (World Bank) (NEW) ──
+  if (coverage.trade_gdp !== undefined && coverage.trade_gdp !== null) {
+    const trade = coverage.trade_gdp;
+    if (trade > 60) {
+      add('WORLDBANK', `Trade ${trade.toFixed(1)}% of GDP`, trade,
+          coverageScale(trade, 60, 200, 4), 0.6);
+    }
   }
   // ── Weighted average → hard-capped 0–35 ──
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
