@@ -260,6 +260,11 @@
       font-weight: 700;
     }
     
+    .article-meta-global .live-evidence-count {
+      color: var(--gcin-green);
+      font-weight: 700;
+    }
+    
     /* ─── STORY CARDS ─── */
     .story-card {
       background: var(--gcin-bg-card);
@@ -381,6 +386,19 @@
     
     .story-meta .anomaly-badge strong {
       color: #ff6b6b;
+    }
+    
+    .story-meta .evidence-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(0, 229, 160, 0.06);
+      border: 1px solid rgba(0, 229, 160, 0.15);
+      color: var(--gcin-green);
+      padding: 0.1rem 0.6rem;
+      border-radius: 99px;
+      font-size: 0.6rem;
+      font-weight: 600;
     }
     
     /* ─── WIKIPEDIA CONTEXT BOX ─── */
@@ -578,6 +596,10 @@
       border: 1px solid rgba(255, 55, 95, 0.1);
     }
     
+    .story-footer .evidence-source-count {
+      color: var(--gcin-green);
+    }
+    
     /* ─── LIVE INDICATOR ─── */
     .live-indicator {
       display: inline-flex;
@@ -643,6 +665,29 @@
     
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--gcin-text-muted);
+    }
+    
+    .empty-state .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .empty-state .title {
+      font-size: 1.1rem;
+      font-family: var(--gcin-font-serif);
+      color: var(--gcin-text-secondary);
+    }
+    
+    .empty-state .subtitle {
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
     }
     
     /* ─── RESPONSIVE ─── */
@@ -727,6 +772,7 @@
     <span class="meta-item"><span class="icon">📡</span> 40+ Live APIs</span>
     <span class="meta-item"><span class="icon">⚡</span> USGS · WHO · UNHCR · IPC · GDACS · NASA · IFRC · World Bank · disease.sh</span>
     <span class="meta-item story-count" id="story-count">⏳ Loading stories...</span>
+    <span class="meta-item live-evidence-count" id="live-count">📊 Live evidence: --</span>
   </div>
   
   <!-- ═══ STORIES CONTAINER ═══ -->
@@ -752,15 +798,9 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  PREMIUM FRONTEND — ULTIMATE MASTERPIECE v3.0
+    //  PREMIUM FRONTEND — ULTIMATE MASTERPIECE v3.1
+    //  ── KEY FEATURE: Filters out stories with ZERO live evidence ──
     //  Fully integrated with top-story.js API v5.2
-    //  ── Features ──
-    //  • 100% live data from 12+ sources
-    //  • Wikipedia integration with intelligent scoring
-    //  • Anomaly detection display
-    //  • Premium responsive design
-    //  • SEO-optimized with structured data
-    //  • Award-winning typography and layout
     // ════════════════════════════════════════════════════════════════════════
     
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
@@ -773,6 +813,8 @@
       MAX_STORIES: 50,
       MIN_ANOMALY_SCORE: 1.0,
       MIN_CRISIS_SCORE: 70,
+      // ═══ CRITICAL: Minimum live evidence sources required ═══
+      MIN_LIVE_EVIDENCE: 1,  // Stories with 0 live evidence are filtered out
     };
     
     // ─── HELPERS ─────────────────────────────────────────────────────────────
@@ -1180,6 +1222,7 @@
       const rank = country.rank || '—';
       const total = country.total_countries || '—';
       const percentile = country.percentile || '—';
+      const liveEvidenceCount = country.live_evidence_count || 0;
       
       const dims = country.dimensions || {};
       const dimList = [
@@ -1290,8 +1333,8 @@
       if (anomalyDetected) {
         html += `<span class="anomaly-badge">⚡ <strong>${anomalySeverity}</strong> anomaly · z=${anomalyZ.toFixed(1)}</span>`;
       }
-      if (country.live_evidence_count > 1) {
-        html += `<span class="live-indicator"><span class="dot"></span> ${country.live_evidence_count} sources</span>`;
+      if (liveEvidenceCount > 0) {
+        html += `<span class="evidence-count-badge">📊 ${liveEvidenceCount} live source${liveEvidenceCount > 1 ? 's' : ''}</span>`;
       }
       html += `</div>`;
       
@@ -1342,6 +1385,7 @@
       const anomalyScore = country.anomalyScore || 0;
       html += `<div class="story-footer">`;
       html += `<span class="anomaly-score">🔍 Anomaly score: ${anomalyScore.toFixed(1)}/10</span>`;
+      html += `<span class="evidence-source-count">📊 ${liveEvidenceCount} live source${liveEvidenceCount > 1 ? 's' : ''}</span>`;
       html += `<span>Updated ${new Date().toLocaleTimeString()}</span>`;
       html += `<a href="/?country=${country.iso}" class="read-more">Read full analysis →</a>`;
       html += `</div>`;
@@ -1355,6 +1399,7 @@
     async function loadAllAnomalyStories() {
       const container = document.getElementById('stories-container');
       const countEl = document.getElementById('story-count');
+      const liveCountEl = document.getElementById('live-count');
       const dateEl = document.getElementById('gcin-datetime');
       
       try {
@@ -1364,13 +1409,14 @@
         
         if (!countries.length) {
           container.innerHTML = `
-            <div style="text-align:center;padding:3rem 1rem;color:var(--gcin-text-muted);">
-              <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔍</div>
-              <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">No anomaly data available</div>
-              <div style="font-size:0.85rem;margin-top:0.3rem;">Check back soon for the latest crisis intelligence</div>
+            <div class="empty-state">
+              <div class="icon">🔍</div>
+              <div class="title">No anomaly data available</div>
+              <div class="subtitle">Check back soon for the latest crisis intelligence</div>
             </div>
           `;
           countEl.textContent = '📰 0 stories';
+          liveCountEl.textContent = '📊 Live evidence: 0 sources';
           return;
         }
         
@@ -1389,20 +1435,30 @@
           return b.score - a.score;
         });
         
-        // Filter: anomalyScore >= 1.0 OR score >= 70
-        const filtered = sorted.filter(c => 
-          c.anomalyScore >= CONFIG.MIN_ANOMALY_SCORE || c.score >= CONFIG.MIN_CRISIS_SCORE
-        );
+        // ═══ CRITICAL FILTER: Only include stories with at least 1 live evidence source ═══
+        const filtered = sorted.filter(c => {
+          const liveCount = c.live_evidence_count || 0;
+          const hasLiveEvidence = liveCount >= CONFIG.MIN_LIVE_EVIDENCE;
+          const meetsAnomalyThreshold = c.anomalyScore >= CONFIG.MIN_ANOMALY_SCORE || c.score >= CONFIG.MIN_CRISIS_SCORE;
+          return hasLiveEvidence && meetsAnomalyThreshold;
+        });
+        
+        // Calculate total live evidence sources across all stories
+        const totalLiveSources = filtered.reduce((sum, c) => sum + (c.live_evidence_count || 0), 0);
         
         if (!filtered.length) {
           container.innerHTML = `
-            <div style="text-align:center;padding:3rem 1rem;color:var(--gcin-text-muted);">
-              <div style="font-size:2.5rem;margin-bottom:0.5rem;">✅</div>
-              <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">No active anomalies detected</div>
-              <div style="font-size:0.85rem;margin-top:0.3rem;">All systems nominal. Check back for updates.</div>
+            <div class="empty-state">
+              <div class="icon">✅</div>
+              <div class="title">No active anomalies with live evidence</div>
+              <div class="subtitle">All stories with live evidence are currently stable. Check back for updates.</div>
+              <div style="margin-top:0.5rem;font-size:0.8rem;color:var(--gcin-text-muted);">
+                ${countries.length} countries tracked · ${countries.filter(c => (c.live_evidence_count||0) >= 1).length} have live evidence
+              </div>
             </div>
           `;
           countEl.textContent = '📰 0 stories';
+          liveCountEl.textContent = `📊 Live evidence: 0 sources`;
           return;
         }
         
@@ -1416,6 +1472,7 @@
           minute: '2-digit' 
         });
         countEl.textContent = `📰 ${filtered.length} stories`;
+        liveCountEl.textContent = `📊 Live evidence: ${totalLiveSources} sources across ${filtered.length} stories`;
         
         // Generate stories
         let html = '';
@@ -1427,6 +1484,7 @@
             console.warn('Error generating article for', country.name, e);
             // Fallback: simple card
             const severityClass = getSeverityClass(country.score);
+            const liveCount = country.live_evidence_count || 0;
             html += `
               <div class="story-card severity-${severityClass}">
                 <div class="story-header">
@@ -1434,10 +1492,11 @@
                   <span class="severity-badge ${severityClass}">${getSeverityLabel(country.score)}</span>
                 </div>
                 <div class="story-body">
-                  <p>Data unavailable for this country. Please check the dashboard for live updates.</p>
+                  <p>Data unavailable for this country. Live evidence sources: ${liveCount}.</p>
                 </div>
                 <div class="story-footer">
                   <span class="anomaly-score">🔍 Anomaly: ${country.anomalyScore?.toFixed(1) || '—'}/10</span>
+                  <span class="evidence-source-count">📊 ${liveCount} live sources</span>
                   <a href="/?country=${country.iso}" class="read-more">Read full analysis →</a>
                 </div>
               </div>
@@ -1450,14 +1509,15 @@
       } catch (err) {
         console.error('Error loading stories:', err);
         container.innerHTML = `
-          <div style="text-align:center;padding:3rem 1rem;color:#ff8a7a;">
-            <div style="font-size:2.5rem;margin-bottom:0.5rem;">⚠️</div>
-            <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">Error loading crisis intelligence</div>
-            <div style="font-size:0.85rem;margin-top:0.3rem;">Please refresh the page or try again later.</div>
+          <div class="empty-state" style="color:#ff8a7a;">
+            <div class="icon">⚠️</div>
+            <div class="title">Error loading crisis intelligence</div>
+            <div class="subtitle">Please refresh the page or try again later.</div>
             <div style="font-size:0.7rem;color:var(--gcin-text-muted);margin-top:0.5rem;">${err.message}</div>
           </div>
         `;
         countEl.textContent = '📰 Error';
+        liveCountEl.textContent = '📊 Live evidence: --';
       }
     }
     
