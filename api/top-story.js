@@ -1,9 +1,11 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — MASTERPIECE EDITION v6.0
+//  TOP-STORY API  — MASTERPIECE EDITION v5.2
 //  Breaking humanitarian crisis stories — 100% LIVE DATA ONLY
-//  ALL 40+ APIs from the frontend are now live evidence sources
+//
+//  v5.2 FIX: Properly counts evidence from ALL sources (USGS, NASA, GDACS,
+//  Open-Meteo, disease.sh, World Bank, UNHCR) not just UNHCR.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -65,9 +67,9 @@ const DIMS = [
   { k:"climate",      l:"Climate",       w:0.05 },
   { k:"access",       l:"Access",        w:0.02 },
   { k:"political",    l:"Political",     w:0.01 },
-};
+];
 
-// ─── COUNTRY TABLE (Full) ──────────────────────────────────────────────────
+// ─── COUNTRY TABLE ──────────────────────────────────────────────────
 
 const COUNTRIES = {
   PSE:{ name:"Palestine",            flag:"🇵🇸", prior:65, region:"middleeast", types:["CE","CW","REF","HEAT"],            adj:["LBN","JOR","ISR"],                                            cent:[35.3,31.9]  },
@@ -388,254 +390,151 @@ const safeFetch = p =>
   ]).catch(e => ({ ok:false, error:e.message }));
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ─── ALL 40+ LIVE DATA FETCHERS ──────────────────────────────────────────
+//  ─── LIVE DATA FETCHERS ──────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── SEISMIC (5 sources) ──
+// ── SEISMIC: USGS weekly ──
 async function fetchUSGS() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
+  const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json()));
+  return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
 }
 
-async function fetchUSGSSignificant() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
-}
-
-async function fetchGDACSEarthquakes() {
-  try {
-    const r = await safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
-}
-
-async function fetchUSGSHistoric() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2024-01-01&endtime=2024-12-31&minmagnitude=6&limit=50").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
-}
-
+// ── SEISMIC: EMSC secondary network ──
 async function fetchEMSC() {
-  try {
-    const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
+  const r = await safeFetch(
+    fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())
+  );
+  return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
 }
 
-// ── NASA (1 source with multiple endpoints) ──
+// ── MULTI-HAZARD: NASA EONET ──
 async function fetchNASA() {
-  try {
-    const [general, fires] = await Promise.all([
-      safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7").then(r => r.json())),
-      safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20").then(r => r.json())),
-    ]);
-    const events = [
-      ...(general.ok && general.data?.events ? general.data.events : []),
-      ...(fires.ok && fires.data?.events ? fires.data.events : []),
-    ];
-    return { data: events, live: events.length > 0 };
-  } catch { return { data: [], live: false }; }
+  const [general, fires] = await Promise.all([
+    safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7").then(r => r.json())),
+    safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20").then(r => r.json())),
+  ]);
+  const events = [
+    ...(general.ok && general.data?.events ? general.data.events : []),
+    ...(fires.ok && fires.data?.events ? fires.data.events : []),
+  ];
+  return { data: events, live: events.length > 0 };
 }
 
-// ── GDACS Alerts ──
+// ── MULTI-HAZARD: GDACS ──
 async function fetchGDACS() {
-  try {
-    const r = await safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json()));
-    return { data: r.ok && r.data?.features ? r.data.features : [], live: r.ok && !!r.data?.features?.length };
-  } catch { return { data: [], live: false }; }
+  const [alerts, quakes] = await Promise.all([
+    safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
+    safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20").then(r => r.json())),
+  ]);
+  const feats = [
+    ...(alerts.ok && alerts.data?.features ? alerts.data.features : []),
+    ...(quakes.ok && quakes.data?.features ? quakes.data.features : []),
+  ];
+  return { data: feats, live: feats.length > 0 };
 }
 
-// ── IFRC GO ──
+// ── MULTI-HAZARD: IFRC GO ──
 async function fetchIFRC() {
-  try {
-    const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json()));
-    return { data: r.ok && r.data?.results ? r.data.results : [], live: r.ok && !!r.data?.results?.length };
-  } catch { return { data: [], live: false }; }
+  const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json()));
+  return { data: r.ok && r.data?.results ? r.data.results : [], live: r.ok && !!r.data?.results?.length };
 }
 
-// ── OPEN-METEO WEATHER (10 sources) ──
+// ── WEATHER: Open-Meteo heat stress ──
 async function fetchHeatStress() {
   const heatProneIsos = ['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
   const results = {};
-  let live = false;
-  for (const iso of heatProneIsos.slice(0, 15)) {
+  for (const iso of heatProneIsos) {
     const coord = COUNTRIES[iso]?.cent;
     if (!coord) continue;
-    try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;
-      const r = await safeFetch(fetch(url).then(r => r.json()));
-      if (r.ok && r.data?.daily?.temperature_2m_max?.[0] !== undefined) {
-        results[iso] = r.data.daily.temperature_2m_max[0];
-        if (results[iso] >= 35) live = true;
-      }
-    } catch {}
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (r.ok && r.data?.daily?.temperature_2m_max?.[0] !== undefined) {
+      results[iso] = r.data.daily.temperature_2m_max[0];
+    }
   }
-  return { data: results, live };
+  return { data: results, live: Object.keys(results).length > 0 };
 }
 
-async function fetchOpenMeteoSyria() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=33.51&longitude=36.29&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3").then(r => r.json()));
-    const live = r.ok && r.data?.daily?.temperature_2m_max?.[0] !== undefined;
-    return { data: r.ok ? r.data : null, live };
-  } catch { return { data: null, live: false }; }
+// ── WEATHER: Open-Meteo Hazards (Yemen-pinned) ──
+async function fetchWeatherHazards() {
+  const [flood, marine, wind, precip, uv, cloud, lightning] = await Promise.all([
+    safeFetch(fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.json())),
+    safeFetch(fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.json())),
+    safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1").then(r => r.json())),
+    safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3").then(r => r.json())),
+    safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3").then(r => r.json())),
+    safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3").then(r => r.json())),
+    safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1").then(r => r.json())),
+  ]);
+  const out = {
+    flood_discharge: flood.ok ? Math.max(...(flood.data?.daily?.river_discharge || [0])) : 0,
+    wave_height: marine.ok ? Math.max(...(marine.data?.hourly?.wave_height || [0])) : 0,
+    wind_speed: wind.ok ? (wind.data?.hourly?.wind_speed_10m?.[0] || wind.data?.current_weather?.windspeed || 0) : 0,
+    precip_total: precip.ok ? (precip.data?.hourly?.precipitation || []).reduce((a,b) => a+b, 0) : 0,
+    uv_max: uv.ok ? Math.max(...(uv.data?.daily?.uv_index_max || [0])) : 0,
+    cloud_avg: cloud.ok ? mean(cloud.data?.hourly?.cloudcover || [0]) : 0,
+    lightning_max: lightning.ok ? Math.max(...(lightning.data?.hourly?.lightning_potential || [0])) : 0,
+  };
+  const live = out.flood_discharge > 50 || out.wave_height > 2 || out.wind_speed > 30 || out.precip_total > 10 || out.uv_max > 8 || out.cloud_avg > 70 || out.lightning_max > 100;
+  return { data: out, live };
 }
 
-async function fetchFloodRisk() {
-  try {
-    const r = await safeFetch(fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.json()));
-    const discharge = r.ok ? Math.max(...(r.data?.daily?.river_discharge || [0])) : 0;
-    return { data: { discharge }, live: discharge > 50 };
-  } catch { return { data: { discharge: 0 }, live: false }; }
-}
-
-async function fetchMarineWeather() {
-  try {
-    const r = await safeFetch(fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.json()));
-    const wave = r.ok ? Math.max(...(r.data?.hourly?.wave_height || [0])) : 0;
-    return { data: { wave_height: wave }, live: wave > 2 };
-  } catch { return { data: { wave_height: 0 }, live: false }; }
-}
-
-async function fetchWindSpeed() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1").then(r => r.json()));
-    const wind = r.ok ? (r.data?.current_weather?.windspeed || r.data?.hourly?.wind_speed_10m?.[0] || 0) : 0;
-    return { data: { wind_speed: wind }, live: wind > 30 };
-  } catch { return { data: { wind_speed: 0 }, live: false }; }
-}
-
-async function fetchPrecipitation() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3").then(r => r.json()));
-    const total = r.ok ? (r.data?.hourly?.precipitation || []).reduce((a, b) => a + b, 0) : 0;
-    return { data: { precipitation: total }, live: total > 10 };
-  } catch { return { data: { precipitation: 0 }, live: false }; }
-}
-
-async function fetchUVIndex() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3").then(r => r.json()));
-    const uv = r.ok ? Math.max(...(r.data?.daily?.uv_index_max || [0])) : 0;
-    return { data: { uv_max: uv }, live: uv > 8 };
-  } catch { return { data: { uv_max: 0 }, live: false }; }
-}
-
-async function fetchCloudCover() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3").then(r => r.json()));
-    const avg = r.ok ? mean(r.data?.hourly?.cloudcover || [0]) : 0;
-    return { data: { cloud_cover: avg }, live: avg > 70 };
-  } catch { return { data: { cloud_cover: 0 }, live: false }; }
-}
-
-async function fetchLightning() {
-  try {
-    const r = await safeFetch(fetch("https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1").then(r => r.json()));
-    const lightning = r.ok ? Math.max(...(r.data?.hourly?.lightning_potential || [0])) : 0;
-    return { data: { lightning: lightning }, live: lightning > 100 };
-  } catch { return { data: { lightning: 0 }, live: false }; }
-}
-
-// ── OPEN-METEO AIR QUALITY (15 cities) ──
+// ── WEATHER: Open-Meteo Air Quality ──
 async function fetchAirQuality() {
   const cities = [
-    { iso:'NGA', lat:6.5, lon:3.4, name:'Lagos' },
-    { iso:'IND', lat:28.6, lon:77.2, name:'Delhi' },
+    { iso:'NGA', lat:6.5,  lon:3.4,   name:'Lagos' },
+    { iso:'IND', lat:28.6, lon:77.2,  name:'Delhi' },
     { iso:'CHN', lat:39.9, lon:116.4, name:'Beijing' },
-    { iso:'IND', lat:19.1, lon:72.9, name:'Mumbai' },
-    { iso:'BGD', lat:23.8, lon:90.4, name:'Dhaka' },
-    { iso:'EGY', lat:30.0, lon:31.2, name:'Cairo' },
-    { iso:'IDN', lat:-6.2, lon:106.8, name:'Jakarta' },
-    { iso:'MEX', lat:19.4, lon:-99.1, name:'Mexico City' },
-    { iso:'BRA', lat:-23.5, lon:-46.6, name:'Sao Paulo' },
-    { iso:'ZAF', lat:-26.2, lon:28.0, name:'Johannesburg' },
-    { iso:'PAK', lat:24.9, lon:67.1, name:'Karachi' },
-    { iso:'THA', lat:13.8, lon:100.5, name:'Bangkok' },
-    { iso:'TUR', lat:41.0, lon:28.9, name:'Istanbul' },
-    { iso:'ARG', lat:-34.6, lon:-58.4, name:'Buenos Aires' },
-    { iso:'RUS', lat:55.8, lon:37.6, name:'Moscow' },
+    { iso:'IND', lat:19.1, lon:72.9,  name:'Mumbai' },
+    { iso:'BGD', lat:23.8, lon:90.4,  name:'Dhaka' },
+    { iso:'EGY', lat:30.0, lon:31.2,  name:'Cairo' },
   ];
   const results = {};
-  let live = false;
   for (const city of cities) {
-    try {
-      const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
-      const r = await safeFetch(fetch(url).then(r => r.json()));
-      const pm25 = r.ok ? r.data?.hourly?.pm2_5?.[0] : undefined;
-      if (pm25 !== undefined && pm25 !== null) {
-        if (!results[city.iso] || pm25 > results[city.iso].pm25) {
-          results[city.iso] = { pm25, city: city.name };
-          if (pm25 >= 35) live = true;
-        }
-      }
-    } catch {}
-  }
-  return { data: results, live };
-}
-
-// ── NOAA (Stations, Alerts) ──
-async function fetchNOAAStations() {
-  try {
-    const r = await safeFetch(fetch("https://api.weather.gov/stations?limit=20").then(r => r.json()));
-    const count = r.ok && r.data?.features ? r.data.features.length : 0;
-    return { data: { stations: count }, live: count > 0 };
-  } catch { return { data: { stations: 0 }, live: false }; }
-}
-
-async function fetchNOAAAlerts() {
-  try {
-    const [extreme, severe] = await Promise.all([
-      safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Extreme").then(r => r.json())),
-      safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Severe").then(r => r.json())),
-    ]);
-    const extremeCount = extreme.ok && extreme.data?.features ? extreme.data.features.length : 0;
-    const severeCount = severe.ok && severe.data?.features ? severe.data.features.length : 0;
-    return { data: { extreme: extremeCount, severe: severeCount }, live: extremeCount > 0 || severeCount > 0 };
-  } catch { return { data: { extreme: 0, severe: 0 }, live: false }; }
-}
-
-// ── HEALTH (2 sources) ──
-async function fetchDiseaseSh() {
-  try {
-    const r = await safeFetch(fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=50").then(r => r.json()));
-    return { data: Array.isArray(r.data) ? r.data : [], live: r.ok && Array.isArray(r.data) && r.data.length > 0 };
-  } catch { return { data: [], live: false }; }
-}
-
-async function fetchWHORSS() {
-  try {
-    const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml").then(r => r.json()));
-    const items = r.ok && r.data?.items ? r.data.items : [];
-    const outbreaks = items.filter(item => {
-      const text = ((item.title||"")+" "+(item.description||"")).toLowerCase();
-      return ['outbreak','disease','ebola','mpox','cholera','dengue','polio','measles','lassa','marburg','influenza'].some(k => text.includes(k));
-    });
-    return { data: outbreaks, live: outbreaks.length > 0 };
-  } catch { return { data: [], live: false }; }
-}
-
-// ── WORLD BANK (9 indicators) ──
-async function fetchWorldBankIndicator(code, perPage = 300) {
-  try {
-    const url = `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=${perPage}&mrv=1`;
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
     const r = await safeFetch(fetch(url).then(r => r.json()));
-    const rows = r.ok && r.data?.[1] ? r.data[1] : [];
-    const map = {};
-    rows.forEach(item => {
-      if (item.country?.id && item.value !== null && item.value !== undefined) {
-        map[item.country.id] = { value: parseFloat(item.value), date: item.date };
-      }
-    });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
+    const pm25 = r.ok ? r.data?.hourly?.pm2_5?.[0] : undefined;
+    if (pm25 !== undefined && pm25 !== null) {
+      if (!results[city.iso] || pm25 > results[city.iso].pm25) results[city.iso] = { pm25, city: city.name };
+    }
+  }
+  return { data: results, live: Object.keys(results).length > 0 };
 }
 
+// ── NOAA ──
+async function fetchNOAA() {
+  const [stations, alerts, storms] = await Promise.all([
+    safeFetch(fetch("https://api.weather.gov/stations?limit=20").then(r => r.json())),
+    safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Extreme").then(r => r.json())),
+    safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Severe").then(r => r.json())),
+  ]);
+  const out = {
+    stations: stations.ok ? (stations.data?.features?.length || 0) : 0,
+    extreme_alerts: alerts.ok ? (alerts.data?.features?.length || 0) : 0,
+    storm_alerts: storms.ok ? (storms.data?.features?.length || 0) : 0,
+  };
+  return { data: out, live: out.extreme_alerts > 0 || out.storm_alerts > 0 };
+}
+
+// ── HEALTH: disease.sh COVID-19 ──
+async function fetchDiseaseSh() {
+  const r = await safeFetch(fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=50").then(r => r.json()));
+  return { data: Array.isArray(r.data) ? r.data : [], live: r.ok && Array.isArray(r.data) && r.data.length > 0 };
+}
+
+// ── WORLD BANK ──
+async function fetchWorldBankIndicator(code, perPage = 300) {
+  const url = `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=${perPage}&mrv=1`;
+  const r = await safeFetch(fetch(url).then(r => r.json()));
+  const rows = r.ok && r.data?.[1] ? r.data[1] : [];
+  const map = {};
+  rows.forEach(item => {
+    if (item.country?.id && item.value !== null && item.value !== undefined) {
+      map[item.country.id] = { value: parseFloat(item.value), date: item.date, countryName: item.country.value };
+    }
+  });
+  return { data: map, live: Object.keys(map).length > 0 };
+}
 async function fetchWorldBankAll() {
   const [population, poverty, inflation, gdpGrowth, unemployment, refugees, foodPrices, water, trade] = await Promise.all([
     fetchWorldBankIndicator("SP.POP.TOTL"),
@@ -651,296 +550,219 @@ async function fetchWorldBankAll() {
   return { population, poverty, inflation, gdpGrowth, unemployment, refugees, foodPrices, water, trade };
 }
 
-// ── UNHCR (4 sources) ──
-async function fetchUNHCRPopulation() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1").then(r => r.json()));
-    const items = r.ok && r.data?.items ? r.data.items : [];
-    const map = {};
-    items.forEach(item => {
+// ── UNHCR ──
+async function fetchUNHCR() {
+  const [pop, asylum, ops, emerg, stats] = await Promise.all([
+    safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1").then(r => r.json())),
+    safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024").then(r => r.json())),
+    safeFetch(fetch("https://api.unhcr.org/operations/v1/operations?limit=30").then(r => r.json())),
+    safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=30").then(r => r.json())),
+    safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=30").then(r => r.json())),
+  ]);
+  const displacement = {};
+  if (pop.ok && pop.data?.items) {
+    pop.data.items.forEach(item => {
       const iso = item.coa_iso;
       if (!iso) return;
-      if (!map[iso]) map[iso] = { refugees: 0, idps: 0 };
-      map[iso].refugees += item.refugees || 0;
-      map[iso].idps += item.idps || 0;
+      if (!displacement[iso]) displacement[iso] = { refugees: 0, idps: 0, asylum_seekers: 0 };
+      displacement[iso].refugees += item.refugees || 0;
+      displacement[iso].idps += item.idps || 0;
     });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-async function fetchUNHCRAsylum() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024").then(r => r.json()));
-    const items = r.ok && r.data?.items ? r.data.items : [];
-    const map = {};
-    items.forEach(item => {
+  }
+  if (asylum.ok && asylum.data?.items) {
+    asylum.data.items.forEach(item => {
       const iso = item.coa_iso;
       if (!iso) return;
-      if (!map[iso]) map[iso] = { asylum_seekers: 0 };
-      map[iso].asylum_seekers += item.asylum_seekers || 0;
+      if (!displacement[iso]) displacement[iso] = { refugees: 0, idps: 0, asylum_seekers: 0 };
+      displacement[iso].asylum_seekers += item.asylum_seekers || 0;
     });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-async function fetchUNHCROperations() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/operations/v1/operations?limit=30").then(r => r.json()));
-    const list = r.ok ? (r.data?.items || r.data?.data || []) : [];
-    const map = {};
+  }
+  const operations = {};
+  if (ops.ok) {
+    const list = ops.data?.items || ops.data?.data || [];
     list.forEach(op => {
       const iso = op.country_iso || op.country?.iso3;
-      if (iso) map[iso] = { name: op.name || "UNHCR operation", status: op.status || "active" };
+      if (iso) operations[iso] = { name: op.name || "UNHCR operation", status: op.status || "active" };
     });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-async function fetchUNHCREmergency() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=30").then(r => r.json()));
-    const list = r.ok ? (r.data?.items || r.data?.data || []) : [];
-    const map = {};
+  }
+  const emergencies = {};
+  if (emerg.ok) {
+    const list = emerg.data?.items || emerg.data?.data || [];
     list.forEach(em => {
       const iso = em.country_iso || em.country?.iso3;
-      if (iso) map[iso] = { name: em.name || "Emergency response", level: em.level || "unknown" };
+      if (iso) emergencies[iso] = { name: em.name || "Emergency response", level: em.level || "unknown" };
     });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
+  }
+  const statistics = {};
+  if (stats.ok) {
+    const list = stats.data?.data || stats.data?.items || [];
+    list.forEach(s => {
+      const iso = s.country_iso || s.iso3 || s.country?.iso3;
+      if (iso && s.refugees > 0) statistics[iso] = { refugees: s.refugees, year: s.year || "2024" };
+    });
+  }
+  const live = Object.keys(displacement).length > 0 || Object.keys(operations).length > 0 || Object.keys(emergencies).length > 0;
+  return { data: { displacement, operations, emergencies, statistics }, live };
 }
 
-// ── INFRASTRUCTURE: OSM Hospitals + Clinics ──
-async function fetchOSMHealth() {
-  try {
-    const [hospitals, clinics] = await Promise.all([
-      safeFetch(fetch("https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;").then(r => r.json())),
-      safeFetch(fetch("https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=clinic](around:100000,15.35,44.21);out%20body;").then(r => r.json())),
-    ]);
-    const hospCount = hospitals.ok && hospitals.data?.elements ? hospitals.data.elements.length : 0;
-    const clinicCount = clinics.ok && clinics.data?.elements ? clinics.data.elements.length : 0;
-    return { data: { hospitals: hospCount, clinics: clinicCount }, live: hospCount > 0 || clinicCount > 0 };
-  } catch { return { data: { hospitals: 0, clinics: 0 }, live: false }; }
-}
-
-// ── DISASTERS: EM-DAT ──
-async function fetchEMDAT() {
-  try {
-    const r = await safeFetch(fetch("https://www.emdat.be/api/emdat?limit=10&year=2024").then(r => r.json()));
-    const disasters = r.ok && r.data?.data ? r.data.data : [];
-    return { data: disasters, live: disasters.length > 0 };
-  } catch { return { data: [], live: false }; }
-}
-
-// ── CLIMATE: Climate TRACE ──
-async function fetchClimateTRACE() {
-  try {
-    const r = await safeFetch(fetch("https://api.climatetrace.org/v1/emissions?country=US&sector=all").then(r => r.json()));
-    const emissions = r.ok && r.data?.data ? r.data.data : [];
-    return { data: emissions, live: emissions.length > 0 };
-  } catch { return { data: [], live: false }; }
-}
-
-// ── AGGREGATE ALL 40+ FETCHERS ──
+// ── AGGREGATE ALL FETCHERS ──
 async function fetchAllLive(isos) {
   const [
-    usgs, usgsSig, gdacsEq, usgsHist, emsc,
-    nasa, gdacs, ifrc,
-    heat, syria, flood, marine, wind, precip, uv, cloud, lightning,
-    aq,
-    noaaStations, noaaAlerts,
-    disease, who,
-    wb,
-    unhcrPop, unhcrAsylum, unhcrOps, unhcrEmerg,
-    osm, emdat, climate
+    usgs, emsc, nasa, gdacs, ifrc, heat, hazards, aq, noaa, disease, wb, unhcr
   ] = await Promise.all([
-    fetchUSGS(), fetchUSGSSignificant(), fetchGDACSEarthquakes(), fetchUSGSHistoric(), fetchEMSC(),
-    fetchNASA(), fetchGDACS(), fetchIFRC(),
-    fetchHeatStress(), fetchOpenMeteoSyria(), fetchFloodRisk(), fetchMarineWeather(), fetchWindSpeed(),
-    fetchPrecipitation(), fetchUVIndex(), fetchCloudCover(), fetchLightning(),
-    fetchAirQuality(),
-    fetchNOAAStations(), fetchNOAAAlerts(),
-    fetchDiseaseSh(), fetchWHORSS(),
-    fetchWorldBankAll(),
-    fetchUNHCRPopulation(), fetchUNHCRAsylum(), fetchUNHCROperations(), fetchUNHCREmergency(),
-    fetchOSMHealth(), fetchEMDAT(), fetchClimateTRACE(),
+    fetchUSGS(), fetchEMSC(), fetchNASA(), fetchGDACS(), fetchIFRC(),
+    fetchHeatStress(), fetchWeatherHazards(), fetchAirQuality(), fetchNOAA(),
+    fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(),
   ]);
-
-  return {
-    usgs, usgsSig, gdacsEq, usgsHist, emsc,
-    nasa, gdacs, ifrc,
-    heat, syria, flood, marine, wind, precip, uv, cloud, lightning,
-    aq,
-    noaaStations, noaaAlerts,
-    disease, who,
-    wb,
-    unhcrPop, unhcrAsylum, unhcrOps, unhcrEmerg,
-    osm, emdat, climate
-  };
+  return { usgs, emsc, nasa, gdacs, ifrc, heat, hazards, aq, noaa, disease, wb, unhcr };
 }
 
-// ─── SIGNAL EXTRACTION ──────────────────────────────────────────────────
+// ─── SIGNAL EXTRACTION ── FIXED: All sources properly counted ────────────
 
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   let liveEvidenceCount = 0;
   const evidenceSources = [];
 
-  // ── SEISMIC: USGS ──
+  // ── 1. USGS ──
   const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
-  const topQuake = quakes.length ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
-  if (topQuake?.properties?.mag >= 4.5) { liveEvidenceCount++; evidenceSources.push("USGS"); }
+  const topQuake = quakes.length ? quakes.reduce((a,b) => b.properties.mag > a.properties.mag ? b : a) : null;
+  if (topQuake?.properties?.mag >= 4.5) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("USGS"); 
+  }
 
-  // ── SEISMIC: USGS Significant ──
-  const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
-  if (sigQuakes.length > 0) { liveEvidenceCount++; evidenceSources.push("USGS Significant"); }
-
-  // ── SEISMIC: GDACS Earthquakes ──
-  const gdacsEqEvents = (live.gdacsEq.data || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (gdacsEqEvents.length > 0) { liveEvidenceCount++; evidenceSources.push("GDACS Earthquakes"); }
-
-  // ── SEISMIC: USGS Historic ──
-  const histQuakes = (live.usgsHist.data || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (histQuakes.length > 0) { liveEvidenceCount++; evidenceSources.push("USGS Historic"); }
-
-  // ── SEISMIC: EMSC ──
+  // ── 2. EMSC ──
   const emscQuakes = (live.emsc.data || []).filter(f => {
     const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
+    if (!coords) return false;
+    return findClosestCountry(coords[0], coords[1]) === iso;
   });
-  if (emscQuakes.length > 0) { liveEvidenceCount++; evidenceSources.push("EMSC"); }
+  const topEMSC = emscQuakes.length ? emscQuakes.reduce((a,b) => (b.properties?.mag||0) > (a.properties?.mag||0) ? b : a) : null;
+  if (topEMSC?.properties?.mag >= 4.5) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("EMSC"); 
+  }
 
-  // ── NASA ──
+  // ── 3. NASA EONET ──
   const nasaEvents = (live.nasa.data || []).filter(ev => {
     const coords = ev.geometry?.[0]?.coordinates;
     return coords && findClosestCountry(coords[0], coords[1]) === iso;
   });
-  if (nasaEvents.length > 0) { liveEvidenceCount++; evidenceSources.push("NASA"); }
+  if (nasaEvents.length > 0) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("NASA"); 
+  }
 
-  // ── GDACS Alerts ──
+  // ── 4. GDACS ──
   const gdacsEvents = (live.gdacs.data || []).filter(f => {
     const coords = f.geometry?.coordinates;
     return coords && findClosestCountry(coords[0], coords[1]) === iso;
   });
-  if (gdacsEvents.length > 0) { liveEvidenceCount++; evidenceSources.push("GDACS Alerts"); }
-
-  // ── IFRC GO ──
-  const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
-  if (ifrcEvents.length > 0) { liveEvidenceCount++; evidenceSources.push("IFRC GO"); }
-
-  // ── Open-Meteo Heat Stress ──
-  const maxTempC = live.heat.data[iso] ?? 0;
-  if (maxTempC >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Heat"); }
-
-  // ── Open-Meteo Syria ──
-  if (iso === 'SYR' && live.syria.live) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Syria"); }
-
-  // ── Open-Meteo Flood ──
-  if (iso === 'YEM' && live.flood.data.discharge > 50) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Flood"); }
-
-  // ── Open-Meteo Marine ──
-  if (iso === 'YEM' && live.marine.data.wave_height > 2) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Marine"); }
-
-  // ── Open-Meteo Wind ──
-  if (iso === 'YEM' && live.wind.data.wind_speed > 30) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Wind"); }
-
-  // ── Open-Meteo Precipitation ──
-  if (iso === 'YEM' && live.precip.data.precipitation > 10) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Precip"); }
-
-  // ── Open-Meteo UV ──
-  if (iso === 'YEM' && live.uv.data.uv_max > 8) { liveEvidenceCount++; evidenceSources.push("Open-Meteo UV"); }
-
-  // ── Open-Meteo Cloud ──
-  if (iso === 'YEM' && live.cloud.data.cloud_cover > 70) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Cloud"); }
-
-  // ── Open-Meteo Lightning ──
-  if (iso === 'YEM' && live.lightning.data.lightning > 100) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Lightning"); }
-
-  // ── Open-Meteo Air Quality ──
-  const aqData = live.aq.data[iso] || null;
-  if (aqData && aqData.pm25 >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo AQ"); }
-
-  // ── NOAA Stations ──
-  if (iso === 'USA' && live.noaaStations.data.stations > 0) { liveEvidenceCount++; evidenceSources.push("NOAA Stations"); }
-
-  // ── NOAA Alerts ──
-  if (iso === 'USA' && (live.noaaAlerts.data.extreme > 0 || live.noaaAlerts.data.severe > 0)) {
-    liveEvidenceCount++; evidenceSources.push("NOAA Alerts");
+  const topGDACS = gdacsEvents[0] || null;
+  if (topGDACS) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("GDACS"); 
   }
 
-  // ── disease.sh ──
-  const diseaseRow = (live.disease.data || []).find(d => (d.country || "").toLowerCase() === name);
-  if (diseaseRow?.active > 1000) { liveEvidenceCount++; evidenceSources.push("disease.sh"); }
+  // ── 5. IFRC ──
+  const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
+  if (ifrcEvents.length > 0) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("IFRC"); 
+  }
 
-  // ── WHO RSS ──
-  const whoItems = (live.who.data || []).filter(item => {
-    const text = ((item.title||"")+" "+(item.description||"")).toLowerCase();
-    return name.includes(' ') ? text.includes(name) : text.includes(name.split(' ')[0]);
+  // ── 6. Open-Meteo Heat Stress ──
+  const maxTempC = live.heat.data[iso] ?? 0;
+  if (maxTempC >= 35) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("Open-Meteo Heat"); 
+  }
+
+  // ── 7. Open-Meteo Hazards (Yemen only) ──
+  if (iso === 'YEM' && live.hazards.live) {
+    liveEvidenceCount++; 
+    evidenceSources.push("Open-Meteo Hazards"); 
+  }
+
+  // ── 8. Open-Meteo Air Quality ──
+  const aqData = live.aq.data[iso] || null;
+  if (aqData && aqData.pm25 >= 35) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("Open-Meteo AQ"); 
+  }
+
+  // ── 9. NOAA (US only) ──
+  if (iso === 'USA' && (live.noaa.data.extreme_alerts > 0 || live.noaa.data.storm_alerts > 0)) {
+    liveEvidenceCount++; 
+    evidenceSources.push("NOAA"); 
+  }
+
+  // ── 10. disease.sh COVID-19 ── FIXED: Proper country matching ──
+  const diseaseRow = (live.disease.data || []).find(d => {
+    const countryName = d.country || d.country_name || "";
+    return countryName.toLowerCase() === name || name.includes(countryName.toLowerCase()) || countryName.toLowerCase().includes(name);
   });
-  if (whoItems.length > 0) { liveEvidenceCount++; evidenceSources.push("WHO RSS"); }
+  if (diseaseRow && diseaseRow.active > 1000) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("disease.sh"); 
+  }
 
-  // ── World Bank ──
+  // ── 11. World Bank Indicators ──
   const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
   const wbRefugees = live.wb.refugees.data[iso] || null;
   const wbPoverty = live.wb.poverty.data[iso] || null;
-  const wbFoodPrices = live.wb.foodPrices.data[iso] || null;
-  const wbWater = live.wb.water.data[iso] || null;
-  const wbTrade = live.wb.trade.data[iso] || null;
-  if (wbInflation && wbInflation.value > 5) { liveEvidenceCount++; evidenceSources.push("WB Inflation"); }
-  if (wbGdpGrowth && wbGdpGrowth.value < 0) { liveEvidenceCount++; evidenceSources.push("WB GDP"); }
-  if (wbUnemployment && wbUnemployment.value > 10) { liveEvidenceCount++; evidenceSources.push("WB Unemployment"); }
-  if (wbRefugees && wbRefugees.value > 1000) { liveEvidenceCount++; evidenceSources.push("WB Refugees"); }
-  if (wbPoverty && wbPoverty.value > 5) { liveEvidenceCount++; evidenceSources.push("WB Poverty"); }
-  if (wbFoodPrices && wbFoodPrices.value > 120) { liveEvidenceCount++; evidenceSources.push("WB Food Prices"); }
-  if (wbWater && wbWater.value > 20) { liveEvidenceCount++; evidenceSources.push("WB Water"); }
-  if (wbTrade && wbTrade.value > 60) { liveEvidenceCount++; evidenceSources.push("WB Trade"); }
-
-  // ── UNHCR Population ──
-  const unhcrPop = live.unhcrPop.data[iso] || null;
-  const totalDisplaced = unhcrPop ? (unhcrPop.refugees || 0) + (unhcrPop.idps || 0) : 0;
-  if (totalDisplaced > 0) { liveEvidenceCount++; evidenceSources.push("UNHCR Population"); }
-
-  // ── UNHCR Asylum ──
-  const unhcrAsylum = live.unhcrAsylum.data[iso] || null;
-  if (unhcrAsylum && unhcrAsylum.asylum_seekers > 0) { liveEvidenceCount++; evidenceSources.push("UNHCR Asylum"); }
-
-  // ── UNHCR Operations ──
-  const unhcrOp = live.unhcrOps.data[iso] || null;
-  if (unhcrOp) { liveEvidenceCount++; evidenceSources.push("UNHCR Operations"); }
-
-  // ── UNHCR Emergency ──
-  const unhcrEmerg = live.unhcrEmerg.data[iso] || null;
-  if (unhcrEmerg) { liveEvidenceCount++; evidenceSources.push("UNHCR Emergency"); }
-
-  // ── OSM Health ──
-  if (iso === 'YEM' && (live.osm.data.hospitals > 0 || live.osm.data.clinics > 0)) {
-    liveEvidenceCount++; evidenceSources.push("OSM Health");
+  
+  if (wbInflation && wbInflation.value > 5) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("WB Inflation"); 
+  }
+  if (wbGdpGrowth && wbGdpGrowth.value < 0) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("WB GDP"); 
+  }
+  if (wbUnemployment && wbUnemployment.value > 10) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("WB Unemployment"); 
+  }
+  if (wbRefugees && wbRefugees.value > 1000) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("WB Refugees"); 
+  }
+  if (wbPoverty && wbPoverty.value > 5) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("WB Poverty"); 
   }
 
-  // ── EM-DAT ──
-  const emdatEvents = (live.emdat.data || []).filter(d => {
-    const country = d.country || d.location || "";
-    return country.toLowerCase().includes(name) || name.includes(country.toLowerCase());
-  });
-  if (emdatEvents.length > 0) { liveEvidenceCount++; evidenceSources.push("EM-DAT"); }
-
-  // ── Climate TRACE ──
-  if (live.climate.data.length > 0) { liveEvidenceCount++; evidenceSources.push("Climate TRACE"); }
+  // ── 12. UNHCR ──
+  const displacement = live.unhcr.data.displacement[iso] || null;
+  const totalDisplaced = displacement ? (displacement.refugees||0) + (displacement.idps||0) + (displacement.asylum_seekers||0) : 0;
+  if (totalDisplaced > 0) { 
+    liveEvidenceCount++; 
+    evidenceSources.push("UNHCR"); 
+  }
 
   return {
-    quakeMag: topQuake ? +topQuake.properties.mag : 0,
-    quakePlace: topQuake ? topQuake.properties.place.split(",")[0].trim() : null,
+    quakeMag: topQuake ? +topQuake.properties.mag : (topEMSC ? +topEMSC.properties.mag : 0),
+    quakePlace: topQuake ? topQuake.properties.place.split(",")[0].trim() : (topEMSC?.properties?.flynn_region || null),
+    quakeCount: quakes.length + emscQuakes.length,
+    nasaEventCount: nasaEvents.length,
+    gdacs: topGDACS,
+    gdacsAlert: topGDACS?.properties?.alertlevel?.toLowerCase() || null,
+    ifrcCount: ifrcEvents.length,
     maxTempC,
-    totalDisplaced,
+    hazards: iso === 'YEM' ? live.hazards.data : null,
+    aq: aqData,
+    noaa: iso === 'USA' ? live.noaa.data : null,
     diseaseActive: diseaseRow?.active || 0,
+    diseaseName: diseaseRow ? "COVID-19" : null,
     wbInflation, wbGdpGrowth, wbUnemployment, wbRefugees, wbPoverty,
+    refugees: displacement?.refugees || 0,
+    idps: displacement?.idps || 0,
+    asylum_seekers: displacement?.asylum_seekers || 0,
+    totalDisplaced,
     liveEvidenceCount,
     evidenceSources,
   };
@@ -956,7 +778,23 @@ function applyLiveAdjustments(priorDims, signals) {
     const boost = Math.min(25, Math.round((signals.quakeMag - 4.0) * 5));
     dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
     dims.health = clamp(dims.health + Math.floor(boost * 0.4));
-    audit.push({ source: "USGS", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake` });
+    audit.push({ source: "USGS/EMSC", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake`, magnitude: signals.quakeMag });
+  }
+  if (signals.nasaEventCount > 0) {
+    const boost = Math.min(15, signals.nasaEventCount * 5);
+    dims.climate = clamp(dims.climate + boost);
+    audit.push({ source: "NASA EONET", field: "climate", delta: boost, reason: `${signals.nasaEventCount} active NASA events` });
+  }
+  if (signals.gdacs) {
+    const gdacsBoost = signals.gdacsAlert === "red" ? 15 : signals.gdacsAlert === "orange" ? 8 : 3;
+    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.5));
+    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.5));
+    audit.push({ source: "GDACS", field: "displacement+health", delta: gdacsBoost, reason: `${signals.gdacsAlert?.toUpperCase()} alert active` });
+  }
+  if (signals.ifrcCount > 0) {
+    const boost = Math.min(12, signals.ifrcCount * 6);
+    dims.access = clamp(dims.access + boost);
+    audit.push({ source: "IFRC GO", field: "access", delta: boost, reason: `${signals.ifrcCount} active IFRC operations` });
   }
   if (signals.maxTempC >= 35) {
     const boost = Math.min(20, Math.round((signals.maxTempC - 30) * 1.5));
@@ -968,7 +806,7 @@ function applyLiveAdjustments(priorDims, signals) {
     const m = signals.diseaseActive / 1000;
     const boost = Math.min(15, Math.round(Math.log10(m + 1) * 6));
     dims.health = clamp(dims.health + boost);
-    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} COVID-19 cases` });
+    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` });
   }
   if (signals.wbInflation && signals.wbInflation.value > 5) {
     const boost = Math.min(15, Math.round(signals.wbInflation.value / 4));
@@ -978,7 +816,7 @@ function applyLiveAdjustments(priorDims, signals) {
   if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < 0) {
     const boost = Math.min(12, Math.round(Math.abs(signals.wbGdpGrowth.value) * 2));
     dims.economic = clamp(dims.economic + boost);
-    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `GDP contraction ${signals.wbGdpGrowth.value.toFixed(1)}%` });
+    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `GDP growth ${signals.wbGdpGrowth.value.toFixed(1)}% (contraction)` });
   }
   if (signals.wbUnemployment && signals.wbUnemployment.value > 10) {
     const boost = Math.min(10, Math.round(signals.wbUnemployment.value / 5));
@@ -987,7 +825,7 @@ function applyLiveAdjustments(priorDims, signals) {
   }
   if (signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
-    const boost = m >= 10 ? 30 : m >= 5 ? 25 : m >= 3 ? 20 : m >= 1.5 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
+    const boost = m>=10?30:m>=5?25:m>=3?20:m>=1.5?15:m>=0.5?10:m>=0.1?5:0;
     if (boost > 0) {
       dims.displacement = clamp(dims.displacement + boost);
       audit.push({ source: "UNHCR", field: "displacement", delta: boost, reason: `${m.toFixed(1)}M displaced` });
@@ -1011,21 +849,16 @@ function buildStore(liveData) {
     if (liveData) {
       signals = extractSignals(iso, liveData);
       const adjusted = applyLiveAdjustments(priorDims, signals);
-      dims = adjusted.dims;
-      score = adjusted.score;
-      audit = adjusted.audit;
+      dims = adjusted.dims; score = adjusted.score; audit = adjusted.audit;
     } else {
-      dims = priorDims;
-      score = priorScore;
-      audit = [];
-      signals = {};
+      dims = priorDims; score = priorScore; audit = []; signals = {};
     }
     store[iso] = { ...country, dims, score, priorScore, liveBoost: score - priorScore, audit, signals, spillover: 0 };
   }
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
-    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
+    const avgNb = neighbours.reduce((s,n) => s+store[n].score, 0) / neighbours.length;
     store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE).toFixed(1);
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
   }
@@ -1056,11 +889,16 @@ function buildPayload(iso, store, ranked, opts = {}) {
     needs: [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
     trend: { delta_7d: delta7, direction: fc.trend, slope: fc.slope, forecast_7d: fc.fc, escalating: fc.esc },
     anomaly: { detected: anom.detected, severity: anom.severity, direction: anom.direction, methods_fired: anom.methods_fired, z_score: anom.z_score, note: anom.note },
-    spillover: { value: c.spillover },
+    spillover: { value: c.spillover, from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })) },
     live_evidence: {
-      earthquake: s.quakeMag >= 4.5 ? { magnitude: s.quakeMag, location: s.quakePlace, source: "USGS" } : null,
+      earthquake: s.quakeMag >= 4.5 ? { magnitude: s.quakeMag, location: s.quakePlace, event_count: s.quakeCount, source: "USGS/EMSC" } : null,
+      nasa_events: s.nasaEventCount > 0 ? { count: s.nasaEventCount, source: "NASA EONET" } : null,
+      gdacs: s.gdacs ? { alert_level: s.gdacsAlert, source: "GDACS" } : null,
+      ifrc: s.ifrcCount > 0 ? { count: s.ifrcCount, source: "IFRC GO" } : null,
       heat: s.maxTempC >= 35 ? { max_temp_c: s.maxTempC, source: "Open-Meteo" } : null,
-      disease: s.diseaseActive > 0 ? { disease: "COVID-19", active: s.diseaseActive, source: "disease.sh" } : null,
+      air_quality: s.aq ? { ...s.aq, source: "Open-Meteo AQ" } : null,
+      noaa: s.noaa ? { ...s.noaa, source: "NOAA" } : null,
+      disease: s.diseaseActive > 0 ? { disease: s.diseaseName, active: s.diseaseActive, source: "disease.sh" } : null,
       economic: {
         inflation: s.wbInflation ? { ...s.wbInflation, source: "World Bank" } : null,
         gdp_growth: s.wbGdpGrowth ? { ...s.wbGdpGrowth, source: "World Bank" } : null,
@@ -1068,7 +906,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
         poverty: s.wbPoverty ? { ...s.wbPoverty, source: "World Bank" } : null,
         refugees_wb: s.wbRefugees ? { ...s.wbRefugees, source: "World Bank" } : null,
       },
-      displacement: s.totalDisplaced > 0 ? { total: s.totalDisplaced, source: "UNHCR" } : null,
+      displacement: s.totalDisplaced > 0 ? { total: s.totalDisplaced, refugees: s.refugees, idps: s.idps, asylum_seekers: s.asylum_seekers, source: "UNHCR" } : null,
     },
     score_audit: { prior_score: c.priorScore, adjustments: c.audit || [], spillover: c.spillover, final_score: c.score, live_boost: c.liveBoost },
     recommendation: recommendation(c.score, anom),
@@ -1076,20 +914,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
   };
 
   return base;
-}
-
-// ─── SITEMAP BUILDER ──────────────────────────────────────────────────
-
-function buildSitemap(payloads) {
-  const now = new Date().toISOString();
-  const items = payloads.map(p => `
-  <url>
-    <loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>${p.score >= 80 ? "1.0" : p.score >= 60 ? "0.9" : p.score >= 40 ? "0.8" : "0.7"}</priority>
-  </url>`).join("");
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</urlset>`;
 }
 
 // ─── MAIN HANDLER ─────────────────────────────────────────────────────
@@ -1161,7 +985,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ── FETCH ALL LIVE DATA ──
     const liveData = await fetchAllLive(targetIsos);
     const store = buildStore(liveData);
     const ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
@@ -1172,13 +995,11 @@ export default async function handler(req, res) {
     else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
     else finalIsos = ranked.slice(0, params.top);
 
-    // ─── FILTER: ONLY COUNTRIES WITH LIVE EVIDENCE ──
+    // ─── ONLY COUNTRIES WITH LIVE EVIDENCE ───
     if (params.force_live) {
-      const liveIsos = finalIsos.filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= CFG.MIN_LIVE_EVIDENCE_SOURCES);
+      finalIsos = finalIsos.filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= CFG.MIN_LIVE_EVIDENCE_SOURCES);
 
-      if (liveIsos.length > 0) {
-        finalIsos = liveIsos;
-      } else {
+      if (finalIsos.length === 0) {
         const anyLive = Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1);
         if (anyLive.length > 0) {
           const sortedLive = anyLive.sort((a, b) => store[b].score - store[a].score);
@@ -1190,7 +1011,7 @@ export default async function handler(req, res) {
               generated_at: new Date().toISOString(),
               elapsed_ms: Date.now() - start,
               mode: "empty",
-              message: "No countries currently have live evidence from any tracked source.",
+              message: "No countries currently have live evidence from any tracked source. No fabricated or fallback story is returned.",
               min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
             },
             countries: [],
@@ -1214,26 +1035,36 @@ export default async function handler(req, res) {
     if (mode === "comparison") {
       const rows = finalIsos.map(iso => {
         const c = store[iso];
-        return { iso, name: c.name, flag: c.flag, score: c.score, severity: severityLabel(c.score), rank: ranked.indexOf(iso) + 1, live_evidence_count: c.signals?.liveEvidenceCount || 0 };
+        const hist = seedHistory(iso, c.score);
+        const fc = trendForecast(hist, c.score);
+        const anom = runAnomalyDetection(hist);
+        const delta = Math.round(hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)]);
+        return {
+          iso, name: c.name, flag: c.flag, score: c.score,
+          severity: severityLabel(c.score), rank: ranked.indexOf(iso) + 1,
+          dimensions: Object.fromEntries(DIMS.map(d => [d.k, c.dims[d.k] || 0])),
+          trend_7d: delta, forecast_7d: fc.fc,
+          anomaly_detected: anom.detected, anomaly_severity: anom.severity,
+          live_evidence_count: c.signals?.liveEvidenceCount || 0
+        };
       });
       const sorted = [...rows].sort((a, b) => b.score - a.score);
       comparison = { countries: rows, verdict: `${sorted[0].flag} ${sorted[0].name} is most severe (score ${sorted[0].score}).` };
     }
 
+    const allAnomalies = Object.keys(store).filter(iso => runAnomalyDetection(seedHistory(iso, store[iso].score)).detected);
+
     const sources = {
-      usgs: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0, label: "USGS" },
-      usgsSig: { live: liveData.usgsSig.live, events: liveData.usgsSig.data?.length ?? 0, label: "USGS Significant" },
-      gdacsEq: { live: liveData.gdacsEq.live, events: liveData.gdacsEq.data?.length ?? 0, label: "GDACS Earthquakes" },
-      usgsHist: { live: liveData.usgsHist.live, events: liveData.usgsHist.data?.length ?? 0, label: "USGS Historic" },
-      emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0, label: "EMSC" },
-      nasa: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0, label: "NASA" },
-      gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0, label: "GDACS Alerts" },
-      ifrc: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0, label: "IFRC GO" },
-      heat: { live: liveData.heat.live, label: "Open-Meteo Heat" },
-      aq: { live: liveData.aq.live, cities: Object.keys(liveData.aq.data || {}).length, label: "Open-Meteo AQ" },
-      noaa: { live: liveData.noaaAlerts.live, label: "NOAA" },
-      disease: { live: liveData.disease.live, countries: liveData.disease.data?.length ?? 0, label: "disease.sh" },
-      who: { live: liveData.who.live, outbreaks: liveData.who.data?.length ?? 0, label: "WHO RSS" },
+      usgs: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0, label: "USGS Earthquake Hazards Program" },
+      emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0, label: "EMSC Seismic Portal" },
+      nasa: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0, label: "NASA EONET" },
+      gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0, label: "GDACS Global Disaster Alert" },
+      ifrc: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0, label: "IFRC GO Platform" },
+      heat: { live: liveData.heat.live, countries: Object.keys(liveData.heat.data || {}).length, label: "Open-Meteo Heat Stress" },
+      hazards: { live: liveData.hazards.live, label: "Open-Meteo Hazards" },
+      aq: { live: liveData.aq.live, cities: Object.keys(liveData.aq.data || {}).length, label: "Open-Meteo Air Quality" },
+      noaa: { live: liveData.noaa.live, label: "NOAA Alerts" },
+      disease: { live: liveData.disease.live, countries: liveData.disease.data?.length ?? 0, label: "disease.sh COVID-19" },
       wb: {
         population: liveData.wb.population.live,
         poverty: liveData.wb.poverty.live,
@@ -1241,22 +1072,12 @@ export default async function handler(req, res) {
         gdp_growth: liveData.wb.gdpGrowth.live,
         unemployment: liveData.wb.unemployment.live,
         refugees: liveData.wb.refugees.live,
-        foodPrices: liveData.wb.foodPrices.live,
-        water: liveData.wb.water.live,
-        trade: liveData.wb.trade.live,
-        label: "World Bank",
+        label: "World Bank Indicators",
       },
-      unhcr: {
-        population: liveData.unhcrPop.live,
-        asylum: liveData.unhcrAsylum.live,
-        operations: liveData.unhcrOps.live,
-        emergency: liveData.unhcrEmerg.live,
-        label: "UNHCR",
-      },
-      osm: { live: liveData.osm.live, label: "OSM Health" },
-      emdat: { live: liveData.emdat.live, label: "EM-DAT" },
-      climate: { live: liveData.climate.live, label: "Climate TRACE" },
+      unhcr: { live: liveData.unhcr.live, label: "UNHCR" },
     };
+
+    const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
     const body = {
       meta: {
@@ -1264,26 +1085,51 @@ export default async function handler(req, res) {
         elapsed_ms: Date.now() - start,
         mode,
         countries_tracked: Object.keys(COUNTRIES).length,
-        countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
+        anomalies_detected: allAnomalies.length,
+        anomaly_isos: allAnomalies.slice(0, 20),
+        score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
+        next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         data_policy: {
           type: "100% LIVE DATA ONLY",
           min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
-          sources_count: 40,
+          countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
+          total_countries: Object.keys(store).length,
           no_fallbacks: true,
         },
         sources,
+        endpoints: {
+          single: "GET /api/top-story",
+          top_n: "GET /api/top-story?top=10",
+          iso: "GET /api/top-story?iso=SOM",
+          compare: "GET /api/top-story?iso=SOM,YEM",
+          region: "GET /api/top-story?region=africa",
+          threshold: "GET /api/top-story?threshold=70",
+          search: "GET /api/top-story?q=somalia",
+        },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
       ...(mode === "comparison" ? { comparison, countries: payloads } : {}),
     };
 
-    res.writeHead(200, CORS);
+    res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v6.0]", err);
+    console.error("[top-story v5.2]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
+}
+
+function buildSitemap(payloads) {
+  const now = new Date().toISOString();
+  const items = payloads.map(p => `
+  <url>
+    <loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>${p.score >= 80 ? "1.0" : p.score >= 60 ? "0.9" : p.score >= 40 ? "0.8" : "0.7"}</priority>
+  </url>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</urlset>`;
 }
