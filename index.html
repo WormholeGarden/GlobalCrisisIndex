@@ -1109,8 +1109,11 @@ const API_ENDPOINTS={
   gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40',
   
   // ── WEATHER / CLIMATE ──
-  openmeteo_heat:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=temperature_2m_max&timezone=auto&forecast_days=3',
-  openmeteo_syria:'https://api.open-meteo.com/v1/forecast?latitude=33.51&longitude=36.29&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3',
+// ── WEATHER / CLIMATE ──
+  // NOTE: no pinned single-country coordinates here anymore. Heat/precip
+  // evidence is gathered per-country via the HEAT_LOOP_ISOS loop inside
+  // fetchAllEvidence() — see fetchHeatAndPrecipLoop().
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
   openmeteo_wind:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1',
   openmeteo_precipitation:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3',
   openmeteo_uv:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3',
@@ -1180,7 +1183,35 @@ const API_ENDPOINTS={
   // ── CLIMATE TRACE ──
   climate_trace:'https://api.climatetrace.org/v1/emissions?country=US&sector=all',
 };
-async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+// Generalized, per-country heat+precipitation loop. Every ISO in this list
+// gets its OWN coordinates and its OWN fetch — no single country's weather
+// is used as a stand-in for anyone else's. This replaces the old pinned
+// Yemen/Syria endpoints entirely.
+const HEAT_LOOP_ISOS=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
+async function fetchHeatAndPrecipLoop(){
+  const results={};
+  const CONCURRENCY=5;
+  const queue=[...HEAT_LOOP_ISOS];
+  async function worker(){
+    while(queue.length){
+      const iso=queue.shift();
+      const coord=CENTROIDS[iso];
+      if(!coord)continue;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3`;
+      const res=await safe(fetch(url).then(r=>r.ok?r.json():null));
+      if(res?.daily?.temperature_2m_max?.[0]!==undefined){
+        results[iso]={
+          temp:res.daily.temperature_2m_max[0],
+          precip:res.daily.precipitation_sum?.[0]??null,
+          date:res.daily.time?.[0]||null
+        };
+      }
+    }
+  }
+  await Promise.all(Array.from({length:CONCURRENCY},worker));
+  return results;
+}
+async function fetchOpenMeteoHeatStress(){const heatProneIsos=HEAT_LOOP_ISOS;const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
 async function fetchIpcClassifications(){
   try{
     const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
@@ -1540,7 +1571,10 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,200));
   adv(1,15);
 
-  // ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
+// ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
+  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
+  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
+  // not as a single pinned URL like the other entries here.)
   const fetchKeys = Object.keys(API_ENDPOINTS);
   const fetches = {};
   for (const k of fetchKeys) {
@@ -1896,40 +1930,21 @@ async function fetchAllEvidence() {
     }
   } catch(e) { console.warn('GDACS Earthquakes fetch failed:', e); }
 
-  // ── 6. Open-Meteo Heat (Yemen) ──
+// ── 6+7. Open-Meteo Heat + Precipitation — GENERALIZED PER-COUNTRY LOOP ──
+  // Previously this was two separate hardcoded blocks: one pinned to Yemen's
+  // coordinates, one pinned to Syria's. Every other country got nothing.
+  // This now loops over HEAT_LOOP_ISOS (25 heat/drought-prone countries) and
+  // gives each one its own real fetch against its own coordinates, exactly
+  // like the seismic/NASA/disease loops already do.
   try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_heat);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_heat = data;
-      if (data?.daily?.temperature_2m_max?.[0]) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].heat = {
-          temp: data.daily.temperature_2m_max[0],
-          date: data.daily.time?.[0]
-        };
-        heatStressData.push({ iso: 'YEM', temp: data.daily.temperature_2m_max[0], timestamp: Date.now() });
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo Heat fetch failed:', e); }
-
-  // ── 7. Open-Meteo Syria ──
-  try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_syria);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_syria = data;
-      if (data?.daily?.temperature_2m_max?.[0]) {
-        evidenceIndex.sourceCoverage['SYR'] = evidenceIndex.sourceCoverage['SYR'] || {};
-        evidenceIndex.sourceCoverage['SYR'].heat = {
-          temp: data.daily.temperature_2m_max[0],
-          precip: data.daily.precipitation_sum?.[0],
-          date: data.daily.time?.[0]
-        };
-        heatStressData.push({ iso: 'SYR', temp: data.daily.temperature_2m_max[0], timestamp: Date.now() });
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo Syria fetch failed:', e); }
+    const heatResults = await fetchHeatAndPrecipLoop();
+    results.openmeteo_heat_loop = heatResults;
+    Object.entries(heatResults).forEach(([iso, d]) => {
+      evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+      evidenceIndex.sourceCoverage[iso].heat = { temp: d.temp, precip: d.precip, date: d.date };
+      heatStressData.push({ iso, temp: d.temp, timestamp: Date.now() });
+    });
+  } catch(e) { console.warn('Open-Meteo heat/precip loop failed:', e); }
 
   // ── 8. Open-Meteo Flood Risk (NEW) ──
   try {
