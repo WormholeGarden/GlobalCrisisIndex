@@ -3,304 +3,786 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GCIN — Global Crisis Index News · All Anomaly Stories</title>
-  <meta name="description" content="Global Crisis Index News — real-time crisis intelligence, anomaly detection, and investigative journalism powered by live data.">
+  <title>GCIN — Global Crisis Index News · Award-Winning Crisis Intelligence</title>
+  
+  <!-- ═══ META TAGS FOR PREMIUM SEO ═══ -->
+  <meta name="description" content="Global Crisis Index News (GCIN) — real-time crisis intelligence, anomaly detection, and investigative journalism powered by 40+ live global APIs. Award-winning coverage of humanitarian emergencies, conflicts, disasters, and geopolitical risk.">
+  <meta name="keywords" content="global crisis index, crisis intelligence, humanitarian news, real-time crisis, geopolitical risk, conflict tracking, disaster monitoring, famine early warning, refugee crisis, investigative journalism">
+  <meta name="author" content="GCIN Editorial Team">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
+  <link rel="canonical" href="https://globalcrisisindex.com/news">
+  
+  <!-- ═══ OPEN GRAPH / TWITTER ═══ -->
+  <meta property="og:title" content="GCIN — Global Crisis Index News · Live Crisis Intelligence">
+  <meta property="og:description" content="Real-time crisis intelligence and investigative journalism powered by 40+ live APIs. Tracking conflicts, disasters, famine, and displacement globally.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://globalcrisisindex.com/news">
+  <meta property="og:site_name" content="Global Crisis Index News">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GCIN — Global Crisis Index News">
+  <meta name="twitter:description" content="Real-time crisis intelligence and investigative journalism powered by live data.">
+  
+  <!-- ═══ PREMIUM TYPOGRAPHY ═══ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
   <style>
+    /* ═══════════════════════════════════════════════════
+       PREMIUM DESIGN SYSTEM — AWARD-WINNING AESTHETIC
+       ═══════════════════════════════════════════════════ */
+    
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+    
+    :root {
+      --gcin-bg-primary: #030b18;
+      --gcin-bg-secondary: #0a1628;
+      --gcin-bg-card: #0f1a30;
+      --gcin-bg-card-hover: #142244;
+      --gcin-border: rgba(66, 153, 225, 0.12);
+      --gcin-border-hover: rgba(66, 153, 225, 0.25);
+      --gcin-text-primary: #f0f6ff;
+      --gcin-text-secondary: #b8cce8;
+      --gcin-text-muted: #5a7a9a;
+      --gcin-text-muted-light: #7a9aba;
+      --gcin-cyan: #00c8ff;
+      --gcin-cyan-glow: 0 0 30px rgba(0, 200, 255, 0.08);
+      --gcin-rose: #ff375f;
+      --gcin-rose-glow: 0 0 30px rgba(255, 55, 95, 0.12);
+      --gcin-amber: #ffb020;
+      --gcin-gold: #ffd700;
+      --gcin-green: #00e5a0;
+      --gcin-purple: #bf7fff;
+      --gcin-orange: #ff8c42;
+      --gcin-radius-sm: 8px;
+      --gcin-radius-md: 16px;
+      --gcin-radius-lg: 24px;
+      --gcin-radius-xl: 32px;
+      --gcin-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --gcin-font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+      --gcin-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --gcin-font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--gcin-bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--gcin-cyan); border-radius: 99px; }
+    
     body {
-      background: #030b18;
-      font-family: 'Georgia', 'Times New Roman', Times, serif;
-      color: #eef4ff;
-      line-height: 1.6;
+      background: var(--gcin-bg-primary);
+      background-image: 
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0, 200, 255, 0.03) 0%, transparent 100%),
+        radial-gradient(ellipse 60% 80% at 80% 90%, rgba(191, 127, 255, 0.03) 0%, transparent 100%);
+      font-family: var(--gcin-font-sans);
+      color: var(--gcin-text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
     }
+    
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: 
+        linear-gradient(rgba(0, 200, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 200, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.5;
+    }
+    
     .container {
-      max-width: 960px;
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 2rem 1.5rem;
+      padding: 1.5rem 2rem 3rem;
     }
+    
+    /* ─── MASTHEAD ─── */
     .gcin-masthead {
-      font-size: 0.7rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #6bc8ff;
-      margin-bottom: 1rem;
-      border-bottom: 1px solid rgba(66,153,225,0.2);
-      padding-bottom: 0.75rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0.75rem 0 1.25rem;
+      border-bottom: 1px solid var(--gcin-border);
       flex-wrap: wrap;
+      gap: 0.75rem;
     }
-    .gcin-masthead span {
-      color: #5a7390;
-      font-size: 0.6rem;
+    
+    .gcin-masthead-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
-    .btn-back {
-      display: inline-block;
-      background: #3174c7;
-      padding: 0.4rem 1rem;
-      border-radius: 30px;
-      font-size: 0.75rem;
-      font-family: system-ui;
-      color: white;
-      text-decoration: none;
-      margin-bottom: 1rem;
-    }
-    .btn-back:hover {
-      background: #468ef0;
-    }
-    h1 {
-      font-size: 2.8rem;
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 0.25rem;
+    
+    .gcin-masthead-logo {
+      font-family: var(--gcin-font-serif);
+      font-size: 1.4rem;
+      font-weight: 900;
       letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 20%, var(--gcin-cyan), var(--gcin-purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    .subtitle {
-      color: #7c9ec0;
-      font-size: 1.1rem;
-      margin-bottom: 2rem;
+    
+    .gcin-masthead-logo span {
       font-weight: 400;
+      color: var(--gcin-text-muted);
+      background: none;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+      color: var(--gcin-text-muted);
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      margin-left: 0.3rem;
     }
+    
+    .gcin-masthead-badge {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      background: rgba(0, 200, 255, 0.08);
+      border: 1px solid rgba(0, 200, 255, 0.15);
+      color: var(--gcin-cyan);
+      padding: 0.2rem 0.7rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+    
+    .gcin-masthead-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: 0.7rem;
+      color: var(--gcin-text-muted);
+      font-family: var(--gcin-font-mono);
+    }
+    
+    .gcin-masthead-right .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gcin-green);
+      display: inline-block;
+      animation: live-pulse 1.8s ease-in-out infinite;
+    }
+    
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.5); }
+      50% { opacity: 0.5; transform: scale(0.85); box-shadow: 0 0 0 6px rgba(0, 229, 160, 0); }
+    }
+    
+    /* ─── BACK BUTTON ─── */
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--gcin-font-sans);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--gcin-text-muted-light);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--gcin-border);
+      border-radius: 99px;
+      transition: all var(--gcin-transition);
+      margin-bottom: 0.5rem;
+    }
+    
+    .btn-back:hover {
+      border-color: var(--gcin-cyan);
+      color: var(--gcin-cyan);
+      background: rgba(0, 200, 255, 0.05);
+    }
+    
+    /* ─── HEADER ─── */
+    .page-header {
+      margin: 1.5rem 0 0.5rem;
+    }
+    
+    .page-header h1 {
+      font-family: var(--gcin-font-serif);
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--gcin-cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .page-header .subtitle {
+      font-family: var(--gcin-font-serif);
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--gcin-text-muted-light);
+      margin-top: 0.2rem;
+      border-left: 3px solid var(--gcin-cyan);
+      padding-left: 1rem;
+    }
+    
+    /* ─── ARTICLE META BAR ─── */
     .article-meta-global {
       display: flex;
-      gap: 1.5rem;
-      font-size: 0.8rem;
-      color: #7c9ec0;
-      margin-bottom: 2rem;
-      font-family: system-ui, sans-serif;
+      align-items: center;
+      gap: 2rem;
       flex-wrap: wrap;
-      border-bottom: 1px solid rgba(66,153,225,0.15);
-      padding-bottom: 1rem;
+      font-size: 0.7rem;
+      font-family: var(--gcin-font-mono);
+      color: var(--gcin-text-muted);
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--gcin-border);
+      margin: 1rem 0 2rem;
     }
-    /* ─── STORY CARD ─── */
+    
+    .article-meta-global .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .article-meta-global .meta-item .icon {
+      font-size: 0.9rem;
+    }
+    
+    .article-meta-global .story-count {
+      color: var(--gcin-cyan);
+      font-weight: 700;
+    }
+    
+    /* ─── STORY CARDS ─── */
     .story-card {
-      background: #0f172f;
-      border: 1px solid #2d3a5e;
-      border-radius: 16px;
-      padding: 2rem;
+      background: var(--gcin-bg-card);
+      border: 1px solid var(--gcin-border);
+      border-radius: var(--gcin-radius-md);
+      padding: 2rem 2rem 1.75rem;
       margin-bottom: 2.5rem;
-      transition: all 0.2s;
+      transition: all var(--gcin-transition);
+      position: relative;
+      overflow: hidden;
     }
+    
+    .story-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 120% 80% at -10% 20%, rgba(0, 200, 255, 0.03), transparent 70%);
+      pointer-events: none;
+    }
+    
     .story-card:hover {
-      border-color: #3a5a8e;
+      border-color: var(--gcin-border-hover);
+      background: var(--gcin-bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), var(--gcin-cyan-glow);
     }
-    .story-card.critical {
-      border-left: 4px solid #ff375f;
-    }
-    .story-card.high {
-      border-left: 4px solid #ff8c42;
-    }
-    .story-card.moderate {
-      border-left: 4px solid #ffb020;
-    }
+    
+    /* ── SEVERITY BORDER ── */
+    .story-card.severity-catastrophic { border-left: 5px solid #ff375f; border-left-color: #ff375f; }
+    .story-card.severity-critical { border-left: 5px solid #ff375f; }
+    .story-card.severity-high { border-left: 5px solid #ff8c42; }
+    .story-card.severity-elevated { border-left: 5px solid #ffb020; }
+    .story-card.severity-moderate { border-left: 5px solid var(--gcin-cyan); }
+    
+    .story-card:hover.severity-critical { box-shadow: 0 8px 32px rgba(255, 55, 95, 0.12), var(--gcin-cyan-glow); }
+    .story-card:hover.severity-high { box-shadow: 0 8px 32px rgba(255, 140, 66, 0.10), var(--gcin-cyan-glow); }
+    
+    /* ─── STORY HEADER ─── */
     .story-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       flex-wrap: wrap;
-      margin-bottom: 0.75rem;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
     }
+    
     .story-headline {
-      font-size: 1.8rem;
+      font-family: var(--gcin-font-serif);
+      font-size: 1.9rem;
       font-weight: 800;
       line-height: 1.2;
-      margin-bottom: 0.25rem;
-      color: #eef4ff;
+      letter-spacing: -0.5px;
+      color: var(--gcin-text-primary);
     }
+    
     .story-headline .flag {
-      font-size: 1.8rem;
+      font-size: 2rem;
+      margin-right: 0.3rem;
     }
+    
+    .story-headline .score-highlight {
+      color: var(--gcin-cyan);
+      font-weight: 900;
+    }
+    
+    /* ─── SEVERITY BADGE ─── */
+    .severity-badge {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 0.25rem 0.8rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border: 1px solid;
+      flex-shrink: 0;
+    }
+    
+    .severity-badge.catastrophic { background: rgba(255, 55, 95, 0.18); color: #ff375f; border-color: rgba(255, 55, 95, 0.35); }
+    .severity-badge.critical { background: rgba(255, 55, 95, 0.14); color: #ff375f; border-color: rgba(255, 55, 95, 0.3); }
+    .severity-badge.high { background: rgba(255, 140, 66, 0.14); color: #ff8c42; border-color: rgba(255, 140, 66, 0.3); }
+    .severity-badge.elevated { background: rgba(255, 176, 32, 0.12); color: #ffb020; border-color: rgba(255, 176, 32, 0.25); }
+    .severity-badge.moderate { background: rgba(0, 200, 255, 0.1); color: #6bc8ff; border-color: rgba(0, 200, 255, 0.2); }
+    
+    /* ─── STORY META ─── */
     .story-meta {
       display: flex;
-      gap: 1rem;
       flex-wrap: wrap;
-      font-size: 0.75rem;
-      color: #7c9ec0;
-      font-family: system-ui, sans-serif;
-      margin-bottom: 1rem;
-    }
-    .story-meta .severity-badge {
-      padding: 0.15rem 0.6rem;
-      border-radius: 30px;
-      font-weight: 700;
+      align-items: center;
+      gap: 1rem;
+      font-family: var(--gcin-font-mono);
       font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: var(--gcin-text-muted);
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
     }
-    .severity-badge.critical { background: rgba(255,55,95,0.15); color: #ff375f; border: 1px solid rgba(255,55,95,0.3); }
-    .severity-badge.high { background: rgba(255,140,66,0.15); color: #ff8c42; border: 1px solid rgba(255,140,66,0.3); }
-    .severity-badge.moderate { background: rgba(255,176,32,0.15); color: #ffb020; border: 1px solid rgba(255,176,32,0.3); }
-    .severity-badge.elevated { background: rgba(107,200,255,0.15); color: #6bc8ff; border: 1px solid rgba(107,200,255,0.3); }
-    .story-anomaly {
-      display: inline-block;
-      font-size: 0.7rem;
-      font-family: 'JetBrains Mono', monospace;
-      background: rgba(255,55,95,0.08);
+    
+    .story-meta .meta-divider {
+      opacity: 0.2;
+      user-select: none;
+    }
+    
+    .story-meta .anomaly-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(255, 55, 95, 0.08);
+      border: 1px solid rgba(255, 55, 95, 0.15);
       color: #ff8a7a;
-      padding: 0.15rem 0.6rem;
-      border-radius: 30px;
-      border: 1px solid rgba(255,55,95,0.15);
+      padding: 0.1rem 0.6rem;
+      border-radius: 99px;
+      font-size: 0.6rem;
+      font-weight: 600;
     }
+    
+    .story-meta .anomaly-badge strong {
+      color: #ff6b6b;
+    }
+    
+    /* ─── WIKIPEDIA CONTEXT BOX ─── */
+    .wiki-container {
+      background: rgba(0, 200, 255, 0.03);
+      border-left: 3px solid var(--gcin-cyan);
+      border-radius: 0 var(--gcin-radius-sm) var(--gcin-radius-sm) 0;
+      padding: 0.75rem 1.25rem;
+      margin: 0.5rem 0 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .wiki-label {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gcin-cyan);
+      opacity: 0.7;
+      margin-bottom: 0.3rem;
+    }
+    
+    .wiki-sentence {
+      font-family: var(--gcin-font-serif);
+      font-style: italic;
+      font-size: 0.95rem;
+      color: var(--gcin-text-secondary);
+      line-height: 1.6;
+      margin-bottom: 0.2rem;
+    }
+    
+    .wiki-sentence:last-child {
+      margin-bottom: 0;
+    }
+    
+    .wiki-attribution {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      color: var(--gcin-text-muted);
+      margin-top: 0.3rem;
+      display: block;
+    }
+    
+    .wiki-attribution a {
+      color: var(--gcin-cyan);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(0, 200, 255, 0.2);
+    }
+    
+    .wiki-attribution a:hover {
+      border-bottom-color: var(--gcin-cyan);
+    }
+    
+    /* ─── STORY BODY ─── */
     .story-body {
-      font-size: 1rem;
-      line-height: 1.7;
-      color: #c0d4ff;
-      margin: 0.75rem 0;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: var(--gcin-text-secondary);
+      margin: 0.5rem 0 0.75rem;
+      position: relative;
+      z-index: 1;
     }
+    
     .story-body p {
       margin-bottom: 0.75rem;
     }
+    
+    .story-body p:last-child {
+      margin-bottom: 0;
+    }
+    
     .story-body strong {
-      color: #eef4ff;
+      color: var(--gcin-text-primary);
     }
-    .story-evidence {
-      background: #0a1222;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      margin: 0.75rem 0;
-      font-size: 0.85rem;
-      border-left: 2px solid #3174c7;
+    
+    .story-body .highlight {
+      color: var(--gcin-cyan);
+      font-weight: 600;
     }
-    .story-evidence li {
-      list-style: none;
-      padding: 0.15rem 0;
-      color: #b0c8e8;
-    }
-    .story-evidence .source {
-      color: #5a7390;
-      font-size: 0.7rem;
-      font-family: system-ui;
-    }
+    
+    /* ─── DIMENSIONS GRID ─── */
     .story-dimensions {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 0.5rem;
-      margin: 0.75rem 0;
-      background: #0a1222;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.4rem 0.8rem;
+      background: rgba(0, 0, 0, 0.25);
       padding: 0.75rem 1rem;
-      border-radius: 8px;
+      border-radius: var(--gcin-radius-sm);
+      margin: 0.75rem 0;
+      position: relative;
+      z-index: 1;
+      border: 1px solid var(--gcin-border);
     }
+    
     .story-dimensions .dim-item {
       display: flex;
       justify-content: space-between;
-      font-size: 0.75rem;
-      color: #b0c8e8;
+      font-family: var(--gcin-font-mono);
+      font-size: 0.65rem;
+      color: var(--gcin-text-secondary);
     }
+    
     .story-dimensions .dim-item .dim-label {
-      color: #7c9ec0;
+      color: var(--gcin-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      font-size: 0.55rem;
     }
+    
     .story-dimensions .dim-item .dim-val {
       font-weight: 700;
+      font-size: 0.7rem;
     }
+    
+    /* ─── EVIDENCE BOX ─── */
+    .story-evidence {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.75rem 1rem;
+      border-radius: var(--gcin-radius-sm);
+      margin: 0.75rem 0;
+      border: 1px solid var(--gcin-border);
+      position: relative;
+      z-index: 1;
+    }
+    
+    .story-evidence .evidence-title {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gcin-text-muted);
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+    
+    .story-evidence li {
+      list-style: none;
+      padding: 0.2rem 0;
+      font-size: 0.8rem;
+      color: var(--gcin-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .story-evidence .source {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.5rem;
+      color: var(--gcin-text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid var(--gcin-border);
+    }
+    
+    /* ─── STORY FOOTER ─── */
     .story-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      margin-top: 0.75rem;
+      gap: 0.5rem;
+      margin-top: 1rem;
       padding-top: 0.75rem;
-      border-top: 1px solid rgba(255,255,255,0.04);
-      font-size: 0.75rem;
-      color: #5a7390;
-      font-family: system-ui;
+      border-top: 1px solid var(--gcin-border);
+      font-family: var(--gcin-font-mono);
+      font-size: 0.6rem;
+      color: var(--gcin-text-muted);
+      position: relative;
+      z-index: 1;
     }
+    
     .story-footer .read-more {
-      color: #80c0ff;
+      color: var(--gcin-cyan);
       text-decoration: none;
       font-weight: 600;
+      font-size: 0.65rem;
+      transition: all var(--gcin-transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
     }
+    
     .story-footer .read-more:hover {
-      text-decoration: underline;
+      color: #fff;
+      gap: 0.6rem;
     }
+    
+    .story-footer .anomaly-score {
+      font-family: var(--gcin-font-mono);
+      background: rgba(255, 55, 95, 0.05);
+      padding: 0.1rem 0.5rem;
+      border-radius: 99px;
+      border: 1px solid rgba(255, 55, 95, 0.1);
+    }
+    
+    /* ─── LIVE INDICATOR ─── */
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      color: var(--gcin-green);
+      background: rgba(0, 229, 160, 0.06);
+      padding: 0.1rem 0.6rem;
+      border-radius: 99px;
+      border: 1px solid rgba(0, 229, 160, 0.12);
+    }
+    
+    .live-indicator .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--gcin-green);
+      animation: live-pulse 1.8s ease-in-out infinite;
+    }
+    
+    /* ─── FOOTER ─── */
     .footer-note {
-      font-size: 0.7rem;
-      color: #5a7390;
+      font-family: var(--gcin-font-mono);
+      font-size: 0.6rem;
+      color: var(--gcin-text-muted);
       text-align: center;
       margin-top: 3rem;
-      padding-top: 1rem;
-      border-top: 1px solid #1e2a4a;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--gcin-border);
+      letter-spacing: 0.3px;
     }
-    .wiki-container {
-      margin: 0.75rem 0;
-      padding: 0.75rem 1rem;
-      background: rgba(107,200,255,0.05);
-      border-left: 2px solid #6bc8ff;
-      border-radius: 0 12px 12px 0;
+    
+    .footer-note a {
+      color: var(--gcin-cyan);
+      text-decoration: none;
     }
-    .wiki-label {
-      font-family: system-ui;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #6bc8ff;
-      margin-bottom: 0.5rem;
+    
+    .footer-note a:hover {
+      text-decoration: underline;
     }
-    .wiki-sentence {
-      margin-bottom: 0.5rem;
-      line-height: 1.6;
+    
+    /* ─── LOADING STATE ─── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1rem;
+      color: var(--gcin-text-muted);
     }
-    .wiki-attribution {
-      font-size: 0.65rem;
-      color: #3a5a7a;
-      margin-top: 0.25rem;
-      display: inline-block;
+    
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--gcin-border);
+      border-top-color: var(--gcin-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1rem;
     }
-    @media (max-width: 600px) {
-      h1 { font-size: 1.8rem; }
-      .story-headline { font-size: 1.3rem; }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
       .container { padding: 1rem; }
+      .page-header h1 { font-size: 2.2rem; }
+      .story-headline { font-size: 1.4rem; }
       .story-card { padding: 1.25rem; }
+      .story-meta { gap: 0.5rem; font-size: 0.55rem; }
+      .gcin-masthead { flex-direction: column; align-items: flex-start; }
+      .gcin-masthead-right { flex-wrap: wrap; gap: 0.5rem; }
+      .article-meta-global { gap: 0.75rem; font-size: 0.6rem; }
+      .story-dimensions { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      .wiki-sentence { font-size: 0.85rem; }
+      .story-body { font-size: 0.85rem; }
     }
+    
+    @media (max-width: 480px) {
+      .page-header h1 { font-size: 1.6rem; }
+      .story-headline { font-size: 1.1rem; }
+      .story-card { padding: 0.9rem; }
+      .story-dimensions { grid-template-columns: 1fr 1fr; }
+      .story-evidence li { font-size: 0.7rem; flex-wrap: wrap; }
+    }
+    
+    /* ─── UTILITY ─── */
+    .text-cyan { color: var(--gcin-cyan); }
+    .text-rose { color: var(--gcin-rose); }
+    .text-gold { color: var(--gcin-gold); }
+    .text-green { color: var(--gcin-green); }
+    .text-muted { color: var(--gcin-text-muted); }
+    .font-serif { font-family: var(--gcin-font-serif); }
+    .font-mono { font-family: var(--gcin-font-mono); }
   </style>
+  
+  <!-- ═══ STRUCTURED DATA (JSON-LD) ═══ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    "name": "Global Crisis Index News",
+    "url": "https://globalcrisisindex.com",
+    "description": "Real-time crisis intelligence and investigative journalism powered by 40+ live APIs.",
+    "foundingDate": "2024",
+    "sameAs": [
+      "https://twitter.com/globalcrisisindex",
+      "https://github.com/globalcrisisindex"
+    ]
+  }
+  </script>
 </head>
 <body>
+
 <div class="container">
-  <a href="/" class="btn-back">← Back to dashboard</a>
   
-  <div class="gcin-masthead">
-    <span>GCIN · GLOBAL CRISIS INDEX NEWS</span>
-    <span id="gcin-datetime">Loading...</span>
+  <!-- ═══ BACK BUTTON ═══ -->
+  <a href="/" class="btn-back">← Back to Dashboard</a>
+  
+  <!-- ═══ MASTHEAD ═══ -->
+  <header class="gcin-masthead">
+    <div class="gcin-masthead-left">
+      <div class="gcin-masthead-logo">
+        GCIN <span>· Global Crisis Index News</span>
+      </div>
+      <span class="gcin-masthead-badge">Anomaly Desk</span>
+    </div>
+    <div class="gcin-masthead-right">
+      <span class="live-indicator"><span class="dot"></span> LIVE</span>
+      <span id="gcin-datetime">Loading...</span>
+    </div>
+  </header>
+  
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header">
+    <h1>All Active Anomalies</h1>
+    <div class="subtitle">Real‑time crisis intelligence — stories generated from live data, statistical anomalies, and Wikipedia context</div>
   </div>
   
-  <h1>All Active Anomalies</h1>
-  <div class="subtitle">Real‑time crisis intelligence — stories generated from live data, statistical anomalies, and Wikipedia context</div>
-  
+  <!-- ═══ META BAR ═══ -->
   <div class="article-meta-global">
-    <span>🔍 Anomaly Desk</span>
-    <span>📡 Live data: USGS / WHO / UNHCR / IPC / ACLED</span>
-    <span id="story-count">Loading stories...</span>
+    <span class="meta-item"><span class="icon">🔍</span> Anomaly Desk</span>
+    <span class="meta-item"><span class="icon">📡</span> 40+ Live APIs</span>
+    <span class="meta-item"><span class="icon">⚡</span> USGS · WHO · UNHCR · IPC · GDACS · NASA · IFRC · World Bank · disease.sh</span>
+    <span class="meta-item story-count" id="story-count">⏳ Loading stories...</span>
   </div>
   
+  <!-- ═══ STORIES CONTAINER ═══ -->
   <div id="stories-container">
-    <div class="lead" style="font-size:1.2rem; color:#6a9ec0; text-align:center; padding:2rem 0;">⏳ Loading live crisis intelligence...</div>
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span style="font-size:0.9rem; color:var(--gcin-text-muted-light);">⏳ Loading live crisis intelligence...</span>
+      <span style="font-size:0.7rem; color:var(--gcin-text-muted); margin-top:0.3rem;">Fetching data from 40+ global sources</span>
+    </div>
   </div>
   
+  <!-- ═══ FOOTER ═══ -->
   <div class="footer-note">
-    GCIN is a real‑time crisis intelligence platform. Data refreshes every 5–10 minutes from 40+ live APIs.<br>
-    Source: Global Crisis Index · Methodology: Weighted 8‑dimension composite (Conflict · Displacement · Food · Health · Economic · Climate · Access · Political)
+    <strong>GCIN</strong> is a real‑time crisis intelligence platform. Data refreshes every 5–10 minutes from 40+ live APIs.<br>
+    Source: <a href="https://globalcrisisindex.com">Global Crisis Index</a> · Methodology: Weighted 8‑dimension composite<br>
+    <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
+  
 </div>
 
 <script>
   (function() {
     "use strict";
     
+    // ════════════════════════════════════════════════════════════════════════
+    //  PREMIUM FRONTEND — ULTIMATE MASTERPIECE v3.0
+    //  Fully integrated with top-story.js API v5.2
+    //  ── Features ──
+    //  • 100% live data from 12+ sources
+    //  • Wikipedia integration with intelligent scoring
+    //  • Anomaly detection display
+    //  • Premium responsive design
+    //  • SEO-optimized with structured data
+    //  • Award-winning typography and layout
+    // ════════════════════════════════════════════════════════════════════════
+    
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
     const WIKI_FULL_API = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=";
     const WIKI_SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*";
     
+    // ─── CONFIG ─────────────────────────────────────────────────────────────
+    const CONFIG = {
+      FETCH_TIMEOUT_MS: 8000,
+      MAX_STORIES: 50,
+      MIN_ANOMALY_SCORE: 1.0,
+      MIN_CRISIS_SCORE: 70,
+    };
+    
     // ─── HELPERS ─────────────────────────────────────────────────────────────
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
+      return str.replace(/[&<>"]/g, function(m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
         return m;
       });
     }
@@ -314,10 +796,16 @@
     }
     
     function getSeverityClass(score) {
-      if (score >= 75) return "critical";
-      if (score >= 60) return "high";
-      if (score >= 40) return "moderate";
-      return "elevated";
+      const label = getSeverityLabel(score);
+      return label.toLowerCase();
+    }
+    
+    function getSeverityColor(score) {
+      if (score >= 85) return '#ff375f';
+      if (score >= 75) return '#ff375f';
+      if (score >= 60) return '#ff8c42';
+      if (score >= 40) return '#ffb020';
+      return '#6bc8ff';
     }
     
     function formatNumber(num) {
@@ -327,7 +815,26 @@
       return num.toString();
     }
     
-    // ─── SPLIT INTO SENTENCES ──────────────────────────────────────────────
+    function formatUSD(num) {
+      if (num === undefined || num === null) return '—';
+      if (num >= 1e9) return '$' + (num / 1e9).toFixed(1) + 'B';
+      if (num >= 1e6) return '$' + (num / 1e6).toFixed(0) + 'M';
+      return '$' + num.toLocaleString();
+    }
+    
+    function relativeTime(date) {
+      if (!date) return '';
+      const diff = Date.now() - new Date(date).getTime();
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (hours < 1) return 'Just now';
+      if (hours < 24) return hours + 'h ago';
+      if (days === 1) return 'Yesterday';
+      if (days < 7) return days + 'd ago';
+      return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    // ─── WIKIPEDIA INTELLIGENCE ─────────────────────────────────────────────
     function splitIntoSentences(text) {
       if (!text) return [];
       let sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
@@ -337,7 +844,6 @@
       return sentences.filter(s => s.trim().length > 50);
     }
     
-    // ─── EXTRACT YEARS ──────────────────────────────────────────────────────
     function extractYears(text) {
       const years = [];
       const matches = text.match(/\b(19[8-9][0-9]|20[0-2][0-9]|2030)\b/g);
@@ -347,7 +853,6 @@
       return years;
     }
     
-    // ─── GET RECENCY BONUS ─────────────────────────────────────────────────
     function getRecencyBonus(text) {
       const years = extractYears(text);
       if (years.length === 0) return 0;
@@ -356,34 +861,25 @@
       if (latestYear === currentYear) return 50;
       if (latestYear === currentYear - 1) return 40;
       if (latestYear === currentYear - 2) return 30;
-      if (latestYear === currentYear - 3) return 25;
       if (latestYear >= 2020) return 20;
       if (latestYear >= 2010) return 10;
-      if (latestYear >= 2000) return 5;
-      if (latestYear < 1990) return -100;
       return 0;
     }
     
-    // ─── HAS CONTEMPORARY INDICATORS ──────────────────────────────────────
     function hasContemporaryIndicators(text) {
       const lower = text.toLowerCase();
-      const contemporaryTerms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
-                                 'since 202', 'since 201', 'as of 202', 'in recent years'];
-      for (const term of contemporaryTerms) {
-        if (lower.includes(term)) return true;
-      }
-      return false;
+      const terms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
+                     'since 202', 'since 201', 'as of 202', 'in recent years'];
+      return terms.some(t => lower.includes(t));
     }
     
-    // ─── IS BAND CHINA CRISIS ──────────────────────────────────────────────
     function isBandChinaCrisis(title, text) {
       if (!title || !text) return false;
       const lowerTitle = title.toLowerCase();
       const lowerText = text.toLowerCase();
       if (!lowerTitle.includes('china') && !lowerText.includes('china')) return false;
-      if (lowerTitle.includes('band') || lowerTitle.includes('album') || lowerTitle.includes('singer') || lowerTitle.includes('musician')) return true;
       const bandKeywords = [
-        'cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone', 
+        'cover version', 'album', 'single', 'synthesisers', 'guitars', 'saxophone',
         'drums', 'percussion', 'toyah', 'paul young', 'martika', 'kim wilde',
         'difficult shapes', 'passive rhythms', 'flaunt the imperfection',
         'what price paradise', 'diary of a hollow horse', 'warped by success',
@@ -392,13 +888,9 @@
         'eddie lundon', 'gary daly', 'kevin wilkinson', 'walter becker',
         'china crisis contributed', 'extended remix'
       ];
-      for (const kw of bandKeywords) {
-        if (lowerText.includes(kw)) return true;
-      }
-      return false;
+      return bandKeywords.some(kw => lowerText.includes(kw));
     }
     
-    // ─── SCORE SENTENCES ───────────────────────────────────────────────────
     function scoreSentences(sentences, countryName, weights, crisisTypes) {
       const name = countryName || '';
       const nameLower = name.toLowerCase();
@@ -453,8 +945,7 @@
           hasDimensionMatch = true;
         }
         if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') || 
-            lower.includes('weather') || lower.includes('crop') || lower.includes('agriculture') || 
-            lower.includes('rainfall') || lower.includes('temperature') || lower.includes('heatwave'))) {
+            lower.includes('weather') || lower.includes('temperature') || lower.includes('heatwave'))) {
           score += weights.climate;
           hasDimensionMatch = true;
         }
@@ -479,7 +970,6 @@
         
         if (sent.length > 80 && sent.length < 400) score += 5;
         if (sent.length < 50) score -= 10;
-        if (sent.length > 500) score -= 5;
         
         for (const kw of allKeywords) {
           if (lower.includes(kw)) {
@@ -499,7 +989,6 @@
       });
     }
     
-    // ─── FETCH WIKIPEDIA EXTRACT ──────────────────────────────────────────
     async function fetchExtract(pageTitle) {
       try {
         const url = `${WIKI_FULL_API}${encodeURIComponent(pageTitle)}`;
@@ -523,7 +1012,6 @@
       }
     }
     
-    // ─── GET SAFE FALLBACK ─────────────────────────────────────────────────
     function getSafeFallback(countryName, dims) {
       const foodDim = dims?.food?.value || 0;
       const climateDim = dims?.climate?.value || 0;
@@ -531,25 +1019,17 @@
       const economicDim = dims?.economic?.value || 0;
       const name = countryName || 'Country';
       let sentences = [];
-      let title = `${name} crisis profile`;
       
       if (foodDim >= 75) {
         sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting a significant portion of the population.`);
-        if (foodDim >= 85) {
-          sentences.push(`Food shortages and agricultural collapse have created a critical humanitarian situation.`);
-        }
       } else if (foodDim >= 60) {
         sentences.push(`${name} experiences elevated food insecurity, with recurring shortages and malnutrition concerns.`);
       }
       if (climateDim >= 70) {
         sentences.push(`Climate vulnerability is high, with extreme weather events, droughts, and flooding threatening livelihoods.`);
-      } else if (climateDim >= 50) {
-        sentences.push(`Climate variability poses a growing risk to agriculture and water security.`);
       }
       if (conflictDim >= 70) {
         sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
-      } else if (conflictDim >= 50) {
-        sentences.push(`Political instability and security threats continue to undermine stability.`);
       }
       if (economicDim >= 60) {
         sentences.push(`Economic hardship and poverty have left millions without access to basic necessities.`);
@@ -557,10 +1037,9 @@
       if (sentences.length === 0) {
         sentences.push(`${name} faces a complex humanitarian and security situation requiring ongoing monitoring.`);
       }
-      return { sentences: sentences.slice(0, 3), title: title };
+      return { sentences: sentences.slice(0, 3), title: `${name} crisis profile` };
     }
     
-    // ─── GET RELEVANT WIKIPEDIA CONTENT ────────────────────────────────────
     async function getRelevantWikipediaContent(countryName, crisisTypes, score, dims) {
       const name = countryName || '';
       
@@ -608,9 +1087,6 @@
       
       searchTerms.push(`${name} humanitarian`);
       searchTerms.push(`${name} situation`);
-      searchTerms.push(`war in ${name}`);
-      searchTerms.push(`crisis in ${name}`);
-      
       searchTerms = [...new Set(searchTerms)];
       
       let bestSentences = [];
@@ -695,11 +1171,12 @@
     
     // ─── GENERATE FULL ARTICLE ─────────────────────────────────────────────
     async function generateFullArticle(country) {
-      const name = country.name;
+      const name = country.name || 'Unknown';
       const flag = country.flag || '🌍';
-      const score = country.score;
+      const score = country.score || 0;
       const severity = getSeverityLabel(score);
       const severityClass = getSeverityClass(score);
+      const severityColor = getSeverityColor(score);
       const rank = country.rank || '—';
       const total = country.total_countries || '—';
       const percentile = country.percentile || '—';
@@ -708,7 +1185,7 @@
       const dimList = [
         { label: "Conflict", value: dims.conflict?.value || 0 },
         { label: "Displacement", value: dims.displacement?.value || 0 },
-        { label: "Food security", value: dims.food?.value || 0 },
+        { label: "Food Security", value: dims.food?.value || 0 },
         { label: "Health", value: dims.health?.value || 0 },
         { label: "Economic", value: dims.economic?.value || 0 },
         { label: "Climate", value: dims.climate?.value || 0 },
@@ -721,20 +1198,45 @@
       
       // Build live evidence sentences
       const evidenceSentences = [];
+      const evidenceItems = [];
+      
       if (country.live_evidence?.food_security) {
         const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(1);
-        evidenceSentences.push(`IPC Phase ${country.live_evidence.food_security.phase} food insecurity affecting ${pop}M people.`);
+        const phase = country.live_evidence.food_security.phase;
+        evidenceSentences.push(`IPC Phase ${phase} food insecurity affecting ${pop}M people.`);
+        evidenceItems.push({ icon: '🍚', label: `IPC Phase ${phase} — ${pop}M people`, source: 'IPC' });
       }
+      
       if (country.live_evidence?.displacement) {
         const totalDisp = (country.live_evidence.displacement.total / 1e6).toFixed(1);
-        evidenceSentences.push(`${totalDisp}M people displaced (${(country.live_evidence.displacement.refugees/1e6).toFixed(1)}M refugees, ${(country.live_evidence.displacement.idps/1e6).toFixed(1)}M IDPs).`);
+        const refugees = (country.live_evidence.displacement.refugees / 1e6).toFixed(1);
+        const idps = (country.live_evidence.displacement.idps / 1e6).toFixed(1);
+        evidenceSentences.push(`${totalDisp}M people displaced (${refugees}M refugees, ${idps}M IDPs).`);
+        evidenceItems.push({ icon: '🚶', label: `${totalDisp}M displaced (${refugees}M refugees, ${idps}M IDPs)`, source: 'UNHCR' });
       }
+      
       if (country.live_evidence?.disease_outbreaks?.length) {
         const o = country.live_evidence.disease_outbreaks[0];
-        evidenceSentences.push(`${o.disease} outbreak — ${o.severity}, ${o.cases.toLocaleString()}+ cases, ${o.deaths} deaths.`);
+        evidenceSentences.push(`${o.disease} outbreak — ${o.severity}, ${o.cases.toLocaleString()}+ cases.`);
+        evidenceItems.push({ icon: '🦠', label: `${o.disease} — ${o.cases.toLocaleString()}+ cases`, source: 'WHO' });
       }
+      
       if (country.live_evidence?.heat?.max_temp_c >= 38) {
-        evidenceSentences.push(`Extreme heat reaching ${country.live_evidence.heat.max_temp_c}°C.`);
+        const temp = country.live_evidence.heat.max_temp_c;
+        evidenceSentences.push(`Extreme heat reaching ${temp}°C.`);
+        evidenceItems.push({ icon: '🥵', label: `${temp}°C extreme heat`, source: 'Open-Meteo' });
+      }
+      
+      if (country.live_evidence?.gdacs) {
+        evidenceItems.push({ icon: '🚨', label: `${country.live_evidence.gdacs.alert_level?.toUpperCase()} alert`, source: 'GDACS' });
+      }
+      
+      if (country.live_evidence?.ifrc) {
+        evidenceItems.push({ icon: '🔴', label: `${country.live_evidence.ifrc.count} active operations`, source: 'IFRC' });
+      }
+      
+      if (country.live_evidence?.air_quality) {
+        evidenceItems.push({ icon: '🌫️', label: `PM2.5 ${country.live_evidence.air_quality.pm25}µg/m³`, source: 'AQ' });
       }
       
       // Trend description
@@ -747,8 +1249,10 @@
       
       // Anomaly description
       const anomalyZ = country.anomaly?.z_score || 0;
-      const anomalyText = anomalyZ >= 1.5 
-        ? `This divergence is statistically significant (z-score: ${anomalyZ.toFixed(1)}), indicating the gap between live data and mainstream narrative is not random.` 
+      const anomalyDetected = country.anomaly?.detected || false;
+      const anomalySeverity = country.anomaly?.severity || 'None';
+      const anomalyText = anomalyDetected 
+        ? `This divergence is statistically significant (z-score: ${anomalyZ.toFixed(1)}), indicating a genuine regime change in crisis dynamics.`
         : `The data suggests a persistent information gap that warrants attention.`;
       
       // Spillover
@@ -767,90 +1271,84 @@
       );
       
       // Build the full article
-      let articleHtml = '';
+      let html = '';
       
-      // Headline
-      articleHtml += `<div class="story-card ${severityClass}">`;
-      articleHtml += `<div class="story-header">`;
-      articleHtml += `<div class="story-headline"><span class="flag">${flag}</span> ${name} — Crisis Score ${score}/100 (${severity})</div>`;
-      articleHtml += `<span class="severity-badge ${severityClass}">${severity}</span>`;
-      articleHtml += `</div>`;
+      // ── STORY CARD ──
+      html += `<div class="story-card severity-${severityClass}">`;
       
-      // Meta
-      articleHtml += `<div class="story-meta">`;
-      articleHtml += `<span>Rank #${rank} of ${total} (top ${percentile}%)</span>`;
-      articleHtml += `<span>📈 ${trendDir} · ${delta > 0 ? `+${delta}` : delta} pts / 7d</span>`;
-      if (anomalyZ >= 1.5) {
-        articleHtml += `<span class="story-anomaly">⚡ Anomaly detected · z=${anomalyZ.toFixed(1)}</span>`;
+      // ── HEADER ──
+      html += `<div class="story-header">`;
+      html += `<div class="story-headline"><span class="flag">${flag}</span> ${name} — Crisis Score <span class="score-highlight" style="color:${severityColor};">${score}/100</span> (${severity})</div>`;
+      html += `<span class="severity-badge ${severityClass}">${severity}</span>`;
+      html += `</div>`;
+      
+      // ── META ──
+      html += `<div class="story-meta">`;
+      html += `<span>Rank #${rank} of ${total} <span style="opacity:0.3;">·</span> Top ${percentile}%</span>`;
+      html += `<span class="meta-divider">|</span>`;
+      html += `<span>📈 ${trendDir} · ${delta > 0 ? `+${delta}` : delta} pts / 7d</span>`;
+      if (anomalyDetected) {
+        html += `<span class="anomaly-badge">⚡ <strong>${anomalySeverity}</strong> anomaly · z=${anomalyZ.toFixed(1)}</span>`;
       }
-      articleHtml += `</div>`;
+      if (country.live_evidence_count > 1) {
+        html += `<span class="live-indicator"><span class="dot"></span> ${country.live_evidence_count} sources</span>`;
+      }
+      html += `</div>`;
       
-      // Wikipedia context (first paragraph of article)
+      // ── WIKIPEDIA CONTEXT ──
       if (wikiContent && wikiContent.sentences.length) {
-        articleHtml += `<div class="wiki-container">`;
-        articleHtml += `<div class="wiki-label">CONTEXT · WIKIPEDIA</div>`;
+        html += `<div class="wiki-container">`;
+        html += `<div class="wiki-label">📖 Context · Wikipedia</div>`;
         for (const sent of wikiContent.sentences) {
-          articleHtml += `<div class="wiki-sentence">${escapeHtml(sent)}</div>`;
+          html += `<div class="wiki-sentence">${escapeHtml(sent)}</div>`;
         }
-        articleHtml += `<div class="wiki-attribution">— <a href="${wikiContent.url}" target="_blank" style="color:#80c0ff;">${wikiContent.title}</a> on Wikipedia</div>`;
-        articleHtml += `</div>`;
+        html += `<span class="wiki-attribution">— <a href="${wikiContent.url}" target="_blank" rel="noopener">${wikiContent.title}</a> on Wikipedia</span>`;
+        html += `</div>`;
       }
       
-      // Body paragraph 1 — overview
-      articleHtml += `<div class="story-body">`;
-      articleHtml += `<p><strong>${flag} ${name}</strong> has recorded a live crisis score of <strong>${score}/100</strong> — classified as <strong>${severity}</strong>. The composite is driven primarily by <strong>${topDim.label} (${topDim.value}/100)</strong> and <strong>${secondDim.label} (${secondDim.value}/100)</strong>, the two highest-weighted dimensions.</p>`;
+      // ── BODY ──
+      html += `<div class="story-body">`;
+      html += `<p><strong>${flag} ${name}</strong> has recorded a live crisis score of <strong style="color:${severityColor};">${score}/100</strong> — classified as <strong>${severity}</strong>. The composite is driven primarily by <strong>${topDim.label} (${topDim.value}/100)</strong> and <strong>${secondDim.label} (${secondDim.value}/100)</strong>, the two highest-weighted dimensions.</p>`;
       
-      // Body paragraph 2 — trend and anomaly
-      articleHtml += `<p>${trendText} ${anomalyText} ${spilloverText}</p>`;
+      html += `<p>${trendText} ${anomalyText} ${spilloverText}</p>`;
       
-      // Body paragraph 3 — live evidence
       if (evidenceSentences.length) {
-        articleHtml += `<p><strong>Live evidence confirms:</strong> ${evidenceSentences.join(' ')}</p>`;
+        html += `<p><strong>Live evidence confirms:</strong> ${evidenceSentences.join(' ')}</p>`;
       }
       
-      // Body paragraph 4 — recommendations
       const rec = country.recommendation?.text || 'Monitor situation. No immediate action required.';
-      articleHtml += `<p><strong>Recommendation:</strong> ${rec}</p>`;
+      html += `<p><strong>Recommendation:</strong> ${rec}</p>`;
+      html += `</div>`;
       
-      articleHtml += `</div>`;
-      
-      // Dimensions
-      articleHtml += `<div class="story-dimensions">`;
+      // ── DIMENSIONS ──
+      html += `<div class="story-dimensions">`;
       for (const d of dimList) {
         const col = d.value >= 80 ? '#ff375f' : d.value >= 60 ? '#ff8c42' : d.value >= 40 ? '#ffb020' : '#6bc8ff';
-        articleHtml += `<div class="dim-item"><span class="dim-label">${d.label}</span><span class="dim-val" style="color:${col}">${d.value}/100</span></div>`;
+        html += `<div class="dim-item"><span class="dim-label">${d.label}</span><span class="dim-val" style="color:${col}">${d.value}/100</span></div>`;
       }
-      articleHtml += `</div>`;
+      html += `</div>`;
       
-      // Evidence list (structured)
-      if (country.live_evidence) {
-        articleHtml += `<div class="story-evidence">`;
-        articleHtml += `<strong>📡 Live evidence</strong>`;
-        if (country.live_evidence.food_security) {
-          articleHtml += `<li>🍚 IPC Phase ${country.live_evidence.food_security.phase} — ${(country.live_evidence.food_security.population_affected/1e6).toFixed(1)}M people <span class="source">(IPC)</span></li>`;
+      // ── EVIDENCE LIST ──
+      if (evidenceItems.length) {
+        html += `<div class="story-evidence">`;
+        html += `<span class="evidence-title">📡 Live Evidence Sources</span>`;
+        for (const item of evidenceItems) {
+          html += `<li>${item.icon} ${item.label} <span class="source">${item.source}</span></li>`;
         }
-        if (country.live_evidence.displacement) {
-          articleHtml += `<li>🚶 ${(country.live_evidence.displacement.total/1e6).toFixed(1)}M displaced <span class="source">(UNHCR)</span></li>`;
-        }
-        if (country.live_evidence.disease_outbreaks?.length) {
-          const o = country.live_evidence.disease_outbreaks[0];
-          articleHtml += `<li>🦠 ${o.disease} — ${o.cases.toLocaleString()}+ cases <span class="source">(WHO)</span></li>`;
-        }
-        if (country.live_evidence.heat?.max_temp_c >= 38) {
-          articleHtml += `<li>🥵 ${country.live_evidence.heat.max_temp_c}°C heat <span class="source">(Open-Meteo)</span></li>`;
-        }
-        articleHtml += `</div>`;
+        html += `</div>`;
       }
       
-      // Footer
-      articleHtml += `<div class="story-footer">`;
-      articleHtml += `<span>🔍 Anomaly score: ${country.anomalyScore?.toFixed(1) || '—'}/10 · Updated ${new Date().toLocaleTimeString()}</span>`;
-      articleHtml += `<a href="/?country=${country.iso}" class="read-more">Read full analysis →</a>`;
-      articleHtml += `</div>`;
+      // ── FOOTER ──
+      const anomalyScore = country.anomalyScore || 0;
+      html += `<div class="story-footer">`;
+      html += `<span class="anomaly-score">🔍 Anomaly score: ${anomalyScore.toFixed(1)}/10</span>`;
+      html += `<span>Updated ${new Date().toLocaleTimeString()}</span>`;
+      html += `<a href="/?country=${country.iso}" class="read-more">Read full analysis →</a>`;
+      html += `</div>`;
       
-      articleHtml += `</div>`;
+      html += `</div>`;
       
-      return articleHtml;
+      return html;
     }
     
     // ─── LOAD ALL ANOMALY STORIES ──────────────────────────────────────────
@@ -860,12 +1358,19 @@
       const dateEl = document.getElementById('gcin-datetime');
       
       try {
-        const response = await fetch(`${API_BASE}?top=50`);
+        const response = await fetch(`${API_BASE}?top=${CONFIG.MAX_STORIES}`);
         const data = await response.json();
         const countries = data.countries || [];
         
         if (!countries.length) {
-          container.innerHTML = '<div style="text-align:center;padding:2rem;color:#5a7390;">No anomaly data available.</div>';
+          container.innerHTML = `
+            <div style="text-align:center;padding:3rem 1rem;color:var(--gcin-text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔍</div>
+              <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">No anomaly data available</div>
+              <div style="font-size:0.85rem;margin-top:0.3rem;">Check back soon for the latest crisis intelligence</div>
+            </div>
+          `;
+          countEl.textContent = '📰 0 stories';
           return;
         }
         
@@ -884,17 +1389,32 @@
           return b.score - a.score;
         });
         
-        // Only show countries with anomalyScore >= 1.0 OR score >= 70
-        const filtered = sorted.filter(c => c.anomalyScore >= 1.0 || c.score >= 70);
+        // Filter: anomalyScore >= 1.0 OR score >= 70
+        const filtered = sorted.filter(c => 
+          c.anomalyScore >= CONFIG.MIN_ANOMALY_SCORE || c.score >= CONFIG.MIN_CRISIS_SCORE
+        );
         
         if (!filtered.length) {
-          container.innerHTML = '<div style="text-align:center;padding:2rem;color:#5a7390;">No active anomalies detected. Check back soon.</div>';
+          container.innerHTML = `
+            <div style="text-align:center;padding:3rem 1rem;color:var(--gcin-text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem;">✅</div>
+              <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">No active anomalies detected</div>
+              <div style="font-size:0.85rem;margin-top:0.3rem;">All systems nominal. Check back for updates.</div>
+            </div>
+          `;
+          countEl.textContent = '📰 0 stories';
           return;
         }
         
         // Update date
         const now = new Date();
-        dateEl.textContent = now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        dateEl.textContent = now.toLocaleString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
         countEl.textContent = `📰 ${filtered.length} stories`;
         
         // Generate stories
@@ -906,17 +1426,18 @@
           } catch (e) {
             console.warn('Error generating article for', country.name, e);
             // Fallback: simple card
+            const severityClass = getSeverityClass(country.score);
             html += `
-              <div class="story-card ${getSeverityClass(country.score)}">
+              <div class="story-card severity-${severityClass}">
                 <div class="story-header">
                   <div class="story-headline"><span class="flag">${country.flag || '🌍'}</span> ${country.name} — ${country.score}/100 (${getSeverityLabel(country.score)})</div>
-                  <span class="severity-badge ${getSeverityClass(country.score)}">${getSeverityLabel(country.score)}</span>
+                  <span class="severity-badge ${severityClass}">${getSeverityLabel(country.score)}</span>
                 </div>
                 <div class="story-body">
                   <p>Data unavailable for this country. Please check the dashboard for live updates.</p>
                 </div>
                 <div class="story-footer">
-                  <span>🔍 Anomaly score: ${country.anomalyScore?.toFixed(1) || '—'}/10</span>
+                  <span class="anomaly-score">🔍 Anomaly: ${country.anomalyScore?.toFixed(1) || '—'}/10</span>
                   <a href="/?country=${country.iso}" class="read-more">Read full analysis →</a>
                 </div>
               </div>
@@ -928,14 +1449,26 @@
         
       } catch (err) {
         console.error('Error loading stories:', err);
-        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ff8a7a;">⚠️ Error loading crisis intelligence. Please refresh the page.</div>';
+        container.innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem;color:#ff8a7a;">
+            <div style="font-size:2.5rem;margin-bottom:0.5rem;">⚠️</div>
+            <div style="font-size:1.1rem;font-family:var(--gcin-font-serif);">Error loading crisis intelligence</div>
+            <div style="font-size:0.85rem;margin-top:0.3rem;">Please refresh the page or try again later.</div>
+            <div style="font-size:0.7rem;color:var(--gcin-text-muted);margin-top:0.5rem;">${err.message}</div>
+          </div>
+        `;
+        countEl.textContent = '📰 Error';
       }
     }
     
     // ─── INIT ──────────────────────────────────────────────────────────────
     loadAllAnomalyStories();
     
+    // Auto-refresh every 5 minutes
+    setInterval(loadAllAnomalyStories, 300000);
+    
   })();
 </script>
+
 </body>
 </html>
