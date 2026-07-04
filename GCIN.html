@@ -913,7 +913,7 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — ULTIMATE MASTERPIECE v4.0
+    //  GCIN — ULTIMATE MASTERPIECE v4.1
     //  ── Features ──
     //  • 100% live data from 15+ sources
     //  • Wikipedia integration with intelligent scoring
@@ -923,6 +923,8 @@
     //  • Award-winning typography and layout
     //  • Top stories grid with score bars
     //  • Auto-refresh every 5 minutes
+    //  ── ORDERING ──
+    //  • Stories ordered from most critical (highest score) to least critical (lowest score)
     // ════════════════════════════════════════════════════════════════════════
     
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
@@ -1521,7 +1523,9 @@
       
       section.style.display = 'block';
       
-      const top = countries.slice(0, 6);
+      // ═══ ORDER: Top 6 by score (most critical first) ═══
+      const top = [...countries].sort((a, b) => b.score - a.score).slice(0, 6);
+      
       grid.innerHTML = top.map((c, i) => {
         const color = getSeverityColor(c.score);
         const severity = getSeverityLabel(c.score);
@@ -1576,11 +1580,8 @@
           return { ...c, anomalyScore: Math.min(10, Math.round(anomalyScore * 10) / 10) };
         });
         
-        // Sort by anomaly score desc, then by severity desc
-        sorted.sort((a, b) => {
-          if (b.anomalyScore !== a.anomalyScore) return b.anomalyScore - a.anomalyScore;
-          return b.score - a.score;
-        });
+        // ═══ PRIMARY SORT: Score descending (most critical first) ═══
+        sorted.sort((a, b) => b.score - a.score);
         
         // ═══ CRITICAL FILTER: Only include stories with at least 1 live evidence source ═══
         const filtered = sorted.filter(c => {
@@ -1593,7 +1594,7 @@
         // Calculate total live evidence sources across all stories
         const totalLiveSources = filtered.reduce((sum, c) => sum + (c.live_evidence_count || 0), 0);
         
-        // ── Render Top Stories ──
+        // ── Render Top Stories (already sorted by score) ──
         renderTopStories(filtered);
         
         if (!filtered.length) {
@@ -1624,7 +1625,7 @@
         countEl.textContent = `📰 ${filtered.length} stories`;
         liveCountEl.textContent = `📊 Live evidence: ${totalLiveSources} sources across ${filtered.length} stories`;
         
-        // Generate stories
+        // ── Generate stories in order (already sorted by score desc) ──
         let html = '';
         for (const country of filtered) {
           try {
