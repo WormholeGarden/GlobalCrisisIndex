@@ -1312,6 +1312,19 @@ function extractSignals(iso, live) {
     evidenceSources.push("UNHCR Stats");
   }
 
+  // IPC/Food Security signals (for boost calculation)
+  // Default to 0 if no data available
+  let ipcPhase = 0;
+  let ipcPopulation = 0;
+
+  // Try to get IPC data from signals if available
+  if (signals?.ipcPhase) {
+    ipcPhase = signals.ipcPhase;
+  }
+  if (signals?.ipcPopulation) {
+    ipcPopulation = signals.ipcPopulation;
+  }
+
   return {
     quakeMag: topQuake ? +topQuake.properties.mag : (topEMSC ? +topEMSC.properties.mag : 0),
     quakePlace: topQuake ? topQuake.properties.place.split(",")[0].trim() : (topEMSC?.properties?.flynn_region || null),
@@ -1335,8 +1348,8 @@ function extractSignals(iso, live) {
     liveEvidenceCount,
     evidenceSources,
     // IPC/Food Security signals (for boost calculation)
-    ipcPhase: signals?.ipcPhase || 0,
-    ipcPopulation: signals?.ipcPopulation || 0,
+    ipcPhase: ipcPhase,
+    ipcPopulation: ipcPopulation,
   };
 }
 
