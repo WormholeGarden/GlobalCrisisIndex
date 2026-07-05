@@ -864,7 +864,7 @@ class AlertManager {
 const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ─── LIVE DATA FETCHERS (15+ SOURCES) ──────────────────────────────────────
+//  ─── LIVE DATA FETCHERS (20+ SOURCES) ──────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── 1. USGS ──
@@ -938,20 +938,23 @@ async function fetchIFRC() {
   return { data: [], live: false };
 }
 
-// ── 6. Open-Meteo Heat Stress ──
+// ── 6. Open-Meteo Heat Stress (EXPANDED) ──
 async function fetchHeatStress() {
-  const heatProneIsos = ['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
+  const heatProneIsos = [
+    'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','ERI','DJI','KEN','TZA','MOZ','MWI','ZMB','ZWE','AGO','BFA','MRT','TCD','COD','CAF','SDN','SSD','ETH','SOM'
+  ];
   const results = {};
   let anyLive = false;
   for (const iso of heatProneIsos) {
     const coord = COUNTRIES[iso]?.cent;
     if (!coord) continue;
     try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=3`;
       const r = await safeFetch(fetch(url).then(r => r.json()));
       if (r.ok && r.data?.daily?.temperature_2m_max?.[0] !== undefined) {
-        results[iso] = r.data.daily.temperature_2m_max[0];
-        if (results[iso] >= 35) anyLive = true;
+        const temp = r.data.daily.temperature_2m_max[0];
+        results[iso] = temp;
+        if (temp >= 35) anyLive = true;
       }
     } catch {}
   }
@@ -1004,6 +1007,8 @@ async function fetchAirQuality() {
     { iso:'THA', lat:13.8, lon:100.5, name:'Bangkok' },
     { iso:'TUR', lat:41.0, lon:28.9,  name:'Istanbul' },
     { iso:'BRA', lat:-23.5, lon:-46.6, name:'Sao Paulo' },
+    { iso:'ETH', lat:9.0,  lon:38.7,  name:'Addis Ababa' },
+    { iso:'KEN', lat:-1.3, lon:36.8,  name:'Nairobi' },
   ];
   const results = {};
   let anyLive = false;
@@ -1229,12 +1234,61 @@ async function fetchAcled() {
   return { data: {}, live: false };
 }
 
-// ─── AGGREGATE ALL 15+ FETCHERS ──────────────────────────────────────────────
+// ── 16. ReliefWeb Events ────────────────────────────────────────────────────
+async function fetchReliefWeb() {
+  try {
+    const r = await safeFetch(
+      fetch("https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&slim=1&limit=30&filter[operator]=OR&filter[conditions][0][field]=primary_country.iso3&filter[conditions][0][value][]=ETH&filter[conditions][1][field]=primary_country.iso3&filter[conditions][1][value][]=SOM&filter[conditions][2][field]=primary_country.iso3&filter[conditions][2][value][]=SSD&sort[]=date.created:desc").then(r => r.json())
+    );
+    if (r.ok && r.data?.data) {
+      const events = {};
+      r.data.data.forEach(item => {
+        const iso = item.fields?.primary_country?.[0]?.iso3;
+        if (!iso) return;
+        if (!events[iso]) events[iso] = 0;
+        events[iso]++;
+      });
+      return { data: events, live: Object.keys(events).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+
+// ── 17. WHO RSS ─────────────────────────────────────────────────────────────
+async function fetchWHO() {
+  try {
+    const r = await safeFetch(
+      fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml").then(r => r.json())
+    );
+    if (r.ok && r.data?.items) {
+      const outbreaks = {};
+      r.data.items.forEach(item => {
+        const title = (item.title || '').toLowerCase();
+        const keywords = ['cholera', 'ebola', 'mpox', 'measles', 'polio', 'dengue', 'malaria'];
+        for (const kw of keywords) {
+          if (title.includes(kw)) {
+            for (const [iso, country] of Object.entries(COUNTRIES)) {
+              if (title.includes(country.name.toLowerCase())) {
+                if (!outbreaks[iso]) outbreaks[iso] = [];
+                outbreaks[iso].push({ disease: kw, title: item.title, date: item.pubDate });
+                break;
+              }
+            }
+          }
+        }
+      });
+      return { data: outbreaks, live: Object.keys(outbreaks).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+
+// ─── AGGREGATE ALL 20+ FETCHERS ──────────────────────────────────────────────
 async function fetchAllLive(isos) {
   const [
     usgs, emsc, nasa, gdacs, ifrc,
     heat, hazards, aq, noaa,
-    disease, wb, unhcr, ipc, fewsnet, acled
+    disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who
   ] = await Promise.all([
     fetchUSGS(), 
     fetchEMSC(), 
@@ -1251,13 +1305,15 @@ async function fetchAllLive(isos) {
     fetchIPC(),
     fetchFewsNet(),
     fetchAcled(),
+    fetchReliefWeb(),
+    fetchWHO(),
   ]);
   
   return { 
     usgs, emsc, nasa, gdacs, ifrc, 
     heat, hazards, aq, noaa, 
     disease, wb, unhcr, 
-    ipc, fewsnet, acled 
+    ipc, fewsnet, acled, reliefweb, who
   };
 }
 
@@ -1385,7 +1441,7 @@ function extractSignals(iso, live) {
     const ipc = ipcData[iso];
     if (ipc.phase >= 3) {
       liveEvidenceCount++;
-      evidenceSources.push("IPC/FEWS NET");
+      evidenceSources.push("IPC");
       signals.ipcPhase = ipc.phase;
       signals.ipcPopulation = ipc.population || 0;
       signals.ipcTotalPop = ipc.total_population || ipc.population || 0;
@@ -1419,12 +1475,35 @@ function extractSignals(iso, live) {
     }
   }
 
+  // ── ReliefWeb Events ──
+  const reliefData = live.reliefweb?.data || null;
+  if (reliefData && reliefData[iso] && reliefData[iso] > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("ReliefWeb");
+    signals.reliefwebCount = reliefData[iso];
+  }
+
+  // ── WHO Outbreaks ──
+  const whoData = live.who?.data || null;
+  if (whoData && whoData[iso] && whoData[iso].length > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("WHO");
+    signals.whoOutbreaks = whoData[iso];
+  }
+
   // ── World Bank ──
   const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
   const wbRefugees = live.wb.refugees.data[iso] || null;
   const wbPoverty = live.wb.poverty.data[iso] || null;
+  const wbPopulation = live.wb.population.data[iso] || null;
+  
+  if (wbPopulation && wbPopulation.value > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("WB Population");
+    signals.population = wbPopulation.value;
+  }
   
   if (wbInflation && wbInflation.value > 5) {
     liveEvidenceCount++;
@@ -1503,6 +1582,9 @@ function extractSignals(iso, live) {
     ipcDate: signals.ipcDate || null,
     acledEvents: signals.acledEvents || 0,
     acledFatalities: signals.acledFatalities || 0,
+    reliefwebCount: signals.reliefwebCount || 0,
+    whoOutbreaks: signals.whoOutbreaks || [],
+    population: signals.population || 0,
     wbInflation: signals.wbInflation || null,
     wbGdpGrowth: signals.wbGdpGrowth || null,
     wbUnemployment: signals.wbUnemployment || null,
@@ -1674,7 +1756,21 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 9. World Bank: Inflation ──
+  // ── 9. WHO Outbreaks ──
+  if (signals.whoOutbreaks && signals.whoOutbreaks.length > 0) {
+    const boost = Math.min(20, signals.whoOutbreaks.length * 8);
+    dims.health = clamp(dims.health + boost);
+    dims.access = clamp(dims.access + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "WHO", 
+      field: "health+access", 
+      delta: boost, 
+      reason: `${signals.whoOutbreaks.length} disease outbreaks detected` 
+    });
+  }
+
+  // ── 10. World Bank: Inflation ──
   if (signals.wbInflation && signals.wbInflation.value > 5) {
     const boost = Math.min(20, Math.round(signals.wbInflation.value / 3));
     dims.economic = clamp(dims.economic + boost);
@@ -1688,7 +1784,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 10. World Bank: GDP Growth ──
+  // ── 11. World Bank: GDP Growth ──
   if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < 0) {
     const boost = Math.min(18, Math.round(Math.abs(signals.wbGdpGrowth.value) * 2.5));
     dims.economic = clamp(dims.economic + boost);
@@ -1702,7 +1798,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 11. World Bank: Unemployment ──
+  // ── 12. World Bank: Unemployment ──
   if (signals.wbUnemployment && signals.wbUnemployment.value > 10) {
     const boost = Math.min(15, Math.round(signals.wbUnemployment.value / 4));
     dims.economic = clamp(dims.economic + boost);
@@ -1716,7 +1812,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 12. World Bank: Poverty ──
+  // ── 13. World Bank: Poverty ──
   if (signals.wbPoverty && signals.wbPoverty.value > 5) {
     const boost = Math.min(18, Math.round(signals.wbPoverty.value / 3));
     dims.economic = clamp(dims.economic + boost);
@@ -1730,7 +1826,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 13. UNHCR Displacement ──
+  // ── 14. UNHCR Displacement ──
   if (signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
     const boost = m >= 10 ? 45 
@@ -1755,7 +1851,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
-  // ── 14. UNHCR Emergency ──
+  // ── 15. UNHCR Emergency ──
   if (signals.unhcrEmergency) {
     const boost = signals.unhcrEmergency.level === "critical" ? 18 
                 : signals.unhcrEmergency.level === "high" ? 12 
@@ -1771,7 +1867,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     });
   }
 
-  // ── 15. NOAA Alerts ──
+  // ── 16. NOAA Alerts ──
   if (signals.noaa) {
     const boost = Math.min(15, (signals.noaa.extreme_alerts + signals.noaa.storm_alerts) * 3);
     if (boost > 0) {
@@ -1786,7 +1882,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
-  // ── 16. IPC Food Security ──
+  // ── 17. IPC Food Security ──
   if (signals.ipcPhase >= 3) {
     const phaseBoosts = { 3: 20, 4: 35, 5: 50 };
     const boost = phaseBoosts[signals.ipcPhase] || 0;
@@ -1804,7 +1900,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
-  // ── 17. ACLED Conflict ──
+  // ── 18. ACLED Conflict ──
   if (signals.acledEvents && signals.acledEvents > 0) {
     const boost = Math.min(25, Math.round(signals.acledEvents * 0.8 + signals.acledFatalities * 0.05));
     if (boost > 0) {
@@ -1821,38 +1917,18 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
-  // ── 18. UNHCR Statistics ──
-  if (signals.unhcrStats && signals.unhcrStats.refugees > 0) {
-    const m = signals.unhcrStats.refugees / 1_000_000;
-    const boost = m >= 5 ? 20 : m >= 2 ? 14 : m >= 0.5 ? 8 : m >= 0.1 ? 4 : 0;
-    if (boost > 0) {
-      dims.displacement = clamp(dims.displacement + boost);
-      totalBoost += boost;
-      audit.push({ 
-        source: "UNHCR Statistics", 
-        field: "displacement", 
-        delta: boost, 
-        reason: `${m.toFixed(1)}M refugees (${signals.unhcrStats.year})` 
-      });
-    }
-  }
-
-  // ── 19. ML Anomaly Boost ──
-  if (CFG.ML_ENABLED && store) {
-    const mlForecast = mlEnhancedForecast(iso, clamp(composite(dims)), store);
-    if (mlForecast.anomaly_probability > 0.6) {
-      const mlBoost = Math.round(mlForecast.anomaly_probability * 12);
-      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.4));
-      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.3));
-      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.2));
-      totalBoost += mlBoost;
-      audit.push({ 
-        source: "ML Anomaly", 
-        field: "political+economic+conflict", 
-        delta: mlBoost, 
-        reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` 
-      });
-    }
+  // ── 19. ReliefWeb Events ──
+  if (signals.reliefwebCount && signals.reliefwebCount > 0) {
+    const boost = Math.min(15, signals.reliefwebCount * 5);
+    dims.access = clamp(dims.access + boost);
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "ReliefWeb", 
+      field: "access+displacement", 
+      delta: boost, 
+      reason: `${signals.reliefwebCount} active humanitarian reports` 
+    });
   }
 
   // ── 20. World Bank Refugees ──
@@ -1867,6 +1943,24 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
         field: "displacement", 
         delta: boost, 
         reason: `${m.toFixed(1)}M refugees (WB cross-check)` 
+      });
+    }
+  }
+
+  // ── 21. ML Anomaly Boost ──
+  if (CFG.ML_ENABLED && store) {
+    const mlForecast = mlEnhancedForecast(iso, clamp(composite(dims)), store);
+    if (mlForecast.anomaly_probability > 0.6) {
+      const mlBoost = Math.round(mlForecast.anomaly_probability * 12);
+      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.4));
+      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.3));
+      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.2));
+      totalBoost += mlBoost;
+      audit.push({ 
+        source: "ML Anomaly", 
+        field: "political+economic+conflict", 
+        delta: mlBoost, 
+        reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` 
       });
     }
   }
@@ -2220,6 +2314,8 @@ function buildPayload(iso, store, ranked, opts = {}) {
       air_quality: s.aq ? { ...s.aq, source: "Open-Meteo AQ" } : null,
       noaa: s.noaa ? { ...s.noaa, source: "NOAA" } : null,
       disease: s.diseaseActive > 0 ? { disease: s.diseaseName, active: s.diseaseActive, source: "disease.sh" } : null,
+      who_outbreaks: s.whoOutbreaks && s.whoOutbreaks.length > 0 ? { outbreaks: s.whoOutbreaks, source: "WHO" } : null,
+      reliefweb: s.reliefwebCount > 0 ? { reports: s.reliefwebCount, source: "ReliefWeb" } : null,
       economic: {
         inflation: s.wbInflation ? { ...s.wbInflation, source: "World Bank" } : null,
         gdp_growth: s.wbGdpGrowth ? { ...s.wbGdpGrowth, source: "World Bank" } : null,
@@ -2497,7 +2593,7 @@ function buildSEOArticle(iso, store, ranked) {
     ? `A magnitude ${s.quakeMag.toFixed(1)} earthquake has struck ${c.name}, causing widespread damage`
     : `The humanitarian situation in ${c.name} has reached ${severity} levels`;
 
-  paragraphs.push(`## Overview\n\n${ledeHook}, according to the latest live data compiled from 15+ global sources including USGS, EMSC, NASA, GDACS, IFRC, Open-Meteo, NOAA, disease.sh, World Bank, and UNHCR. Crisis Monitor's real-time urgency index places ${c.name} at **${c.score} out of 100**, rated **${severity}** and ranked **#${rank} of ${Object.keys(store).length} countries** tracked globally as of ${dateStr}.`);
+  paragraphs.push(`## Overview\n\n${ledeHook}, according to the latest live data compiled from 20+ global sources including USGS, EMSC, NASA, GDACS, IFRC, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, and WHO. Crisis Monitor's real-time urgency index places ${c.name} at **${c.score} out of 100**, rated **${severity}** and ranked **#${rank} of ${Object.keys(store).length} countries** tracked globally as of ${dateStr}.`);
 
   if (c.ml_forecast) {
     paragraphs.push(`## Machine Learning Forecast\n\nAdvanced AI analysis predicts a ${c.ml_forecast.trend} trajectory with ${Math.round(c.ml_forecast.confidence * 100)}% confidence. The model, trained on ${c.ml_forecast.training_count || 0} historical data points, projects the score reaching **${c.ml_forecast.fc}/100** with an anomaly probability of ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%. ${c.ml_forecast.anomaly_probability > 0.6 ? '⚠️ This elevated probability suggests a potential regime change in crisis dynamics.' : 'No significant deviation from expected patterns is predicted.'}`);
@@ -2523,6 +2619,11 @@ function buildSEOArticle(iso, store, ranked) {
     paragraphs.push(`## Public Health\n\nLive tracking (disease.sh) shows **${s.diseaseActive.toLocaleString()} active COVID-19 cases** in ${c.name}, adding pressure to health infrastructure.`);
   }
 
+  if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
+    const diseases = s.whoOutbreaks.map(o => o.disease).join(', ');
+    paragraphs.push(`## Disease Outbreaks\n\nWHO reports active **${diseases}** outbreaks in ${c.name}, requiring urgent public health response.`);
+  }
+
   if (s.ipcPhase >= 3) {
     const ipcLabel = s.ipcPhase === 5 ? "Catastrophe/Famine" : s.ipcPhase === 4 ? "Emergency" : "Crisis";
     paragraphs.push(`## Food Security Crisis\n\nThe Integrated Food Security Phase Classification (IPC) has classified ${c.name} at **Phase ${s.ipcPhase} (${ipcLabel})**. An estimated **${fmtPop(s.ipcTotalPop || s.ipcPopulation)} people** require urgent humanitarian food assistance.`);
@@ -2542,12 +2643,16 @@ function buildSEOArticle(iso, store, ranked) {
     paragraphs.push(`## Disaster Alert\n\n${disasterLine}`);
   }
 
+  if (s.acledEvents > 0) {
+    paragraphs.push(`## Conflict Report\n\nACLED records **${s.acledEvents} conflict events** in ${c.name} with **${s.acledFatalities || 0} fatalities**. ${s.acledEvents > 20 ? 'Intense fighting continues to displace civilians and restrict humanitarian access.' : 'Ongoing violence threatens civilian safety and aid delivery.'}`);
+  }
+
   if (anom.detected) {
     paragraphs.push(`## Statistical Alert: Anomaly Detected\n\nCrisis Monitor's ensemble anomaly detection (CUSUM, Z-score, Bayesian changepoint, volatility regime) flagged **${anom.methods_fired}/4 methods** in agreement: a statistically significant **${anom.direction}** trajectory (severity: **${anom.severity}**).`);
   }
 
   const dimRows = topDims.slice(0, 5).map(d => `- **${d.l}**: ${c.dims[d.k]}/100 (weight: ${(d.w * 100).toFixed(0)}%)`).join("\n");
-  paragraphs.push(`## Urgency Score Breakdown\n\n${dimRows}\n\nAdjusted **${c.liveBoost > 0 ? "+" : ""}${c.liveBoost} points** from the prior estimate of ${c.priorScore}/100 based on live signals from 15+ data sources.`);
+  paragraphs.push(`## Urgency Score Breakdown\n\n${dimRows}\n\nAdjusted **${c.liveBoost > 0 ? "+" : ""}${c.liveBoost} points** from the prior estimate of ${c.priorScore}/100 based on live signals from 20+ data sources.`);
 
   const needsList = [...new Set(c.types.flatMap(t => ARC[t]?.n || []))].slice(0, 5);
   paragraphs.push(`## Response Priorities\n\nRecommended response tier: **${recommendation(c.score, anom).tier}**: ${recommendation(c.score, anom).text}\n\nHumanitarian actors are calling for immediate action on: **${needsList.join(", ")}**.`);
@@ -2628,7 +2733,7 @@ function buildSEOArticle(iso, store, ranked) {
       ${generateWidget(iso, store)}
     </div>
     <footer class="article-footer">
-      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo (heat/flood/marine/wind/precip/UV/AQ), NOAA, disease.sh, World Bank (population, poverty, inflation, GDP, unemployment, refugees, food, water, trade), UNHCR (displacement, asylum, operations, emergency, statistics).</p>
+      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo (heat/flood/marine/wind/precip/UV/AQ), NOAA, disease.sh, World Bank (population, poverty, inflation, GDP, unemployment, refugees, food, water, trade), UNHCR (displacement, asylum, operations, emergency, statistics), IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
       <p><strong>100% LIVE DATA:</strong> No static fallback data is used. ML models are trained on historical patterns. Sentiment analysis is derived from humanitarian reports.</p>
       <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
     </footer>
@@ -2940,6 +3045,11 @@ export default async function handler(req, res) {
             label: "World Bank Indicators",
           },
           unhcr: { live: liveData.unhcr.live, label: "UNHCR" },
+          ipc: { live: liveData.ipc.live, label: "IPC Food Security" },
+          fewsnet: { live: liveData.fewsnet.live, label: "FEWS NET" },
+          acled: { live: liveData.acled.live, label: "ACLED Conflict" },
+          reliefweb: { live: liveData.reliefweb.live, label: "ReliefWeb" },
+          who: { live: liveData.who.live, label: "WHO Disease Outbreaks" },
         },
         endpoints: {
           single: "GET /api/top-story",
@@ -2957,7 +3067,7 @@ export default async function handler(req, res) {
           widget: "GET /api/top-story?iso=SOM&widget=true",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. Live signals from 15+ data sources adjust dimensions. Regional spillover applied.",
+        score_methodology: "Weighted 8-dimension composite. Live signals from 20+ data sources adjust dimensions. Regional spillover applied.",
         ml_methodology: "LSTM-like neural network with attention mechanism. Trained on historical crisis patterns. 7-day forward forecast with confidence intervals.",
         sentiment_methodology: "Dictionary-based sentiment analysis on humanitarian reports and news. Outputs: positive/negative/neutral with crisis intensity scoring.",
       },
