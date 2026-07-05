@@ -1545,6 +1545,15 @@ function buildTickerFromResults(){
 // ============================================================================
 // REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
 // ============================================================================
+// ============================================================================
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
+// ============================================================================
+// ============================================================================
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
+// ============================================================================
+// ============================================================================
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
+// ============================================================================
 async function refresh(){
   const loader=document.getElementById('loader');
   const fill=document.getElementById('lFill');
@@ -1597,11 +1606,131 @@ async function refresh(){
   
   adv(5,78);
 
+  // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
+  let apiData = null;
+  try {
+    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=100&force_live=false', { 
+      headers: { 'Accept': 'application/json' } 
+    });
+    if (apiRes.ok) {
+      apiData = await apiRes.json();
+    }
+  } catch(e) {
+    console.warn('Main API fetch failed:', e);
+  }
+
   // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
+  // This calls the original buildStore() which uses all the evidence data
   buildStore();
   
-  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
-  updateUIStats();
+  // ─── IF API DATA IS AVAILABLE, USE API URGENCY SCORES ────────────────
+  if (apiData && apiData.countries) {
+    const apiCountries = apiData.countries || (apiData.top_story ? [apiData.top_story] : []);
+    const apiStore = {};
+    
+    // First, build a store from API data with safety checks
+    apiCountries.forEach(c => {
+      if (!c.iso) return;
+      
+      const score = typeof c.score === 'number' && isFinite(c.score) ? c.score : 50;
+      const evidenceCount = typeof c.live_evidence_count === 'number' && isFinite(c.live_evidence_count) ? c.live_evidence_count : 0;
+      const priorScore = typeof c.score_audit?.prior_score === 'number' && isFinite(c.score_audit.prior_score) ? c.score_audit.prior_score : score;
+      const liveBoost = typeof c.score_audit?.live_boost === 'number' && isFinite(c.score_audit.live_boost) ? c.score_audit.live_boost : 0;
+      const spillover = typeof c.spillover?.value === 'number' && isFinite(c.spillover.value) ? c.spillover.value : 0;
+      
+      const dims = {};
+      if (c.dimensions) {
+        Object.entries(c.dimensions).forEach(([k, d]) => {
+          const val = typeof d.value === 'number' && isFinite(d.value) ? d.value : 0;
+          dims[k] = val;
+        });
+      }
+      
+      apiStore[c.iso] = {
+        name: c.name || c.iso,
+        flag: c.flag || '🌍',
+        types: (c.crisis_types || []).map(t => t.code).filter(Boolean),
+        needs: c.needs || [],
+        dims: dims,
+        score: score,
+        priorScore: priorScore,
+        events: evidenceCount,
+        spillover: spillover,
+        liveBoost: liveBoost,
+        evidenceCount: evidenceCount,
+        evidenceSources: c.live_evidence_sources || [],
+        evidenceLedger: c.score_audit?.adjustments || [],
+        evidenceConfidence: Math.min(1, evidenceCount / 5),
+        signals: {},
+      };
+    });
+    
+    // ─── MERGE: Use API scores as the primary, but keep evidence data ──
+    for (const iso in store) {
+      if (apiStore[iso]) {
+        // Use API score (this gives us the urgency rankings from the API)
+        store[iso].score = apiStore[iso].score;
+        store[iso].priorScore = apiStore[iso].priorScore;
+        store[iso].events = Math.max(store[iso].events || 0, apiStore[iso].events);
+        store[iso].spillover = apiStore[iso].spillover;
+        store[iso].liveBoost = apiStore[iso].liveBoost;
+        store[iso].evidenceCount = Math.max(store[iso].evidenceCount || 0, apiStore[iso].evidenceCount);
+        
+        // Merge evidence sources (deduplicate)
+        if (apiStore[iso].evidenceSources) {
+          const existingSources = new Set(store[iso].evidenceSources || []);
+          apiStore[iso].evidenceSources.forEach(s => existingSources.add(s));
+          store[iso].evidenceSources = Array.from(existingSources);
+        }
+        
+        // Merge evidence ledger
+        if (apiStore[iso].evidenceLedger) {
+          const existingLedger = store[iso].evidenceLedger || [];
+          const mergedLedger = [...existingLedger];
+          apiStore[iso].evidenceLedger.forEach(adj => {
+            const exists = mergedLedger.some(ex => ex.source === adj.source && ex.reason === adj.reason);
+            if (!exists) {
+              mergedLedger.push(adj);
+            }
+          });
+          store[iso].evidenceLedger = mergedLedger;
+        }
+        
+        // Merge dims (take max of each dimension from both sources)
+        if (apiStore[iso].dims) {
+          Object.entries(apiStore[iso].dims).forEach(([k, v]) => {
+            const currentVal = store[iso].dims?.[k] || 0;
+            if (store[iso].dims) {
+              store[iso].dims[k] = Math.max(currentVal, v);
+            }
+          });
+        }
+        
+        // Update evidence confidence
+        store[iso].evidenceConfidence = Math.min(1, (store[iso].evidenceCount || 0) / 5);
+        
+        // Keep the evidence signals from the original store
+        // (store[iso].signals already has the evidence data)
+      }
+    }
+    
+    // ─── ADD ANY COUNTRIES FROM API THAT AREN'T IN STORE ──────────────
+    for (const iso in apiStore) {
+      if (!store[iso]) {
+        store[iso] = apiStore[iso];
+        history[iso] = seedHistory(iso, apiStore[iso].score);
+      }
+    }
+    
+    // Re-rank after merging
+    ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+    
+    // Update UI with API data (this shows the API urgency rankings)
+    updateUIStatsFromApi(apiData);
+  } else {
+    // ─── UPDATE UI WITH REAL STATS (original behavior) ────────────────
+    updateUIStats();
+  }
 
   adv(6,100);
   paintMap();
@@ -1627,7 +1756,73 @@ async function refresh(){
   else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
 
   updateDynamicTitle();
-}// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+}
+
+function updateUIStatsFromApi(data){
+  const top = ranked.slice(0, 20);
+  const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+
+  // ─── SAFELY CALCULATE AFFECTED ──────────────────────────────────────────
+  let totalAffected = 0;
+  const countries = data.countries || (data.top_story ? [data.top_story] : []);
+  countries.forEach(c => {
+    const displacement = c.live_evidence?.displacement?.total;
+    // Only add if it's a valid positive number
+    if (typeof displacement === 'number' && isFinite(displacement) && displacement > 0) {
+      totalAffected += displacement;
+    }
+  });
+  
+  // ─── FORMAT AFFECTED DISPLAY ────────────────────────────────────────────
+  let affectedDisplay = '—';
+  if (totalAffected > 0 && isFinite(totalAffected)) {
+    if (totalAffected >= 1e9) affectedDisplay = '≈' + (totalAffected / 1e9).toFixed(1) + 'B';
+    else if (totalAffected >= 1e6) affectedDisplay = '≈' + (totalAffected / 1e6).toFixed(1) + 'M';
+    else if (totalAffected >= 1e3) affectedDisplay = '≈' + (totalAffected / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = totalAffected.toLocaleString();
+  }
+
+  // ─── SAFELY GET ANOMALIES ───────────────────────────────────────────────
+  let anoms = data.meta?.anomalies_detected;
+  if (typeof anoms !== 'number' || !isFinite(anoms)) {
+    anoms = ranked.filter(i => {
+      const hist = (history[i] || []).map(h => h.s);
+      return cusum(hist).det;
+    }).length;
+  }
+
+  // ─── SAFELY GET EVENTS ──────────────────────────────────────────────────
+  let tevt = 0;
+  Object.values(store).forEach(c => {
+    const ev = c.events || 0;
+    if (typeof ev === 'number' && isFinite(ev)) {
+      tevt += ev;
+    }
+  });
+
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
+// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
 // NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
 // ────────────────────────────────────────────────────────────────────────
 
@@ -1699,7 +1894,6 @@ function coverageScale(value, floor, ceiling, maxPts) {
   const ratio = (clamped - floor) / ((ceiling - floor) || 1);
   return Math.max(maxPts * 0.2, ratio * maxPts);
 }
-
 // ── REAL DATA: Fetch ACLED conflict events ──────────────────────────────
 async function fetchAcledData() {
   try {
@@ -4901,5 +5095,4 @@ parts.push(`${name}’s score has ${trendPhrase}.`);
 </script>
 </body>
 </html>
-
 
