@@ -2,1332 +2,512 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CRYS · Crisis Intelligence</title>
-<meta name="description" content="CRYS — real-time crisis intelligence. Ask about any country. Powered by USGS, IPC, WHO, UNHCR, Open-Meteo.">
-<meta name="theme-color" content="#020b17">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crisis Monitor — Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg0:#020b17;--bg1:#071221;--bg2:#0c1a2e;--bg3:#102338;--bg4:#162d47;
-  --b1:rgba(66,153,225,.12);--b2:rgba(66,153,225,.24);--b3:rgba(66,153,225,.4);
-  --cyan:#4dabf7;--cyan2:#74c0fc;--cyan3:#a5d8ff;
-  --t1:#e8f4ff;--t2:#8eb8e0;--t3:#4a6a8a;--t4:#263d55;
-  --red:#ff6b6b;--orange:#ffa94d;--yellow:#ffe066;--green:#69db7c;
-  --r:14px;--rs:8px;--rss:5px;
-  --font:system-ui,-apple-system,'Segoe UI','Inter',sans-serif;
+  --void:#030b18;--surface:#081829;--glass:rgba(5,15,34,.97);
+  --cyan:#00c8ff;--cyan2:rgba(0,200,255,.1);--cyan3:rgba(0,200,255,.25);
+  --rose:#ff375f;--amber:#ffb020;--green:#00e5a0;--purple:#bf7fff;--orange:#ff8c42;
+  --tp:#ddeeff;--ts:#8bbdd8;--tm:#4a7a9b;--td:#1e3d58;
+  --b1:rgba(0,200,255,.06);--b2:rgba(0,200,255,.12);--b3:rgba(0,200,255,.22);
+  --fd:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--fm:'JetBrains Mono',monospace;
+  --r1:4px;--r2:8px;--r3:12px;--r4:18px;--ease:cubic-bezier(.4,0,.2,1)
 }
-html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--t1);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::selection{background:rgba(77,171,247,.25)}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--void);color:var(--tp);font-family:var(--fb);overflow:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,200,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,.03) 1px,transparent 1px);
+  background-size:64px 64px;opacity:.6}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
 
-/* SHELL */
-.shell{display:flex;flex-direction:column;height:100vh}
+.app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1}
 
-/* HEADER */
-.hdr{
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;
-  padding:.65rem 1.4rem;border-bottom:1px solid var(--b1);
-  background:rgba(2,11,23,.96);backdrop-filter:blur(20px);z-index:30;flex-shrink:0;
-}
-.brand{display:flex;align-items:center;gap:.5rem;cursor:pointer;user-select:none}
-.brand h1{
-  font-size:1.5rem;font-weight:900;letter-spacing:-.03em;
-  background:linear-gradient(135deg,#fff 30%,var(--cyan));
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
-.brand-tag{
-  font-size:.6rem;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;
-  background:var(--bg3);color:var(--cyan2);padding:.15rem .5rem;border-radius:99px;border:1px solid var(--b2);
-}
-.hdr-right{display:flex;align-items:center;gap:.6rem}
-.live-badge{display:flex;align-items:center;gap:.35rem;font-size:.63rem;font-family:monospace;color:var(--t3);letter-spacing:.05em}
-.live-dot{width:5px;height:5px;border-radius:50%;background:#51cf66;box-shadow:0 0 5px #51cf66;animation:blink 2.2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.src-pills{display:flex;gap:.3rem;flex-wrap:wrap}
-.src-pill{font-size:.57rem;font-family:monospace;background:var(--bg2);border:1px solid var(--b1);color:var(--t3);padding:.13rem .42rem;border-radius:99px}
+/* ── HEADER ── */
+.header{height:56px;flex-shrink:0;background:rgba(3,11,24,.98);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px;padding:0 20px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand-mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(145deg,rgba(0,200,255,.2),rgba(191,127,255,.15));
+  border:1px solid rgba(0,200,255,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.brand-name{font-family:var(--fd);font-size:17px;font-weight:800;letter-spacing:-.01em;
+  background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-sub{font-family:var(--fm);font-size:7.5px;color:var(--tm);letter-spacing:.14em;text-transform:uppercase}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.18);
+  border-radius:99px;padding:5px 11px;font-family:var(--fm);font-size:8.5px;color:var(--cyan);letter-spacing:.06em}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.clear-btn{font-family:var(--fm);font-size:9px;background:transparent;border:1px solid var(--b1);color:var(--tm);
+  padding:5px 11px;border-radius:99px;cursor:pointer;transition:all .15s}
+.clear-btn:hover{border-color:var(--rose);color:var(--rose)}
 
-/* TOOLBAR */
-.toolbar{
-  display:flex;align-items:center;gap:.35rem;
-  padding:.42rem 1.4rem;border-bottom:1px solid var(--b1);
-  background:rgba(7,18,33,.5);flex-shrink:0;
-}
-.tbtn{
-  font-size:.67rem;font-family:monospace;background:transparent;border:none;
-  color:var(--t3);padding:.18rem .55rem;border-radius:99px;cursor:pointer;
-  transition:color .14s,background .14s;
-}
-.tbtn:hover{color:var(--cyan2);background:var(--bg2)}
-.tbtn.danger:hover{color:var(--red)}
-.tb-right{margin-left:auto;display:flex;align-items:center;gap:.4rem}
-.tb-indicator{font-size:.6rem;font-family:monospace;color:var(--green);opacity:0;transition:opacity .2s}
-.tb-indicator.show{opacity:1}
-.theme-toggle{font-size:.67rem;font-family:monospace;background:transparent;border:none;color:var(--t3);cursor:pointer;padding:.18rem .55rem;border-radius:99px;transition:all .14s}
-.theme-toggle:hover{color:var(--cyan2);background:var(--bg2)}
+/* ── CHAT AREA ── */
+.chat-scroll{flex:1;overflow-y:auto;padding:20px 0 10px;scroll-behavior:smooth}
+.chat-inner{max-width:760px;margin:0 auto;padding:0 20px;display:flex;flex-direction:column;gap:14px}
 
-/* CHAT */
-.chat{flex:1;overflow-y:auto;padding:1.3rem 1.4rem;scroll-behavior:smooth}
-.msgs{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:1.15rem;padding-bottom:.75rem}
+.msg-row{display:flex;flex-direction:column;max-width:88%;animation:fi .25s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-row.user{align-self:flex-end;align-items:flex-end}
+.msg-row.bot{align-self:flex-start;align-items:flex-start}
+.bubble{padding:10px 15px;border-radius:14px;font-size:13px;line-height:1.6;word-break:break-word}
+.msg-row.user .bubble{background:linear-gradient(135deg,#154a73,#1a3d65);color:#fff;border-bottom-right-radius:3px}
+.msg-row.bot .bubble{background:rgba(12,26,46,.9);border:1px solid rgba(0,200,255,.1);color:var(--tp);border-bottom-left-radius:3px}
+.msg-tag{font-family:var(--fm);font-size:8.5px;color:var(--td);padding:0 4px;margin-top:3px}
 
-/* WELCOME */
-.welcome{
-  display:flex;flex-direction:column;align-items:center;gap:.65rem;
-  padding:3rem 1rem 2rem;text-align:center;
-}
-.welcome-mark{font-size:2.8rem;opacity:.45;animation:float 3.5s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.welcome h2{font-size:1.15rem;font-weight:700}
-.welcome p{font-size:.8rem;color:var(--t3);line-height:1.75;max-width:380px}
-.welcome p em{color:var(--t2);font-style:normal}
-.w-examples{display:flex;flex-wrap:wrap;justify-content:center;gap:.35rem;margin-top:.1rem}
-.w-ex{
-  font-size:.68rem;background:var(--bg2);border:1px solid var(--b1);color:var(--t2);
-  padding:.22rem .65rem;border-radius:99px;cursor:pointer;transition:all .13s;
-}
-.w-ex:hover{background:var(--bg3);border-color:var(--b2);color:var(--t1)}
+.typing-bubble{display:flex;gap:4px;padding:12px 16px;background:rgba(12,26,46,.9);border:1px solid rgba(0,200,255,.1);
+  border-radius:14px;border-bottom-left-radius:3px;width:fit-content}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite}
+.typing-dot:nth-child(2){animation-delay:.15s}.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
 
-/* MESSAGES */
-.msg{display:flex;flex-direction:column;gap:.25rem;max-width:90%;animation:rise .16s ease-out}
-@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-.msg-user{align-self:flex-end}
-.msg-crys{align-self:flex-start;max-width:97%}
-.bubble{padding:.78rem 1.1rem;border-radius:1.35rem;word-break:break-word;font-size:.875rem;line-height:1.6}
-.msg-user .bubble{background:#1a3d65;border-bottom-right-radius:.28rem;color:#fff}
-.msg-crys .bubble{background:var(--bg2);border:1px solid var(--b1);border-bottom-left-radius:.28rem;color:var(--t1)}
-.msg-meta{font-size:.58rem;color:var(--t4);font-family:monospace;padding:0 .35rem;letter-spacing:.03em}
+/* ── STORY CARD (rendered inside bot bubbles) ── */
+.story-card{background:rgba(255,255,255,.015);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden;
+  margin-top:4px;width:100%;max-width:520px}
+.story-head{padding:14px 16px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--b1)}
+.story-flag{font-size:28px;line-height:1;flex-shrink:0}
+.story-title-block{flex:1;min-width:0}
+.story-name{font-family:var(--fd);font-size:19px;font-weight:900;letter-spacing:-.01em;color:#eaf6ff;line-height:1.1}
+.story-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px}
+.sev-badge{font-family:var(--fm);font-size:8px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em}
+.rank-tag{font-family:var(--fm);font-size:8px;color:var(--tm)}
+.score-ring-wrap{position:relative;flex-shrink:0;width:48px;height:48px}
+.score-ring-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:15px;font-weight:900}
 
-/* IN-BUBBLE ELEMENTS */
-.bubble strong{font-weight:700;color:var(--cyan2)}
-.bubble em{font-style:normal;color:var(--t2)}
+.story-body{padding:12px 16px}
+.crisis-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.crisis-tag{font-family:var(--fm);font-size:8px;background:rgba(255,255,255,.04);border:1px solid var(--b2);
+  border-radius:4px;padding:3px 7px;color:var(--ts)}
+.trend-row{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--fm);font-size:9px;color:var(--tm);margin-bottom:10px}
+.trend-val{font-weight:700}
+.trend-val.up{color:var(--rose)}.trend-val.down{color:var(--green)}.trend-val.flat{color:var(--ts)}
 
-/* Score hero */
-.score-hero{display:inline-flex;align-items:baseline;gap:.35rem;font-size:1.85rem;font-weight:900;letter-spacing:-.04em;line-height:1}
-.score-denom{font-size:.9rem;font-weight:400;color:var(--t3)}
+.anomaly-box{background:rgba(255,55,95,.06);border:1px solid rgba(255,55,95,.16);border-radius:6px;
+  padding:8px 11px;margin-bottom:10px;font-family:var(--fm);font-size:9.5px;color:var(--ts);line-height:1.6}
+.anomaly-box b{color:var(--rose)}
 
-/* Severity */
-.sev{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;padding:.18rem .55rem;border-radius:99px;font-family:monospace;vertical-align:middle}
-.sev-CATASTROPHIC{background:rgba(255,107,107,.14);color:#ff6b6b;border:1px solid rgba(255,107,107,.28)}
-.sev-CRITICAL    {background:rgba(255,169,77,.13);color:#ffa94d;border:1px solid rgba(255,169,77,.28)}
-.sev-HIGH        {background:rgba(255,224,102,.1);color:#ffe066;border:1px solid rgba(255,224,102,.25)}
-.sev-ELEVATED    {background:rgba(105,219,124,.09);color:#69db7c;border:1px solid rgba(105,219,124,.22)}
-.sev-MODERATE    {background:rgba(116,192,252,.09);color:#74c0fc;border:1px solid rgba(116,192,252,.22)}
+.evid-toggle{font-family:var(--fm);font-size:9px;color:var(--cyan);cursor:pointer;user-select:none;
+  display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.evid-list{display:none;flex-direction:column;gap:5px;margin-bottom:10px}
+.evid-list.open{display:flex}
+.evid-row{display:flex;gap:7px;align-items:flex-start;background:rgba(255,255,255,.015);border-radius:5px;padding:6px 9px}
+.evid-src-badge{font-family:var(--fm);font-size:7px;font-weight:700;padding:1px 6px;border-radius:3px;flex-shrink:0;
+  background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);white-space:nowrap}
+.evid-detail{flex:1;font-size:10px;color:var(--ts);line-height:1.5}
+.evid-delta{font-family:var(--fm);font-size:8.5px;font-weight:700;color:var(--rose);flex-shrink:0}
 
-/* Section label */
-.slbl{display:block;font-size:.57rem;font-family:monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);margin:.65rem 0 .35rem}
+.rec-box{border-radius:6px;padding:8px 11px;font-family:var(--fm);font-size:10px;line-height:1.6}
+.rec-box.IMMEDIATE{background:rgba(255,55,95,.1);border:1px solid rgba(255,55,95,.22);color:#ff8fa3}
+.rec-box.URGENT{background:rgba(255,140,66,.08);border:1px solid rgba(255,140,66,.18);color:#ffb37a}
+.rec-box.HIGH{background:rgba(255,176,32,.07);border:1px solid rgba(255,176,32,.16);color:#ffd27a}
+.rec-box.MONITOR,.rec-box.WATCH{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.12);color:var(--green)}
+.rec-tier{font-weight:800;margin-right:5px}
 
-/* Divider */
-.div{height:1px;background:var(--b1);margin:.55rem 0;opacity:.6}
+/* Ranking list (used for top-N results) */
+.rank-list{display:flex;flex-direction:column;gap:4px;width:100%;max-width:480px}
+.rank-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.015);
+  border-radius:6px;cursor:pointer;transition:background .12s;border:1px solid transparent}
+.rank-item:hover{background:rgba(0,200,255,.04);border-color:var(--b2)}
+.rank-n{font-family:var(--fm);font-size:9px;color:var(--td);width:18px;flex-shrink:0}
+.rank-flag{font-size:14px;flex-shrink:0}
+.rank-name{flex:1;font-size:12px;font-weight:600;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-bar-track{width:44px;height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;flex-shrink:0}
+.rank-bar-fill{height:100%;border-radius:99px}
+.rank-score{font-family:var(--fm);font-size:11px;font-weight:700;width:24px;text-align:right;flex-shrink:0}
+.rank-arrow{font-size:10px;flex-shrink:0}
 
-/* Hero row */
-.h-row{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;margin-bottom:.6rem}
-.cname{font-size:1.05rem;font-weight:800;line-height:1.2}
-.rank-chip{font-size:.62rem;font-family:monospace;color:var(--t3);margin-top:.15rem}
+.compare-verdict{font-family:var(--fm);font-size:11px;color:var(--purple);background:rgba(191,127,255,.06);
+  border:1px solid rgba(191,127,255,.18);border-radius:6px;padding:8px 12px;margin-bottom:8px;width:100%;max-width:480px}
 
-/* DIMENSION BARS */
-.dims{display:flex;flex-direction:column;gap:.38rem}
-.dr{display:flex;align-items:center;gap:.55rem;padding:.06rem 0}
-.dr.hl{background:rgba(77,171,247,.05);border-radius:5px;padding:.1rem .3rem;margin:0 -.3rem}
-.dl{font-size:.67rem;color:var(--t2);width:82px;flex-shrink:0;font-family:monospace;text-transform:uppercase;letter-spacing:.02em}
-.dl.hl{color:var(--cyan2);font-weight:700}
-.dt{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.df{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1)}
-.dv{font-size:.67rem;font-family:monospace;width:24px;text-align:right;flex-shrink:0}
-.dc{font-size:.61rem;color:var(--t3);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sources-mini{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.src-mini{font-family:var(--fm);font-size:7px;padding:2px 6px;border-radius:99px;display:flex;align-items:center;gap:3px}
+.src-mini.live{background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.16);color:var(--green)}
+.src-mini.dead{background:rgba(255,55,95,.04);border:1px solid rgba(255,55,95,.12);color:var(--rose);opacity:.65}
 
-/* EVIDENCE */
-.ev-list{display:flex;flex-direction:column;gap:.27rem}
-.ev-item{display:flex;align-items:flex-start;gap:.45rem;font-size:.78rem}
-.ev-ico{flex-shrink:0;font-size:.82rem;margin-top:.04rem;line-height:1}
-.ev-txt{color:var(--t2);line-height:1.45;flex:1}
-.ev-src{font-size:.57rem;font-family:monospace;color:var(--t3);margin-left:.28rem}
-.ev-none{font-size:.73rem;color:var(--t3);font-style:italic}
+.empty-note{font-family:var(--fm);font-size:10px;color:var(--tm);background:rgba(255,176,32,.04);
+  border:1px solid rgba(255,176,32,.14);border-radius:6px;padding:9px 12px;max-width:480px;line-height:1.6}
+.error-note{font-family:var(--fm);font-size:10px;color:#ff8fa3;background:rgba(255,55,95,.06);
+  border:1px solid rgba(255,55,95,.18);border-radius:6px;padding:9px 12px;max-width:480px;line-height:1.6}
 
-/* TREND */
-.trend-line{display:flex;align-items:center;gap:.55rem;font-size:.78rem;margin:.14rem 0}
-.t-up{color:var(--red);font-weight:700}
-.t-dn{color:var(--green);font-weight:700}
-.t-fl{color:var(--t3);font-weight:600}
-.fc-line{display:flex;align-items:center;gap:.5rem;font-size:.74rem;color:var(--t2)}
+/* ── COMPOSER ── */
+.composer-wrap{flex-shrink:0;padding:12px 20px 18px;background:linear-gradient(180deg,transparent,rgba(3,11,24,.9) 40%)}
+.composer{max-width:760px;margin:0 auto}
+.suggestions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.sugg-chip{font-family:var(--fm);font-size:9.5px;background:rgba(255,255,255,.03);border:1px solid var(--b1);
+  color:var(--ts);padding:5px 12px;border-radius:99px;cursor:pointer;transition:all .13s;white-space:nowrap}
+.sugg-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan)}
+.input-row{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.03);border:1px solid var(--b2);
+  border-radius:99px;padding:5px 6px 5px 18px;transition:border-color .15s}
+.input-row:focus-within{border-color:var(--b3);background:var(--cyan2)}
+.chat-input{flex:1;background:transparent;border:none;outline:none;color:var(--tp);font-family:var(--fb);font-size:13px;padding:8px 0}
+.chat-input::placeholder{color:var(--td)}
+.send-btn{background:linear-gradient(135deg,var(--cyan),#0090c8);color:#03101f;border:none;border-radius:99px;
+  width:38px;height:38px;font-size:15px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s}
+.send-btn:hover{transform:scale(1.05)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
-/* RECOMMENDATION */
-.rec{display:flex;align-items:flex-start;gap:.55rem;background:rgba(255,255,255,.02);border:1px solid var(--b1);border-radius:var(--rs);padding:.5rem .7rem;margin:.38rem 0;font-size:.79rem}
-.rec-IMMEDIATE{border-color:rgba(255,107,107,.3);background:rgba(255,107,107,.04)}
-.rec-URGENT   {border-color:rgba(255,169,77,.26);background:rgba(255,169,77,.03)}
-.rec-HIGH     {border-color:rgba(255,224,102,.2);background:rgba(255,224,102,.03)}
-.rec-MONITOR  {border-color:rgba(105,219,124,.16);background:rgba(105,219,124,.02)}
-.rec-WATCH    {border-color:var(--b1)}
-.rec-ico{font-size:.88rem;flex-shrink:0;margin-top:.04rem}
-.rec-txt{color:var(--t2);line-height:1.45}
-
-/* SPILLOVER */
-.spill{display:flex;align-items:center;gap:.45rem;font-size:.75rem;color:var(--t2)}
-
-/* ANOMALY */
-.anom{font-size:.7rem;color:var(--orange);padding:.22rem .48rem;background:rgba(255,169,77,.06);border:1px solid rgba(255,169,77,.18);border-radius:var(--rss);margin:.28rem 0}
-
-/* AUDIT */
-.audit-list{display:flex;flex-direction:column;gap:.26rem}
-.audit-item{display:flex;align-items:flex-start;gap:.38rem;font-size:.7rem;color:var(--t2)}
-.audit-src{font-family:monospace;font-size:.58rem;color:var(--cyan);background:rgba(77,171,247,.1);padding:.09rem .32rem;border-radius:3px;flex-shrink:0}
-.audit-delta{font-family:monospace;font-size:.62rem;color:var(--green);flex-shrink:0;min-width:26px}
-.audit-foot{font-size:.65rem;color:var(--t3);font-family:monospace;margin-top:.28rem}
-
-/* TYPE PILLS */
-.type-pills{display:flex;flex-wrap:wrap;gap:.28rem;margin:.12rem 0 .2rem}
-.type-pill{font-size:.58rem;background:rgba(255,255,255,.025);border:1px solid var(--b1);color:var(--t2);padding:.12rem .42rem;border-radius:99px}
-
-/* RANK LIST */
-.rank-list{display:flex;flex-direction:column;gap:.24rem}
-.ri{
-  display:flex;align-items:center;gap:.5rem;padding:.36rem .52rem;
-  border-radius:var(--rs);background:rgba(255,255,255,.016);
-  border:1px solid rgba(66,153,225,.07);cursor:pointer;transition:all .13s;
-}
-.ri:hover{background:rgba(66,153,225,.07);border-color:var(--b2)}
-.ri-num{font-family:monospace;font-size:.6rem;color:var(--t4);width:20px;flex-shrink:0;text-align:right}
-.ri-flag{font-size:.92rem;flex-shrink:0}
-.ri-name{flex:1;font-size:.8rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ri-bar{width:50px;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;flex-shrink:0}
-.ri-fill{height:100%;border-radius:99px}
-.ri-score{font-family:monospace;font-size:.74rem;font-weight:700;flex-shrink:0;min-width:22px;text-align:right}
-.ri-sev{font-size:.53rem;flex-shrink:0}
-.ri-trend{font-size:.6rem;font-family:monospace;flex-shrink:0;width:20px;text-align:center}
-
-/* COMPARISON */
-.comp-head{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-bottom:.6rem}
-.comp-name{font-size:1.05rem;font-weight:800}
-.comp-vs{color:var(--t4);font-weight:300;font-size:1rem}
-.ctbl{width:100%;border-collapse:collapse;font-size:.76rem;margin:.38rem 0}
-.ctbl th{font-size:.58rem;font-family:monospace;letter-spacing:.08em;color:var(--t3);text-align:left;padding:.26rem .44rem;border-bottom:1px solid var(--b1)}
-.ctbl td{padding:.26rem .44rem;border-bottom:1px solid rgba(66,153,225,.05);color:var(--t2);vertical-align:middle}
-.ctbl td.w{color:var(--cyan2);font-weight:700}
-.ctbl td.l{color:var(--t3)}
-.verdict{padding:.46rem .6rem;background:rgba(77,171,247,.04);border:1px solid var(--b1);border-radius:var(--rs);font-size:.77rem;color:var(--t2);margin-top:.42rem;line-height:1.5}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.38rem}
-
-/* GAP ANALYSIS */
-.gap-hdr{font-size:.88rem;line-height:1.55;margin-bottom:.5rem}
-.gap-stat{
-  display:inline-flex;align-items:baseline;gap:.28rem;
-  background:rgba(255,169,77,.06);border:1px solid rgba(255,169,77,.2);
-  border-radius:var(--rss);padding:.1rem .4rem;font-family:monospace;font-size:.76rem;color:var(--orange);
-}
-.delta-row{display:flex;align-items:center;gap:.5rem;font-size:.76rem;color:var(--t2);padding:.22rem 0}
-.delta-label{font-size:.65rem;font-family:monospace;color:var(--t2);width:78px;flex-shrink:0;text-transform:uppercase}
-.delta-track{flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.delta-fill{height:100%;border-radius:99px}
-.delta-val{font-family:monospace;font-size:.66rem;min-width:26px;text-align:right;flex-shrink:0}
-.delta-diff{font-size:.63rem;color:var(--orange);flex-shrink:0;min-width:45px}
-.timeline-box{font-size:.74rem;color:var(--t2);padding:.42rem .58rem;background:rgba(255,255,255,.02);border:1px solid var(--b1);border-radius:var(--rs);margin-top:.38rem;line-height:1.55}
-
-/* ALERT */
-.alert-box{display:flex;align-items:flex-start;gap:.5rem;padding:.48rem .65rem;background:rgba(77,171,247,.04);border:1px solid var(--b2);border-radius:var(--rs);font-size:.79rem}
-.alert-ico{font-size:.9rem;flex-shrink:0;margin-top:.04rem}
-.alert-txt{color:var(--t2);line-height:1.5}
-.alert-note{font-size:.63rem;color:var(--t3);margin-top:.28rem}
-
-/* WORST-DIM */
-.wd-list{display:flex;flex-direction:column;gap:.2rem}
-.wd-row{display:flex;align-items:center;gap:.5rem;padding:.28rem .44rem;border-radius:var(--rs);cursor:pointer;transition:background .12s}
-.wd-row:hover{background:rgba(66,153,225,.06)}
-.wd-flag{font-size:.9rem;flex-shrink:0}
-.wd-name{font-size:.78rem;font-weight:500;width:108px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wd-bar{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.wd-fill{height:100%;border-radius:99px}
-.wd-val{font-family:monospace;font-size:.7rem;font-weight:700;min-width:23px;text-align:right;flex-shrink:0}
-.wd-ctx{font-size:.59rem;color:var(--t3);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* SOURCES PANEL */
-.src-panel{font-size:.7rem;color:var(--t2)}
-.src-row{display:flex;align-items:center;gap:.5rem;padding:.24rem 0;border-bottom:1px solid rgba(66,153,225,.05)}
-.src-row:last-child{border:none}
-.src-name{font-family:monospace;font-size:.62rem;color:var(--cyan);width:80px;flex-shrink:0}
-.src-live{font-size:.58rem;font-family:monospace;padding:.08rem .3rem;border-radius:99px}
-.src-live.yes{background:rgba(105,219,124,.1);color:var(--green);border:1px solid rgba(105,219,124,.2)}
-.src-live.no {background:rgba(255,169,77,.08);color:var(--orange);border:1px solid rgba(255,169,77,.2)}
-.src-detail{color:var(--t3);flex:1}
-
-/* TYPING */
-.typing{display:flex;gap:5px;align-items:center;padding:.5rem .85rem;background:var(--bg2);border:1px solid var(--b1);border-radius:2rem;width:fit-content}
-.typing span{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:tp 1.05s ease-in-out infinite}
-.typing span:nth-child(2){animation-delay:.13s}
-.typing span:nth-child(3){animation-delay:.26s}
-@keyframes tp{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-
-/* INPUT */
-.inp-area{
-  flex-shrink:0;background:rgba(7,18,33,.98);border-top:1px solid var(--b1);
-  padding:.8rem 1.4rem 1.1rem;
-}
-.inp-wrap{
-  max-width:860px;margin:0 auto;display:flex;gap:.5rem;
-  background:var(--bg2);border:1px solid var(--b2);border-radius:3rem;
-  padding:.28rem;transition:border-color .18s,box-shadow .18s;
-}
-.inp-wrap:focus-within{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(77,171,247,.13)}
-.inp-wrap input{
-  flex:1;background:transparent;border:none;outline:none;
-  padding:.68rem 1rem;font-size:.92rem;color:var(--t1);font-family:var(--font);
-}
-.inp-wrap input::placeholder{color:var(--t3)}
-.send{
-  background:var(--cyan);color:#020b17;border:none;border-radius:2.5rem;
-  padding:.46rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;flex-shrink:0;
-  transition:background .13s,transform .1s;letter-spacing:.01em;
-}
-.send:hover{background:var(--cyan2)}
-.send:active{transform:scale(.97)}
-
-/* CHIPS */
-.chips{max-width:860px;margin:.55rem auto 0;display:flex;flex-wrap:wrap;gap:.33rem}
-.chip{
-  font-size:.67rem;background:var(--bg2);border:1px solid var(--b1);color:var(--t2);
-  padding:.23rem .72rem;border-radius:2rem;cursor:pointer;transition:all .12s;white-space:nowrap;user-select:none;
-}
-.chip:hover{background:var(--bg3);border-color:var(--b2);color:var(--t1)}
-.inp-footer{text-align:center;font-size:.57rem;color:var(--t4);font-family:monospace;margin-top:.5rem;letter-spacing:.04em}
-
-/* MOBILE */
 @media(max-width:600px){
-  .hdr{padding:.55rem .9rem}
-  .src-pills,.tbtn:not(.danger){display:none}
-  .toolbar{padding:.38rem .9rem}
-  .chat{padding:.9rem}
-  .msg{max-width:97%}
-  .bubble{font-size:.82rem;padding:.68rem .92rem}
-  .inp-area{padding:.65rem .9rem .9rem}
-  .chips{display:none}
-  .dc,.wd-ctx{display:none}
-  .two-col{grid-template-columns:1fr}
-  .ctbl{font-size:.7rem}
-  .dim-label,.dl{width:62px}
+  .chat-inner,.composer{padding-left:12px;padding-right:12px}
+  .msg-row{max-width:96%}
 }
 </style>
 </head>
 <body>
-<div class="shell">
 
-<!-- HEADER -->
-<header class="hdr">
-  <div class="brand" id="brand">
-    <h1>CRYS</h1>
-    <span class="brand-tag">crisis intelligence</span>
-  </div>
-  <div class="hdr-right">
-    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="src-pills">
-      <span class="src-pill">USGS</span>
-      <span class="src-pill">IPC</span>
-      <span class="src-pill">WHO</span>
-      <span class="src-pill">UNHCR</span>
-      <span class="src-pill">Open-Meteo</span>
+<div class="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">📡</div>
+      <div>
+        <div class="brand-name">Crisis Monitor</div>
+        <div class="brand-sub">Live Evidence Chat</div>
+      </div>
     </div>
-  </div>
-</header>
+    <div class="header-right">
+      <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+      <button class="clear-btn" onclick="clearChat()">↺ Clear</button>
+    </div>
+  </header>
 
-<!-- TOOLBAR -->
-<div class="toolbar">
-  <button class="tbtn danger" id="clearBtn">&#128465; Clear</button>
-  <button class="tbtn" id="shareBtn">&#128279; Share</button>
-  <button class="tbtn" id="sourcesBtn">&#128202; Sources</button>
-  <button class="tbtn" id="helpBtn">&#10067; Help</button>
-  <div class="tb-right">
-    <span class="tb-indicator" id="tbInd"></span>
+  <div class="chat-scroll" id="chatScroll">
+    <div class="chat-inner" id="chatInner"></div>
   </div>
-</div>
 
-<!-- CHAT -->
-<div class="chat" id="chat">
-  <div class="msgs" id="msgs">
-    <div class="welcome" id="welcome">
-      <div class="welcome-mark">&#127758;</div>
-      <h2>Ask CRYS anything about crisis.</h2>
-      <p>Type a country, a question, or a comparison.<br>
-        <em>CRYS does not guess. The data shows.</em></p>
-      <div class="w-examples">
-        <div class="w-ex" data-q="Somalia">&#127466;&#127481; Somalia</div>
-        <div class="w-ex" data-q="Yemen">&#127486;&#127466; Yemen</div>
-        <div class="w-ex" data-q="compare Sudan and Yemen">&#128202; Compare Sudan vs Yemen</div>
-        <div class="w-ex" data-q="top 5 crises">&#128293; Top 5 crises</div>
-        <div class="w-ex" data-q="worst food crisis">&#127834; Worst food crisis</div>
-        <div class="w-ex" data-q="what is escalating">&#128200; Escalating</div>
-        <div class="w-ex" data-q="Africa ranked">&#127757; Africa</div>
-        <div class="w-ex" data-q="Why is Palestine not highest">&#10067; Why not #1?</div>
+  <div class="composer-wrap">
+    <div class="composer">
+      <div class="suggestions" id="suggestions">
+        <div class="sugg-chip" onclick="ask('top 5')">🔥 Top 5 crises</div>
+        <div class="sugg-chip" onclick="ask('what is escalating')">📈 Escalating now</div>
+        <div class="sugg-chip" onclick="ask('Somalia')">🇸🇴 Somalia</div>
+        <div class="sugg-chip" onclick="ask('compare Sudan and Yemen')">⚖️ Compare countries</div>
+        <div class="sugg-chip" onclick="ask('africa')">🌍 Africa region</div>
+      </div>
+      <div class="input-row">
+        <input class="chat-input" id="chatInput" placeholder="Ask about a country, region, or type 'top 10'…"
+          onkeypress="if(event.key==='Enter')sendMessage()">
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- INPUT -->
-<div class="inp-area">
-  <div class="inp-wrap">
-    <input id="inp" type="text"
-      placeholder="Somalia  &middot;  compare Sudan vs Yemen  &middot;  top 5  &middot;  Africa ranked  &middot;  worst food crisis  &middot;  above 70 ..."
-      autocomplete="off" spellcheck="false">
-    <button class="send" id="sendBtn">Ask &#x21B5;</button>
-  </div>
-  <div class="chips">
-    <div class="chip" data-q="Somalia">&#127466;&#127481; Somalia</div>
-    <div class="chip" data-q="Sudan">&#127480;&#127465; Sudan</div>
-    <div class="chip" data-q="Yemen">&#127486;&#127466; Yemen</div>
-    <div class="chip" data-q="Palestine">&#127477;&#127480; Palestine</div>
-    <div class="chip" data-q="Afghanistan">&#127462;&#127467; Afghanistan</div>
-    <div class="chip" data-q="top 5">&#128293; Top 5</div>
-    <div class="chip" data-q="top 10">&#128290; Top 10</div>
-    <div class="chip" data-q="compare Somalia and Yemen">&#128202; Somalia vs Yemen</div>
-    <div class="chip" data-q="compare Sudan and Palestine">&#128202; Sudan vs Palestine</div>
-    <div class="chip" data-q="Africa ranked">&#127757; Africa</div>
-    <div class="chip" data-q="Middle East ranked">&#128332; Middle East</div>
-    <div class="chip" data-q="what is escalating">&#128200; Escalating</div>
-    <div class="chip" data-q="what is improving">&#128201; Improving</div>
-    <div class="chip" data-q="worst food crisis">&#127834; Food crisis</div>
-    <div class="chip" data-q="worst displacement">&#128692; Displacement</div>
-    <div class="chip" data-q="above 70">&#9888;&#65039; Score &ge;70</div>
-    <div class="chip" data-q="Why is Palestine not highest">&#10067; Why not #1?</div>
-  </div>
-  <div class="inp-footer">Scores refresh every 5 min &middot; USGS &middot; IPC &middot; WHO &middot; UNHCR &middot; Open-Meteo &middot; scores are prior-based with live adjustments</div>
-</div>
-
-</div>
 <script>
-"use strict";
-// =============================================================================
-// CRYS — 10/10 Crisis Intelligence Frontend
-// Wired against the exact top-story.js API contract.
-// =============================================================================
+// ══════════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════════
+const API_BASE = "/api/top-story";
+const REGIONS = ["africa","asia","europe","middleeast","middle east","americas","oceania","latin america"];
+const esc = s => String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+let msgCount = 0;
 
-const API       = "https://www.globalcrisisindex.com/api/top-story";
-const STORE_KEY = "crys_v3";
-const CACHE_TTL = 300_000; // 5 min matches API seed interval
-
-// ─── CACHE ───────────────────────────────────────────────────────────────────
-const _C = new Map();
-async function api(params) {
+// ── Cache (5 min, matches backend SEED_INTERVAL_MS) ──
+const _cache = new Map();
+async function callAPI(params){
   const key = JSON.stringify(params);
-  const hit = _C.get(key);
-  if (hit && Date.now() - hit.t < CACHE_TTL) return hit.d;
-  const url = new URL(API);
-  for (const [k,v] of Object.entries(params)) if (v!=null) url.searchParams.set(k,String(v));
-  const r = await fetch(url.toString());
-  if (!r.ok) throw new Error("API " + r.status + " — " + url.searchParams.toString());
-  const d = await r.json();
-  _C.set(key, {t:Date.now(), d});
-  return d;
+  const hit = _cache.get(key);
+  if(hit && Date.now()-hit.t < 300000) return hit.data;
+  const url = new URL(API_BASE, window.location.origin);
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  _cache.set(key, {t:Date.now(), data});
+  return data;
 }
 
-// ─── PERSISTENCE ────────────────────────────────────────────────────────────
-// Save/restore chat so closing and reopening continues the session
-function saveHistory() {
-  try {
-    const items = Array.from(msgsEl.querySelectorAll(".msg")).map(m => ({
-      h: m.querySelector(".bubble")?.innerHTML ?? "",
-      u: m.classList.contains("msg-user"),
-      m: m.querySelector(".msg-meta")?.textContent ?? "",
-    })).slice(-60);
-    localStorage.setItem(STORE_KEY, JSON.stringify(items));
-  } catch {}
-}
+// ══════════════════════════════════════════════════════════════════════
+// INTENT PARSING — turns free text into API params
+// ══════════════════════════════════════════════════════════════════════
+function parseIntent(raw){
+  const q = raw.toLowerCase().trim();
 
-function loadHistory() {
-  try {
-    const items = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-    if (!items.length) return;
-    hideWelcome();
-    items.forEach(i => renderMsg(i.h, i.u, i.m, false));
-    scrollBottom(false);
-  } catch {}
-}
-
-// ─── UTILITIES ───────────────────────────────────────────────────────────────
-const esc  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const escA = s => String(s ?? "").replace(/"/g,"&quot;");
-
-function scoreColor(s) {
-  return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";
-}
-function dimColor(v) {
-  return v>=80?"#ff6b6b":v>=65?"#ffa94d":v>=50?"#ffe066":v>=35?"#74c0fc":"#4a6a8a";
-}
-function sevIcon(tier) {
-  return {IMMEDIATE:"&#128308;",URGENT:"&#128992;",HIGH:"&#128993;",MONITOR:"&#128994;",WATCH:"&#128309;"}[tier] ?? "&#8505;&#65039;";
-}
-function trendClass(dir) {
-  return dir==="escalating"?"t-up":dir==="improving"?"t-dn":"t-fl";
-}
-function trendArrow(dir) {
-  return dir==="escalating"?"&#x2191;":dir==="improving"?"&#x2193;":"&#x2192;";
-}
-function estimateDays(slope, gap) {
-  if (!slope || slope <= 0 || gap <= 0) return "unknown timeline";
-  const d = Math.ceil(gap / slope);
-  return d > 365 ? "over a year" : d > 90 ? "~" + Math.round(d/30) + " months" : "~" + d + " days";
-}
-
-// ─── INTENT PARSER ───────────────────────────────────────────────────────────
-const NAME_ALIASES = {
-  "dr congo":"COD","congo":"COD","drc":"COD",
-  "central african republic":"CAF","car":"CAF",
-  "south sudan":"SSD","burkina faso":"BFA",
-  "us":"USA","united states":"USA","america":"USA",
-  "uk":"GBR","britain":"GBR","england":"GBR",
-  "myanmar":"MMR","burma":"MMR",
-  "iran":"IRN","persia":"IRN",
-  "north korea":"PRK","nk":"PRK",
-  "south korea":"KOR","sk":"KOR",
-  "uae":"ARE","emirates":"ARE",
-};
-
-function resolveName(raw) {
-  const l = (raw || "").toLowerCase().trim();
-  return NAME_ALIASES[l] || l;
-}
-
-const REGION_KW = {
-  africa:     ["africa","african"],
-  asia:       ["asia","asian","southeast asia","south asia","east asia"],
-  europe:     ["europe","european"],
-  middleeast: ["middle east","middleeast","mena","arab","gulf"],
-  americas:   ["americas","america","latin america","latam","caribbean"],
-};
-
-function detectRegion(text) {
-  const l = text.toLowerCase();
-  for (const [r,kws] of Object.entries(REGION_KW))
-    if (kws.some(k => l.includes(k))) return r;
-  return null;
-}
-
-const DIM_KW = {
-  food:        ["food","hunger","famine","starvation","ipc","nutrition","eating"],
-  displacement:["displacement","displaced","refugee","refugees","idp","idps","homeless"],
-  health:      ["health","disease","outbreak","epidemic","cholera","ebola","malaria","medical"],
-  conflict:    ["conflict","war","fighting","combat","violence","armed","military"],
-  economic:    ["economic","economy","gdp","poverty","financial"],
-  climate:     ["climate","heat","flood","drought","weather","temperature"],
-};
-
-function detectDim(text) {
-  const l = text.toLowerCase();
-  for (const [d,kws] of Object.entries(DIM_KW))
-    if (kws.some(k => l.includes(k))) return d;
-  return null;
-}
-
-function parseIntent(raw) {
-  const t = raw.trim();
-  const l = t.toLowerCase();
-
-  // Compare  "X vs Y" / "compare X and Y"
-  const cmp =
-    l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i) ||
-    l.match(/(.+?)\s+(?:vs?\.?|versus)\s+(.+)/i);
-  if (cmp) return {type:"compare", a:resolveName(cmp[1].trim()), b:resolveName(cmp[2].trim())};
-
-  // Why not highest / #1
-  const nh = l.match(/why\s+(?:is\s+|isn'?t\s+)?(.+?)\s+not\s+(?:the\s+)?(?:#1|number\s+one|highest|first|top)/i);
-  if (nh) return {type:"why_not_highest", country:resolveName(nh[1].trim())};
-
-  // Why not lowest
-  const nl2 = l.match(/why\s+(?:is\s+)?(.+?)\s+not\s+(?:the\s+)?lowest/i);
-  if (nl2) return {type:"why_not_lowest", country:resolveName(nl2[1].trim())};
-
-  // Why is X higher than Y
-  const wh = l.match(/why\s+(?:is\s+)?(.+?)\s+(?:higher|worse|more severe|ranked higher)\s+than\s+(.+)/i);
-  if (wh) return {type:"compare", a:resolveName(wh[1].trim()), b:resolveName(wh[2].trim())};
-
-  // Top N
-  const topN = l.match(/top\s+(\d+)/i);
-  if (topN) return {type:"top_n", n:Math.min(20, Math.max(1, parseInt(topN[1])))};
-
-  // Worst [dimension]
-  const worst = l.match(/worst\s+(.+?)(?:\s+crisis|\s+situation|\s+countries?)?\s*$/i);
-  if (worst) { const dim = detectDim(worst[1]); if (dim) return {type:"worst_dim", dim}; }
-
-  // Trend filters
-  if (/\b(improv|getting better|going down|falling|declining)\w*/.test(l)) return {type:"trend", trend:"improving"};
-  if (/\b(escalat|worsening|getting worse|going up|rising|surging)\w*/.test(l)) return {type:"trend", trend:"escalating"};
-  if (/\bstable\b/.test(l)) return {type:"trend", trend:"stable"};
-
-  // Threshold  "above 70" / "over 80" / "≥75"
-  const thr = l.match(/(?:above|over|at least|score\s*(?:above|over|of)?|[≥>=]+)\s*(\d{2,3})/i) ||
-              l.match(/(\d{2,3})\s*(?:[+]|or (?:more|higher|above))/i);
-  if (thr) return {type:"threshold", value:parseInt(thr[1])};
-
-  // Region (standalone)
-  const region = detectRegion(l);
-  if (region && t.split(" ").length <= 5) return {type:"region", region};
-
-  // Alert "tell me when Sudan hits 90"
-  const alert = l.match(/(?:alert|notify|tell|warn)\s+me\s+(?:if|when|once)\s+(.+?)\s+(?:hits?|reaches?|gets?\s+to|exceeds?|goes?\s+(?:above|over))\s+(\d+)/i);
-  if (alert) return {type:"alert", country:resolveName(alert[1].trim()), threshold:parseInt(alert[2])};
-
-  // Situation query "how bad is X" / "what's happening in X"
-  const sit = l.match(/(?:situation|status|update|what(?:'?s)?\s+happening|how\s+(?:bad|severe|is)|tell\s+me\s+about|what\s+about)\s+(?:in\s+)?(.+)/i);
-  if (sit) return {type:"country", country:resolveName(sit[1].trim())};
-
-  // Default: country lookup
-  return {type:"country", country:resolveName(t)};
-}
-
-// ─── COMPONENT BUILDERS ──────────────────────────────────────────────────────
-// All return HTML strings. Named with capital first letter by convention.
-
-function Sev(s) {
-  return '<span class="sev sev-' + s + '">' + s + '</span>';
-}
-
-function Dims(dimensions, highlightKey) {
-  const ORDER = ["conflict","displacement","food","health","economic","climate","access","political"];
-  let out = '<div class="dims">';
-  for (const k of ORDER) {
-    const d = dimensions[k];
-    if (!d) continue;
-    const v = d.value, col = dimColor(v), hl = highlightKey === k;
-    out += '<div class="dr' + (hl ? ' hl' : '') + '">';
-    out += '<div class="dl' + (hl ? ' hl' : '') + '">' + esc(d.label) + '</div>';
-    out += '<div class="dt"><div class="df" style="width:' + v + '%;background:' + col + '"></div></div>';
-    out += '<div class="dv" style="color:' + col + '">' + v + '</div>';
-    if (d.context && d.context.trim()) out += '<div class="dc">' + esc(d.context.trim()) + '</div>';
-    out += '</div>';
-  }
-  out += '</div>';
-  return out;
-}
-
-function Evidence(ev) {
-  if (!ev) return '<span class="ev-none">No live event signals.</span>';
-  const items = [];
-
-  if (ev.earthquake) {
-    items.push({
-      i: "&#127757;",
-      t: "M" + ev.earthquake.magnitude.toFixed(1) + " earthquake — " + esc(ev.earthquake.location),
-      s: "USGS",
-    });
-  }
-  if (ev.food_security) {
-    const pop = ev.food_security.population_affected > 0
-      ? " — " + (ev.food_security.population_affected / 1e6).toFixed(1) + "M people" : "";
-    items.push({i:"&#127834;", t:"IPC Phase " + ev.food_security.phase + " food insecurity" + pop, s:"IPC"});
-  }
-  (ev.disease_outbreaks || []).slice(0, 3).forEach(ob => {
-    const cases = ob.cases > 0 ? ", " + ob.cases.toLocaleString() + "+ cases" : "";
-    items.push({i:"&#129440;", t: esc(ob.disease) + " — " + ob.severity + " severity" + cases, s:"WHO"});
-  });
-  if (ev.displacement && ev.displacement.total > 0) {
-    const total = (ev.displacement.total / 1e6).toFixed(1);
-    const parts = [];
-    if (ev.displacement.refugees > 0)       parts.push((ev.displacement.refugees/1e6).toFixed(1)+"M refugees");
-    if (ev.displacement.idps > 0)           parts.push((ev.displacement.idps/1e6).toFixed(1)+"M IDPs");
-    if (ev.displacement.asylum_seekers > 0) parts.push((ev.displacement.asylum_seekers/1e6).toFixed(1)+"M asylum-seekers");
-    items.push({i:"&#128692;", t: total + "M displaced — " + (parts.join(", ") || "combined figure"), s:"UNHCR"});
-  }
-  if (ev.heat && ev.heat.max_temp_c > 0) {
-    const lbl = ev.heat.max_temp_c >= 42 ? "extreme heatwave" : ev.heat.max_temp_c >= 38 ? "severe heat" : "significant heat";
-    items.push({i:"&#129397;", t: ev.heat.max_temp_c + "°C — " + lbl, s:"Open-Meteo"});
+  // Comparison: "compare X and Y" / "X vs Y"
+  const cmp = q.match(/compare\s+(.+?)\s+(?:and|vs\.?|versus|with)\s+(.+)/i) || q.match(/(.+?)\s+vs\.?\s+(.+)/i);
+  if(cmp){
+    return { type:'compare', a:cmp[1].trim(), b:cmp[2].trim() };
   }
 
-  if (!items.length) return '<span class="ev-none">No live event signals at this time.</span>';
-  let out = '<div class="ev-list">';
-  for (const x of items) {
-    out += '<div class="ev-item">';
-    out += '<div class="ev-ico">' + x.i + '</div>';
-    out += '<div class="ev-txt">' + x.t + '<span class="ev-src">' + x.s + '</span></div>';
-    out += '</div>';
-  }
-  return out + '</div>';
-}
-
-function Trend(trend) {
-  const cls   = trendClass(trend.direction);
-  const arrow = trendArrow(trend.direction);
-  const sign  = trend.delta_7d > 0 ? "+" : "";
-  let out = '<div class="trend-line">';
-  out += '<span class="' + cls + '" style="font-size:.73rem;font-family:monospace">' + arrow + ' ' + trend.direction.charAt(0).toUpperCase() + trend.direction.slice(1) + '</span>';
-  out += '<span style="font-size:.7rem;color:var(--t3)">' + sign + trend.delta_7d + ' pts (7 days)</span>';
-  out += '</div>';
-  out += '<div class="fc-line">';
-  out += '<span>&#128202; 7-day forecast: <strong>' + trend.forecast_7d + '/100</strong></span>';
-  if (trend.escalating) out += '<span style="color:var(--red);font-size:.67rem">&#9888;&#65039; escalating</span>';
-  out += '</div>';
-  return out;
-}
-
-function Spillover(spill) {
-  if (!spill || !spill.value) return "";
-  const nb = (spill.from || []).map(f => esc(f.name) + " (" + f.score + ")").join(", ");
-  return '<div class="spill">&#127758; Regional pressure from ' + nb + ' &rarr; <strong>+' + spill.value + ' pts</strong></div>';
-}
-
-function Rec(rec) {
-  if (!rec) return "";
-  return '<div class="rec rec-' + rec.tier + '">'
-    + '<div class="rec-ico">' + sevIcon(rec.tier) + '</div>'
-    + '<div class="rec-txt">' + esc(rec.text) + '</div>'
-    + '</div>';
-}
-
-function Audit(audit) {
-  if (!audit) return "";
-  if (!audit.adjustments || !audit.adjustments.length) {
-    return '<div style="font-size:.7rem;color:var(--t3)">No live data adjustments this cycle — score reflects prior baseline only.</div>';
-  }
-  let out = '<div class="audit-list">';
-  for (const a of audit.adjustments) {
-    out += '<div class="audit-item">';
-    out += '<span class="audit-src">' + esc(a.source) + '</span>';
-    out += '<span class="audit-delta">+' + a.delta + '</span>';
-    out += '<span>' + esc(a.reason) + '</span>';
-    out += '</div>';
-  }
-  out += '</div>';
-  out += '<div class="audit-foot">Prior: ' + audit.prior_score + ' &rarr; +' + audit.live_boost + ' live &rarr; +' + audit.spillover + ' spillover &rarr; <strong style="color:var(--t2)">' + audit.final_score + ' final</strong></div>';
-  return out;
-}
-
-function TypePills(types) {
-  if (!types || !types.length) return "";
-  return '<div class="type-pills">' + types.map(t => '<span class="type-pill">' + t.icon + ' ' + esc(t.label) + '</span>').join("") + '</div>';
-}
-
-// Full country card — the primary view for a single country
-function CountryCard(s, opts) {
-  const showAudit   = opts && opts.showAudit !== false;
-  const hlDim       = opts && opts.highlightDim;
-  const col = scoreColor(s.score);
-
-  let out = '';
-  // Hero row
-  out += '<div class="h-row">';
-  out += '<span style="font-size:1.52rem">' + s.flag + '</span>';
-  out += '<div><div class="cname">' + esc(s.name) + '</div>';
-  out += '<div class="rank-chip">#' + s.rank + ' of ' + s.total_countries + ' &middot; top ' + s.percentile + '%</div></div>';
-  out += '<div style="margin-left:auto;text-align:right">';
-  out += '<div class="score-hero" style="color:' + col + '">' + s.score + '<span class="score-denom">/100</span></div>';
-  out += Sev(s.severity);
-  out += '</div></div>';
-
-  // Type pills
-  out += TypePills(s.crisis_types);
-
-  // Dimensions
-  out += '<span class="slbl">Key drivers</span>';
-  out += Dims(s.dimensions, hlDim);
-
-  // Trend
-  out += '<span class="slbl">Trend &amp; forecast</span>';
-  out += Trend(s.trend);
-
-  // Anomaly
-  if (s.anomaly && s.anomaly.z_score >= 1.5) {
-    out += '<div class="anom">&#9888;&#65039; Score is ' + s.anomaly.z_score + '&sigma; from 28-day baseline';
-    if (s.anomaly.detected) out += ' — anomaly detected';
-    out += '</div>';
+  // Top N: "top 5" / "top 10 crises" / "worst 3"
+  const topN = q.match(/(?:top|worst|highest)\s+(\d+)/i);
+  if(topN){
+    return { type:'topN', n: Math.min(20, parseInt(topN[1],10)) };
   }
 
-  out += '<div class="div"></div>';
-
-  // Evidence
-  out += '<span class="slbl">Live evidence</span>';
-  out += Evidence(s.live_evidence);
-
-  // Spillover
-  if (s.spillover && s.spillover.value > 0) {
-    out += '<div class="div"></div>';
-    out += Spillover(s.spillover);
+  // Escalating / improving
+  if(/escalat|worsen|deteriorat|getting worse/.test(q)){
+    return { type:'trend', direction:'escalating' };
+  }
+  if(/improv|easing|getting better|de-escalat/.test(q)){
+    return { type:'trend', direction:'improving' };
   }
 
-  out += '<div class="div"></div>';
-
-  // Recommendation
-  out += Rec(s.recommendation);
-
-  // Score audit
-  if (showAudit) {
-    out += '<span class="slbl">Score transparency</span>';
-    out += Audit(s.score_audit);
+  // Anomalies
+  if(/anomal|unusual|spike|alert/.test(q)){
+    return { type:'anomalies' };
   }
 
-  // Crisis types footer
-  if (s.crisis_types && s.crisis_types.length) {
-    out += '<div style="font-size:.6rem;color:var(--t3);margin-top:.45rem">';
-    out += s.crisis_types.map(c => c.icon + ' ' + esc(c.label)).join(' &middot; ');
-    out += '</div>';
-  }
-
-  return out;
-}
-
-// Compact rank row for lists
-function RankItem(c, rank) {
-  const col = scoreColor(c.score);
-  const r   = rank || c.rank || "";
-  const dir = c.trend && c.trend.direction;
-  const tArrow = dir === "escalating" ? '<span style="color:var(--red)">&#x2191;</span>'
-               : dir === "improving"  ? '<span style="color:var(--green)">&#x2193;</span>'
-               : '<span style="color:var(--t4)">&#x2192;</span>';
-  return '<div class="ri" data-country="' + escA(c.name) + '">'
-    + '<div class="ri-num">#' + r + '</div>'
-    + '<div class="ri-flag">' + c.flag + '</div>'
-    + '<div class="ri-name">' + esc(c.name) + '</div>'
-    + '<div class="ri-bar"><div class="ri-fill" style="width:' + c.score + '%;background:' + col + '"></div></div>'
-    + '<div class="ri-score" style="color:' + col + '">' + c.score + '</div>'
-    + '<span class="sev ri-sev sev-' + c.severity + '">' + c.severity.slice(0,3) + '</span>'
-    + '<div class="ri-trend">' + tArrow + '</div>'
-    + '</div>';
-}
-
-function RankList(countries, limit) {
-  const n = limit || 20;
-  let out = '<div class="rank-list">';
-  countries.slice(0, n).forEach((c, i) => { out += RankItem(c, c.rank || (i+1)); });
-  return out + '</div>';
-}
-
-// ─── RESPONSE HANDLERS ───────────────────────────────────────────────────────
-
-async function respondCountry(country) {
-  const d = await api({q: country});
-  if (!d.top_story) throw new Error('No data found for "' + country + '"');
-  return CountryCard(d.top_story, {showAudit: true});
-}
-
-async function respondTopN(n) {
-  const d = await api({top: n});
-  const countries = d.countries || (d.top_story ? [d.top_story] : []);
-  if (!countries.length) throw new Error("Rankings unavailable");
-  let out = '<div style="font-size:.8rem;color:var(--t2);margin-bottom:.5rem">';
-  out += '<strong>Top ' + n + '</strong> countries by urgency score &middot; ' + countries.length + ' returned</div>';
-  return out + RankList(countries, n);
-}
-
-async function respondCompare(a, b) {
-  const [dA, dB] = await Promise.all([api({q:a}), api({q:b})]);
-  const sA = dA.top_story, sB = dB.top_story;
-  if (!sA || !sB) throw new Error("Could not find one or both countries");
-
-  let comparison = null;
-  try { comparison = (await api({iso: sA.iso + "," + sB.iso})).comparison; } catch {}
-
-  const DIM_ORDER = ["conflict","displacement","food","health","economic","climate"];
-
-  let out = '<div class="comp-head">';
-  out += '<span class="comp-name">' + sA.flag + ' ' + esc(sA.name) + '</span>';
-  out += '<span class="comp-vs">vs</span>';
-  out += '<span class="comp-name">' + sB.flag + ' ' + esc(sB.name) + '</span>';
-  out += '</div>';
-
-  // Comparison table
-  out += '<table class="ctbl"><thead><tr>';
-  out += '<th>Metric</th><th>' + sA.flag + ' ' + esc(sA.name) + '</th><th>' + sB.flag + ' ' + esc(sB.name) + '</th>';
-  out += '</tr></thead><tbody>';
-
-  // Score row
-  out += '<tr><td><strong>Score</strong></td>';
-  out += '<td class="' + (sA.score >= sB.score ? "w" : "l") + '" style="font-weight:700">' + sA.score + ' ' + Sev(sA.severity) + '</td>';
-  out += '<td class="' + (sB.score > sA.score ? "w" : "l") + '" style="font-weight:700">' + sB.score + ' ' + Sev(sB.severity) + '</td>';
-  out += '</tr>';
-
-  // Rank
-  out += '<tr><td>Rank</td>';
-  out += '<td class="' + (sA.rank <= sB.rank ? "w":"l") + '">#' + sA.rank + '</td>';
-  out += '<td class="' + (sB.rank < sA.rank ? "w":"l") + '">#' + sB.rank + '</td></tr>';
-
-  // Dimensions
-  for (const k of DIM_ORDER) {
-    const av = sA.dimensions?.[k]?.value ?? 0;
-    const bv = sB.dimensions?.[k]?.value ?? 0;
-    const lbl = sA.dimensions?.[k]?.label ?? k;
-    out += '<tr><td>' + esc(lbl) + '</td>';
-    out += '<td class="' + (av>bv?"w":"l") + '">' + av + (av>bv?' <span style="font-size:.58rem;color:var(--cyan2)">&#x25B2;</span>':"") + '</td>';
-    out += '<td class="' + (bv>av?"w":"l") + '">' + bv + (bv>av?' <span style="font-size:.58rem;color:var(--cyan2)">&#x25B2;</span>':"") + '</td>';
-    out += '</tr>';
-  }
-
-  // Trend
-  const ta = sA.trend, tb = sB.trend;
-  out += '<tr><td>7d trend</td>';
-  out += '<td style="color:' + ((ta?.delta_7d??0)>0?"var(--red)":"var(--green)") + '">' + ((ta?.delta_7d??0)>0?"+":"") + (ta?.delta_7d??0) + '</td>';
-  out += '<td style="color:' + ((tb?.delta_7d??0)>0?"var(--red)":"var(--green)") + '">' + ((tb?.delta_7d??0)>0?"+":"") + (tb?.delta_7d??0) + '</td>';
-  out += '</tr>';
-
-  // Forecast
-  out += '<tr><td>Forecast</td><td>' + (ta?.forecast_7d??"-") + '/100</td><td>' + (tb?.forecast_7d??"-") + '/100</td></tr>';
-  out += '</tbody></table>';
-
-  // Verdict
-  if (comparison && comparison.verdict) {
-    out += '<div class="verdict"><strong>Verdict:</strong> ' + esc(comparison.verdict) + '</div>';
-  }
-
-  // Side-by-side evidence
-  out += '<div class="two-col" style="margin-top:.5rem">';
-  out += '<div><span class="slbl">' + sA.flag + ' ' + esc(sA.name) + ' evidence</span>' + Evidence(sA.live_evidence) + '</div>';
-  out += '<div><span class="slbl">' + sB.flag + ' ' + esc(sB.name) + ' evidence</span>' + Evidence(sB.live_evidence) + '</div>';
-  out += '</div>';
-
-  out += '<div class="div"></div>';
-  out += '<div class="two-col">';
-  out += '<div>' + Rec(sA.recommendation) + '</div>';
-  out += '<div>' + Rec(sB.recommendation) + '</div>';
-  out += '</div>';
-
-  return out;
-}
-
-async function respondWhyNotHighest(country) {
-  const [dT, dTop] = await Promise.all([api({q:country}), api({top:1})]);
-  const target = dT.top_story, highest = dTop.top_story;
-  if (!target || !highest) throw new Error("Could not fetch data");
-
-  if (target.iso === highest.iso) {
-    return target.flag + " <strong>" + esc(target.name) + "</strong> IS the highest — #" + target.rank + " at " + target.score + "/100 " + Sev(target.severity);
-  }
-
-  const gap = highest.score - target.score;
-  const keyDims = ["conflict","displacement","food","health"].filter(k => {
-    return (highest.dimensions?.[k]?.value ?? 0) - (target.dimensions?.[k]?.value ?? 0) >= 7;
-  });
-
-  let out = '<div class="gap-hdr">';
-  out += '<strong>' + target.flag + ' ' + esc(target.name) + '</strong> (' + target.score + ') is ';
-  out += '<span class="gap-stat">+' + gap + ' pts</span> behind ';
-  out += '<strong>' + highest.flag + ' ' + esc(highest.name) + '</strong> (' + highest.score + ').';
-  out += '</div>';
-
-  if (keyDims.length) {
-    out += '<span class="slbl">Where ' + esc(highest.name) + ' leads</span>';
-    out += '<div style="display:flex;flex-direction:column;gap:.3rem">';
-    for (const k of keyDims) {
-      const hv  = highest.dimensions[k].value;
-      const tv  = target.dimensions[k]?.value ?? 0;
-      const col = dimColor(hv);
-      const lbl = highest.dimensions[k].label;
-      const diff = hv - tv;
-      out += '<div class="delta-row">';
-      out += '<span class="delta-label">' + esc(lbl) + '</span>';
-      out += '<div class="delta-track"><div class="delta-fill" style="width:' + hv + '%;background:' + col + '"></div></div>';
-      out += '<div class="delta-val" style="color:' + col + '">' + hv + '</div>';
-      out += '<div class="delta-diff" style="color:var(--orange)">+' + diff + ' vs ' + esc(target.name) + '</div>';
-      out += '</div>';
-    }
-    out += '</div>';
-  }
-
-  // Evidence gap
-  const evItems = [];
-  const hfs = highest.live_evidence?.food_security, tfs = target.live_evidence?.food_security;
-  if (hfs && (!tfs || tfs.phase < hfs.phase))
-    evItems.push("&#127834; IPC Phase " + hfs.phase + " vs Phase " + (tfs?.phase ?? "N/A") + " — " + hfs.phase - (tfs?.phase ?? 0) + " phase gap");
-  const hd = highest.live_evidence?.displacement?.total ?? 0;
-  const td2 = target.live_evidence?.displacement?.total ?? 0;
-  if (hd > td2 + 500_000)
-    evItems.push("&#128692; " + (hd/1e6).toFixed(1) + "M vs " + (td2/1e6).toFixed(1) + "M displaced (UNHCR)");
-  const hob = highest.live_evidence?.disease_outbreaks ?? [];
-  const tob = target.live_evidence?.disease_outbreaks ?? [];
-  if (hob.length > tob.length)
-    evItems.push("&#129440; " + hob.length + " active outbreak(s) vs " + tob.length + " in " + esc(target.name));
-
-  if (evItems.length) {
-    out += '<div class="div"></div>';
-    out += '<span class="slbl">Live signals ' + esc(highest.name) + ' has that ' + esc(target.name) + ' lacks</span>';
-    out += '<div class="ev-list">';
-    evItems.forEach(e => { out += '<div class="ev-item"><div class="ev-txt">' + e + '</div></div>'; });
-    out += '</div>';
-  }
-
-  out += '<div class="timeline-box">';
-  out += esc(target.name) + ' needs <strong>+' + gap + ' pts</strong> to tie. ';
-  out += 'Current trajectory: <em>' + esc(target.trend?.direction ?? "stable") + '</em>. ';
-  out += 'Estimated: <strong>' + estimateDays(target.trend?.slope ?? 0, gap) + '</strong>.';
-  out += '</div>';
-
-  return out;
-}
-
-async function respondWhyNotLowest(country) {
-  const [dT, dAll] = await Promise.all([api({q:country}), api({top:20})]);
-  const target = dT.top_story;
-  const all    = dAll.countries || [];
-  if (!target || !all.length) throw new Error("Could not fetch data");
-
-  const lowest = all[all.length - 1];
-  if (target.iso === lowest.iso) {
-    return target.flag + " <strong>" + esc(target.name) + "</strong> is among the lowest tracked — #" + target.rank + " at " + target.score + "/100.";
-  }
-
-  const gap = target.score - lowest.score;
-  const aboveDims = ["conflict","displacement","food","health"].filter(k => {
-    return (target.dimensions?.[k]?.value ?? 0) - (lowest.dimensions?.[k]?.value ?? 0) >= 6;
-  });
-
-  let out = '<div class="gap-hdr">';
-  out += '<strong>' + target.flag + ' ' + esc(target.name) + '</strong> (' + target.score + ') sits ';
-  out += '<span class="gap-stat">+' + gap + ' pts</span> above the lowest: ';
-  out += '<strong>' + lowest.flag + ' ' + esc(lowest.name) + '</strong> (' + lowest.score + ').';
-  out += '</div>';
-
-  out += '<span class="slbl">What keeps ' + esc(target.name) + ' elevated</span>';
-  out += Evidence(target.live_evidence);
-
-  if (aboveDims.length) {
-    out += '<span class="slbl">Dimensions above ' + esc(lowest.name) + '</span>';
-    out += '<div style="display:flex;flex-direction:column;gap:.3rem">';
-    for (const k of aboveDims) {
-      const tv  = target.dimensions[k].value;
-      const lv  = lowest.dimensions?.[k]?.value ?? 0;
-      const col = dimColor(tv);
-      const lbl = target.dimensions[k].label;
-      out += '<div class="delta-row">';
-      out += '<span class="delta-label">' + esc(lbl) + '</span>';
-      out += '<div class="delta-track"><div class="delta-fill" style="width:' + tv + '%;background:' + col + '"></div></div>';
-      out += '<div class="delta-val" style="color:' + col + '">' + tv + '</div>';
-      out += '<div class="delta-diff" style="color:var(--orange)">+' + (tv-lv) + ' vs ' + esc(lowest.name) + '</div>';
-      out += '</div>';
-    }
-    out += '</div>';
-  }
-
-  out += '<div class="div"></div>';
-  out += Rec(target.recommendation);
-
-  return out;
-}
-
-async function respondRegion(region) {
-  const d = await api({region});
-  const countries = d.countries || [];
-  if (!countries.length) throw new Error("No data for region: " + region);
-  const label = region === "middleeast" ? "Middle East" : region.charAt(0).toUpperCase() + region.slice(1);
-  const avg   = Math.round(countries.reduce((s,c) => s + c.score, 0) / countries.length);
-  let out = '<div style="display:flex;align-items:baseline;gap:.55rem;margin-bottom:.5rem;flex-wrap:wrap">';
-  out += '<strong style="font-size:.88rem">' + label + '</strong>';
-  out += '<span style="font-size:.7rem;color:var(--t3)">' + countries.length + ' countries &middot; avg score ' + avg + '</span>';
-  out += '</div>';
-  return out + RankList(countries, 20);
-}
-
-async function respondThreshold(value) {
-  const d = await api({threshold: value});
-  const countries = d.countries || (d.top_story ? [d.top_story] : []);
-  if (!countries.length) return '<div style="font-size:.82rem;color:var(--t3)">No countries currently scoring &ge;' + value + '.</div>';
-  let out = '<div style="font-size:.78rem;color:var(--t2);margin-bottom:.48rem">';
-  out += '<strong>' + countries.length + '</strong> ' + (countries.length === 1 ? "country" : "countries") + ' scoring &ge;' + value;
-  out += '</div>';
-  return out + RankList(countries, 20);
-}
-
-async function respondTrend(trend) {
-  const d = await api({top:20});
-  const countries = (d.countries || []).filter(c => c.trend?.direction === trend);
-  if (!countries.length) return '<div style="font-size:.82rem;color:var(--t3)">No countries currently <strong>' + trend + '</strong> in top 20.</div>';
-  const icon = trend === "escalating" ? "&#128200;" : trend === "improving" ? "&#128201;" : "&#128202;";
-  let out = '<div style="font-size:.78rem;color:var(--t2);margin-bottom:.48rem">';
-  out += icon + ' <strong>' + countries.length + '</strong> countries ' + trend + ' (of top 20 tracked)';
-  out += '</div>';
-  return out + RankList(countries, 20);
-}
-
-async function respondWorstDim(dim) {
-  const d = await api({top:20});
-  const countries = (d.countries || []).slice().sort((a,b) =>
-    (b.dimensions?.[dim]?.value ?? 0) - (a.dimensions?.[dim]?.value ?? 0)
-  );
-  const dimLabel = countries[0]?.dimensions?.[dim]?.label ?? dim;
-  let out = '<div style="font-size:.78rem;color:var(--t2);margin-bottom:.5rem">';
-  out += 'Worst <strong>' + esc(dimLabel) + '</strong> crises — sorted by dimension score';
-  out += '</div><div class="wd-list">';
-  for (const c of countries.slice(0, 12)) {
-    const v = c.dimensions?.[dim]?.value ?? 0;
-    const ctx = c.dimensions?.[dim]?.context ?? "";
-    const col = dimColor(v);
-    out += '<div class="wd-row" data-country="' + escA(c.name) + '">';
-    out += '<div class="wd-flag">' + c.flag + '</div>';
-    out += '<div class="wd-name">' + esc(c.name) + '</div>';
-    out += '<div class="wd-bar"><div class="wd-fill" style="width:' + v + '%;background:' + col + '"></div></div>';
-    out += '<div class="wd-val" style="color:' + col + '">' + v + '</div>';
-    if (ctx.trim()) out += '<div class="wd-ctx">' + esc(ctx.trim()) + '</div>';
-    out += '</div>';
-  }
-  return out + '</div>';
-}
-
-async function respondAlert(country, threshold) {
-  const d = await api({q: country});
-  const s = d.top_story;
-  if (!s) throw new Error('No data for "' + country + '"');
-  const gap      = threshold - s.score;
-  const slope    = s.trend?.slope ?? 0;
-  const timeline = gap <= 0    ? "already reached or exceeded"
-    : slope > 0.05  ? estimateDays(slope, gap)
-    : slope < -0.05 ? "unlikely — score is " + s.trend.direction
-    : "unknown — score is stable";
-
-  return '<div class="alert-box">'
-    + '<div class="alert-ico">&#128276;</div>'
-    + '<div class="alert-txt">'
-    + '<strong>Alert noted.</strong> ' + s.flag + ' ' + esc(s.name) + ' is currently at <strong>' + s.score + '/100</strong> ' + Sev(s.severity) + '.<br>'
-    + 'Needs <strong>+' + Math.max(0, gap) + ' pts</strong> to hit ' + threshold + '.'
-    + '<div style="margin-top:.28rem">Estimated: <strong>' + timeline + '</strong></div>'
-    + '<div class="alert-note">CRYS does not persist alerts server-side. Bookmark this page and check back, or set a browser reminder.</div>'
-    + '</div></div>';
-}
-
-function respondHelp() {
-  return '<div style="font-size:.82rem;line-height:1.75;color:var(--t2)">'
-    + '<strong style="display:block;margin-bottom:.4rem">What you can ask CRYS:</strong>'
-    + '&#x2022; <strong>Country name</strong> — "Somalia", "How bad is Yemen?", "Situation in Sudan"<br>'
-    + '&#x2022; <strong>Compare</strong> — "Compare Sudan and Yemen", "Somalia vs Palestine"<br>'
-    + '&#x2022; <strong>Rankings</strong> — "Top 5", "Top 10", "Top 20"<br>'
-    + '&#x2022; <strong>Regions</strong> — "Africa ranked", "Middle East", "Asia"<br>'
-    + '&#x2022; <strong>Trend</strong> — "What is escalating?", "What is improving?"<br>'
-    + '&#x2022; <strong>Threshold</strong> — "Countries above 70", "Score over 80"<br>'
-    + '&#x2022; <strong>Worst crisis type</strong> — "Worst food crisis", "Worst displacement"<br>'
-    + '&#x2022; <strong>Explanation</strong> — "Why is Palestine not highest?", "Why is Japan not lowest?"<br>'
-    + '&#x2022; <strong>Alert</strong> — "Tell me when Sudan hits 85"<br>'
-    + '&#x2022; <strong>Sources</strong> — click the Sources toolbar button<br>'
-    + '<div class="div"></div>'
-    + '<span style="font-size:.68rem;color:var(--t3)">Scores refresh every 5 min &middot; prior-based with live adjustments from USGS, IPC, WHO, UNHCR, Open-Meteo</span>'
-    + '</div>';
-}
-
-async function respondSources(meta) {
-  if (!meta) {
-    // Fetch sources by making a lightweight call
-    try {
-      const d = await api({top:1});
-      return respondSources(d.meta);
-    } catch {
-      return '<div style="font-size:.8rem;color:var(--t3)">Could not fetch source status.</div>';
+  // Region
+  for(const r of REGIONS){
+    if(q === r || q.includes(r)){
+      const canonical = r === 'middle east' ? 'middleeast' : r === 'latin america' ? 'americas' : r;
+      return { type:'region', region: canonical };
     }
   }
-  const sources = meta.sources || {};
-  let out = '<div class="src-panel">';
-  out += '<div style="font-size:.78rem;font-weight:700;color:var(--t2);margin-bottom:.4rem">Live data sources</div>';
-  for (const [name, info] of Object.entries(sources)) {
-    const isLive = info.live === true;
-    out += '<div class="src-row">';
-    out += '<span class="src-name">' + esc(name.toUpperCase()) + '</span>';
-    out += '<span class="src-live ' + (isLive?"yes":"no") + '">' + (isLive?"LIVE":"FALLBACK") + '</span>';
-    // detail
-    let detail = esc(info.label || name);
-    if (info.events)          detail += ' &middot; ' + info.events + ' events';
-    if (info.classifications) detail += ' &middot; ' + info.classifications + ' classifications';
-    if (info.outbreaks)       detail += ' &middot; ' + info.outbreaks + ' outbreaks';
-    if (info.countries)       detail += ' &middot; ' + info.countries + ' countries';
-    out += '<span class="src-detail">' + detail + '</span>';
-    out += '</div>';
+
+  // Threshold: "above 70" / "score over 80"
+  const thresh = q.match(/(?:above|over|>\s*)(\d+)/i);
+  if(thresh){
+    return { type:'threshold', value: parseInt(thresh[1],10) };
   }
-  if (meta.elapsed_ms) {
-    out += '<div style="font-size:.6rem;color:var(--t3);margin-top:.4rem;font-family:monospace">';
-    out += 'Response: ' + meta.elapsed_ms + 'ms &middot; Seed: ' + meta.score_seed + ' &middot; Next update: ' + (meta.next_update ? new Date(meta.next_update).toLocaleTimeString() : "—");
-    out += '</div>';
-  }
-  out += '</div>';
-  return out;
+
+  // Default: treat as a country search query
+  return { type:'search', query: raw.trim() };
 }
 
-// ─── ORCHESTRATOR ─────────────────────────────────────────────────────────────
-async function respond(raw) {
-  const intent = parseIntent(raw);
-  switch (intent.type) {
-    case "country":         return respondCountry(intent.country);
-    case "compare":         return respondCompare(intent.a, intent.b);
-    case "why_not_highest": return respondWhyNotHighest(intent.country);
-    case "why_not_lowest":  return respondWhyNotLowest(intent.country);
-    case "top_n":           return respondTopN(intent.n);
-    case "region":          return respondRegion(intent.region);
-    case "threshold":       return respondThreshold(intent.value);
-    case "trend":           return respondTrend(intent.trend);
-    case "worst_dim":       return respondWorstDim(intent.dim);
-    case "alert":           return respondAlert(intent.country, intent.threshold);
-    default:                return respondCountry(intent.country);
-  }
+// ══════════════════════════════════════════════════════════════════════
+// CHAT UI PLUMBING
+// ══════════════════════════════════════════════════════════════════════
+function scrollToBottom(){
+  const el = document.getElementById('chatScroll');
+  requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; });
+}
+function addUserMsg(text){
+  const inner = document.getElementById('chatInner');
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `<div class="bubble">${esc(text)}</div>`;
+  inner.appendChild(row);
+  scrollToBottom();
+}
+function addBotHTML(html, tag){
+  const inner = document.getElementById('chatInner');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.innerHTML = `<div class="bubble" style="background:transparent;border:none;padding:0;max-width:100%">${html}</div>${tag?`<div class="msg-tag">${esc(tag)}</div>`:''}`;
+  inner.appendChild(row);
+  scrollToBottom();
+  return row;
+}
+function showTyping(){
+  const inner = document.getElementById('chatInner');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.id = 'typingRow';
+  row.innerHTML = `<div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  inner.appendChild(row);
+  scrollToBottom();
+  return row;
+}
+function clearChat(){
+  document.getElementById('chatInner').innerHTML = '';
+  msgCount = 0;
+  addBotHTML(`<div style="font-family:var(--fm);font-size:12px;color:var(--ts);line-height:1.7">
+    👋 Ask me about any country's crisis status, compare two countries, get top rankings, or check what's escalating.
+    Every answer is backed by live evidence — earthquakes, disasters, displacement, disease, and economic data —
+    and I'll never invent a story where none exists.
+  </div>`);
 }
 
-// ─── DOM ENGINE ───────────────────────────────────────────────────────────────
-const chatEl = document.getElementById("chat");
-const msgsEl = document.getElementById("msgs");
-const inpEl  = document.getElementById("inp");
-let typingEl = null;
+// ══════════════════════════════════════════════════════════════════════
+// RENDERERS — mirror the fields returned by top-story.js exactly
+// ══════════════════════════════════════════════════════════════════════
+function sevColor(sev){ return { CATASTROPHIC:"#ff375f", CRITICAL:"#ff5f7a", HIGH:"#ff8c42", ELEVATED:"#ffb020", MODERATE:"#3ec5ff" }[sev] || "#3ec5ff"; }
+function dimColor(v){ return v>=75?"#ff375f":v>=55?"#ff8c42":v>=35?"#ffb020":"#3ec5ff"; }
 
-function scrollBottom(smooth) {
-  chatEl.scrollTo({top: chatEl.scrollHeight, behavior: smooth === false ? "instant" : "smooth"});
+function renderSourcesMini(sources){
+  if(!sources) return '';
+  const flat = { USGS:sources.usgs?.live, EMSC:sources.emsc?.live, NASA:sources.nasa?.live, GDACS:sources.gdacs?.live,
+    IFRC:sources.ifrc?.live, Heat:sources.heat?.live, Hazards:sources.hazards?.live, AQ:sources.aq?.live,
+    NOAA:sources.noaa?.live, 'disease.sh':sources.disease?.live, WB:sources.wb?.population, UNHCR:sources.unhcr?.live };
+  const tags = Object.entries(flat).map(([l,live])=>`<span class="src-mini ${live?'live':'dead'}">${l}</span>`).join('');
+  return `<div class="sources-mini">${tags}</div>`;
 }
 
-function hideWelcome() {
-  const w = document.getElementById("welcome");
-  if (w) w.remove();
+function renderStoryCard(c, evidId){
+  const sevCol = sevColor(c.severity);
+  const trendDir = c.trend?.direction;
+  const trendClass = trendDir==='escalating'?'up':trendDir==='improving'?'down':'flat';
+  const trendArrow = trendDir==='escalating'?'▲':trendDir==='improving'?'▼':'→';
+  const cir = 125.7, dash = (c.score/100*cir).toFixed(1);
+  const adjustments = c.score_audit?.adjustments || [];
+
+  const evidRows = adjustments.length ? adjustments.map(a=>`
+    <div class="evid-row">
+      <span class="evid-src-badge">${esc(a.source)}</span>
+      <span class="evid-detail">${esc(a.reason)}</span>
+      <span class="evid-delta">+${a.delta}</span>
+    </div>`).join('') : `<div class="evid-row"><span class="evid-detail" style="color:var(--td)">No live adjustments this cycle — structural baseline only.</span></div>`;
+
+  const dimRows = Object.entries(c.dimensions||{}).slice(0,4).map(([k,d])=>{
+    const col = dimColor(d.value);
+    return `<span class="crisis-tag" style="border-color:${col}44;color:${col}">${esc(d.label)} ${d.value}</span>`;
+  }).join('');
+
+  const crisisTags = (c.crisis_types||[]).map(t=>`<span class="crisis-tag">${t.icon} ${esc(t.label)}</span>`).join('');
+  const rec = c.recommendation || {};
+  const anomBox = c.anomaly?.detected
+    ? `<div class="anomaly-box">🚨 <b>${esc(c.anomaly.severity)} anomaly</b> — ${esc(c.anomaly.note)}</div>` : '';
+
+  return `
+  <div class="story-card">
+    <div class="story-head">
+      <div class="story-flag">${c.flag}</div>
+      <div class="story-title-block">
+        <div class="story-name">${esc(c.name)}</div>
+        <div class="story-meta-row">
+          <span class="sev-badge" style="background:${sevCol}18;color:${sevCol};border:1px solid ${sevCol}44">${esc(c.severity)}</span>
+          <span class="rank-tag">#${c.rank}/${c.total_countries} · ${c.live_evidence_count} live source${c.live_evidence_count===1?'':'s'}</span>
+        </div>
+      </div>
+      <div class="score-ring-wrap">
+        <svg width="48" height="48" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="3"/>
+          <circle cx="24" cy="24" r="20" fill="none" stroke="${sevCol}" stroke-width="3" stroke-linecap="round"
+            stroke-dasharray="${dash} ${cir}" transform="rotate(-90 24 24)"/>
+        </svg>
+        <div class="score-ring-val" style="color:${sevCol}">${c.score}</div>
+      </div>
+    </div>
+    <div class="story-body">
+      <div class="crisis-tags">${crisisTags}${dimRows}</div>
+      <div class="trend-row">
+        <span>7d trend <span class="trend-val ${trendClass}">${trendArrow} ${c.trend?.delta_7d>0?'+':''}${c.trend?.delta_7d}</span></span>
+        <span>forecast <span class="trend-val">${c.trend?.forecast_7d}/100</span></span>
+        <span>baseline <span class="trend-val">${c.score_audit?.prior_score}</span></span>
+      </div>
+      ${anomBox}
+      <div class="evid-toggle" onclick="const l=document.getElementById('${evidId}');l.classList.toggle('open');this.querySelector('span').textContent=l.classList.contains('open')?'▾':'▸'">
+        <span>▸</span> Evidence Ledger (${adjustments.length})
+      </div>
+      <div class="evid-list" id="${evidId}">${evidRows}</div>
+      <div class="rec-box ${rec.tier}"><span class="rec-tier">${esc(rec.tier)}:</span>${esc(rec.text)}</div>
+    </div>
+  </div>`;
 }
 
-function renderMsg(html, isUser, meta, save) {
-  hideWelcome();
-  const div = document.createElement("div");
-  div.className = "msg msg-" + (isUser ? "user" : "crys");
-  div.innerHTML = (isUser
-    ? '<div class="bubble">' + esc(html) + '</div>'
-    : '<div class="bubble">' + html + '</div>')
-    + (meta ? '<div class="msg-meta">' + esc(meta) + '</div>' : '');
-  msgsEl.appendChild(div);
-  scrollBottom();
-
-  // Wire up click-to-drill on any rank item or wd-row inside this message
-  div.querySelectorAll("[data-country]").forEach(el => {
-    el.style.cursor = "pointer";
-    el.addEventListener("click", () => {
-      const c = el.getAttribute("data-country");
-      if (c) submit(c);
-    });
-  });
-
-  if (save !== false) saveHistory();
-  return div;
+function renderRankList(countries){
+  const rows = countries.map((c,i)=>{
+    const col = sevColor(c.severity);
+    const dir = c.trend?.direction;
+    const arrow = dir==='escalating' ? '<span class="rank-arrow" style="color:var(--rose)">▲</span>'
+                : dir==='improving' ? '<span class="rank-arrow" style="color:var(--green)">▼</span>'
+                : '<span class="rank-arrow" style="color:var(--tm)">→</span>';
+    return `<div class="rank-item" onclick="ask('${esc(c.name).replace(/'/g,"\\'")}')">
+      <span class="rank-n">#${c.rank}</span>
+      <span class="rank-flag">${c.flag}</span>
+      <span class="rank-name">${esc(c.name)}</span>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${c.score}%;background:${col}"></div></div>
+      <span class="rank-score" style="color:${col}">${c.score}</span>
+      ${arrow}
+    </div>`;
+  }).join('');
+  return `<div class="rank-list">${rows}</div>`;
 }
 
-function showTyping() {
-  if (typingEl) return;
-  const div = document.createElement("div");
-  div.className = "msg msg-crys";
-  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-  msgsEl.appendChild(div);
-  typingEl = div;
-  scrollBottom();
+function renderEmpty(meta){
+  return `<div class="empty-note">🔍 No countries in this scope currently have live evidence from any tracked source.
+  ${esc(meta?.message||'')} This isn't an error — the feed simply won't fabricate a placeholder story.</div>`;
+}
+function renderErrorMsg(msg){
+  return `<div class="error-note">⚠️ ${esc(msg)}</div>`;
 }
 
-function hideTyping() {
-  if (typingEl) { typingEl.remove(); typingEl = null; }
-}
-
-function flash(msg) {
-  const el = document.getElementById("tbInd");
-  el.textContent = msg;
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), 2000);
-}
-
-async function submit(raw) {
-  const q = raw.trim();
-  if (!q) return;
-  inpEl.value = "";
-  inpEl.focus();
-  renderMsg(q, true, "you");
-  showTyping();
+// ══════════════════════════════════════════════════════════════════════
+// MAIN DISPATCH
+// ══════════════════════════════════════════════════════════════════════
+async function ask(text){
+  document.getElementById('chatInput').value = '';
+  addUserMsg(text);
+  const typingRow = showTyping();
   const t0 = Date.now();
-  try {
-    const html = await respond(q);
-    hideTyping();
-    renderMsg(html, false, "CRYS &middot; " + (Date.now()-t0) + "ms");
-    // Update URL hash so query is shareable
-    try { history.replaceState(null, "", "#" + encodeURIComponent(q)); } catch {}
-  } catch (err) {
-    console.error(err);
-    hideTyping();
-    renderMsg(
-      '<span style="color:var(--red)">&#10060; ' + esc(err.message) + '</span>'
-      + '<div style="font-size:.72rem;color:var(--t3);margin-top:.28rem">'
-      + 'Try: <em>"Somalia"</em> &middot; <em>"compare Sudan and Yemen"</em> &middot; <em>"top 5"</em> &middot; <em>"Africa ranked"</em> &middot; type <em>"help"</em>'
-      + '</div>',
-      false, "error"
-    );
+
+  try{
+    const intent = parseIntent(text);
+    let html = '';
+    let tag = '';
+
+    if(intent.type === 'compare'){
+      const data = await callAPI({ iso: `${intent.a},${intent.b}` }).catch(async ()=>{
+        // fall back to q= resolution for names not matching ISO codes directly
+        return await callAPI({ iso: `${intent.a},${intent.b}` });
+      });
+      if(data.meta.mode === 'empty'){ html = renderEmpty(data.meta); }
+      else{
+        html = `<div class="compare-verdict">⚖️ ${esc(data.comparison?.verdict||'')}</div>` +
+          data.countries.map((c,i)=>renderStoryCard(c, `evid-${++msgCount}`)).join('<div style="height:8px"></div>');
+        html += renderSourcesMini(data.meta.sources);
+      }
+      tag = `comparison · ${Date.now()-t0}ms`;
+    }
+
+    else if(intent.type === 'topN'){
+      const data = await callAPI({ top: intent.n });
+      if(data.meta.mode === 'empty'){ html = renderEmpty(data.meta); }
+      else{ html = renderRankList(data.countries); html += renderSourcesMini(data.meta.sources); }
+      tag = `top ${intent.n} · ${Date.now()-t0}ms`;
+    }
+
+    else if(intent.type === 'region'){
+      const data = await callAPI({ region: intent.region, top: 10 });
+      if(data.meta.mode === 'empty' || !data.countries?.length){ html = renderEmpty(data.meta); }
+      else{ html = renderRankList(data.countries.slice(0,10)); html += renderSourcesMini(data.meta.sources); }
+      tag = `region: ${intent.region} · ${Date.now()-t0}ms`;
+    }
+
+    else if(intent.type === 'threshold'){
+      const data = await callAPI({ threshold: intent.value, top: 15 });
+      if(data.meta.mode === 'empty' || !data.countries?.length){ html = renderEmpty(data.meta); }
+      else{ html = renderRankList(Array.isArray(data.countries)?data.countries:[data.top_story]); html += renderSourcesMini(data.meta.sources); }
+      tag = `score ≥ ${intent.value} · ${Date.now()-t0}ms`;
+    }
+
+    else if(intent.type === 'trend'){
+      const data = await callAPI({ top: 20 });
+      const filtered = (data.countries||[]).filter(c => c.trend?.direction === intent.direction);
+      if(!filtered.length){ html = renderEmpty({message:`No countries currently show a live ${intent.direction} trend.`}); }
+      else{ html = `<div style="font-family:var(--fm);font-size:10px;color:var(--tm);margin-bottom:6px">${filtered.length} countries ${intent.direction}</div>` + renderRankList(filtered); }
+      tag = `${intent.direction} · ${Date.now()-t0}ms`;
+    }
+
+    else if(intent.type === 'anomalies'){
+      const data = await callAPI({ top: 30 });
+      const filtered = (data.countries||[]).filter(c => c.anomaly?.detected);
+      if(!filtered.length){ html = renderEmpty({message:'No statistically significant anomalies detected right now.'}); }
+      else{ html = renderRankList(filtered); }
+      tag = `anomalies · ${Date.now()-t0}ms`;
+    }
+
+    else { // search — single country
+      const data = await callAPI({ q: intent.query });
+      if(data.meta.mode === 'empty'){ html = renderEmpty(data.meta); }
+      else{
+        html = renderStoryCard(data.top_story, `evid-${++msgCount}`);
+        html += renderSourcesMini(data.meta.sources);
+      }
+      tag = `${esc(intent.query)} · ${Date.now()-t0}ms`;
+    }
+
+    typingRow.remove();
+    addBotHTML(html, tag);
+
+  }catch(err){
+    typingRow.remove();
+    addBotHTML(renderErrorMsg(err.message || 'Something went wrong reaching the live feed.'), 'error');
   }
 }
 
-// ─── TOOLBAR ACTIONS ─────────────────────────────────────────────────────────
-
-document.getElementById("clearBtn").addEventListener("click", () => {
-  msgsEl.innerHTML = '';
-  // Restore welcome
-  const w = document.createElement("div");
-  w.className = "welcome";
-  w.id = "welcome";
-  w.innerHTML = '<div class="welcome-mark">&#127758;</div>'
-    + '<h2>Ask CRYS anything about crisis.</h2>'
-    + '<p>Type a country, a question, or a comparison.<br><em>CRYS does not guess. The data shows.</em></p>'
-    + '<div class="w-examples">'
-    + '<div class="w-ex" data-q="Somalia">&#127466;&#127481; Somalia</div>'
-    + '<div class="w-ex" data-q="Yemen">&#127486;&#127466; Yemen</div>'
-    + '<div class="w-ex" data-q="compare Sudan and Yemen">&#128202; Compare Sudan vs Yemen</div>'
-    + '<div class="w-ex" data-q="top 5 crises">&#128293; Top 5 crises</div>'
-    + '<div class="w-ex" data-q="worst food crisis">&#127834; Worst food crisis</div>'
-    + '</div>';
-  msgsEl.appendChild(w);
-  w.querySelectorAll("[data-q]").forEach(el => el.addEventListener("click", () => submit(el.getAttribute("data-q"))));
-  try { localStorage.removeItem(STORE_KEY); } catch {}
-  try { history.replaceState(null, "", location.pathname); } catch {}
-  flash("&#10003; Cleared");
-});
-
-document.getElementById("shareBtn").addEventListener("click", () => {
-  const url = location.href.split("#")[0] + "#" + encodeURIComponent(inpEl.value || "Somalia");
-  navigator.clipboard.writeText(url).then(() => flash("&#128279; Copied")).catch(() => flash("Copy failed"));
-});
-
-document.getElementById("sourcesBtn").addEventListener("click", () => {
-  submit("sources");
-});
-
-document.getElementById("helpBtn").addEventListener("click", () => {
-  hideWelcome();
-  renderMsg(respondHelp(), false, "CRYS &middot; help");
-});
-
-// Brand click = clear
-document.getElementById("brand").addEventListener("click", () => {
-  document.getElementById("clearBtn").click();
-});
-
-// ─── INPUT WIRING ─────────────────────────────────────────────────────────────
-document.getElementById("sendBtn").addEventListener("click", () => submit(inpEl.value));
-inpEl.addEventListener("keypress", e => { if (e.key === "Enter") submit(inpEl.value); });
-document.querySelectorAll(".chip").forEach(el => el.addEventListener("click", () => submit(el.getAttribute("data-q"))));
-document.querySelectorAll(".w-ex").forEach(el => el.addEventListener("click", () => submit(el.getAttribute("data-q"))));
-
-// ─── INTERCEPT SPECIAL QUERIES ────────────────────────────────────────────────
-// "help" and "sources" short-circuit the API
-const _originalRespond = respond;
-async function respondWithSpecials(raw) {
-  const l = raw.trim().toLowerCase();
-  if (l === "help" || l === "?" || l === "what can you do") return respondHelp();
-  if (l === "sources" || l === "data sources" || l === "apis") return respondSources(null);
-  return _originalRespond(raw);
+function sendMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  ask(text);
 }
 
-// Patch submit to use the extended respond
-async function submit(raw) {
-  const q = raw.trim();
-  if (!q) return;
-  inpEl.value = "";
-  inpEl.focus();
-  renderMsg(q, true, "you");
-  showTyping();
-  const t0 = Date.now();
-  try {
-    const html = await respondWithSpecials(q);
-    hideTyping();
-    renderMsg(html, false, "CRYS &middot; " + (Date.now()-t0) + "ms");
-    try { history.replaceState(null, "", "#" + encodeURIComponent(q)); } catch {}
-  } catch (err) {
-    console.error(err);
-    hideTyping();
-    renderMsg(
-      '<span style="color:var(--red)">&#10060; ' + esc(err.message) + '</span>'
-      + '<div style="font-size:.72rem;color:var(--t3);margin-top:.28rem">'
-      + 'Try: <em>"Somalia"</em> &middot; <em>"compare Sudan and Yemen"</em> &middot; <em>"top 5"</em> &middot; <em>"Africa ranked"</em> &middot; type <em>"help"</em>'
-      + '</div>',
-      false, "error"
-    );
-  }
-}
-
-// ─── BOOT ─────────────────────────────────────────────────────────────────────
-loadHistory();
-
-// If URL has a hash query, run it on load
-try {
-  const hash = decodeURIComponent(location.hash.slice(1));
-  if (hash) { setTimeout(() => submit(hash), 100); }
-} catch {}
+// ── Boot ──
+clearChat();
 </script>
 </body>
 </html>
