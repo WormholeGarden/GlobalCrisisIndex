@@ -667,14 +667,24 @@ fetchBreakingNews();
       </div>
       <div id="crysChat" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;"></div>
       <div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
-        <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap;">
-          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
+<div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap;align-items:center;">
           <button class="crys-chip" onclick="crysSubmit('top 5')">🔥 Top 5</button>
           <button class="crys-chip" onclick="crysSubmit('what is escalating')">📈 Escalating</button>
+          <button class="crys-chip" onclick="crysSubmit('anomalies')">🚨 Anomalies</button>
           <button class="crys-chip" onclick="crysSubmit('compare Sudan and Yemen')">⚖️ Compare</button>
+          <button class="crys-chip" id="crysMoreBtn" onclick="crysToggleMore()" style="margin-left:auto;background:rgba(191,127,255,.06);border-color:rgba(191,127,255,.18);color:var(--purple);">⋯ More</button>
+        </div>
+        <div id="crysMoreRow" style="display:none;gap:5px;margin-bottom:5px;flex-wrap:wrap;padding-top:4px;border-top:1px dashed var(--b1);">
+          <button class="crys-chip" onclick="crysSubmit('africa')">🌍 Africa</button>
+          <button class="crys-chip" onclick="crysSubmit('middle east')">🌐 Middle East</button>
+          <button class="crys-chip" onclick="crysSubmit('asia')">🗺️ Asia</button>
+          <button class="crys-chip" onclick="crysSubmit('above 70')">📊 Score &gt;70</button>
+          <button class="crys-chip" onclick="crysSubmit('top 10')">🔟 Top 10</button>
+          <button class="crys-chip" onclick="crysSubmit('what is improving')">📉 Improving</button>
         </div>
         <div style="display:flex;gap:5px;">
-          <input id="crysInp" type="text" placeholder="Somalia · top 5 · compare Sudan vs Yemen…"
+          <input id="crysInp" type="text" placeholder="Somalia · top 5 · above 70 · compare Sudan vs Yemen…"
             style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:99px;padding:5px 11px;font-size:10px;color:var(--tp);font-family:var(--fb);outline:none;transition:border-color .15s;"
             onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--b2)'"
             onkeypress="if(event.key==='Enter')crysSubmit(this.value)">
@@ -683,7 +693,16 @@ fetchBreakingNews();
         </div>
       </div>
     </div>
-    <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
+    <script>
+      window.crysToggleMore = function(){
+        const row = document.getElementById('crysMoreRow');
+        const btn = document.getElementById('crysMoreBtn');
+        const open = row.style.display !== 'none';
+        row.style.display = open ? 'none' : 'flex';
+        btn.textContent = open ? '⋯ More' : '✕ Less';
+        btn.style.color = open ? 'var(--purple)' : 'var(--tm)';
+      };
+    </script>    <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
     <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Rankings <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
   </aside>
 
@@ -4323,48 +4342,186 @@ function updateDynamicTitle(){
 }
 
 // ============================================================================
-// CRYS CHAT
+// CRYS CHAT — v2, full top-story.js v6.0 parity
+// Same DOM hooks as before (#crysChat, #crysInp, crysSubmit, crysClear,
+// .crys-chip) so the existing sidebar markup and quick-chip buttons keep
+// working untouched. Everything downstream is upgraded to speak the richer
+// live-evidence contract: evidence ledger, anomaly detection, regions,
+// thresholds, source-health footers, and an honest empty state instead of
+// a thrown error when nothing in scope has live evidence.
 // ============================================================================
 (function(){
   const CRYS_API="https://www.globalcrisisindex.com/api/top-story";
+  const REGIONS=["africa","asia","europe","middleeast","middle east","americas","oceania","latin america"];
   const _CC=new Map();
+
   async function crysApi(params){
     const key=JSON.stringify(params);const hit=_CC.get(key);
     if(hit&&Date.now()-hit.t<300000)return hit.d;
     const url=new URL(CRYS_API);
     for(const[k,v]of Object.entries(params))if(v!=null)url.searchParams.set(k,String(v));
-    const r=await fetch(url.toString());if(!r.ok)throw new Error("API "+r.status);
-    const d=await r.json();_CC.set(key,{t:Date.now(),d});return d;
+    const r=await fetch(url.toString());
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||("API "+r.status));
+    _CC.set(key,{t:Date.now(),d});return d;
   }
+
   const crysEsc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  function crysScoreColor(s){return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";}
-  function crysSev(s){const cls={CATASTROPHIC:"#ff6b6b",CRITICAL:"#ffa94d",HIGH:"#ffe066",ELEVATED:"#69db7c",MODERATE:"#74c0fc"}[s]||"#74c0fc";return`<span style="font-size:6px;font-family:var(--fm);background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;">${s}</span>`;}
+  function crysScoreColor(s){return s>=85?"#ff375f":s>=75?"#ff5f7a":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff";}
+  function crysDimColor(v){return v>=75?"#ff375f":v>=55?"#ff8c42":v>=35?"#ffb020":"#3ec5ff";}
+  function crysSev(s){const cls={CATASTROPHIC:"#ff375f",CRITICAL:"#ff5f7a",HIGH:"#ff8c42",ELEVATED:"#ffb020",MODERATE:"#3ec5ff"}[s]||"#3ec5ff";return`<span style="font-size:6px;font-family:var(--fm);font-weight:800;background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;">${s}</span>`;}
+
+  // ── Source-health footer (which live feeds actually returned data this cycle) ──
+  function crysSourcesMini(sources){
+    if(!sources)return'';
+    const flat={USGS:sources.usgs?.live,EMSC:sources.emsc?.live,NASA:sources.nasa?.live,GDACS:sources.gdacs?.live,
+      IFRC:sources.ifrc?.live,Heat:sources.heat?.live,Hazards:sources.hazards?.live,AQ:sources.aq?.live,
+      NOAA:sources.noaa?.live,'disease.sh':sources.disease?.live,WB:sources.wb?.population,UNHCR:sources.unhcr?.live};
+    const tags=Object.entries(flat).map(([l,live])=>
+      `<span style="font-family:var(--fm);font-size:5.5px;padding:1px 5px;border-radius:99px;display:inline-flex;align-items:center;gap:3px;margin:1px 2px 0 0;${live?'background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.16);color:var(--green)':'background:rgba(255,55,95,.04);border:1px solid rgba(255,55,95,.12);color:#ff375f;opacity:.6'}">${l}</span>`
+    ).join('');
+    return `<div style="margin-top:6px;">${tags}</div>`;
+  }
+
+  // ── Evidence Ledger, matches score_audit.adjustments from top-story.js ──
+  function crysEvidenceLedger(auditObj,uid){
+    const adj=auditObj?.adjustments||[];
+    const rows=adj.length?adj.map(a=>
+      `<div style="display:flex;gap:5px;align-items:flex-start;background:rgba(255,255,255,.02);border-radius:4px;padding:4px 6px;margin-bottom:3px;">
+        <span style="font-family:var(--fm);font-size:5.5px;font-weight:700;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);border-radius:3px;padding:1px 4px;white-space:nowrap;flex-shrink:0;">${crysEsc(a.source)}</span>
+        <span style="flex:1;font-size:7.5px;color:var(--ts);line-height:1.4;">${crysEsc(a.reason)}</span>
+        <span style="font-family:var(--fm);font-size:7px;font-weight:700;color:#ff375f;flex-shrink:0;">+${a.delta}</span>
+      </div>`
+    ).join(''):`<div style="font-size:7px;color:var(--td);padding:3px 6px;">No live adjustments this cycle — structural baseline only.</div>`;
+    return `
+      <div style="font-family:var(--fm);font-size:7px;color:var(--cyan);cursor:pointer;margin:5px 0 3px;user-select:none;" onclick="const l=document.getElementById('${uid}');const open=l.style.display!=='none';l.style.display=open?'none':'block';this.textContent=(open?'▸':'▾')+' Evidence Ledger (${adj.length})';">▸ Evidence Ledger (${adj.length})</div>
+      <div id="${uid}" style="display:none;">${rows}</div>`;
+  }
+
+  // ── Recommendation tier box ──
+  function crysRecBox(rec){
+    if(!rec)return'';
+    const cols={IMMEDIATE:"#ff375f",URGENT:"#ff8c42",HIGH:"#ffb020",MONITOR:"#00e5a0",WATCH:"#00e5a0"};
+    const c=cols[rec.tier]||"#3ec5ff";
+    return `<div style="margin-top:5px;background:${c}12;border:1px solid ${c}30;border-radius:5px;padding:5px 7px;font-family:var(--fm);font-size:7px;color:${c};line-height:1.5;"><strong style="letter-spacing:.04em;">${crysEsc(rec.tier)}:</strong> ${crysEsc(rec.text)}</div>`;
+  }
+
+  // ── Full country card, upgraded with evidence + anomaly + dims + recommendation ──
+  let crysUidCounter=0;
   function crysCountryCard(s){
     const col=crysScoreColor(s.score);
-    let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:16px;">${s.flag}</span><div style="flex:1;"><div style="font-size:11px;font-weight:800;">${crysEsc(s.name)}</div><div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries}</div></div><div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div></div>`;
-    if(s.trend){const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";const tcol=dir==="escalating"?"#ff6b6b":dir==="improving"?"#69db7c":"var(--tm)";out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d}</div>`;}
+    const uid='crysEvid'+(++crysUidCounter);
+    let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:16px;">${s.flag}</span><div style="flex:1;"><div style="font-size:11px;font-weight:800;">${crysEsc(s.name)}</div><div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries} · ${s.live_evidence_count??0} live source${(s.live_evidence_count??0)===1?'':'s'}</div></div><div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div></div>`;
+
+    if(s.trend){const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";const tcol=dir==="escalating"?"#ff375f":dir==="improving"?"#00e5a0":"var(--tm)";out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d} · forecast ${s.trend.forecast_7d}/100</div>`;}
+
+    if(s.anomaly?.detected){out+=`<div style="margin-top:4px;background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.18);border-radius:5px;padding:4px 7px;font-family:var(--fm);font-size:7px;color:var(--ts);line-height:1.5;">🚨 <strong style="color:#ff375f;">${crysEsc(s.anomaly.severity)} anomaly</strong> — ${crysEsc(s.anomaly.note)}</div>`;}
+
+    if(s.crisis_types?.length){out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">${s.crisis_types.slice(0,4).map(t=>`<span style="font-family:var(--fm);font-size:6.5px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:3px;padding:2px 5px;color:var(--ts);">${t.icon} ${crysEsc(t.label)}</span>`).join('')}</div>`;}
+
+    if(s.dimensions){const topDims=Object.entries(s.dimensions).sort((a,b)=>b[1].value-a[1].value).slice(0,3);
+      out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${topDims.map(([k,d])=>`<span style="font-family:var(--fm);font-size:6.5px;border:1px solid ${crysDimColor(d.value)}44;color:${crysDimColor(d.value)};border-radius:3px;padding:2px 5px;">${crysEsc(d.label)} ${d.value}</span>`).join('')}</div>`;}
+
+    out+=crysEvidenceLedger(s.score_audit,uid);
+    out+=crysRecBox(s.recommendation);
     return out;
   }
+
   function crysRankList(countries,limit){
     return'<div style="display:flex;flex-direction:column;gap:3px;">'+countries.slice(0,limit||20).map((c,i)=>{
       const col=crysScoreColor(c.score);
-      const dir=c.trend?.direction;const arr=dir==="escalating"?'<span style="color:#ff6b6b">↑</span>':dir==="improving"?'<span style="color:#69db7c">↓</span>':'<span style="color:var(--tm)">→</span>';
+      const dir=c.trend?.direction;const arr=dir==="escalating"?'<span style="color:#ff375f">↑</span>':dir==="improving"?'<span style="color:#00e5a0">↓</span>':'<span style="color:var(--tm)">→</span>';
       return`<div style="display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.015);cursor:pointer;" onclick="selCountry('${c.iso||c.name}')"><span style="font-family:var(--fm);font-size:7px;color:var(--tm);width:16px;">#${c.rank||i+1}</span><span style="font-size:10px;">${c.flag}</span><span style="flex:1;font-size:9px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${crysEsc(c.name)}</span><div style="width:36px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${c.score}%;background:${col};border-radius:99px;"></div></div><span style="font-family:var(--fm);font-size:8px;font-weight:700;color:${col};width:20px;text-align:right;">${c.score}</span><span>${arr}</span></div>`;
     }).join('')+'</div>';
   }
-  async function crysRespond(raw){
-    const l=raw.toLowerCase().trim();
-    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i);
-    if(cmp){
-      const[dA,dB]=await Promise.all([crysApi({q:cmp[1].trim()}),crysApi({q:cmp[2].trim()})]);
-      const sA=dA.top_story,sB=dB.top_story;if(!sA||!sB)throw new Error("Could not find countries");
-      return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>${sA.flag}</span><div style="flex:1;">${crysEsc(sA.name)}: <strong style="color:${crysScoreColor(sA.score)}">${sA.score}</strong></div><span>vs</span><div style="flex:1;text-align:right;">${crysEsc(sB.name)}: <strong style="color:${crysScoreColor(sB.score)}">${sB.score}</strong></div><span>${sB.flag}</span></div>${crysSev(sA.severity)} vs ${crysSev(sB.severity)}`;
-    }
-    const topN=l.match(/top\s+(\d+)/i);
-    if(topN){const d=await crysApi({top:Math.min(20,parseInt(topN[1]))});const cs=d.countries||(d.top_story?[d.top_story]:[]);if(!cs.length)throw new Error("No data");return`<div style="font-size:8px;margin-bottom:4px;"><strong>Top ${topN[1]}</strong> by urgency</div>`+crysRankList(cs,parseInt(topN[1]));}
-    if(l.includes('escalat')||l.includes('worsening')){const d=await crysApi({top:20});const cs=(d.countries||[]).filter(c=>c.trend?.direction==='escalating');return`<div style="font-size:8px;margin-bottom:4px;"><strong>${cs.length}</strong> escalating</div>`+crysRankList(cs,10);}
-    const d=await crysApi({q:raw.trim()});if(!d.top_story)throw new Error(`No data for "${raw}"`);return crysCountryCard(d.top_story);
+
+  function crysEmpty(msg){
+    return `<div style="font-family:var(--fm);font-size:7.5px;color:var(--amber);background:rgba(255,176,32,.06);border:1px solid rgba(255,176,32,.18);border-radius:5px;padding:6px 8px;line-height:1.6;">🔍 ${crysEsc(msg||"No countries in this scope currently have live evidence from any tracked source.")} This isn't an error — CRYS never fabricates a placeholder story.</div>`;
   }
+
+  // ── Intent parser: comparisons, top-N, regions, thresholds, trends, anomalies, search ──
+  function crysParseIntent(raw){
+    const l=raw.toLowerCase().trim();
+
+    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i)||l.match(/(.+?)\s+vs\.?\s+(.+)/i);
+    if(cmp)return{type:'compare',a:cmp[1].trim(),b:cmp[2].trim()};
+
+    const topN=l.match(/(?:top|worst|highest)\s+(\d+)/i);
+    if(topN)return{type:'topN',n:Math.min(20,parseInt(topN[1],10))};
+
+    if(/escalat|worsen|deteriorat|getting worse/.test(l))return{type:'trend',direction:'escalating'};
+    if(/improv|easing|getting better|de-escalat/.test(l))return{type:'trend',direction:'improving'};
+    if(/anomal|unusual|spike/.test(l))return{type:'anomalies'};
+
+    for(const r of REGIONS){
+      if(l===r||l.includes(r)){
+        const canonical=r==='middle east'?'middleeast':r==='latin america'?'americas':r;
+        return{type:'region',region:canonical};
+      }
+    }
+
+    const thresh=l.match(/(?:above|over|>\s*)(\d+)/i);
+    if(thresh)return{type:'threshold',value:parseInt(thresh[1],10)};
+
+    return{type:'search',query:raw.trim()};
+  }
+
+  async function crysRespond(raw){
+    const intent=crysParseIntent(raw);
+
+    if(intent.type==='compare'){
+      const[dA,dB]=await Promise.all([crysApi({q:intent.a}),crysApi({q:intent.b})]);
+      if(dA.meta?.mode==='empty'||dB.meta?.mode==='empty')return crysEmpty(dA.meta?.message||dB.meta?.message);
+      const sA=dA.top_story,sB=dB.top_story;if(!sA||!sB)throw new Error("Could not find one or both countries");
+      let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>${sA.flag}</span><div style="flex:1;">${crysEsc(sA.name)}: <strong style="color:${crysScoreColor(sA.score)}">${sA.score}</strong></div><span>vs</span><div style="flex:1;text-align:right;">${crysEsc(sB.name)}: <strong style="color:${crysScoreColor(sB.score)}">${sB.score}</strong></div><span>${sB.flag}</span></div>${crysSev(sA.severity)} vs ${crysSev(sB.severity)}`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sA)}</div>`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sB)}</div>`;
+      out+=crysSourcesMini(dA.meta?.sources);
+      return out;
+    }
+
+    if(intent.type==='topN'){
+      const d=await crysApi({top:intent.n});
+      if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(!cs.length)return crysEmpty();
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>Top ${intent.n}</strong> by urgency</div>`+crysRankList(cs,intent.n)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='region'){
+      const d=await crysApi({region:intent.region,top:10});
+      if(d.meta?.mode==='empty'||!d.countries?.length)return crysEmpty(d.meta?.message||`No live evidence for the ${intent.region} region right now.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${crysEsc(intent.region)}</strong> region</div>`+crysRankList(d.countries,10)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='threshold'){
+      const d=await crysApi({threshold:intent.value,top:15});
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(d.meta?.mode==='empty'||!cs.length)return crysEmpty(`No countries currently score above ${intent.value} with live evidence.`);
+      return`<div style="font-size:8px;margin-bottom:4px;">Score ≥ <strong>${intent.value}</strong></div>`+crysRankList(cs,15)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='trend'){
+      const d=await crysApi({top:20});
+      const cs=(d.countries||[]).filter(c=>c.trend?.direction===intent.direction);
+      if(!cs.length)return crysEmpty(`No countries currently show a live ${intent.direction} trend.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${cs.length}</strong> ${intent.direction}</div>`+crysRankList(cs,10);
+    }
+
+    if(intent.type==='anomalies'){
+      const d=await crysApi({top:30});
+      const cs=(d.countries||[]).filter(c=>c.anomaly?.detected);
+      if(!cs.length)return crysEmpty("No statistically significant anomalies detected right now.");
+      return`<div style="font-size:8px;margin-bottom:4px;">🚨 <strong>${cs.length}</strong> anomal${cs.length===1?'y':'ies'} detected</div>`+crysRankList(cs,15);
+    }
+
+    // default: search
+    const d=await crysApi({q:intent.query});
+    if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+    if(!d.top_story)throw new Error(`No data for "${raw}"`);
+    return crysCountryCard(d.top_story)+crysSourcesMini(d.meta?.sources);
+  }
+
   function crysRenderMsg(html,isUser,meta){
     const chat=document.getElementById('crysChat');if(!chat)return;
     const div=document.createElement('div');
@@ -4375,22 +4532,25 @@ function updateDynamicTitle(){
     if(meta){const m=document.createElement('div');m.style.cssText='font-size:6px;color:var(--td);font-family:var(--fm);padding:0 3px;';m.textContent=meta;div.appendChild(m);}
     chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
   }
+
   function crysShowTyping(){
     const chat=document.getElementById('crysChat');if(!chat)return null;
     const div=document.createElement('div');div.id='crysTyping';div.style.cssText='align-self:flex-start;';
     div.innerHTML='<div style="padding:5px 9px;background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);border-radius:10px;display:flex;gap:4px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .15s infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .3s infinite;display:inline-block;"></span></div>';
     chat.appendChild(div);chat.scrollTop=chat.scrollHeight;return div;
   }
+
   if(!document.getElementById('crysStyles')){
     const st=document.createElement('style');st.id='crysStyles';
     st.textContent='.crys-chip{font-size:7px;font-family:var(--fm);background:rgba(255,255,255,.02);border:1px solid var(--b1);color:var(--ts);padding:2px 7px;border-radius:99px;cursor:pointer;transition:all .12s;white-space:nowrap;}.crys-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);}#crysChat{scrollbar-width:thin;}';
     document.head.appendChild(st);
   }
+
   window.crysSubmit=async function(raw){
     const q=(raw||'').trim();const inp=document.getElementById('crysInp');if(!q)return;if(inp)inp.value='';
     crysRenderMsg(q,true,'you');const tyDiv=crysShowTyping();const t0=Date.now();
     try{const html=await crysRespond(q);if(tyDiv)tyDiv.remove();crysRenderMsg(html,false,'CRYS · '+(Date.now()-t0)+'ms');}
-    catch(err){if(tyDiv)tyDiv.remove();crysRenderMsg(`<span style="color:#ff6b6b;">✕ ${crysEsc(err.message)}</span>`,false,'error');}
+    catch(err){if(tyDiv)tyDiv.remove();crysRenderMsg(`<span style="color:#ff375f;">✕ ${crysEsc(err.message)}</span>`,false,'error');}
   };
   window.crysClear=function(){const chat=document.getElementById('crysChat');if(chat)chat.innerHTML='';};
 })();
