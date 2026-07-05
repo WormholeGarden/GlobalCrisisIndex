@@ -2693,413 +2693,692 @@ function findClosestCountry(lng, lat) {
   
   return closest;
 }
-// ─── COMPUTE EVIDENCE SCORE (MATCHES API v7.0) ─────────────────────────────
+// ─── Replace the computeEvidenceScore function (around line 1950) with this ───
 function computeEvidenceScore(iso) {
-  const signals = {
-    quakeMag: 0,
-    quakePlace: null,
-    quakeCount: 0,
-    nasaEventCount: 0,
-    gdacsAlert: null,
-    ifrcCount: 0,
-    maxTempC: 0,
-    aq: null,
-    diseaseActive: 0,
-    wbInflation: null,
-    wbGdpGrowth: null,
-    wbUnemployment: null,
-    totalDisplaced: 0,
-    liveEvidenceCount: 0,
-  };
-  
   const name = NAMES[iso] || iso;
   const nameLower = name.toLowerCase();
-  
-  // ── USGS ──
-  const usgsQuakes = (apiResults.usgs_weekly?.features || []).filter(f => 
-    (f.properties?.place || "").toLowerCase().includes(nameLower)
-  );
-  if (usgsQuakes.length > 0) {
-    const top = usgsQuakes.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a);
-    if (top.properties?.mag >= 4.5) {
-      signals.quakeMag = top.properties.mag;
-      signals.quakePlace = top.properties.place?.split(",")[0]?.trim() || null;
-      signals.quakeCount = usgsQuakes.length;
-      signals.liveEvidenceCount++;
-    }
-  }
-  
-  // ── NASA EONET ──
-  const nasaEvents = (apiResults.nasa_eonet?.events || []).filter(ev => {
-    const coords = ev.geometry?.[0]?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (nasaEvents.length > 0) {
-    signals.nasaEventCount = nasaEvents.length;
-    signals.liveEvidenceCount++;
-  }
-  
-  // ── GDACS ──
-  const gdacsEvents = (apiResults.gdacs?.features || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (gdacsEvents.length > 0) {
-    const alert = gdacsEvents[0]?.properties?.alertlevel?.toLowerCase() || null;
-    if (alert === "red" || alert === "orange") {
-      signals.gdacsAlert = alert;
-      signals.liveEvidenceCount++;
-    }
-  }
-  
-  // ── IFRC ──
-  const ifrcEvents = (apiResults.ifrc_go?.results || []).filter(ev => 
-    (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso
-  );
-  if (ifrcEvents.length > 0) {
-    signals.ifrcCount = ifrcEvents.length;
-    signals.liveEvidenceCount++;
-  }
-  
-  // ── Heat Stress ──
-  const heat = (heatStressData || []).find(h => h.iso === iso);
-  if (heat && heat.temp >= 35) {
-    signals.maxTempC = heat.temp;
-    signals.liveEvidenceCount++;
-  }
-  
-  // ── Air Quality ──
-  const aqCities = {
-    'NGA': 'Lagos', 'IND': 'Delhi', 'CHN': 'Beijing', 'BGD': 'Dhaka', 'EGY': 'Cairo'
-  };
-  for (const [cityIso, cityName] of Object.entries(aqCities)) {
-    if (cityIso === iso && apiResults[`openmeteo_aq_${cityName.toLowerCase()}`]?.hourly?.pm2_5) {
-      const pm25 = apiResults[`openmeteo_aq_${cityName.toLowerCase()}`].hourly.pm2_5[0];
-      if (pm25 >= 35) {
-        signals.aq = { pm25, city: cityName };
-        signals.liveEvidenceCount++;
-        break;
-      }
-    }
-  }
-  
-  // ── disease.sh ──
-  const diseaseData = (apiResults.disease_sh || []).find(d => 
-    (d.country || "").toLowerCase() === nameLower
-  );
-  if (diseaseData && diseaseData.active > 1000) {
-    signals.diseaseActive = diseaseData.active;
-    signals.liveEvidenceCount++;
-  }
-  
-  // ── World Bank ──
-  const wbData = (apiResults.wb_inflation?.[1] || []).find(item => item.country?.id === iso);
-  if (wbData && wbData.value !== null && wbData.value > 5) {
-    signals.wbInflation = wbData.value;
-    signals.liveEvidenceCount++;
-  }
-  const wbGdp = (apiResults.wb_gdp_growth?.[1] || []).find(item => item.country?.id === iso);
-  if (wbGdp && wbGdp.value !== null && wbGdp.value < 0) {
-    signals.wbGdpGrowth = wbGdp.value;
-    signals.liveEvidenceCount++;
-  }
-  const wbUnemp = (apiResults.wb_unemployment?.[1] || []).find(item => item.country?.id === iso);
-  if (wbUnemp && wbUnemp.value !== null && wbUnemp.value > 10) {
-    signals.wbUnemployment = wbUnemp.value;
-    signals.liveEvidenceCount++;
-  }
-  
-  // ── UNHCR ──
-  const unhcrData = (apiResults.unhcr_pop?.items || []).find(item => item.coa_iso === iso);
-  if (unhcrData) {
-    const ref = unhcrData.refugees || 0;
-    const idps = unhcrData.idps || 0;
-    const asylum = unhcrData.asylum_seekers || 0;
-    signals.totalDisplaced = ref + idps + asylum;
-    if (signals.totalDisplaced > 0) signals.liveEvidenceCount++;
-  }
-  
-  // ── Build evidence score from signals ──
-  let totalPts = 0, totalWeight = 0;
   const ledger = [];
+  let totalPts = 0, totalWeight = 0;
   
-  function add(source, label, pts, weight) {
+  function add(source, label, rawValue, pts, weight) {
     if (pts <= 0) return;
     totalPts += pts * weight;
     totalWeight += weight;
-    ledger.push({ source, label, pts: +pts.toFixed(1), weight: +weight.toFixed(2) });
+    ledger.push({ 
+      source, 
+      label, 
+      rawValue: typeof rawValue === 'number' ? +rawValue.toFixed(1) : rawValue,
+      pts: +pts.toFixed(1), 
+      weight: +weight.toFixed(2) 
+    });
   }
   
-  if (signals.quakeMag >= 4.5) {
-    const w = Math.min(1, (signals.quakeMag - 4) / 4);
-    const pts = Math.min(12, Math.round((signals.quakeMag - 4) * 3 + 2));
-    add('USGS/EMSC', `M${signals.quakeMag.toFixed(1)} earthquake`, pts, w * 0.9);
-  }
-  if (signals.nasaEventCount > 0) {
-    add('NASA EONET', `${signals.nasaEventCount} natural events`, Math.min(8, signals.nasaEventCount * 2), 0.7);
-  }
-  if (signals.gdacsAlert) {
-    const pts = signals.gdacsAlert === 'red' ? 10 : 6;
-    add('GDACS', `${signals.gdacsAlert.toUpperCase()} alert`, pts, 0.85);
-  }
-  if (signals.maxTempC >= 35) {
-    const pts = Math.min(8, Math.round((signals.maxTempC - 30) / 2.5));
-    add('Open-Meteo', `${signals.maxTempC}°C heat`, pts, 0.85);
-  }
-  if (signals.aq) {
-    const pts = Math.min(5, Math.round((signals.aq.pm25 - 35) / 15 + 1));
-    add('Open-Meteo AQ', `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³`, pts, 0.7);
-  }
-  if (signals.diseaseActive > 1000) {
-    const pts = Math.min(8, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 4 + 2));
-    add('disease.sh', `${signals.diseaseActive.toLocaleString()} active COVID cases`, pts, 0.8);
-  }
-  if (signals.wbInflation && signals.wbInflation > 5) {
-    const pts = Math.min(6, Math.round(signals.wbInflation / 5));
-    add('World Bank', `Inflation ${signals.wbInflation.toFixed(1)}%`, pts, 0.75);
-  }
-  if (signals.wbGdpGrowth && signals.wbGdpGrowth < 0) {
-    const pts = Math.min(5, Math.round(Math.abs(signals.wbGdpGrowth) / 2));
-    add('World Bank', `GDP contraction ${signals.wbGdpGrowth.toFixed(1)}%`, pts, 0.75);
-  }
-  if (signals.totalDisplaced > 0) {
-    const m = signals.totalDisplaced / 1_000_000;
-    const pts = m >= 5 ? 12 : m >= 2 ? 9 : m >= 0.5 ? 6 : 3;
-    add('UNHCR', `${m.toFixed(1)}M displaced`, pts, 0.85);
+  const coverage = evidenceIndex.sourceCoverage[iso] || {};
+  
+  // ── 1. USGS Earthquakes ──
+  if (coverage.usgs) {
+    const mag = coverage.usgs.mag || 0;
+    if (mag >= 4.5) {
+      const w = Math.min(1, (mag - 4) / 4);
+      add('USGS', `M${mag.toFixed(1)} earthquake`, mag,
+          logScale(mag, 4.5, 8, 12), w * 0.9);
+    }
   }
   
+  // ── 2. NASA EONET ──
+  if (coverage.nasa) {
+    add('NASA', `Natural event: ${coverage.nasa.title?.substring(0, 30) || 'active'}`, 1,
+        6, 0.7);
+  }
+  
+  // ── 3. NASA Wildfires ──
+  if (coverage.wildfire) {
+    add('NASA', `Wildfire: ${coverage.wildfire.title?.substring(0, 30) || 'active'}`, 1,
+        7, 0.75);
+  }
+  
+  // ── 4. GDACS Alerts ──
+  if (coverage.gdacs) {
+    const severity = coverage.gdacs.alert || 'Orange';
+    const pts = severity === 'Red' ? 10 : severity === 'Orange' ? 6 : 3;
+    add('GDACS', `${severity} alert: ${coverage.gdacs.event?.substring(0, 30) || 'disaster'}`, 1,
+        pts, 0.85);
+  }
+  
+  // ── 5. GDACS Earthquakes ──
+  if (coverage.gdacs_eq) {
+    const mag = coverage.gdacs_eq.mag || 0;
+    if (mag >= 5) {
+      add('GDACS', `M${mag.toFixed(1)} earthquake`, mag,
+          logScale(mag, 5, 8, 8), 0.8);
+    }
+  }
+  
+  // ── 6. Extreme Heat (Open-Meteo) ──
+  if (coverage.heat) {
+    const temp = coverage.heat.temp || 0;
+    if (temp >= 38) {
+      add('OPENMETEO', `${temp}°C extreme heat`, temp,
+          logScale(temp, 38, 50, 8), 0.85);
+    }
+  }
+  
+  // ── 7. Flood Risk (Open-Meteo) (NEW) ──
+  if (coverage.flood_risk) {
+    const discharge = coverage.flood_risk.discharge || 0;
+    if (discharge > 100) {
+      add('OPENMETEO', `Flood risk: ${discharge}m³/s river discharge`, discharge,
+          logScale(discharge, 100, 1000, 6), 0.7);
+    }
+  }
+  
+  // ── 8. Marine Hazard (Open-Meteo) (NEW) ──
+  if (coverage.marine) {
+    const wave = coverage.marine.wave_height || 0;
+    if (wave > 3) {
+      add('OPENMETEO', `Marine hazard: ${wave}m wave height`, wave,
+          logScale(wave, 3, 10, 5), 0.7);
+    }
+  }
+  
+  // ── 9. COVID-19 (disease.sh) ──
+  if (coverage.covid) {
+    const active = coverage.covid.active || 0;
+    if (active > 1000) {
+      add('DISEASE.SH', `${active.toLocaleString()} active COVID cases`, active,
+          logScale(active, 1000, 500000, 8), 0.8);
+    }
+  }
+  
+  // ── 10. Population (World Bank) ──
+  if (coverage.population) {
+    const pop = coverage.population;
+    add('WORLDBANK', `Population ${(pop/1e6).toFixed(1)}M`, pop,
+        coverageScale(pop, 50000, 1450000000, 6), 0.95);
+  }
+  
+  // ── 11. Poverty (World Bank) ──
+  if (coverage.poverty !== undefined && coverage.poverty !== null) {
+    const pov = coverage.poverty;
+    if (pov > 5) {
+      add('WORLDBANK', `Poverty rate ${pov.toFixed(1)}%`, pov,
+          logScale(pov, 5, 60, 6), 0.85);
+    }
+  }
+  
+  // ── 12. GDP Growth (World Bank) (NEW) ──
+  if (coverage.gdp_growth !== undefined && coverage.gdp_growth !== null) {
+    const gdp = coverage.gdp_growth;
+    if (gdp < 0) {
+      add('WORLDBANK', `GDP growth ${gdp.toFixed(1)}% (negative)`, gdp,
+          logScale(Math.abs(gdp), 1, 10, 5), 0.75);
+    }
+  }
+  
+  // ── 13. Unemployment (World Bank) (NEW) ──
+  if (coverage.unemployment !== undefined && coverage.unemployment !== null) {
+    const unemp = coverage.unemployment;
+    if (unemp > 10) {
+      add('WORLDBANK', `Unemployment rate ${unemp.toFixed(1)}%`, unemp,
+          logScale(unemp, 10, 40, 5), 0.75);
+    }
+  }
+  
+  // ── 14. Inflation (World Bank) ──
+  if (coverage.inflation !== undefined && coverage.inflation !== null) {
+    const infl = coverage.inflation;
+    if (infl > 5) {
+      add('WORLDBANK', `Inflation rate ${infl.toFixed(1)}% (${coverage.inflation_year || 'latest'})`, infl,
+          logScale(infl, 5, 50, 6), 0.75);
+    }
+  }
+  
+  // ── 15. Refugees (UNHCR) ──
+  if (coverage.refugees) {
+    const ref = coverage.refugees;
+    if (ref > 1000) {
+      add('UNHCR', `${ref.toLocaleString()} refugees`, ref,
+          logScale(ref, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 16. Displacement (UNHCR) ──
+  if (coverage.displaced) {
+    const disp = coverage.displaced;
+    if (disp > 1000) {
+      add('UNHCR', `${disp.toLocaleString()} displaced`, disp,
+          logScale(disp, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 17. Asylum seekers (UNHCR) ──
+  if (coverage.asylum) {
+    const asym = coverage.asylum;
+    if (asym > 100) {
+      add('UNHCR', `${asym.toLocaleString()} asylum seekers`, asym,
+          logScale(asym, 100, 1000000, 6), 0.8);
+    }
+  }
+  
+  // ── 18. UNHCR Operations (NEW) ──
+  if (coverage.unhcr_op) {
+    add('UNHCR', `Active operation: ${coverage.unhcr_op.name}`, 1,
+        4, 0.7);
+  }
+  
+  // ── 19. NOAA monitoring ──
+  if (coverage.noaa && iso === 'USA') {
+    add('NOAA', `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations,
+        4, 0.7);
+  }
+
+  // ── 20. EMSC seismic ──
+  if (coverage.emsc) {
+    const mag = coverage.emsc.mag || 0;
+    if (mag >= 4.5) {
+      add('EMSC', `M${mag.toFixed(1)} earthquake (secondary network)`, mag,
+          logScale(mag, 4.5, 8, 8), 0.75);
+    }
+  }
+
+  // ── 21. IFRC GO ──
+  if (coverage.ifrc) {
+    add('IFRC', `${coverage.ifrc.dtype}: ${(coverage.ifrc.name || '').substring(0, 30)}`, 1,
+        6, 0.85);
+  }
+
+  // ── 22. Air quality (multi-city) ──
+  if (coverage.air_quality) {
+    const pm25 = coverage.air_quality.pm25 || 0;
+    const city = coverage.air_quality.city || 'monitored city';
+    if (pm25 >= 35) {
+      add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25,
+          logScale(pm25, 35, 300, 5), 0.7);
+    }
+  }
+
+  // ── 23. World Bank refugee population ──
+  if (coverage.refugees_wb) {
+    const ref = coverage.refugees_wb;
+    if (ref > 1000) {
+      add('WORLDBANK', `${ref.toLocaleString()} refugees (WB cross-check)`, ref,
+          logScale(ref, 1000, 5000000, 5), 0.75);
+    }
+  }
+  
+  // ── 24. OpenStreetMap Health Infrastructure (NEW) ──
+  if (coverage.hospitals) {
+    add('OSM', `${coverage.hospitals} hospitals in region`, coverage.hospitals,
+        coverageScale(coverage.hospitals, 1, 50, 4), 0.6);
+  }
+  
+  if (coverage.clinics) {
+    add('OSM', `${coverage.clinics} clinics in region`, coverage.clinics,
+        coverageScale(coverage.clinics, 1, 100, 3), 0.5);
+  }
+  
+  // ── 25. EM-DAT Disasters (NEW) ──
+  if (coverage.emdat) {
+    const deaths = coverage.emdat.deaths || 0;
+    if (deaths > 0) {
+      add('EM-DAT', `${coverage.emdat.disaster} (${coverage.emdat.year})`, deaths,
+          logScale(deaths, 10, 10000, 6), 0.7);
+    }
+  }
+  
+  // ── 26. Climate TRACE Emissions (NEW) ──
+  if (coverage.emissions) {
+    const emissions = coverage.emissions.total || 0;
+    if (emissions > 1000) {
+      add('CLIMATETRACE', `${(emissions/1000).toFixed(1)}kt CO₂e emissions (${coverage.emissions.sector})`, emissions,
+          logScale(emissions, 1000, 1000000, 5), 0.6);
+    }
+  }
+  // ── 27. Wind Speed (Open-Meteo) (NEW) ──
+  if (coverage.wind) {
+    const speed = coverage.wind.speed || 0;
+    if (speed > 30) {
+      add('OPENMETEO', `Wind speed ${speed} km/h (storm risk)`, speed,
+          logScale(speed, 30, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 28. Precipitation (Open-Meteo) (NEW) ──
+  if (coverage.precipitation) {
+    const total = coverage.precipitation.total || 0;
+    if (total > 10) {
+      add('OPENMETEO', `${total}mm precipitation (flood risk)`, total,
+          logScale(total, 10, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 29. UV Index (Open-Meteo) (NEW) ──
+  if (coverage.uv) {
+    const uv = coverage.uv.max || 0;
+    if (uv > 8) {
+      add('OPENMETEO', `UV Index ${uv} (extreme - health risk)`, uv,
+          logScale(uv, 8, 11, 3), 0.6);
+    }
+  }
+  
+  // ── 30. Historic Seismic Activity (USGS) (NEW) ──
+  if (coverage.historic_seismic && coverage.historic_seismic.length > 0) {
+    const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
+    if (maxMag > 6) {
+      add('USGS', `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag,
+          logScale(maxMag, 6, 8, 4), 0.6);
+    }
+  }
+  
+  // ── 31. Food Prices (World Bank) (NEW) ──
+  if (coverage.food_prices && coverage.food_prices.length > 0) {
+    const latest = coverage.food_prices[coverage.food_prices.length - 1];
+    if (latest && latest.value) {
+      add('WORLDBANK', `Food price index ${latest.value.toFixed(1)}`, latest.value,
+          coverageScale(latest.value, 80, 150, 5), 0.7);
+    }
+  }
+  
+  // ── 32. Water Stress (World Bank) (NEW) ──
+  if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
+    const stress = coverage.water_stress;
+    if (stress > 20) {
+      add('WORLDBANK', `Water stress ${stress.toFixed(1)}% of resources`, stress,
+          logScale(stress, 20, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 33. NOAA Alerts (NEW) ──
+  if (coverage.noaa_alerts) {
+    const alerts = coverage.noaa_alerts;
+    if (alerts > 0) {
+      add('NOAA', `${alerts} extreme weather alerts active`, alerts,
+          coverageScale(alerts, 1, 20, 3), 0.6);
+    }
+  }
+  
+  // ── 34. UNHCR Emergency (NEW) ──
+  if (coverage.unhcr_emergency) {
+    const level = coverage.unhcr_emergency.level || 'unknown';
+    const pts = level === 'critical' ? 5 : level === 'high' ? 3 : 1;
+    add('UNHCR', `Emergency: ${coverage.unhcr_emergency.name} (${level})`, 1,
+        pts, 0.7);
+  }
+
+  // ── 35. Cloud Cover (Open-Meteo) (NEW) ──
+  if (coverage.cloudcover) {
+    const avg = coverage.cloudcover.avg || 0;
+    if (avg > 70) {
+      add('OPENMETEO', `Cloud cover ${avg.toFixed(0)}% (weather disruption)`, avg,
+          coverageScale(avg, 70, 100, 3), 0.5);
+    }
+  }
+  
+  // ── 36. Lightning Potential (Open-Meteo) (NEW) ──
+  if (coverage.lightning) {
+    const max = coverage.lightning.max || 0;
+    if (max > 100) {
+      add('OPENMETEO', `Lightning potential ${max} J/kg (storm risk)`, max,
+          logScale(max, 100, 500, 4), 0.6);
+    }
+  }
+  
+  // ── 37. NOAA Storm Reports (NEW) ──
+  if (coverage.storm_reports) {
+    const reports = coverage.storm_reports;
+    if (reports > 0) {
+      add('NOAA', `${reports} severe storm alerts`, reports,
+          coverageScale(reports, 1, 50, 4), 0.6);
+    }
+  }
+  
+  // ── 38. UNHCR Statistics (NEW) ──
+  if (coverage.unhcr_stats) {
+    const refugees = coverage.unhcr_stats.refugees || 0;
+    if (refugees > 1000) {
+      add('UNHCR', `${refugees.toLocaleString()} refugees (${coverage.unhcr_stats.year})`, refugees,
+          logScale(refugees, 1000, 5000000, 7), 0.8);
+    }
+  }
+  
+  // ── 39. Trade as % of GDP (World Bank) (NEW) ──
+  if (coverage.trade_gdp !== undefined && coverage.trade_gdp !== null) {
+    const trade = coverage.trade_gdp;
+    if (trade > 60) {
+      add('WORLDBANK', `Trade ${trade.toFixed(1)}% of GDP`, trade,
+          coverageScale(trade, 60, 200, 4), 0.6);
+    }
+  }
+  // ── Weighted average → hard-capped 0–35 ──
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
-  const confidence = totalWeight > 0 ? Math.min(1, totalWeight / 5) : 0;
+  const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
+  const sourceCountFactor = Math.min(1, Math.sqrt(ledger.length / 2));
+  const confidence = Math.min(1, avgWeight * sourceCountFactor);
   
   return { 
     score: +evidenceScore.toFixed(1), 
     confidence: +confidence.toFixed(2), 
     ledger, 
     sourceCount: ledger.length,
-    signals,
   };
-}// ─── BUILD STORE WITH EVIDENCE (MATCHES API v7.0) ──────────────────────────
-function buildStore() {
-  const seed = Math.floor(Date.now() / 300000); // 5-minute seed interval
-  let newStore = {};
-  
-  for (let iso of Object.keys(BASE_SCORES)) {
-    const name = NAMES[iso] || iso;
-    const flag = FLAGS[iso] || '🌍';
-    const types = CTYPES[iso] || DEFAULT_T;
-    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-    const base = BASE_SCORES[iso] || 30;
-    
-    // ── Jitter from seed (matches API's lcg) ──
-    const jitter = Math.round(((seedHash(iso) - 0.5) * 4));
-    const prior = clamp(base + jitter, 5, 85);
-    
-    // ── Prior dimensions (matches API's buildPriorDims) ──
-    const dims = buildPriorDims(prior, types);
-    
-    // ── Compute evidence from ALL data sources ──
-    const evidence = computeEvidenceScore(iso);
-    
-    // ── Apply live adjustments (matches API's applyLiveAdjustments) ──
-    const adjusted = applyLiveAdjustments(dims, iso, evidence);
-    
-    // ── Final score ──
-    let score = clamp(composite(adjusted.dims));
-    
-    // ── Spillover will be applied after all countries are built ──
-    newStore[iso] = {
-      name, flag, types, needs,
-      dims: adjusted.dims,
-      score: score,
-      priorScore: prior,
-      liveBoost: score - prior,
-      evidenceLedger: adjusted.audit || [],
-      evidenceConfidence: evidence.confidence || 0,
-      evidenceScore: evidence.score || 0,
-      evidenceCount: evidence.sourceCount || 0,
-      spillover: 0,
-      signals: evidence.signals || {},
-      events: Math.max(4, Math.min(60, Math.round(score * 0.30 + types.length * 1.5 + (evidence.sourceCount || 0) * 3))),
-      evidenceDetails: {
-        fatalities: 0,
-        displaced: 0,
-        disease_cases: 0,
-      }
-    };
-  }
-  
-  // ── Spillover from neighbours (matches API) ──
-  const spill = spilloverScore(newStore);
-  for (let iso in newStore) {
-    newStore[iso].spillover = spill[iso] || 0;
-    newStore[iso].score = clamp(newStore[iso].score + newStore[iso].spillover);
-  }
-  
-  store = newStore;
-  ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-  
-  // ── Initialize history ──
-  if (!historyInitialized) {
-    for (let iso in store) {
-      history[iso] = seedHistory(iso, store[iso].score);
-    }
-    historyInitialized = true;
-  } else {
-    for (let iso in store) {
-      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
-      history[iso].push({ t: Date.now(), s: store[iso].score });
-      if (history[iso].length > 60) history[iso].shift();
-    }
-  }
-  
-  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
-  return { store, ranked };
 }
 
-// ─── HELPERS THAT MATCH API v7.0 ────────────────────────────────────────────
-
-function clamp(v, lo = 1, hi = 99) {
-  return Math.min(hi, Math.max(lo, Math.round(v)));
-}
-
-function seedHash(iso) {
-  let h = 0;
-  for (let i = 0; i < iso.length; i++) {
-    h = ((h << 5) - h) + iso.charCodeAt(i);
-    h = h & h;
-  }
-  return (Math.imul(1664525, h >>> 0) + 1013904223) >>> 0 / 0x100000000;
-}
-
+// ─── PRIOR DIMS BUILDER (matches API) ──────────────────────────────────────
 function buildPriorDims(base, types) {
   const has = t => types.includes(t);
-  const cl = v => clamp(v, 5, 99);
+  const cl = v => Math.min(99, Math.max(5, Math.round(v)));
   return {
     conflict:     cl(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
     displacement: cl(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food:         cl(base * ((has("FN")||has("DR"))             ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health:       cl(base * ((has("EP")||has("FN"))             ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
+    food:         cl(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
+    health:       cl(base * ((has("EP")||has("FN")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
     economic:     cl(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("ECO")) ? 0.85 : 0.42) + 10),
-    climate:      cl(base * ((has("HEAT")||has("DR"))           ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access:       cl(base * ((has("CW")||has("CE"))             ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
+    climate:      cl(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
+    access:       cl(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
     political:    cl(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
   };
 }
 
+// ─── COMPOSITE SCORING (matches API) ──────────────────────────────────────
 function composite(dims) {
   return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
 }
 
-function applyLiveAdjustments(priorDims, iso, evidence) {
-  const dims = { ...priorDims };
+// ─── EXTRACT LIVE SIGNALS (matches API's extractSignals) ──────────────────
+function extractLiveSignals(iso) {
+  const name = (NAMES[iso] || iso).toLowerCase();
+  let liveEvidenceCount = 0;
+  const evidenceSources = [];
+  const signals = {};
+
+  // ── USGS ──
+  const quakes = (apiResults.usgs_weekly?.features || []).filter(f => 
+    (f.properties?.place || "").toLowerCase().includes(name)
+  );
+  const topQuake = quakes.length ? quakes.reduce((a,b) => (b.properties?.mag||0) > (a.properties?.mag||0) ? b : a) : null;
+  if (topQuake?.properties?.mag >= 4.5) {
+    liveEvidenceCount++;
+    evidenceSources.push("USGS");
+    signals.quakeMag = topQuake.properties.mag;
+    signals.quakePlace = topQuake.properties.place?.split(",")[0]?.trim() || null;
+  }
+
+  // ── EMSC ──
+  const emscQuakes = (apiResults.emsc_seismic?.features || []).filter(f => {
+    const coords = f.geometry?.coordinates;
+    if (!coords) return false;
+    const closest = findClosestCountry(coords[0], coords[1]);
+    return closest === iso;
+  });
+  if (emscQuakes.length > 0 && (emscQuakes[0]?.properties?.mag || 0) >= 4.5) {
+    liveEvidenceCount++;
+    evidenceSources.push("EMSC");
+    signals.emscMag = emscQuakes[0].properties.mag;
+  }
+
+  // ── NASA EONET ──
+  const nasaEvents = (apiResults.nasa_eonet?.events || []).filter(ev => {
+    const coords = ev.geometry?.[0]?.coordinates;
+    return coords && findClosestCountry(coords[0], coords[1]) === iso;
+  });
+  if (nasaEvents.length > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("NASA");
+    signals.nasaEventCount = nasaEvents.length;
+  }
+
+  // ── GDACS ──
+  const gdacsEvents = (apiResults.gdacs?.features || []).filter(f => {
+    const coords = f.geometry?.coordinates;
+    return coords && findClosestCountry(coords[0], coords[1]) === iso;
+  });
+  if (gdacsEvents.length > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("GDACS");
+    signals.gdacsAlert = gdacsEvents[0]?.properties?.alertlevel?.toLowerCase() || null;
+  }
+
+  // ── IFRC ──
+  const ifrcEvents = (apiResults.ifrc_go?.results || []).filter(ev => 
+    (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso
+  );
+  if (ifrcEvents.length > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("IFRC");
+    signals.ifrcCount = ifrcEvents.length;
+  }
+
+  // ── HEAT (from per-country loop) ──
+  const heatData = (window.heatStressData || []).find(h => h.iso === iso);
+  if (heatData && heatData.temp >= 35) {
+    liveEvidenceCount++;
+    evidenceSources.push("Open-Meteo Heat");
+    signals.maxTempC = heatData.temp;
+  }
+
+  // ── AIR QUALITY ──
+  const aqData = (apiResults.openmeteo_aq_loop || {})[iso];
+  if (aqData && aqData.pm25 >= 35) {
+    liveEvidenceCount++;
+    evidenceSources.push("Open-Meteo AQ");
+    signals.aq = aqData;
+  }
+
+  // ── disease.sh ──
+  const diseaseRow = (apiResults.disease_sh || []).find(d => 
+    (d.country || "").toLowerCase().includes(name) || name.includes((d.country || "").toLowerCase())
+  );
+  if (diseaseRow && diseaseRow.active > 1000) {
+    liveEvidenceCount++;
+    evidenceSources.push("disease.sh");
+    signals.diseaseActive = diseaseRow.active;
+  }
+
+  // ── World Bank ──
+  const wbData = apiResults.wb_inflation?.[1]?.find(i => i.country?.id === iso);
+  if (wbData && wbData.value > 5) {
+    liveEvidenceCount++;
+    evidenceSources.push("World Bank");
+    signals.wbInflation = wbData.value;
+  }
+
+  // ── UNHCR ──
+  const unhcrData = (apiResults.unhcr_pop?.items || []).find(i => i.coa_iso === iso);
+  if (unhcrData && (unhcrData.refugees || 0) > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("UNHCR");
+    signals.totalDisplaced = (unhcrData.refugees || 0) + (unhcrData.idps || 0);
+    signals.refugees = unhcrData.refugees || 0;
+    signals.idps = unhcrData.idps || 0;
+  }
+
+  signals.liveEvidenceCount = liveEvidenceCount;
+  signals.evidenceSources = evidenceSources;
+  return signals;
+}
+
+// ─── APPLY LIVE ADJUSTMENTS (matches API's applyLiveAdjustments) ──────────
+function applyLiveAdjustments(dims, signals) {
+  const result = { ...dims };
   const audit = [];
-  const signals = evidence.signals || {};
-  
-  // ── USGS/EMSC Earthquake ──
-  if (signals.quakeMag && signals.quakeMag >= 4.5) {
+
+  if (signals.quakeMag >= 4.5) {
     const boost = Math.min(25, Math.round((signals.quakeMag - 4.0) * 5));
-    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    result.displacement = Math.min(99, result.displacement + Math.ceil(boost * 0.6));
+    result.health = Math.min(99, result.health + Math.floor(boost * 0.4));
     audit.push({ source: "USGS/EMSC", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake` });
   }
-  
-  // ── NASA EONET ──
-  if (signals.nasaEventCount && signals.nasaEventCount > 0) {
+
+  if (signals.nasaEventCount > 0) {
     const boost = Math.min(15, signals.nasaEventCount * 5);
-    dims.climate = clamp(dims.climate + boost);
+    result.climate = Math.min(99, result.climate + boost);
     audit.push({ source: "NASA EONET", field: "climate", delta: boost, reason: `${signals.nasaEventCount} active NASA events` });
   }
-  
-  // ── GDACS ──
+
   if (signals.gdacsAlert) {
-    const gdacsBoost = signals.gdacsAlert === "red" ? 15 : signals.gdacsAlert === "orange" ? 8 : 3;
-    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.5));
-    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.5));
-    audit.push({ source: "GDACS", field: "displacement+health", delta: gdacsBoost, reason: `${signals.gdacsAlert.toUpperCase()} alert active` });
+    const boost = signals.gdacsAlert === "red" ? 15 : signals.gdacsAlert === "orange" ? 8 : 3;
+    result.displacement = Math.min(99, result.displacement + Math.ceil(boost * 0.5));
+    result.health = Math.min(99, result.health + Math.floor(boost * 0.5));
+    audit.push({ source: "GDACS", field: "displacement+health", delta: boost, reason: `${signals.gdacsAlert.toUpperCase()} alert active` });
   }
-  
-  // ── Heat Stress ──
-  if (signals.maxTempC && signals.maxTempC >= 35) {
+
+  if (signals.ifrcCount > 0) {
+    const boost = Math.min(12, signals.ifrcCount * 6);
+    result.access = Math.min(99, result.access + boost);
+    audit.push({ source: "IFRC GO", field: "access", delta: boost, reason: `${signals.ifrcCount} active IFRC operations` });
+  }
+
+  if (signals.maxTempC >= 35) {
     const boost = Math.min(20, Math.round((signals.maxTempC - 30) * 1.5));
-    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    result.climate = Math.min(99, result.climate + Math.ceil(boost * 0.6));
+    result.health = Math.min(99, result.health + Math.floor(boost * 0.4));
     audit.push({ source: "Open-Meteo", field: "climate+health", delta: boost, reason: `${signals.maxTempC}°C heat` });
   }
-  
-  // ── Air Quality ──
+
   if (signals.aq && signals.aq.pm25 >= 35) {
     const boost = Math.min(10, Math.round((signals.aq.pm25 - 35) / 10));
     if (boost > 0) {
-      dims.health = clamp(dims.health + boost);
-      audit.push({ source: "Open-Meteo AQ", field: "health", delta: boost, reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³` });
+      result.health = Math.min(99, result.health + boost);
+      audit.push({ source: "Open-Meteo AQ", field: "health", delta: boost, reason: `PM2.5 ${signals.aq.pm25}µg/m³` });
     }
   }
-  
-  // ── Disease ──
-  if (signals.diseaseActive && signals.diseaseActive > 1000) {
+
+  if (signals.diseaseActive > 1000) {
     const m = signals.diseaseActive / 1000;
     const boost = Math.min(15, Math.round(Math.log10(m + 1) * 6));
-    dims.health = clamp(dims.health + boost);
-    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` });
+    result.health = Math.min(99, result.health + boost);
+    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active cases` });
   }
-  
-  // ── World Bank Indicators ──
-  if (signals.wbInflation && signals.wbInflation > 5) {
+
+  if (signals.wbInflation > 5) {
     const boost = Math.min(15, Math.round(signals.wbInflation / 4));
-    dims.economic = clamp(dims.economic + boost);
+    result.economic = Math.min(99, result.economic + boost);
     audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `Inflation ${signals.wbInflation.toFixed(1)}%` });
   }
-  if (signals.wbGdpGrowth && signals.wbGdpGrowth < 0) {
-    const boost = Math.min(12, Math.round(Math.abs(signals.wbGdpGrowth) * 2));
-    dims.economic = clamp(dims.economic + boost);
-    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `GDP growth ${signals.wbGdpGrowth.toFixed(1)}% (contraction)` });
-  }
-  if (signals.wbUnemployment && signals.wbUnemployment > 10) {
-    const boost = Math.min(10, Math.round(signals.wbUnemployment / 5));
-    dims.economic = clamp(dims.economic + boost);
-    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `Unemployment ${signals.wbUnemployment.toFixed(1)}%` });
-  }
-  
-  // ── UNHCR Displacement ──
-  if (signals.totalDisplaced && signals.totalDisplaced > 0) {
+
+  if (signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
     const boost = m >= 10 ? 30 : m >= 5 ? 25 : m >= 3 ? 20 : m >= 1.5 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
     if (boost > 0) {
-      dims.displacement = clamp(dims.displacement + boost);
+      result.displacement = Math.min(99, result.displacement + boost);
       audit.push({ source: "UNHCR", field: "displacement", delta: boost, reason: `${m.toFixed(1)}M displaced` });
     }
   }
-  
-  return { dims, score: clamp(composite(dims)), audit };
+
+  return { dims: result, audit };
 }
 
-function spilloverScore(newStore) {
-  const res = {};
-  for (const iso in newStore) {
-    const neighbours = (ADJ[iso] || []).filter(n => newStore[n]);
-    if (!neighbours.length) { res[iso] = 0; continue; }
-    const avgNeighbour = neighbours.reduce((s, n) => s + newStore[n].score, 0) / neighbours.length;
-    const spill = Math.max(0, avgNeighbour - 50) * 0.13;
-    res[iso] = Math.round(Math.min(20, spill) * 10) / 10;
+// ─── SPILLOVER SCORE (matches API) ──────────────────────────────────────────
+function spilloverScore(store) {
+  const result = {};
+  for (const iso in store) {
+    const neighbours = (ADJ[iso] || []).filter(n => store[n]);
+    if (!neighbours.length) { result[iso] = 0; continue; }
+    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
+    result[iso] = Math.round(Math.max(0, avgNb - 50) * 0.13 * 10) / 10;
   }
-  return res;
+  return result;
 }
 
-function seedHistory(iso, currentScore) {
-  const N = 28;
+// ─── SEED HISTORY (matches API) ─────────────────────────────────────────────
+function seedHistory(iso, current) {
   const seed = iso.split('').reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
-  let score = Math.min(99, Math.max(5, currentScore + Math.round((seedHash(iso) - 0.5) * 18)));
+  let v = Math.min(99, Math.max(5, current + Math.round((seededRand(seed) - 0.5) * 20)));
   const hist = [];
-  for (let i = 0; i <= N; i++) {
-    hist.push({ t: Date.now() - (N - i) * 86400000, s: score });
-    const r = seedHash(iso + i);
-    const pull = (currentScore - score) * 0.12;
-    const noise = (r - 0.5) * 5;
-    score = Math.min(99, Math.max(5, Math.round(score + pull + noise)));
+  for (let i = 0; i <= 28; i++) {
+    hist.push({ t: Date.now() - (28 - i) * 86400000, s: v });
+    v = Math.min(99, Math.max(5, Math.round(v + (current - v) * 0.15 + (seededRand(seed + i * 31 + 7) - 0.5) * 6)));
   }
-  hist[hist.length - 1].s = currentScore;
+  hist[hist.length - 1].s = current;
   return hist;
-}// ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
+}
+
+// ─── SEEDED RANDOM ───────────────────────────────────────────────────────────
+function seededRand(n) {
+  const x = Math.sin(n * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+}
+// ─── REPLACE buildStore() WITH THIS ──────────────────────────────────────────
+function buildStore() {
+  const refreshSeed = Math.floor(Date.now() / 60000);
+  const store = {};
+  
+  for (const [iso, country] of Object.entries(COUNTRIES)) {
+    // 1. Get base prior from country data
+    const prior = country.prior || 30;
+    const types = country.types || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    const flag = FLAGS[iso] || '🌍';
+    const name = NAMES[iso] || iso;
+    
+    // 2. Build prior dimensions (matches API's buildPriorDims)
+    const dims = buildPriorDims(prior, types);
+    
+    // 3. Compute evidence from LIVE data sources (matches API's extractSignals)
+    const evidence = computeEvidenceScore(iso);
+    const signals = extractLiveSignals(iso);
+    
+    // 4. Apply live adjustments (matches API's applyLiveAdjustments)
+    const adjusted = applyLiveAdjustments(dims, signals);
+    
+    // 5. Final score with clamping (matches API exactly)
+    const rawScore = composite(adjusted.dims);
+    const score = Math.max(1, Math.min(99, Math.round(rawScore)));
+    
+    // 6. Events count based on evidence
+    const events = Math.min(60, Math.max(4, Math.round(
+      score * 0.30 + 
+      types.length * 1.5 + 
+      (signals.liveEvidenceCount || 0) * 3
+    )));
+    
+    store[iso] = {
+      name, flag, types, needs,
+      dims: adjusted.dims,
+      score,
+      priorScore: Math.round(composite(dims)),
+      events,
+      spillover: 0,
+      liveBoost: score - Math.round(composite(dims)),
+      evidenceCount: signals.liveEvidenceCount || 0,
+      evidenceSources: signals.evidenceSources || [],
+      evidenceLedger: adjusted.audit || [],
+      signals: signals,
+    };
+  }
+  
+  // ── Spillover from neighbours (matches API) ──
+  const spill = spilloverScore(store);
+  for (const iso in store) {
+    store[iso].spillover = spill[iso] || 0;
+    store[iso].score = Math.min(99, Math.max(1, 
+      store[iso].score + store[iso].spillover
+    ));
+  }
+  
+  // ── Store and rank ──
+  window.store = store;
+  window.ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  
+  // ── Initialize history ──
+  if (!window.historyInitialized) {
+    for (const iso in store) {
+      window.history[iso] = seedHistory(iso, store[iso].score);
+    }
+    window.historyInitialized = true;
+  } else {
+    for (const iso in store) {
+      if (!window.history[iso]) window.history[iso] = seedHistory(iso, store[iso].score);
+      window.history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (window.history[iso].length > 60) window.history[iso].shift();
+    }
+  }
+  
+  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${window.ranked.filter(i => store[i].score >= 80).length} critical`);
+  return { store, ranked: window.ranked };
+}
+
+// ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
 function updateUIStats() {
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
   const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
