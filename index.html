@@ -665,19 +665,14 @@ fetchBreakingNews();
         </div>
         <button onclick="crysClear()" style="background:none;border:none;color:var(--tm);font-family:var(--fm);font-size:7px;cursor:pointer;padding:2px 5px;border-radius:3px;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--tm)'">↺ clear</button>
       </div>
+      <div id="crysChat" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;"></div>
       <div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
-        <div id="crysChipRow" style="display:flex;gap:5px;margin-bottom:5px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:1px;">
+        <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap;">
+          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
           <button class="crys-chip" onclick="crysSubmit('top 5')">🔥 Top 5</button>
           <button class="crys-chip" onclick="crysSubmit('what is escalating')">📈 Escalating</button>
-          <button class="crys-chip" onclick="crysSubmit('what is improving')">📉 Improving</button>
-          <button class="crys-chip" onclick="crysSubmit('anomalies')">🚨 Anomalies</button>
           <button class="crys-chip" onclick="crysSubmit('compare Sudan and Yemen')">⚖️ Compare</button>
-          <button class="crys-chip" onclick="crysSubmit('africa')">🌍 Africa</button>
-          <button class="crys-chip" onclick="crysSubmit('middle east')">🕌 Middle East</button>
-          <button class="crys-chip" onclick="crysSubmit('above 70')">📊 Score &gt;70</button>
-          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
         </div>
-        <style>#crysChipRow::-webkit-scrollbar{display:none;}</style>
         <div style="display:flex;gap:5px;">
           <input id="crysInp" type="text" placeholder="Somalia · top 5 · compare Sudan vs Yemen…"
             style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:99px;padding:5px 11px;font-size:10px;color:var(--tp);font-family:var(--fb);outline:none;transition:border-color .15s;"
