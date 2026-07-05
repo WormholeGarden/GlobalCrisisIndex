@@ -158,12 +158,42 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Global Crisis Index",
-  "description": "Enterprise B2B crisis intelligence platform. Live APIs for risk analysis, hazard monitoring, and vulnerability assessment. Cited by Google AI.",
+  "description": "Enterprise B2B crisis intelligence platform. Live APIs for risk analysis, hazard monitoring, and vulnerability assessment.",
   "url": "https://globalcrisisindex.com",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "All",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Global Crisis Index — Live Crisis Intelligence Dataset",
+  "description": "Real-time global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries from public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb).",
+  "url": "https://globalcrisisindex.com",
+  "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
+    "url": "https://globalcrisisindex.com"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/json",
+    "contentUrl": "https://www.globalcrisisindex.com/api/top-story"
+  },
+  "temporalCoverage": "2024/..",
+  "variableMeasured": [
+    "Crisis urgency score",
+    "Anomaly detection score",
+    "Displacement totals",
+    "Food security (IPC) phase",
+    "Conflict event count",
+    "Disease outbreak case counts"
+  ],
+  "measurementTechnique": "Automated aggregation and weighted composite scoring across 40+ live public APIs, refreshed every 5 minutes"
 }
 </script>
 
@@ -5095,4 +5125,3 @@ parts.push(`${name}’s score has ${trendPhrase}.`);
 </script>
 </body>
 </html>
-
