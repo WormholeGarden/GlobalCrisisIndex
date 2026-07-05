@@ -1435,7 +1435,7 @@ function extractSignals(iso, live) {
     signals.diseaseName = "COVID-19";
   }
 
-  // ── IPC/FEWS NET Food Security (FIXED) ──
+  // ── IPC/FEWS NET Food Security ──
   const ipcData = live.ipc?.data || null;
   if (ipcData && ipcData[iso]) {
     const ipc = ipcData[iso];
@@ -1475,12 +1475,35 @@ function extractSignals(iso, live) {
     }
   }
 
+  // ── ReliefWeb Events ──
+  const reliefData = live.reliefweb?.data || null;
+  if (reliefData && reliefData[iso] && reliefData[iso] > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("ReliefWeb");
+    signals.reliefwebCount = reliefData[iso];
+  }
+
+  // ── WHO Outbreaks ──
+  const whoData = live.who?.data || null;
+  if (whoData && whoData[iso] && whoData[iso].length > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("WHO");
+    signals.whoOutbreaks = whoData[iso];
+  }
+
   // ── World Bank ──
   const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
   const wbRefugees = live.wb.refugees.data[iso] || null;
   const wbPoverty = live.wb.poverty.data[iso] || null;
+  const wbPopulation = live.wb.population.data[iso] || null;
+  
+  if (wbPopulation && wbPopulation.value > 0) {
+    liveEvidenceCount++;
+    evidenceSources.push("WB Population");
+    signals.population = wbPopulation.value;
+  }
   
   if (wbInflation && wbInflation.value > 5) {
     liveEvidenceCount++;
@@ -1559,6 +1582,9 @@ function extractSignals(iso, live) {
     ipcDate: signals.ipcDate || null,
     acledEvents: signals.acledEvents || 0,
     acledFatalities: signals.acledFatalities || 0,
+    reliefwebCount: signals.reliefwebCount || 0,
+    whoOutbreaks: signals.whoOutbreaks || [],
+    population: signals.population || 0,
     wbInflation: signals.wbInflation || null,
     wbGdpGrowth: signals.wbGdpGrowth || null,
     wbUnemployment: signals.wbUnemployment || null,
@@ -1904,22 +1930,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       reason: `${signals.reliefwebCount} active humanitarian reports` 
     });
   }
-  // ── IPC Food Security ──
-  if (signals.ipcPhase >= 3) {
-    const phaseBoosts = { 3: 20, 4: 35, 5: 50 };
-    const boost = phaseBoosts[signals.ipcPhase] || 0;
-    if (boost > 0) {
-      dims.food = clamp(dims.food + boost);
-      dims.health = clamp(dims.health + Math.floor(boost * 0.6));
-      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
-      audit.push({ 
-        source: "IPC/FEWS NET", 
-        field: "food+health+economic", 
-        delta: boost, 
-        reason: `IPC Phase ${signals.ipcPhase} food insecurity ${signals.ipcPhase >= 4 ? '— EMERGENCY' : ''}` 
-      });
-    }
-  }
+
   // ── 20. World Bank Refugees ──
   if (signals.wbRefugees && signals.wbRefugees.value > 1000) {
     const m = signals.wbRefugees.value / 1_000_000;
