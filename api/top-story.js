@@ -1,9 +1,9 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — GOLD STANDARD EDITION v7.0
+//  TOP-STORY API  — GOLD STANDARD EDITION v8.0
 //  ────────────────────────────────────────────────────────────────────────────
-//  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
+//  🏆 THE ULTIMATE CRISIS INTELLIGENCE API — COVERS ALL 136 COUNTRIES
 // ════════════════════════════════════════════════════════════════════════════
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@
 const CFG = {
   SEED_INTERVAL_MS:     300_000,
   FETCH_TIMEOUT_MS:     15_000,
-  MAX_TOP_N:            100,
+  MAX_TOP_N:            136,  // ← NOW RETURNS ALL COUNTRIES
   SPILLOVER_RATE:       0.13,
   SPILLOVER_FLOOR:      50,
   PRIOR_JITTER:         4,
@@ -90,6 +90,7 @@ const DIMS = [
 // ─── COUNTRY TABLE (FULL) ──────────────────────────────────────────────────
 
 const COUNTRIES = {
+  // ─── MIDDLE EAST ──────────────────────────────────────────────────────────
   PSE:{ name:"Palestine",            flag:"🇵🇸", prior:65, region:"middleeast", types:["CE","CW","REF","HEAT"],            adj:["LBN","JOR","ISR"],                                            cent:[35.3,31.9]  },
   SYR:{ name:"Syria",                flag:"🇸🇾", prior:66, region:"middleeast", types:["CE","CW","REF","EP","HEAT"],       adj:["LBN","JOR","TUR","IRQ","ISR"],                               cent:[38.3,34.8]  },
   YEM:{ name:"Yemen",                flag:"🇾🇪", prior:68, region:"middleeast", types:["CE","CW","FN","DR","REF"],         adj:["SAU","OMN"],                                                  cent:[47.6,15.6]  },
@@ -105,6 +106,7 @@ const COUNTRIES = {
   QAT:{ name:"Qatar",                flag:"🇶🇦", prior:12, region:"middleeast", types:["DR","HEAT"],                       adj:["SAU","ARE"],                                                  cent:[51.2,25.4]  },
   BHR:{ name:"Bahrain",              flag:"🇧🇭", prior:22, region:"middleeast", types:["DR","HEAT"],                       adj:["SAU"],                                                         cent:[50.6,26.0]  },
   CYP:{ name:"Cyprus",               flag:"🇨🇾", prior:19, region:"middleeast", types:["DR","WF","HEAT"],                  adj:[],                                                               cent:[33.1,35.1]  },
+  // ─── ASIA ────────────────────────────────────────────────────────────────
   AFG:{ name:"Afghanistan",          flag:"🇦🇫", prior:67, region:"asia",       types:["CE","CW","DR","FN","REF"],         adj:["PAK","IRN","TJK","UZB","TKM"],                               cent:[67.7,33.9]  },
   PAK:{ name:"Pakistan",             flag:"🇵🇰", prior:48, region:"asia",       types:["FL","EQ","DR","REF","HEAT","LS"],  adj:["AFG","IRN","IND","CHN"],                                     cent:[69.3,30.4]  },
   TJK:{ name:"Tajikistan",           flag:"🇹🇯", prior:42, region:"asia",       types:["EQ","FL","LS","DR","HEAT"],        adj:["UZB","KGZ","CHN","AFG"],                                     cent:[71.3,38.8]  },
@@ -136,6 +138,7 @@ const COUNTRIES = {
   ARM:{ name:"Armenia",              flag:"🇦🇲", prior:38, region:"asia",       types:["EQ","DR","CW","HEAT"],             adj:["TUR","GEO","AZE","IRN"],                                     cent:[44.9,40.1]  },
   AZE:{ name:"Azerbaijan",           flag:"🇦🇿", prior:32, region:"asia",       types:["EQ","FL","CW","HEAT"],             adj:["RUS","GEO","ARM","IRN","TUR"],                               cent:[47.6,40.1]  },
   GEO:{ name:"Georgia",              flag:"🇬🇪", prior:30, region:"asia",       types:["EQ","FL","LS","CW","HEAT"],        adj:["RUS","TUR","ARM","AZE"],                                     cent:[43.4,42.3]  },
+  // ─── AFRICA ──────────────────────────────────────────────────────────────
   SOM:{ name:"Somalia",              flag:"🇸🇴", prior:72, region:"africa",     types:["CE","CW","DR","FN","REF","HEAT"],  adj:["ETH","KEN","DJI"],                                            cent:[45.3,5.2]   },
   ETH:{ name:"Ethiopia",             flag:"🇪🇹", prior:57, region:"africa",     types:["CE","CW","DR","FN","REF"],         adj:["SDN","SSD","SOM","ERI","DJI","KEN"],                         cent:[40.5,9.1]   },
   SSD:{ name:"South Sudan",          flag:"🇸🇸", prior:70, region:"africa",     types:["CE","CW","FL","FN","REF"],         adj:["SDN","ETH","UGA","KEN","COD","CAF"],                         cent:[31.3,6.9]   },
@@ -183,6 +186,7 @@ const COUNTRIES = {
   DZA:{ name:"Algeria",              flag:"🇩🇿", prior:28, region:"africa",     types:["DR","WF","HEAT","EP"],             adj:["MAR","TUN","LBY","NER","MLI","MRT"],                         cent:[2.6,28.0]   },
   MAR:{ name:"Morocco",              flag:"🇲🇦", prior:24, region:"africa",     types:["EQ","DR","HEAT","FL"],             adj:["DZA","MRT"],                                                   cent:[-7.1,31.8]  },
   TUN:{ name:"Tunisia",              flag:"🇹🇳", prior:30, region:"africa",     types:["DR","HEAT","FL","ECO"],            adj:["DZA","LBY"],                                                   cent:[9.5,33.9]   },
+  // ─── EUROPE ──────────────────────────────────────────────────────────────
   UKR:{ name:"Ukraine",              flag:"🇺🇦", prior:52, region:"europe",     types:["CE","CW","REF","HEAT"],            adj:["RUS","POL","HUN","ROU","SVK","BLR","MDA"],                   cent:[31.2,49.0]  },
   RUS:{ name:"Russia",               flag:"🇷🇺", prior:34, region:"europe",     types:["WF","FL","CW","ST","HEAT","POL"],  adj:["UKR","CHN","KAZ","BLR","FIN","NOR","EST","LVA","LTU","POL"],cent:[97.7,56.8]  },
   TUR:{ name:"Turkey",               flag:"🇹🇷", prior:42, region:"europe",     types:["EQ","FL","REF","CW","LS","HEAT"],  adj:["SYR","IRQ","IRN","ARM","GEO","AZE","BGR","GRC"],             cent:[35.2,38.9]  },
@@ -202,6 +206,7 @@ const COUNTRIES = {
   ALB:{ name:"Albania",              flag:"🇦🇱", prior:28, region:"europe",     types:["EQ","FL","LS","HEAT"],             adj:["MNE","SRB","MKD","GRC","XKX"],                               cent:[20.2,41.2]  },
   MKD:{ name:"North Macedonia",      flag:"🇲🇰", prior:26, region:"europe",     types:["EQ","FL","WF","HEAT"],             adj:["SRB","BGR","GRC","ALB","XKX"],                               cent:[21.7,41.6]  },
   XKX:{ name:"Kosovo",               flag:"🇽🇰", prior:34, region:"europe",     types:["FL","ST","HEAT"],                  adj:["SRB","MKD","ALB","MNE"],                                     cent:[20.9,42.6]  },
+  // ─── AMERICAS ────────────────────────────────────────────────────────────
   USA:{ name:"United States",        flag:"🇺🇸", prior:18, region:"americas",   types:["WF","ST","EQ","TC","TSU","HEAT"],  adj:["CAN","MEX"],                                                  cent:[-95.7,37.1] },
   CAN:{ name:"Canada",               flag:"🇨🇦", prior:12, region:"americas",   types:["WF","FL","ST","HEAT"],             adj:["USA"],                                                         cent:[-96.0,55.0] },
   MEX:{ name:"Mexico",               flag:"🇲🇽", prior:36, region:"americas",   types:["EQ","ST","VLC","FL","TSU","HEAT"], adj:["USA","GTM","BLZ"],                                            cent:[-102.5,23.0]},
@@ -220,6 +225,7 @@ const COUNTRIES = {
   PER:{ name:"Peru",                 flag:"🇵🇪", prior:36, region:"americas",   types:["EQ","FL","LS","VLC","TSU","HEAT"], adj:["ECU","COL","BRA","BOL","CHL"],                               cent:[-76.0,-10.0]},
   ECU:{ name:"Ecuador",              flag:"🇪🇨", prior:36, region:"americas",   types:["EQ","VLC","FL","TSU","HEAT"],      adj:["COL","PER"],                                                   cent:[-77.8,-1.8] },
   BOL:{ name:"Bolivia",              flag:"🇧🇴", prior:36, region:"americas",   types:["FL","DR","LS","HEAT"],             adj:["PER","BRA","PRY","ARG","CHL"],                               cent:[-64.9,-16.3]},
+  // ─── OCEANIA ─────────────────────────────────────────────────────────────
   AUS:{ name:"Australia",            flag:"🇦🇺", prior:22, region:"oceania",    types:["WF","FL","TC","DR","HEAT"],        adj:[],                                                               cent:[134.5,-25.0]},
   NZL:{ name:"New Zealand",          flag:"🇳🇿", prior:40, region:"oceania",    types:["EQ","TSU","VLC","FL","HEAT"],      adj:[],                                                               cent:[172.5,-41.3]},
   PNG:{ name:"Papua New Guinea",     flag:"🇵🇬", prior:44, region:"oceania",    types:["EQ","TSU","VLC","FL","HEAT"],      adj:[],                                                               cent:[143.9,-6.3] },
@@ -941,7 +947,7 @@ async function fetchIFRC() {
 // ── 6. Open-Meteo Heat Stress (EXPANDED) ──
 async function fetchHeatStress() {
   const heatProneIsos = [
-    'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','ERI','DJI','KEN','TZA','MOZ','MWI','ZMB','ZWE','AGO','BFA','MRT','TCD','COD','CAF','SDN','SSD','ETH','SOM'
+    'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','ERI','DJI','KEN','TZA','MOZ','MWI','ZMB','ZWE','AGO','BFA','MRT','TCD','COD','CAF'
   ];
   const results = {};
   let anyLive = false;
@@ -1238,7 +1244,7 @@ async function fetchAcled() {
 async function fetchReliefWeb() {
   try {
     const r = await safeFetch(
-      fetch("https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&slim=1&limit=30&filter[operator]=OR&filter[conditions][0][field]=primary_country.iso3&filter[conditions][0][value][]=ETH&filter[conditions][1][field]=primary_country.iso3&filter[conditions][1][value][]=SOM&filter[conditions][2][field]=primary_country.iso3&filter[conditions][2][value][]=SSD&sort[]=date.created:desc").then(r => r.json())
+      fetch("https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&slim=1&limit=30&sort[]=date.created:desc").then(r => r.json())
     );
     if (r.ok && r.data?.data) {
       const events = {};
@@ -1491,8 +1497,7 @@ function extractSignals(iso, live) {
     signals.whoOutbreaks = whoData[iso];
   }
 
-  // ── World Bank ──
-  const wbInflation = live.wb.inflation.data[iso] || null;
+  // ── World Bank ──  const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
   const wbRefugees = live.wb.refugees.data[iso] || null;
@@ -2863,13 +2868,20 @@ export default async function handler(req, res) {
     else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
     else finalIsos = ranked.slice(0, params.top);
 
+    // ─── KEY CHANGE: ALWAYS RETURN ALL COUNTRIES ──────────────────────────
+    // If top parameter is not set or top is less than total countries,
+    // return all countries when top=0 or top>total
+    if (params.top === 0 || params.top >= Object.keys(COUNTRIES).length) {
+      finalIsos = ranked; // Return ALL countries
+    }
+
     if (params.force_live) {
       finalIsos = finalIsos.filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= CFG.MIN_LIVE_EVIDENCE_SOURCES);
 
       if (finalIsos.length === 0) {
         const anyLive = Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1);
         if (anyLive.length > 0) {
-          finalIsos = anyLive.sort((a, b) => store[b].score - store[a].score).slice(0, Math.min(params.top, anyLive.length));
+          finalIsos = anyLive.sort((a, b) => store[b].score - store[a].score);
         } else {
           res.writeHead(200, CORS);
           res.end(JSON.stringify({
@@ -2887,6 +2899,20 @@ export default async function handler(req, res) {
       }
     }
 
+    // ─── BUILD ALL PAYLOADS ──────────────────────────────────────────────────
+    const opts = {
+      keywords: params.keywords,
+      related: params.related,
+      schema: params.schema,
+      summary: params.summary,
+      article: params.article,
+      ml: params.ml,
+      sentiment: params.sentiment,
+      history: params.history,
+    };
+    const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
+
+    // ─── HANDLE EXPORTS ──────────────────────────────────────────────────────
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const data = generateExportData(iso, store, params.export);
@@ -2906,41 +2932,19 @@ export default async function handler(req, res) {
     }
 
     if (params.format === "sitemap") {
-      const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
-      const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
       res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
       res.end(buildSitemap(payloads));
       return;
     }
 
     if (params.format === "article" && finalIsos.length === 1) {
-      const opts = { 
-        keywords: params.keywords, 
-        related: params.related, 
-        schema: params.schema, 
-        summary: params.summary,
-        ml: params.ml,
-        sentiment: params.sentiment,
-        history: params.history,
-      };
       const article = buildSEOArticle(finalIsos[0], store, ranked);
       res.writeHead(200, { ...CORS, "Content-Type": "text/html; charset=utf-8" });
       res.end(article.body_html);
       return;
     }
 
-    const opts = {
-      keywords: params.keywords,
-      related: params.related,
-      schema: params.schema,
-      summary: params.summary,
-      article: params.article,
-      ml: params.ml,
-      sentiment: params.sentiment,
-      history: params.history,
-    };
-    const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
-
+    // ─── BUILD RESPONSE ──────────────────────────────────────────────────────
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
 
     let comparison = null;
@@ -3065,6 +3069,7 @@ export default async function handler(req, res) {
           export_json: "GET /api/top-story?iso=SOM&export=json",
           export_csv: "GET /api/top-story?iso=SOM&export=csv",
           widget: "GET /api/top-story?iso=SOM&widget=true",
+          all_countries: "GET /api/top-story?top=0 (returns ALL 136 countries)",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
         score_methodology: "Weighted 8-dimension composite. Live signals from 20+ data sources adjust dimensions. Regional spillover applied.",
@@ -3083,7 +3088,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v7.0]", err);
+    console.error("[top-story v8.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
