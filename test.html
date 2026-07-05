@@ -1551,7 +1551,7 @@ async function refresh(){
   loader.style.display='flex';
   const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
   let currentProgress=0;
-  
+
   function adv(n,targetPct){
     targetPct=Math.min(100,Math.max(currentProgress+1,targetPct));
     steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''));});
@@ -1571,53 +1571,120 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,200));
   adv(1,15);
 
-// ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
-  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
-  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
-  // not as a single pinned URL like the other entries here.)
-  const fetchKeys = Object.keys(API_ENDPOINTS);
-  const fetches = {};
-  for (const k of fetchKeys) {
-    fetches[k] = safe(fetch(API_ENDPOINTS[k], { headers: { 'Accept': 'application/json' } })
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null));
+  let data = null;
+
+  try {
+    // ─── FETCH FROM API ─────────────────────────────────────────────────────
+    const res = await fetch('https://www.globalcrisisindex.com/api/top-story?top=100&force_live=false', { 
+      headers: { 'Accept': 'application/json' } 
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+    adv(3,50);
+
+    const countries = data.countries || (data.top_story ? [data.top_story] : []);
+    const newStore = {};
+
+    countries.forEach(c => {
+      if (!c.iso) return;
+      // ─── SAFETY CHECKS FOR ALL NUMERIC VALUES ──────────────────────────
+      const score = typeof c.score === 'number' && isFinite(c.score) ? c.score : 50;
+      const evidenceCount = typeof c.live_evidence_count === 'number' && isFinite(c.live_evidence_count) ? c.live_evidence_count : 0;
+      const priorScore = typeof c.score_audit?.prior_score === 'number' && isFinite(c.score_audit.prior_score) ? c.score_audit.prior_score : score;
+      const liveBoost = typeof c.score_audit?.live_boost === 'number' && isFinite(c.score_audit.live_boost) ? c.score_audit.live_boost : 0;
+      const spillover = typeof c.spillover?.value === 'number' && isFinite(c.spillover.value) ? c.spillover.value : 0;
+      
+      // ─── BUILD DIMS SAFELY ──────────────────────────────────────────────
+      const dims = {};
+      if (c.dimensions) {
+        Object.entries(c.dimensions).forEach(([k, d]) => {
+          const val = typeof d.value === 'number' && isFinite(d.value) ? d.value : 0;
+          dims[k] = val;
+        });
+      }
+
+      newStore[c.iso] = {
+        name: c.name || c.iso,
+        flag: c.flag || '🌍',
+        types: (c.crisis_types || []).map(t => t.code).filter(Boolean),
+        needs: c.needs || [],
+        dims: dims,
+        score: score,
+        priorScore: priorScore,
+        events: evidenceCount,
+        spillover: spillover,
+        liveBoost: liveBoost,
+        evidenceCount: evidenceCount,
+        evidenceSources: c.live_evidence_sources || [],
+        evidenceLedger: c.score_audit?.adjustments || [],
+        evidenceConfidence: Math.min(1, evidenceCount / 5),
+        signals: {},
+      };
+      
+      // ─── SAFELY INITIALIZE HISTORY ──────────────────────────────────────
+      if (typeof score === 'number' && isFinite(score)) {
+        history[c.iso] = seedHistory(c.iso, score);
+      } else {
+        history[c.iso] = seedHistory(c.iso, 50);
+      }
+    });
+
+    store = newStore;
+    ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+    historyInitialized = true;
+
+    adv(5,85);
+    
+    // ─── UPDATE UI WITH API DATA ──────────────────────────────────────────
+    updateUIStatsFromApi(data);
+    
+    adv(6,100);
+    paintMap();
+    addPulseMarkers();
+    renderRanking();
+
+    toast(`✅ ${ranked.length} countries loaded from live API`);
+    
+  } catch(e) {
+    console.warn('API fetch failed:', e);
+    toast('⚠ Could not load live data from API');
+    
+    // ─── FALLBACK: Use BASE_SCORES if API fails ──────────────────────────
+    if (Object.keys(store).length === 0) {
+      for (const [iso, base] of Object.entries(BASE_SCORES)) {
+        if (!store[iso]) {
+          const types = CTYPES[iso] || DEFAULT_T;
+          const safeBase = typeof base === 'number' && isFinite(base) ? base : 30;
+          store[iso] = {
+            name: NAMES[iso] || iso,
+            flag: FLAGS[iso] || '🌍',
+            types: types,
+            needs: [...new Set(types.flatMap(t => ARC[t]?.n || []))],
+            dims: buildDims(safeBase, types),
+            score: safeBase,
+            priorScore: safeBase,
+            events: 10,
+            spillover: 0,
+            liveBoost: 0,
+            evidenceCount: 0,
+            evidenceSources: [],
+            evidenceLedger: [],
+            evidenceConfidence: 0,
+            signals: {},
+          };
+          history[iso] = seedHistory(iso, safeBase);
+        }
+      }
+      ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+      
+      // ─── FALLBACK UI UPDATE ─────────────────────────────────────────────
+      updateUIStats();
+    }
   }
-  const results = await Promise.allSettled(Object.values(fetches));
-  Object.keys(fetches).forEach((k, i) => {
-    apiResults[k] = results[i].status === 'fulfilled' ? results[i].value : null;
-  });
 
-  adv(3,45);
-
-  // ─── FETCH EVIDENCE FROM ALL SOURCES ─────────────────────────────────
-  await fetchAllEvidence();
-  
-  // ─── BUILD TICKER WITH ALL EVIDENCE ──────────────────────────────────
-  buildTickerFromResults();
-  
-  adv(5,78);
-
-  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
-  buildStore();
-  
-  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
-  updateUIStats();
-
-  adv(6,100);
-  paintMap();
-  addPulseMarkers();
-  renderRanking();
-  await new Promise(r=>setTimeout(r,500));
+  await new Promise(r=>setTimeout(r,300));
   loader.style.display='none';
-  
-  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
-  const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
-  const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
-  const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
-  const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
-  
-  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live`);
-  
+
   refreshTimerSecs=300;
 
   const urlParams=new URLSearchParams(window.location.search);
@@ -1627,7 +1694,74 @@ async function refresh(){
   else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
 
   updateDynamicTitle();
-}// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+}
+
+function updateUIStatsFromApi(data){
+  const top = ranked.slice(0, 20);
+  const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+
+  // ─── SAFELY CALCULATE AFFECTED ──────────────────────────────────────────
+  let totalAffected = 0;
+  const countries = data.countries || (data.top_story ? [data.top_story] : []);
+  countries.forEach(c => {
+    const displacement = c.live_evidence?.displacement?.total;
+    // Only add if it's a valid positive number
+    if (typeof displacement === 'number' && isFinite(displacement) && displacement > 0) {
+      totalAffected += displacement;
+    }
+  });
+  
+  // ─── FORMAT AFFECTED DISPLAY ────────────────────────────────────────────
+  let affectedDisplay = '—';
+  if (totalAffected > 0 && isFinite(totalAffected)) {
+    if (totalAffected >= 1e9) affectedDisplay = '≈' + (totalAffected / 1e9).toFixed(1) + 'B';
+    else if (totalAffected >= 1e6) affectedDisplay = '≈' + (totalAffected / 1e6).toFixed(1) + 'M';
+    else if (totalAffected >= 1e3) affectedDisplay = '≈' + (totalAffected / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = totalAffected.toLocaleString();
+  }
+
+  // ─── SAFELY GET ANOMALIES ───────────────────────────────────────────────
+  let anoms = data.meta?.anomalies_detected;
+  if (typeof anoms !== 'number' || !isFinite(anoms)) {
+    anoms = ranked.filter(i => {
+      const hist = (history[i] || []).map(h => h.s);
+      return cusum(hist).det;
+    }).length;
+  }
+
+  // ─── SAFELY GET EVENTS ──────────────────────────────────────────────────
+  let tevt = 0;
+  Object.values(store).forEach(c => {
+    const ev = c.events || 0;
+    if (typeof ev === 'number' && isFinite(ev)) {
+      tevt += ev;
+    }
+  });
+
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
+
+// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
 // NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
 // ────────────────────────────────────────────────────────────────────────
 
@@ -1699,7 +1833,6 @@ function coverageScale(value, floor, ceiling, maxPts) {
   const ratio = (clamped - floor) / ((ceiling - floor) || 1);
   return Math.max(maxPts * 0.2, ratio * maxPts);
 }
-
 // ── REAL DATA: Fetch ACLED conflict events ──────────────────────────────
 async function fetchAcledData() {
   try {
@@ -3062,322 +3195,91 @@ function computeEvidenceScore(iso) {
     sourceCount: ledger.length,
   };
 }
-
-// ─── PRIOR DIMS BUILDER (matches API) ──────────────────────────────────────
-function buildPriorDims(base, types) {
-  const has = t => types.includes(t);
-  const cl = v => Math.min(99, Math.max(5, Math.round(v)));
-  return {
-    conflict:     cl(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
-    displacement: cl(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food:         cl(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health:       cl(base * ((has("EP")||has("FN")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
-    economic:     cl(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("ECO")) ? 0.85 : 0.42) + 10),
-    climate:      cl(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access:       cl(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
-    political:    cl(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
-  };
-}
-
-// ─── COMPOSITE SCORING (matches API) ──────────────────────────────────────
-function composite(dims) {
-  return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
-}
-
-// ─── EXTRACT LIVE SIGNALS (matches API's extractSignals) ──────────────────
-function extractLiveSignals(iso) {
-  const name = (NAMES[iso] || iso).toLowerCase();
-  let liveEvidenceCount = 0;
-  const evidenceSources = [];
-  const signals = {};
-
-  // ── USGS ──
-  const quakes = (apiResults.usgs_weekly?.features || []).filter(f => 
-    (f.properties?.place || "").toLowerCase().includes(name)
-  );
-  const topQuake = quakes.length ? quakes.reduce((a,b) => (b.properties?.mag||0) > (a.properties?.mag||0) ? b : a) : null;
-  if (topQuake?.properties?.mag >= 4.5) {
-    liveEvidenceCount++;
-    evidenceSources.push("USGS");
-    signals.quakeMag = topQuake.properties.mag;
-    signals.quakePlace = topQuake.properties.place?.split(",")[0]?.trim() || null;
-  }
-
-  // ── EMSC ──
-  const emscQuakes = (apiResults.emsc_seismic?.features || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    if (!coords) return false;
-    const closest = findClosestCountry(coords[0], coords[1]);
-    return closest === iso;
-  });
-  if (emscQuakes.length > 0 && (emscQuakes[0]?.properties?.mag || 0) >= 4.5) {
-    liveEvidenceCount++;
-    evidenceSources.push("EMSC");
-    signals.emscMag = emscQuakes[0].properties.mag;
-  }
-
-  // ── NASA EONET ──
-  const nasaEvents = (apiResults.nasa_eonet?.events || []).filter(ev => {
-    const coords = ev.geometry?.[0]?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (nasaEvents.length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("NASA");
-    signals.nasaEventCount = nasaEvents.length;
-  }
-
-  // ── GDACS ──
-  const gdacsEvents = (apiResults.gdacs?.features || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (gdacsEvents.length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("GDACS");
-    signals.gdacsAlert = gdacsEvents[0]?.properties?.alertlevel?.toLowerCase() || null;
-  }
-
-  // ── IFRC ──
-  const ifrcEvents = (apiResults.ifrc_go?.results || []).filter(ev => 
-    (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso
-  );
-  if (ifrcEvents.length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("IFRC");
-    signals.ifrcCount = ifrcEvents.length;
-  }
-
-  // ── HEAT (from per-country loop) ──
-  const heatData = (window.heatStressData || []).find(h => h.iso === iso);
-  if (heatData && heatData.temp >= 35) {
-    liveEvidenceCount++;
-    evidenceSources.push("Open-Meteo Heat");
-    signals.maxTempC = heatData.temp;
-  }
-
-  // ── AIR QUALITY ──
-  const aqData = (apiResults.openmeteo_aq_loop || {})[iso];
-  if (aqData && aqData.pm25 >= 35) {
-    liveEvidenceCount++;
-    evidenceSources.push("Open-Meteo AQ");
-    signals.aq = aqData;
-  }
-
-  // ── disease.sh ──
-  const diseaseRow = (apiResults.disease_sh || []).find(d => 
-    (d.country || "").toLowerCase().includes(name) || name.includes((d.country || "").toLowerCase())
-  );
-  if (diseaseRow && diseaseRow.active > 1000) {
-    liveEvidenceCount++;
-    evidenceSources.push("disease.sh");
-    signals.diseaseActive = diseaseRow.active;
-  }
-
-  // ── World Bank ──
-  const wbData = apiResults.wb_inflation?.[1]?.find(i => i.country?.id === iso);
-  if (wbData && wbData.value > 5) {
-    liveEvidenceCount++;
-    evidenceSources.push("World Bank");
-    signals.wbInflation = wbData.value;
-  }
-
-  // ── UNHCR ──
-  const unhcrData = (apiResults.unhcr_pop?.items || []).find(i => i.coa_iso === iso);
-  if (unhcrData && (unhcrData.refugees || 0) > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("UNHCR");
-    signals.totalDisplaced = (unhcrData.refugees || 0) + (unhcrData.idps || 0);
-    signals.refugees = unhcrData.refugees || 0;
-    signals.idps = unhcrData.idps || 0;
-  }
-
-  signals.liveEvidenceCount = liveEvidenceCount;
-  signals.evidenceSources = evidenceSources;
-  return signals;
-}
-
-// ─── APPLY LIVE ADJUSTMENTS (matches API's applyLiveAdjustments) ──────────
-function applyLiveAdjustments(dims, signals) {
-  const result = { ...dims };
-  const audit = [];
-
-  if (signals.quakeMag >= 4.5) {
-    const boost = Math.min(25, Math.round((signals.quakeMag - 4.0) * 5));
-    result.displacement = Math.min(99, result.displacement + Math.ceil(boost * 0.6));
-    result.health = Math.min(99, result.health + Math.floor(boost * 0.4));
-    audit.push({ source: "USGS/EMSC", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake` });
-  }
-
-  if (signals.nasaEventCount > 0) {
-    const boost = Math.min(15, signals.nasaEventCount * 5);
-    result.climate = Math.min(99, result.climate + boost);
-    audit.push({ source: "NASA EONET", field: "climate", delta: boost, reason: `${signals.nasaEventCount} active NASA events` });
-  }
-
-  if (signals.gdacsAlert) {
-    const boost = signals.gdacsAlert === "red" ? 15 : signals.gdacsAlert === "orange" ? 8 : 3;
-    result.displacement = Math.min(99, result.displacement + Math.ceil(boost * 0.5));
-    result.health = Math.min(99, result.health + Math.floor(boost * 0.5));
-    audit.push({ source: "GDACS", field: "displacement+health", delta: boost, reason: `${signals.gdacsAlert.toUpperCase()} alert active` });
-  }
-
-  if (signals.ifrcCount > 0) {
-    const boost = Math.min(12, signals.ifrcCount * 6);
-    result.access = Math.min(99, result.access + boost);
-    audit.push({ source: "IFRC GO", field: "access", delta: boost, reason: `${signals.ifrcCount} active IFRC operations` });
-  }
-
-  if (signals.maxTempC >= 35) {
-    const boost = Math.min(20, Math.round((signals.maxTempC - 30) * 1.5));
-    result.climate = Math.min(99, result.climate + Math.ceil(boost * 0.6));
-    result.health = Math.min(99, result.health + Math.floor(boost * 0.4));
-    audit.push({ source: "Open-Meteo", field: "climate+health", delta: boost, reason: `${signals.maxTempC}°C heat` });
-  }
-
-  if (signals.aq && signals.aq.pm25 >= 35) {
-    const boost = Math.min(10, Math.round((signals.aq.pm25 - 35) / 10));
-    if (boost > 0) {
-      result.health = Math.min(99, result.health + boost);
-      audit.push({ source: "Open-Meteo AQ", field: "health", delta: boost, reason: `PM2.5 ${signals.aq.pm25}µg/m³` });
-    }
-  }
-
-  if (signals.diseaseActive > 1000) {
-    const m = signals.diseaseActive / 1000;
-    const boost = Math.min(15, Math.round(Math.log10(m + 1) * 6));
-    result.health = Math.min(99, result.health + boost);
-    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active cases` });
-  }
-
-  if (signals.wbInflation > 5) {
-    const boost = Math.min(15, Math.round(signals.wbInflation / 4));
-    result.economic = Math.min(99, result.economic + boost);
-    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `Inflation ${signals.wbInflation.toFixed(1)}%` });
-  }
-
-  if (signals.totalDisplaced > 0) {
-    const m = signals.totalDisplaced / 1_000_000;
-    const boost = m >= 10 ? 30 : m >= 5 ? 25 : m >= 3 ? 20 : m >= 1.5 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
-    if (boost > 0) {
-      result.displacement = Math.min(99, result.displacement + boost);
-      audit.push({ source: "UNHCR", field: "displacement", delta: boost, reason: `${m.toFixed(1)}M displaced` });
-    }
-  }
-
-  return { dims: result, audit };
-}
-
-// ─── SPILLOVER SCORE (matches API) ──────────────────────────────────────────
-function spilloverScore(store) {
-  const result = {};
-  for (const iso in store) {
-    const neighbours = (ADJ[iso] || []).filter(n => store[n]);
-    if (!neighbours.length) { result[iso] = 0; continue; }
-    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    result[iso] = Math.round(Math.max(0, avgNb - 50) * 0.13 * 10) / 10;
-  }
-  return result;
-}
-
-// ─── SEED HISTORY (matches API) ─────────────────────────────────────────────
-function seedHistory(iso, current) {
-  const seed = iso.split('').reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
-  let v = Math.min(99, Math.max(5, current + Math.round((seededRand(seed) - 0.5) * 20)));
-  const hist = [];
-  for (let i = 0; i <= 28; i++) {
-    hist.push({ t: Date.now() - (28 - i) * 86400000, s: v });
-    v = Math.min(99, Math.max(5, Math.round(v + (current - v) * 0.15 + (seededRand(seed + i * 31 + 7) - 0.5) * 6)));
-  }
-  hist[hist.length - 1].s = current;
-  return hist;
-}
-
-// ─── SEEDED RANDOM ───────────────────────────────────────────────────────────
-function seededRand(n) {
-  const x = Math.sin(n * 9301 + 49297) * 233280;
-  return x - Math.floor(x);
-}
-// ─── REPLACE buildStore() WITH THIS ──────────────────────────────────────────
+// ─── BUILD STORE WITH EVIDENCE ──────────────────────────────────────────
 function buildStore() {
   const refreshSeed = Math.floor(Date.now() / 60000);
-  const store = {};
+  let newStore = {};
   
-  for (const [iso, country] of Object.entries(COUNTRIES)) {
-    // 1. Get base prior from country data
-    const prior = country.prior || 30;
-    const types = country.types || DEFAULT_T;
-    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-    const flag = FLAGS[iso] || '🌍';
+  for (let iso of Object.keys(BASE_SCORES)) {
     const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    const base = BASE_SCORES[iso] || 30;
     
-    // 2. Build prior dimensions (matches API's buildPriorDims)
-    const dims = buildPriorDims(prior, types);
-    
-    // 3. Compute evidence from LIVE data sources (matches API's extractSignals)
+    // ── Compute evidence from ALL data sources ──
     const evidence = computeEvidenceScore(iso);
-    const signals = extractLiveSignals(iso);
     
-    // 4. Apply live adjustments (matches API's applyLiveAdjustments)
-    const adjusted = applyLiveAdjustments(dims, signals);
+    // ── Structural baseline ──
+    const dims = buildDims(base, types);
+    let structuralRaw = composite(dims);
     
-    // 5. Final score with clamping (matches API exactly)
-    const rawScore = composite(adjusted.dims);
-    const score = Math.max(1, Math.min(99, Math.round(rawScore)));
+    // Structural weight: evidence trumps modeling
+    const structuralWeight = 1 - (evidence.confidence * 0.35);
+    const structuralComponent = structuralRaw * structuralWeight;
     
-    // 6. Events count based on evidence
+    // ── Combine: evidence + structural ──
+    let rawTotal = structuralComponent + evidence.score;
+    
+    // ── Final score ──
+    const score = Math.max(1, Math.min(99, Math.round(
+      rawTotal <= 70 
+        ? rawTotal 
+        : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
+    )));
+    
+    // ── Events: based on actual evidence sources ──
     const events = Math.min(60, Math.max(4, Math.round(
       score * 0.30 + 
       types.length * 1.5 + 
-      (signals.liveEvidenceCount || 0) * 3
+      evidence.sourceCount * 3
     )));
     
-    store[iso] = {
-      name, flag, types, needs,
-      dims: adjusted.dims,
-      score,
-      priorScore: Math.round(composite(dims)),
-      events,
-      spillover: 0,
-      liveBoost: score - Math.round(composite(dims)),
-      evidenceCount: signals.liveEvidenceCount || 0,
-      evidenceSources: signals.evidenceSources || [],
-      evidenceLedger: adjusted.audit || [],
-      signals: signals,
+        newStore[iso] = {
+      name, flag, types, needs, dims, score, events, spillover: 0,
+      evidenceLedger: evidence.ledger || [],
+      evidenceConfidence: evidence.confidence || 0,
+      evidenceScore: evidence.score || 0,
+      structuralComponent: +structuralComponent.toFixed(1),
+      evidenceCount: evidence.sourceCount || 0,
+      evidenceDetails: {
+        fatalities: 0,
+        displaced: 0,
+        disease_cases: 0,
+      }
     };
   }
   
-  // ── Spillover from neighbours (matches API) ──
-  const spill = spilloverScore(store);
-  for (const iso in store) {
-    store[iso].spillover = spill[iso] || 0;
-    store[iso].score = Math.min(99, Math.max(1, 
-      store[iso].score + store[iso].spillover
+  // ── Spillover from neighbours ──
+  const spill = spilloverScore(newStore);
+  for (let iso in newStore) {
+    newStore[iso].spillover = spill[iso] || 0;
+    newStore[iso].score = Math.min(99, Math.max(1, 
+      newStore[iso].score + newStore[iso].spillover
     ));
   }
   
-  // ── Store and rank ──
-  window.store = store;
-  window.ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  store = newStore;
+  ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
   
   // ── Initialize history ──
-  if (!window.historyInitialized) {
-    for (const iso in store) {
-      window.history[iso] = seedHistory(iso, store[iso].score);
+  if (!historyInitialized) {
+    for (let iso in store) {
+      history[iso] = seedHistory(iso, store[iso].score);
     }
-    window.historyInitialized = true;
+    historyInitialized = true;
   } else {
-    for (const iso in store) {
-      if (!window.history[iso]) window.history[iso] = seedHistory(iso, store[iso].score);
-      window.history[iso].push({ t: Date.now(), s: store[iso].score });
-      if (window.history[iso].length > 60) window.history[iso].shift();
+    for (let iso in store) {
+      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
+      history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (history[iso].length > 60) history[iso].shift();
     }
   }
   
-  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${window.ranked.filter(i => store[i].score >= 80).length} critical`);
-  return { store, ranked: window.ranked };
+  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
+  console.log('📊 Countries with evidence:', Object.keys(evidenceIndex.sourceCoverage).length);
+  return { store, ranked };
 }
-
 // ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
 function updateUIStats() {
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
@@ -5132,3 +5034,7 @@ parts.push(`${name}’s score has ${trendPhrase}.`);
 </script>
 </body>
 </html>
+
+
+
+
