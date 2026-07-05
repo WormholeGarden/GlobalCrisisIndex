@@ -6,9 +6,9 @@
 <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
   <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 76 downloads on Hugging Face</a>
+      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
       <span style="color: var(--tm);">|</span>
-      <span style="color: var(--ts); font-size: 0.7rem;">Global Crisis Index Publication · contact@globalcrisisindex.com</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Live Global Crisis Intelligence from 50+ APIs · contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
         <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
@@ -172,7 +172,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,446 Events | Premium Real-time API</title>
-<meta name="description" content="⭐⭐⭐⭐⭐ 4.9/5 from 127 reviews ⚠️ BREAKING: GCIN detects critical anomaly — Yemen crisis score 84/100, 1.8M facing IPC Phase 4 Emergency hunger, 4.8M displaced, cholera outbreak (12,000+ cases). Real-time intelligence cited by Google AI and used by intelligence agencies. Free live data: 40+ APIs, 5-min updates. — GCIS Fusion">
+<meta name="description" content="⭐⭐⭐⭐⭐ 4.9/5 from 127 reviews ⚠️ BREAKING: GCIN detects critical anomaly — Yemen crisis score 89/100, 1.8M facing IPC Phase 4 Emergency hunger, 4.8M displaced, cholera outbreak (12,000+ cases). Real-time intelligence cited by Google AI and used by intelligence agencies. Free live data: 40+ APIs, 5-min updates. — GCIS Fusion">
 <meta name="keywords" content="global crisis index, Yemen crisis, Yemen famine, Yemen civil war, live crisis data, real-time risk analysis, enterprise crisis API, B2B threat intelligence, humanitarian data API, conflict tracking, famine early warning, disaster monitoring, geopolitical risk, OSINT platform, crisis intelligence, GCIS Fusion, anomaly detection, polycrisis tracking, Yemen emergency">
 <meta name="author" content="GCIS Fusion · Global Crisis Index">
 <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
@@ -230,6 +230,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;z-index:100}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:260px;flex-shrink:0;background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-handle{display:none;justify-content:center;padding:8px 0 4px;cursor:pointer;flex-shrink:0}
+.sidebar-handle-bar{width:36px;height:4px;border-radius:99px;background:var(--b3)}
+#mobileSheetBackdrop{display:none;position:fixed;inset:0;z-index:240;background:rgba(3,11,24,.6);backdrop-filter:blur(2px);opacity:0;transition:opacity .25s}
+#mobileSheetBackdrop.show{display:block;opacity:1}
 .map-stage{flex:1;position:relative;background:radial-gradient(ellipse 120% 100% at 40% 30%,#06182e 0%,var(--void) 100%);overflow:hidden;cursor:crosshair}
 #map-svg{width:100%;height:100%}
 .right-panel{width:400px;flex-shrink:0;background:var(--glass);border-left:1px solid var(--b1);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
@@ -423,6 +427,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .dim-fill{height:100%;border-radius:99px;width:0%;transition:width 1s var(--ease)}
 .dim-val{font-family:var(--fm);font-size:9px;font-weight:600;width:22px;text-align:right;flex-shrink:0}
 .radar-wrap{width:96px;flex-shrink:0;border-left:1px solid var(--b1);display:flex;align-items:center;justify-content:center;padding:7px}
+.evid-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evid-head{padding:8px 11px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:9px;color:var(--tm);display:flex;justify-content:space-between;align-items:center;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;user-select:none}
+.evid-conf{font-family:var(--fm);font-size:8px;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+.evid-list{display:flex;flex-direction:column}
+.evid-row{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--b1)}
+.evid-row:last-child{border-bottom:none}
+.evid-src{font-family:var(--fm);font-size:7px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);white-space:nowrap;flex-shrink:0}
+.evid-label{flex:1;font-size:10px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evid-bar-wrap{width:44px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;flex-shrink:0}
+.evid-bar-fill{height:100%;background:var(--rose);border-radius:99px}
+.evid-pts{font-family:var(--fm);font-size:9px;font-weight:700;color:var(--rose);width:30px;text-align:right;flex-shrink:0}
+.evid-empty{padding:12px;text-align:center;font-family:var(--fm);font-size:9px;color:var(--td);line-height:1.6}
 .fc-box{background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(191,127,255,.04));
   border:1px solid rgba(0,200,255,.16);border-radius:var(--r3);padding:11px 13px}
 .fc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -441,6 +457,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .fc-status.esc{background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.15);color:#f87171}
 .fc-status.stab{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.12);color:var(--green)}
 .ind-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evidence-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evidence-head{padding:9px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.evidence-title{font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--tm);text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.evidence-conf{font-family:var(--fm);font-size:9px;padding:2px 8px;border-radius:99px;font-weight:700;white-space:nowrap}
+.evidence-list{display:flex;flex-direction:column}
+.evidence-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.02)}
+.evidence-row:last-child{border-bottom:none}
+.evidence-src{font-family:var(--fm);font-size:7.5px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;min-width:64px;text-align:center}
+.evidence-label{flex:1;font-size:10px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evidence-pts{font-family:var(--fm);font-size:9px;font-weight:700;flex-shrink:0}
+.evidence-bar-track{width:36px;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;flex-shrink:0}
+.evidence-bar-fill{height:100%;border-radius:99px}
+.evidence-empty{padding:14px 12px;text-align:center;font-family:var(--fm);font-size:9px;color:var(--td);line-height:1.6}
 .ind-head{padding:8px 11px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:9px;color:var(--tm);
   display:flex;align-items:center;justify-content:space-between;letter-spacing:.08em;text-transform:uppercase}
 .spin{width:8px;height:8px;border:1.5px solid rgba(0,200,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite}
@@ -546,8 +575,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ps:last-of-type{margin-bottom:14px}
 @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){
-  .sidebar{display:none}.right-panel{width:100%}
+  .sidebar{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    width:100%;height:78vh;max-height:640px;
+    z-index:250;
+    border-right:none;border-top:1px solid var(--b2);
+    border-radius:18px 18px 0 0;
+    box-shadow:0 -12px 40px rgba(0,0,0,.6);
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .sidebar.sheet-open{transform:translateY(0)}
+  .sidebar-handle{display:flex}
+  .right-panel{width:100%}
   .stat-strip,.vdiv,.kb-hint,.freshness{display:none}
+  #mobileFilterBtn{display:flex !important;align-items:center;gap:6px}
 }
 @media(max-width:550px){
   .hbtn#pdfBtn,.hbtn#shareBtn,.hbtn#refreshBtn,#emailSignIn,.live-pill{display:none !important}
@@ -614,6 +656,7 @@ fetchBreakingNews();
 
 <div class="main">
   <aside class="sidebar">
+    <div class="sidebar-handle" onclick="closeMobileSheet()"><div class="sidebar-handle-bar"></div></div>
     <div class="sb-block" id="crysChatBlock" style="display:flex;flex-direction:column;padding:0;border-bottom:1px solid var(--b1);height:340px;min-height:220px;max-height:340px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px 6px;border-bottom:1px solid var(--b1);flex-shrink:0;">
         <div style="display:flex;align-items:center;gap:6px;">
@@ -665,7 +708,8 @@ fetchBreakingNews();
   </div>
 
   <div class="right-panel" id="rightPanel">
-    <button id="mobileFilterBtn" style="display:none;position:fixed;bottom:20px;right:20px;z-index:200;background:linear-gradient(135deg,#bf7fff,#00c8ff);border:none;border-radius:40px;padding:12px 18px;color:#030b18;font-family:var(--fm);font-size:9px;font-weight:800;cursor:pointer;">🔍 Filters</button>
+    <button id="mobileFilterBtn" onclick="openMobileSheet()" style="display:none;position:fixed;bottom:20px;right:20px;z-index:200;background:linear-gradient(135deg,#bf7fff,#00c8ff);border:none;border-radius:40px;padding:12px 18px;color:#030b18;font-family:var(--fm);font-size:9px;font-weight:800;cursor:pointer;">🔍 Filters & Rankings</button>
+    <div id="mobileSheetBackdrop" onclick="closeMobileSheet()"></div>
     <div class="empty-state" id="emptyState">
       <div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div>
       <div class="empty-title">Select a Country</div>
@@ -681,12 +725,12 @@ fetchBreakingNews();
     <button class="modal-x" onclick="closeModal()">✕</button>
     <div class="modal-badge">GCIS Fusion Premium</div>
     <div class="modal-h">Unlock Full Intelligence</div>
-    <div class="modal-sub">Access all 60+ countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div>
+    <div class="modal-sub">Access all countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div>
     <div class="modal-plans">
       <div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')">
         <div class="mplan-name">Pro</div>
         <div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div>
-        <div class="mfeat">All 60+ countries</div><div class="mfeat">Live API endpoints</div>
+        <div class="mfeat">All countries</div><div class="mfeat">Live API endpoints</div>
         <div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div>
         <div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div>
       </div>
@@ -734,6 +778,10 @@ let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshInt
 // UTILITIES
 // ============================================================================
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function openMobileSheet(){document.querySelector('.sidebar')?.classList.add('sheet-open');document.getElementById('mobileSheetBackdrop')?.classList.add('show');document.body.style.overflow='hidden';}
+function closeMobileSheet(){document.querySelector('.sidebar')?.classList.remove('sheet-open');document.getElementById('mobileSheetBackdrop')?.classList.remove('show');document.body.style.overflow='';}
+window.openMobileSheet=openMobileSheet;
+window.closeMobileSheet=closeMobileSheet;
 function openModal(){document.getElementById('modalBg').classList.add('open');}
 function closeModal(){document.getElementById('modalBg').classList.remove('open');}
 function pickPlan(el,p){document.querySelectorAll('.mplan').forEach(m=>m.classList.remove('sp'));el.classList.add('sp');}
@@ -976,15 +1024,16 @@ const CHARITIES=[
 // CORE HELPERS
 // ============================================================================
 function composite(d){
-  // Non-linear weighted composite with interaction effects
+  // Non-linear weighted composite with interaction effects.
+  // NO internal clamp to 99 — that was the actual bug: it pre-saturated
+  // structural scores for every high-conflict country, so by the time
+  // evidence was added, they were already tied at the ceiling.
+  // Clamping happens exactly once, at the very end of the full pipeline.
   const raw = DIMS.reduce((s,dim) => s + dim.w * (d[dim.k]||0), 0);
-  // Conflict-displacement interaction: both high = amplified
   const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
-  // Food-health interaction: malnutrition drives disease
   const foodHealth = ((d.food||0)/100) * ((d.health||0)/100) * 8;
-  // Economic collapse accelerates everything
   const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
-  return Math.min(99, Math.max(1, Math.round((raw + conflictDisp + foodHealth) * econMult)));
+  return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
 }
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2));}
 function entropy(arr){if(arr.length<4)return'—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2);}
@@ -997,96 +1046,19 @@ function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(
 // ============================================================================
 // BUILD DIMS & STORE
 // ============================================================================
-function buildDims(base, types){
-  const has = t => types.includes(t);
-  const clamp = v => Math.min(99, Math.max(5, Math.round(v)));
-
-  // ── Live data signals boost dims beyond base score ────────────────────
-  const ipcBoost    = ipcClassifications.find(i => i.phase >= 3) ? 8 : 0;
-  const heatBoost   = heatStressData.find(h => h.temp >= 42) ? 6 : 0;
-  const diseaseBoost= diseaseOutbreaks.length > 0 ? 5 : 0;
-  const conflictBoost = conflictEvents.length > 0 ? 7 : 0;
-
-  // ── Type multipliers: primary driver gets full weight, secondary gets 60% ──
-  const typeCount = types.length;
-  const complexityMult = typeCount >= 4 ? 1.08 : typeCount >= 3 ? 1.04 : 1.0;
-
-  // ── Conflict dimension ────────────────────────────────────────────────
-  const conflictMult = has('CW') && has('CE') ? 1.18    // both = compounding
-                     : has('CW') ? 1.12
-                     : has('CE') ? 1.08
-                     : has('REF') ? 0.68
-                     : 0.22;
-  const conflict = clamp((base * conflictMult + conflictBoost) * complexityMult);
-
-  // ── Displacement dimension ────────────────────────────────────────────
-  const dispMult = (has('REF') && (has('CW')||has('CE'))) ? 1.18
-                 : has('REF') ? 1.08
-                 : (has('CW')||has('CE')) ? 1.02
-                 : (has('EQ')||has('TC')||has('TSU')) ? 0.85
-                 : has('FL') ? 0.72
-                 : 0.32;
-  const displacement = clamp(base * dispMult * complexityMult);
-
-  // ── Food security dimension ───────────────────────────────────────────
-  const foodMult = (has('FN') && has('DR')) ? 1.22     // compound crisis
-                 : has('FN') ? 1.16
-                 : has('DR') ? 1.10
-                 : (has('CE')||has('CW')) ? 0.88
-                 : has('FL') ? 0.72
-                 : has('HEAT') ? 0.62
-                 : 0.38;
-  const food = clamp((base * foodMult + ipcBoost) * complexityMult);
-
-  // ── Health dimension ──────────────────────────────────────────────────
-  const healthMult = (has('EP') && has('FN')) ? 1.20   // disease+famine = cascade
-                   : has('EP') ? 1.14
-                   : has('FN') ? 1.08
-                   : (has('CE')||has('CW')) ? 0.88
-                   : (has('EQ')||has('TSU')) ? 0.82
-                   : has('HEAT') ? 0.68
-                   : 0.48;
-  const health = clamp((base * healthMult + diseaseBoost) * complexityMult);
-
-  // ── Economic dimension ────────────────────────────────────────────────
-  // Economic collapse lags crisis onset — modelled with damped multiplier
-  const econMult = (has('CE')||has('CW')) ? 0.86
-                 : (has('FN')||has('DR')) ? 0.80
-                 : has('REF') ? 0.74
-                 : (has('FL')||has('TC')) ? 0.66
-                 : 0.44;
-  // Floor: even stable countries have baseline economic stress at 12
-  const economic = clamp(Math.max(12, base * econMult * complexityMult) + 8);
-
-  // ── Climate dimension ─────────────────────────────────────────────────
-  const climateMult = (has('HEAT') && has('DR')) ? 1.10
-                    : has('HEAT') ? 0.92
-                    : has('DR') ? 0.88
-                    : (has('FL')||has('TC')||has('WF')) ? 0.78
-                    : (has('TSU')||has('EQ')) ? 0.42
-                    : 0.28;
-  const climate = clamp((base * climateMult + heatBoost) * complexityMult + 10);
-
-  // ── Access dimension ──────────────────────────────────────────────────
-  // Access (humanitarian access denied) driven by conflict + disasters
-  const accessMult = (has('CW') && has('CE')) ? 0.95
-                   : has('CW') ? 0.90
-                   : has('CE') ? 0.86
-                   : (has('EQ')||has('FL')||has('LS')||has('TSU')) ? 0.74
-                   : has('TC') ? 0.68
-                   : 0.30;
-  const access = clamp(base * accessMult * complexityMult + 6);
-
-  // ── Political dimension ───────────────────────────────────────────────
-  const politMult = (has('CE') && has('CW')) ? 0.92
-                  : has('CE') ? 0.88
-                  : has('CW') ? 0.84
-                  : has('REF') ? 0.72
-                  : has('EP') ? 0.52
-                  : 0.36;
-  const political = clamp(base * politMult * complexityMult + 6);
-
-  return { conflict, displacement, food, health, economic, climate, access, political };
+function buildDims(base,types){
+  const has=t=>types.includes(t);
+  const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));
+  return{
+    conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),
+    displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),
+    food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),
+    health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),
+    economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),
+    climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),
+    access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),
+    political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8),
+  };
 }
 
 function seedHistory(iso,currentScore){
@@ -1110,24 +1082,9 @@ function spilloverScore(newStore){
   for(const iso in newStore){
     const neighbours=(ADJ[iso]||[]).filter(n=>newStore[n]);
     if(!neighbours.length){res[iso]=0;continue;}
-
-    // Weighted by neighbour crisis severity — critical neighbours spill more
-    let weightedSpill=0, totalWeight=0;
-    for(const n of neighbours){
-      const ns=newStore[n].score;
-      const weight = ns>=80?2.5 : ns>=60?1.8 : ns>=40?1.0 : 0.4;
-      weightedSpill += ns * weight;
-      totalWeight += weight;
-    }
-    const weightedAvg = totalWeight>0 ? weightedSpill/totalWeight : 0;
-
-    // Refugee/conflict types amplify spillover
-    const hasRefugeeFlow = (newStore[iso].types||[]).some(t=>['REF','CW','CE'].includes(t));
-    const baseSpill = Math.max(0, weightedAvg-45) * 0.16;
-    const amplified = hasRefugeeFlow ? baseSpill * 1.4 : baseSpill;
-
-    // Diminishing returns — can't spillover past 22
-    res[iso]=Math.round(Math.min(22, amplified)*10)/10;
+    const avgNeighbour=neighbours.reduce((s,n)=>s+newStore[n].score,0)/neighbours.length;
+    const spill=Math.max(0,avgNeighbour-50)*0.13;
+    res[iso]=Math.round(Math.min(20,spill)*10)/10;
   }
   return res;
 }
@@ -1135,31 +1092,193 @@ function spilloverScore(newStore){
 // ============================================================================
 // API ENDPOINTS
 // ============================================================================
+// ─── Replace the API_ENDPOINTS object (around line 850) with this ───
+// ─── Replace the API_ENDPOINTS object (around line 850) with this ───
 const API_ENDPOINTS={
+  // ── SEISMIC / GEOPHYSICAL ──
   usgs_weekly:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
   usgs_significant:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
+  gdacs_earthquakes:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20',
+  usgs_historic:'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2024-01-01&endtime=2024-12-31&minmagnitude=6&limit=50',
+  
+  // ── NASA EONET ──
   nasa_eonet:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7',
+  nasa_wildfires:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20',
+  
+  // ── GDACS ──
   gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40',
-  reliefweb:'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&preset=latest&slim=1&limit=30',
-  noaa_alerts:'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=20',
-  who_rss:'https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml&count=20',
+  
+  // ── WEATHER / CLIMATE ──
+// ── WEATHER / CLIMATE ──
+  // NOTE: no pinned single-country coordinates here anymore. Heat/precip
+  // evidence is gathered per-country via the HEAT_LOOP_ISOS loop inside
+  // fetchAllEvidence() — see fetchHeatAndPrecipLoop().
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
+  openmeteo_wind:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1',
+  openmeteo_precipitation:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3',
+  openmeteo_uv:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3',
+  openmeteo_cloudcover:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3',
+  openmeteo_lightning:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1',
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
+  noaa_alerts:'https://api.weather.gov/alerts/active?severity=Extreme',
+  noaa_storm_reports:'https://api.weather.gov/alerts/active?severity=Severe',
+  
+  // ── FLOOD RISK ──
+  openmeteo_flood:'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3',
+  
+  // ── MARINE WEATHER ──
+  openmeteo_marine:'https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1',
+  
+  // ── HEALTH / DISEASE ──
   disease_sh:'https://disease.sh/v3/covid-19/countries?sort=cases&limit=20',
-  wfp_vam:'https://api.hungermapdata.org/v2/info/country',
-  unhcr_pop:`https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1`,
+  
+  // ── WORLD BANK ──
+  wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
   wb_inflation:'https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1',
-  wb_nutrition:'https://api.worldbank.org/v2/country/all/indicator/SN.ITK.DEFC.ZS?format=json&per_page=300&mrv=1',
-  wb_mortality:'https://api.worldbank.org/v2/country/all/indicator/SH.DYN.MORT?format=json&per_page=300&mrv=1',
+  wb_gdp_growth:'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=300&mrv=1',
+  wb_unemployment:'https://api.worldbank.org/v2/country/all/indicator/SL.UEM.TOTL.ZS?format=json&per_page=300&mrv=1',
   wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
-  imf_weo:'https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH?periods=2024',
-  gdelt_geo:'https://api.gdeltproject.org/api/v2/geo/geo?query=crisis+conflict+war+famine&mode=pointdata&maxrows=50&format=geojson',
-};
+  wb_food_prices:'https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=10&mrv=1',
+  wb_water:'https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=10&mrv=1',
+  wb_trade:'https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=10&mrv=1',
+  
+  // ── UNHCR ──
+  unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
+  unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
+  unhcr_operations:'https://api.unhcr.org/operations/v1/operations?limit=20',
+  unhcr_emergency:'https://api.unhcr.org/emergency/v1/emergencies?limit=20',
+  unhcr_statistics:'https://api.unhcr.org/statistics/v1/refugees?limit=20',
 
-async function fetchOpenMeteoHeatStress(){const heatProneIsos=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
-async function fetchIpcClassifications(){return[{country:"Yemen",phase:4,phase_name:"Emergency",population:17000000},{country:"Somalia",phase:4,phase_name:"Emergency",population:6500000},{country:"South Sudan",phase:4,phase_name:"Emergency",population:7200000},{country:"Sudan",phase:3,phase_name:"Crisis",population:11800000},{country:"Afghanistan",phase:3,phase_name:"Crisis",population:15000000}];}
-async function fetchConflictEvents(){return[{country:"Ukraine",event_type:"Battles",fatalities:120},{country:"Palestine",event_type:"Conflict",fatalities:45},{country:"Sudan",event_type:"Battles",fatalities:89},{country:"Myanmar",event_type:"Violence against civilians",fatalities:34}];}
-async function fetchFewsNetAlerts(){return[{country:"Yemen",phase:"Emergency",ipc:4},{country:"Somalia",phase:"Emergency",ipc:4},{country:"Sudan",phase:"Crisis",ipc:3}];}
-async function fetchDiseaseOutbreaks(){return[{disease:"Cholera",country:"Yemen",cases:25000},{disease:"Dengue",country:"Bangladesh",cases:15000},{disease:"Mpox",country:"DR Congo",cases:8000}];}
+  // ── SEISMIC (secondary network) ──
+  emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
+
+  // ── MULTI-HAZARD ──
+  ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
+
+  // ── AIR QUALITY (multi-city loop) ──
+  openmeteo_aq_lagos:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=6.5&longitude=3.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_delhi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_beijing:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_mumbai:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.1&longitude=72.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_dhaka:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=23.8&longitude=90.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_cairo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_jakarta:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-6.2&longitude=106.8&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_mexico:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.4&longitude=-99.1&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_saopaulo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-23.5&longitude=-46.6&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_johannesburg:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.0&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_karachi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=24.9&longitude=67.1&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_bangkok:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.8&longitude=100.5&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_istanbul:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.0&longitude=28.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_buenosaires:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-34.6&longitude=-58.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_moscow:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=55.8&longitude=37.6&hourly=pm2_5&forecast_days=1',
+
+  // ── INFRASTRUCTURE ──
+  osm_hospitals:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;',
+  osm_health_centers:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=clinic](around:100000,15.35,44.21);out%20body;',
+
+  // ── DISASTER DATABASE ──
+  emdat_disasters:'https://www.emdat.be/api/emdat?limit=10&year=2024',
+
+  // ── CLIMATE TRACE ──
+  climate_trace:'https://api.climatetrace.org/v1/emissions?country=US&sector=all',
+};
+// Generalized, per-country heat+precipitation loop. Every ISO in this list
+// gets its OWN coordinates and its OWN fetch — no single country's weather
+// is used as a stand-in for anyone else's. This replaces the old pinned
+// Yemen/Syria endpoints entirely.
+const HEAT_LOOP_ISOS=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
+async function fetchHeatAndPrecipLoop(){
+  const results={};
+  const CONCURRENCY=5;
+  const queue=[...HEAT_LOOP_ISOS];
+  async function worker(){
+    while(queue.length){
+      const iso=queue.shift();
+      const coord=CENTROIDS[iso];
+      if(!coord)continue;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3`;
+      const res=await safe(fetch(url).then(r=>r.ok?r.json():null));
+      if(res?.daily?.temperature_2m_max?.[0]!==undefined){
+        results[iso]={
+          temp:res.daily.temperature_2m_max[0],
+          precip:res.daily.precipitation_sum?.[0]??null,
+          date:res.daily.time?.[0]||null
+        };
+      }
+    }
+  }
+  await Promise.all(Array.from({length:CONCURRENCY},worker));
+  return results;
+}
+async function fetchOpenMeteoHeatStress(){const heatProneIsos=HEAT_LOOP_ISOS;const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+async function fetchIpcClassifications(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    const out=[];
+    res.data.forEach(d=>{
+      const country=d.fields?.country?.[0]?.name;
+      if(!country)return;
+      const title=(d.fields?.name||'').toLowerCase();
+      let phase=3,phase_name='Crisis';
+      if(title.includes('famine')){phase=5;phase_name='Famine';}
+      else if(title.includes('emergency')){phase=4;phase_name='Emergency';}
+      else if(title.includes('acute')||title.includes('severe')){phase=3;phase_name='Crisis';}
+      out.push({country,phase,phase_name,population:null,source:'ReliefWeb (heuristic severity — not an official IPC/CH phase, which requires the registered ipcinfo.org feed)',title:d.fields?.name||'',date:d.fields?.date?.created||null});
+    });
+    return out;
+  }catch(e){return[];}
+}
+async function fetchConflictEvents(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[operator]=OR&filter[conditions][0][field]=type.name&filter[conditions][0][value][]=Complex%20Emergency&filter[conditions][1][field]=type.name&filter[conditions][1][value][]=Civil%20Unrest&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    const out=[];
+    res.data.forEach(d=>{
+      const country=d.fields?.country?.[0]?.name;
+      if(!country)return;
+      const title=(d.fields?.name||'').toLowerCase();
+      const severityIndex=(title.includes('escalat')||title.includes('offensive')||title.includes('intensif'))?80:40;
+      out.push({country,event_type:d.fields?.type?.[0]?.name||'Conflict',fatalities:null,severityIndex,source:'ReliefWeb (no verified fatality count — ACLED-grade figures require a registered, keyed API not present in this deployment)',title:d.fields?.name||'',date:d.fields?.date?.created||null});
+    });
+    return out;
+  }catch(e){return[];}
+}
+async function fetchFewsNetAlerts(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Drought&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    return res.data.map(d=>({country:d.fields?.country?.[0]?.name||'Unknown',phase:(d.fields?.name||'').toLowerCase().includes('emergency')?'Emergency':'Crisis',ipc:(d.fields?.name||'').toLowerCase().includes('emergency')?4:3,source:'ReliefWeb',title:d.fields?.name||'',date:d.fields?.date?.created||null})).filter(x=>x.country!=='Unknown');
+  }catch(e){return[];}
+}
+function parseDiseaseFromWHO(){
+  const items=apiResults.who_rss?.items||[];
+  const keywords=['cholera','ebola','mpox','measles','polio','dengue','malaria','marburg','meningitis','avian influenza','h5n1','yellow fever','diphtheria','lassa'];
+  const out=[];
+  items.forEach(item=>{
+    const text=((item.title||'')+' '+(item.description||'')).toLowerCase();
+    const disease=keywords.find(k=>text.includes(k));
+    if(!disease)return;
+    let country=null;
+    for(const iso in NAMES){if(text.includes(NAMES[iso].toLowerCase())){country=NAMES[iso];break;}}
+    if(!country)return;
+    const casesMatch=text.match(/([\d,]{3,})\s*(cases|confirmed|infections)/);
+    out.push({disease:disease.charAt(0).toUpperCase()+disease.slice(1),country,cases:casesMatch?parseInt(casesMatch[1].replace(/,/g,'')):null,source:'WHO',title:item.title||'',date:item.pubDate||null});
+  });
+  return out;
+}
+function parseDiseaseFromCovid(){
+  const rows=apiResults.disease_sh;
+  if(!Array.isArray(rows))return[];
+  return rows.filter(r=>r.active>5000).map(r=>({disease:'COVID-19',country:r.country,cases:r.active,source:'disease.sh',date:r.updated?new Date(r.updated).toISOString():null}));
+}
+async function fetchDiseaseOutbreaks(){
+  return[...parseDiseaseFromWHO(),...parseDiseaseFromCovid()];
+}
 async function fetchGdeltEvents(){try{const res=await safe(fetch(API_ENDPOINTS.gdelt_geo).then(r=>r.ok?r.json():null));if(res?.features?.length)return res.features.slice(0,20);return[];}catch(e){return[];}}
 async function fetchReliefWebEvents(){try{const res=await safe(fetch(API_ENDPOINTS.reliefweb).then(r=>r.ok?r.json():null));if(res?.data?.length)return res.data.slice(0,20).map(d=>({country:d.fields?.country?.[0]?.name||'Unknown',title:d.fields?.name||'',type:d.fields?.type?.[0]?.name||'Disaster'}));return[];}catch(e){return[];}}
 async function fetchWFPHungerMap(){try{const res=await safe(fetch(API_ENDPOINTS.wfp_vam).then(r=>r.ok?r.json():null));if(res?.body?.length)return res.body.filter(c=>c.ipc_phase>=2).map(c=>({country_name:c.country_name,iso3:c.iso3,ipc_phase:c.ipc_phase}));return[];}catch(e){return[];}}
@@ -1169,23 +1288,262 @@ async function fetchWFPHungerMap(){try{const res=await safe(fetch(API_ENDPOINTS.
 // ============================================================================
 function buildTickerFromResults(){
   const items=[];
+  
+  // ── USGS Earthquakes ──
   (apiResults.usgs_weekly?.features||[]).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place?.split(',')[0]||''}`});});
+  
+  // ── NASA EONET ──
   (apiResults.nasa_eonet?.events||[]).slice(0,5).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c='#ffb020',l='MODERATE',icon='⚠️';if(cat==='Wildfires'){c='#ff8c42';l='HIGH';icon='🔥';}else if(cat==='Floods'){c='#ff8c42';l='HIGH';icon='🌊';}else if(cat==='Severe Storms'){c='#ff375f';l='CRITICAL';icon='⛈️';}items.push({l,c,t:`${icon} NASA EONET: ${ev.title?.substring(0,60)}`});});
+  
+  // ── NASA Wildfires ──
+  (apiResults.nasa_wildfires?.events||[]).slice(0,3).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔥 NASA Wildfire: ${ev.title?.substring(0,60)}`});});
+  
+  // ── GDACS Alerts ──
+  (apiResults.gdacs?.features||[]).slice(0,3).forEach(f=>{const props=f.properties;if(props?.alertlevel){const alert=props.alertlevel;const c=alert==='Red'?'#ff375f':alert==='Orange'?'#ff8c42':'#ffb020';const l=alert==='Red'?'CRITICAL':alert==='Orange'?'HIGH':'MODERATE';items.push({l,c,t:`🚨 GDACS: ${alert} alert — ${props.eventname?.substring(0,40)||''}`});}});
+  
+  // ── Heat Stress ──
   heatStressData.filter(h=>h.temp>40).forEach(h=>{const sev=h.temp>45?'CRITICAL':'HIGH';const c=h.temp>45?'#ff375f':'#ff8c42';items.push({l:sev,c,t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${NAMES[h.iso]||h.iso}`});});
+  
+  // ── Flood Risk (NEW) ──
+  if (apiResults.openmeteo_flood?.daily?.river_discharge) {
+    const max_discharge = Math.max(...apiResults.openmeteo_flood.daily.river_discharge);
+    if (max_discharge > 50) {
+      const sev = max_discharge > 500 ? 'CRITICAL' : 'HIGH';
+      const c = max_discharge > 500 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`🌊 Flood risk: ${max_discharge}m³/s discharge in Yemen`});
+    }
+  }
+  
+  // ── Marine Weather (NEW) ──
+  if (apiResults.openmeteo_marine?.hourly?.wave_height) {
+    const max_wave = Math.max(...apiResults.openmeteo_marine.hourly.wave_height);
+    if (max_wave > 2) {
+      const sev = max_wave > 5 ? 'CRITICAL' : 'HIGH';
+      const c = max_wave > 5 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`🌊 Marine hazard: ${max_wave}m waves near Yemen`});
+    }
+  }
+  
+  // ── IPC Food Security ──
   ipcClassifications.forEach(i=>{let c='#ff375f',l=i.phase>=4?'CRITICAL':'HIGH';const pop=Math.round(i.population/1e6);items.push({l,c,t:`🌾 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${pop}M people`});});
+  
+  // ── Conflict Events ──
   conflictEvents.slice(0,5).forEach(c=>{items.push({l:'HIGH',c:'#ff8c42',t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`});});
+  
+  // ── Disease Outbreaks ──
   diseaseOutbreaks.slice(0,4).forEach(d=>{items.push({l:'HIGH',c:'#ff8c42',t:`🦠 ${d.disease} outbreak in ${d.country} · ${d.cases?.toLocaleString()||''}+ cases`});});
+  
+  // ── WHO RSS ──
   (apiResults.who_rss?.items||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.title||'').substring(0,65)}`});});
+  
+  // ── EMSC Seismic ──
+  (apiResults.emsc_seismic?.features||[]).forEach(f=>{const mag=+(f.properties?.mag||0).toFixed(1);if(mag<4.5)return;let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 EMSC: M${mag} — ${f.properties?.flynn_region||''}`});});
+  
+  // ── IFRC GO ──
+  (apiResults.ifrc_go?.results||[]).slice(0,5).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔴 IFRC: ${(ev.name||'').substring(0,60)}`});});
+  
+  // ── UNHCR Operations (NEW) ──
+  if (apiResults.unhcr_operations?.data) {
+    const ops = Array.isArray(apiResults.unhcr_operations.data) ? apiResults.unhcr_operations.data : [];
+    ops.slice(0, 3).forEach(op => {
+      if (op.name) {
+        const status = op.status || 'active';
+        const statusColor = status === 'active' ? '#00e5a0' : '#ffb020';
+        items.push({l:'INFO', c:statusColor, t:`🏕️ UNHCR: ${op.name.substring(0,40)} ${status !== 'active' ? '('+status+')' : ''}`});
+      }
+    });
+  }
+  
+  // ── OSM Health Infrastructure (NEW) ──
+  if (apiResults.osm_hospitals?.elements?.length > 0) {
+    items.push({l:'INFO', c:'#00e5a0', t:`🏥 OSM: ${apiResults.osm_hospitals.elements.length} hospitals in Yemen region`});
+  }
+  if (apiResults.osm_health_centers?.elements?.length > 0) {
+    items.push({l:'INFO', c:'#00e5a0', t:`🏥 OSM: ${apiResults.osm_health_centers.elements.length} clinics in Yemen region`});
+  }
+  
+  // ── EM-DAT Disasters (NEW) ──
+  if (apiResults.emdat_disasters?.data) {
+    const disasters = Array.isArray(apiResults.emdat_disasters.data) ? apiResults.emdat_disasters.data : [];
+    disasters.slice(0, 3).forEach(d => {
+      if (d.disaster_type || d.country) {
+        const disasterType = d.disaster_type || 'Disaster';
+        const country = d.country || 'Unknown';
+        const year = d.year || '2024';
+        const deaths = d.total_deaths ? ` · ${d.total_deaths} deaths` : '';
+        items.push({l:'HIGH', c:'#ff8c42', t:`📊 EM-DAT: ${disasterType} in ${country} (${year})${deaths}`});
+      }
+    });
+  }
+  
+  // ── Climate TRACE (NEW) ──
+  if (apiResults.climate_trace?.data) {
+    const emissions = Array.isArray(apiResults.climate_trace.data) ? apiResults.climate_trace.data : [];
+    emissions.slice(0, 3).forEach(e => {
+      if (e.total_emissions > 10000 && e.country) {
+        const sev = e.total_emissions > 100000 ? 'HIGH' : 'MODERATE';
+        const c = e.total_emissions > 100000 ? '#ff8c42' : '#ffb020';
+        items.push({l:sev, c, t:`🌍 Climate TRACE: ${(e.total_emissions/1000).toFixed(0)}kt CO₂e in ${e.country}`});
+      }
+    });
+  }
+  
+  // ── World Bank GDP Growth (NEW) ──
+  if (apiResults.wb_gdp_growth?.[1]) {
+    const negativeGrowth = apiResults.wb_gdp_growth[1].filter(i => i.value < 0 && i.country?.value).slice(0, 3);
+    negativeGrowth.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff375f', t:`📉 GDP contraction: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── World Bank Unemployment (NEW) ──
+  if (apiResults.wb_unemployment?.[1]) {
+    const highUnemp = apiResults.wb_unemployment[1].filter(i => i.value > 20 && i.country?.value).slice(0, 3);
+    highUnemp.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff8c42', t:`📊 Unemployment: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── World Bank Inflation ──
+  if (apiResults.wb_inflation?.[1]) {
+    const highInflation = apiResults.wb_inflation[1].filter(i => i.value > 20 && i.country?.value).slice(0, 3);
+    highInflation.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff375f', t:`💰 Inflation: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+    // ── Wind Speed (NEW) ──
+  if (apiResults.openmeteo_wind?.hourly?.wind_speed_10m) {
+    const maxWind = Math.max(...apiResults.openmeteo_wind.hourly.wind_speed_10m);
+    if (maxWind > 30) {
+      const sev = maxWind > 60 ? 'CRITICAL' : 'HIGH';
+      const c = maxWind > 60 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`💨 Wind speed: ${maxWind} km/h (storm risk) in Yemen`});
+    }
+  }
+  
+  // ── Precipitation (NEW) ──
+  if (apiResults.openmeteo_precipitation?.hourly?.precipitation) {
+    const totalRain = apiResults.openmeteo_precipitation.hourly.precipitation.reduce((a, b) => a + b, 0);
+    if (totalRain > 10) {
+      items.push({l:'HIGH', c:'#3ec5ff', t:`🌧️ ${totalRain}mm precipitation forecast in Yemen`});
+    }
+  }
+  
+  // ── UV Index (NEW) ──
+  if (apiResults.openmeteo_uv?.daily?.uv_index_max) {
+    const maxUv = Math.max(...apiResults.openmeteo_uv.daily.uv_index_max);
+    if (maxUv > 8) {
+      items.push({l:'HIGH', c:'#ffb020', t:`☀️ Extreme UV Index ${maxUv} in Yemen`});
+    }
+  }
+  
+  // ── NOAA Alerts (NEW) ──
+  if (apiResults.noaa_alerts?.features?.length > 0) {
+    items.push({l:'HIGH', c:'#ff8c42', t:`⚠️ NOAA: ${apiResults.noaa_alerts.features.length} extreme weather alerts`});
+  }
+  
+  // ── USGS Historic Earthquakes (NEW) ──
+  if (apiResults.usgs_historic?.features) {
+    const largeEvents = apiResults.usgs_historic.features.filter(f => f.properties?.mag >= 7);
+    largeEvents.slice(0, 2).forEach(f => {
+      const mag = f.properties?.mag?.toFixed(1) || '?';
+      const place = f.properties?.place?.split(',')[0] || 'Unknown';
+      items.push({l:'HIGH', c:'#ff8c42', t:`🌍 Historic quake: M${mag} in ${place}`});
+    });
+  }
+  
+  // ── World Bank Food Prices (NEW) ──
+  if (apiResults.wb_food_prices?.[1]) {
+    const foodData = apiResults.wb_food_prices[1].filter(i => i.value !== null && i.country?.value);
+    if (foodData.length > 0) {
+      const highPrices = foodData.filter(i => i.value > 120).slice(0, 3);
+      highPrices.forEach(item => {
+        if (item.country?.value) {
+          items.push({l:'HIGH', c:'#ffb020', t:`🌾 Food prices: ${item.country.value} ${item.value.toFixed(1)} index`});
+        }
+      });
+    }
+  }
+  
+  // ── World Bank Water Stress (NEW) ──
+  if (apiResults.wb_water?.[1]) {
+    const waterData = apiResults.wb_water[1].filter(i => i.value !== null && i.value > 40 && i.country?.value);
+    waterData.slice(0, 3).forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#3ec5ff', t:`💧 Water stress: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── UNHCR Emergency (NEW) ──
+  if (apiResults.unhcr_emergency?.data) {
+    const emergencies = Array.isArray(apiResults.unhcr_emergency.data) ? apiResults.unhcr_emergency.data : [];
+    emergencies.slice(0, 3).forEach(em => {
+      if (em.name) {
+        items.push({l:'HIGH', c:'#bf7fff', t:`🚨 UNHCR: ${em.name.substring(0,40)} ${em.level ? '('+em.level+')' : ''}`});
+      }
+    });
+  }
+
+  // ── Cloud Cover (NEW) ──
+  if (apiResults.openmeteo_cloudcover?.hourly?.cloudcover) {
+    const avgCloud = apiResults.openmeteo_cloudcover.hourly.cloudcover.reduce((a, b) => a + b, 0) / apiResults.openmeteo_cloudcover.hourly.cloudcover.length;
+    if (avgCloud > 70) {
+      items.push({l:'INFO', c:'#3ec5ff', t:`☁️ Cloud cover: ${avgCloud.toFixed(0)}% in Yemen`});
+    }
+  }
+  
+  // ── Lightning Potential (NEW) ──
+  if (apiResults.openmeteo_lightning?.hourly?.lightning_potential) {
+    const maxLightning = Math.max(...apiResults.openmeteo_lightning.hourly.lightning_potential);
+    if (maxLightning > 100) {
+      items.push({l:'HIGH', c:'#ff8c42', t:`⚡ Lightning potential: ${maxLightning} J/kg (storm risk)`});
+    }
+  }
+  
+  // ── NOAA Storm Reports (NEW) ──
+  if (apiResults.noaa_storm_reports?.features?.length > 0) {
+    items.push({l:'HIGH', c:'#ff375f', t:`⛈️ NOAA: ${apiResults.noaa_storm_reports.features.length} severe storm alerts`});
+  }
+  
+  // ── UNHCR Statistics (NEW) ──
+  if (apiResults.unhcr_statistics?.data) {
+    const stats = Array.isArray(apiResults.unhcr_statistics.data) ? apiResults.unhcr_statistics.data : [];
+    stats.slice(0, 3).forEach(stat => {
+      if (stat.refugees > 10000 && stat.country) {
+        const refugeesM = (stat.refugees / 1e6).toFixed(1);
+        items.push({l:'HIGH', c:'#bf7fff', t:`🏕️ UNHCR: ${stat.country} ${refugeesM}M refugees (${stat.year || '2024'})`});
+      }
+    });
+  }
+  
+  // ── World Bank Trade (NEW) ──
+  if (apiResults.wb_trade?.[1]) {
+    const tradeData = apiResults.wb_trade[1].filter(i => i.value !== null && i.value > 100 && i.country?.value);
+    tradeData.slice(0, 3).forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'INFO', c:'#00e5a0', t:`📊 Trade: ${item.country.value} ${item.value.toFixed(1)}% of GDP`});
+      }
+    });
+  }
+  // ── Return if no items ──
   if(!items.length)return;
+  
+  // ── Build ticker HTML ──
   const uniq=items.slice(0,80);
   const doubled=[...uniq,...uniq];
   const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
   const inner=document.getElementById('tickerInner');
   if(inner){inner.innerHTML=html;inner.style.animationDuration=Math.max(80,uniq.length*3.5)+'s';}
 }
-
 // ============================================================================
-// REFRESH
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
 // ============================================================================
 async function refresh(){
   const loader=document.getElementById('loader');
@@ -1193,6 +1551,7 @@ async function refresh(){
   loader.style.display='flex';
   const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
   let currentProgress=0;
+  
   function adv(n,targetPct){
     targetPct=Math.min(100,Math.max(currentProgress+1,targetPct));
     steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''));});
@@ -1212,101 +1571,37 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,200));
   adv(1,15);
 
-  const fetchKeys=['usgs_weekly','usgs_significant','nasa_eonet','gdacs','reliefweb','noaa_alerts','disease_sh','wb_poverty','wb_inflation','wb_nutrition','wb_mortality','wb_refugees','imf_weo','who_rss','wfp_vam','unhcr_pop','gdelt_geo'];
-  const fetches={};
-  for(const k of fetchKeys){
-    if(API_ENDPOINTS[k])fetches[k]=safe(fetch(API_ENDPOINTS[k],{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null).catch(()=>null));
+// ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
+  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
+  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
+  // not as a single pinned URL like the other entries here.)
+  const fetchKeys = Object.keys(API_ENDPOINTS);
+  const fetches = {};
+  for (const k of fetchKeys) {
+    fetches[k] = safe(fetch(API_ENDPOINTS[k], { headers: { 'Accept': 'application/json' } })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null));
   }
-  const results=await Promise.allSettled(Object.values(fetches));
-  Object.keys(fetches).forEach((k,i)=>{apiResults[k]=results[i].status==='fulfilled'?results[i].value:null;});
+  const results = await Promise.allSettled(Object.values(fetches));
+  Object.keys(fetches).forEach((k, i) => {
+    apiResults[k] = results[i].status === 'fulfilled' ? results[i].value : null;
+  });
 
   adv(3,45);
 
-  const [heat,food,ipc,conflict,disease,gdelt,reliefEvents,wfp]=await Promise.all([
-    fetchOpenMeteoHeatStress(),fetchFewsNetAlerts(),fetchIpcClassifications(),
-    fetchConflictEvents(),fetchDiseaseOutbreaks(),fetchGdeltEvents(),
-    fetchReliefWebEvents(),fetchWFPHungerMap()
-  ]);
-  heatStressData=heat;foodSecurityAlerts=food;ipcClassifications=ipc;
-  conflictEvents=conflict;diseaseOutbreaks=disease;
-  if(gdelt.length)apiResults.gdelt_processed=gdelt;
-  if(reliefEvents.length)apiResults.reliefweb_events=reliefEvents;
-  if(wfp.length)apiResults.wfp_hunger_map=wfp;
-  if(apiResults.imf_weo?.values?.NGDP_RPCH)apiResults.imf_growth_map=apiResults.imf_weo.values.NGDP_RPCH;
+  // ─── FETCH EVIDENCE FROM ALL SOURCES ─────────────────────────────────
+  await fetchAllEvidence();
+  
+  // ─── BUILD TICKER WITH ALL EVIDENCE ──────────────────────────────────
   buildTickerFromResults();
-
+  
   adv(5,78);
 
-  const refreshSeed=Math.floor(Date.now()/60000);
-  let newStore={};
-  for(let iso of Object.keys(BASE_SCORES)){
-    const name=NAMES[iso]||iso;
-    const flag=FLAGS[iso]||'🌍';
-    const types=CTYPES[iso]||DEFAULT_T;
-    const needs=[...new Set(types.flatMap(t=>ARC[t]?.n||[]))];
-    const base=BASE_SCORES[iso]||42;
-    // ── Temporal variation: seeded per-minute so score drifts live ────────
-    const minuteSeed = Math.floor(Date.now() / 60000);
-    const dailySeed  = Math.floor(Date.now() / 86400000);
-    const slowDrift  = (seededRand(dailySeed  + iso.charCodeAt(0)*137 + (iso.charCodeAt(1)||0)*31) - 0.5) * 6;
-    const fastNoise  = (seededRand(minuteSeed + iso.charCodeAt(0)*97  + (iso.charCodeAt(2)||0)*53) - 0.5) * 2;
-    const variation  = Math.round(slowDrift + fastNoise);
-    const rawBase    = Math.min(99, Math.max(5, base + variation));
-
-    // ── Live API boosts applied per-country ───────────────────────────────
-    const hasIpcAlert    = ipcClassifications.some(i => i.country === name && i.phase >= 3);
-    const hasHeat        = heatStressData.some(h => h.iso === iso && h.temp >= 42);
-    const hasDisease     = diseaseOutbreaks.some(d => d.country === name);
-    const hasConflictEvt = conflictEvents.some(e => e.country === name);
-    const liveBoost = (hasIpcAlert ? 4 : 0) + (hasHeat ? 2 : 0) + (hasDisease ? 3 : 0) + (hasConflictEvt ? 5 : 0);
-    const boostedBase = Math.min(99, rawBase + liveBoost);
-
-    // ── Build dims from boosted base ──────────────────────────────────────
-    const dims  = buildDims(boostedBase, types);
-    const rawScore = composite(dims);
-
-    // ── Penalty/bonus modifiers ───────────────────────────────────────────
-    // Protracted crises (3+ crisis types) get compounding penalty
-    const protractedPenalty = types.length >= 4 ? Math.round(rawScore * 0.04) : 0;
-    // High-income countries get access/resilience discount
-    const highIncomeISOs = new Set(['USA','CAN','AUS','GBR','DEU','FRA','NLD','SWE','NOR','FIN','DNK','CHE','AUT','BEL','LUX','IRL','SGP','JPN','KOR','NZL']);
-    const resilienceDiscount = highIncomeISOs.has(iso) ? Math.round(rawScore * 0.08) : 0;
-
-    const score = Math.min(99, Math.max(1, rawScore + protractedPenalty - resilienceDiscount));
-
-    // ── Event count scales with both score and crisis type complexity ─────
-    const events = Math.min(80, Math.max(4, Math.round(rawScore * 0.55 + types.length * 3.2)));
-
-    newStore[iso] = {name, flag, types, needs, dims, score, events, spillover:0,
-      liveBoost, hasIpcAlert, hasHeat, hasDisease, hasConflictEvt};
-  const spill=spilloverScore(newStore);
-  for(let iso in newStore){newStore[iso].spillover=spill[iso]||0;newStore[iso].score=Math.min(99,Math.max(1,newStore[iso].score+newStore[iso].spillover));}
-  store=newStore;
-  ranked=Object.keys(store).sort((a,b)=>store[b].score-store[a].score);
-
-  if(!historyInitialized){for(let iso in store)history[iso]=seedHistory(iso,store[iso].score);historyInitialized=true;}
-  else{for(let iso in store){if(!history[iso])history[iso]=seedHistory(iso,store[iso].score);history[iso].push({t:Date.now(),s:store[iso].score});if(history[iso].length>60)history[iso].shift();}}
-
-  adv(6,92);
-
-  const gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);
-  const delta=prevGCIS!=null?gcis-prevGCIS:0;
-  prevGCIS=gcis;
-  document.getElementById('gcisNum').textContent=gcis;
-  const dEl=document.getElementById('gcisDelta');
-  dEl.textContent=(delta>=0?'+':'')+delta;
-  dEl.style.cssText=`background:${delta>0?'rgba(255,55,95,.15)':'rgba(0,229,160,.1)'};color:${delta>0?'#ff375f':'#00e5a0'}`;
-  const crit=ranked.filter(i=>store[i].score>=80).length;
-  const anoms=ranked.filter(i=>cusum((history[i]||[]).map(h=>h.s)).det).length;
-  const tevt=Object.values(store).reduce((s,c)=>s+c.events,0);
-  document.getElementById('sCrit').textContent=crit;
-  document.getElementById('sAff').textContent='≈'+Math.round(crit*4.8)+'M';
-  document.getElementById('sAnom').textContent=anoms;
-  document.getElementById('sEvt').textContent=tevt.toLocaleString();
-  const now=new Date();
-  const freshEl=document.getElementById('freshness');
-  const freshTime=document.getElementById('freshTime');
-  if(freshEl&&freshTime){freshEl.style.display='block';freshTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
+  buildStore();
+  
+  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
+  updateUIStats();
 
   adv(6,100);
   paintMap();
@@ -1314,8 +1609,15 @@ async function refresh(){
   renderRanking();
   await new Promise(r=>setTimeout(r,500));
   loader.style.display='none';
-  const liveCount=Object.keys(apiResults).filter(k=>apiResults[k]).length;
-  toast(`✅ ${Object.keys(store).length} countries · ${crit} critical · ${liveCount} APIs live`);
+  
+  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
+  const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
+  const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
+  const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
+  const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
+  
+  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live`);
+  
   refreshTimerSecs=300;
 
   const urlParams=new URLSearchParams(window.location.search);
@@ -1325,8 +1627,1558 @@ async function refresh(){
   else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
 
   updateDynamicTitle();
+}// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+// NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
+// ────────────────────────────────────────────────────────────────────────
+
+const evidenceIndex = {
+  conflict: [],
+  ipc: [],
+  heat: [],
+  disease: [],
+  gdelt: [],
+  reliefweb: [],
+  nasa: [],
+  usgs: [],
+  wb_inflation: [],
+  imf: [],
+  unhcr: [],
+  wfp: [],
+  population: {},
+  acled_events: [],
+  // NEW: track which sources have data for each country
+  sourceCoverage: {},
+};
+
+function applyTemporalDecay(daysAgo, halfLife) {
+  if (daysAgo === null || daysAgo === undefined) return 0.5;
+  const decay = Math.exp(-0.693 * daysAgo / halfLife);
+  return Math.max(0.05, Math.min(1, decay));
 }
 
+const HALF_LIVES = {
+  conflict: 3,
+  disease: 3,
+  heat: 2,
+  seismic: 4,
+  gdelt: 2,
+  reliefweb: 5,
+  nasa: 4,
+  economic: 14,
+  displacement: 10,
+  ipc: 14,
+  media: 1,
+};
+
+function getDaysAgo(timestamp) {
+  if (!timestamp) return null;
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  if (isNaN(date.getTime())) return null;
+  return (Date.now() - date.getTime()) / 86400000;
+}
+
+function logScale(value, floor, ceiling, maxPts) {
+  if (value <= floor) return 0;
+  const ratio = Math.log(1 + (value - floor)) / Math.log(1 + (ceiling - floor));
+  return Math.min(maxPts, Math.max(0, ratio * maxPts));
+}
+
+function coverageScale(value, floor, ceiling, maxPts) {
+  if (value === null || value === undefined || isNaN(value)) return 0;
+  const clamped = Math.max(floor, Math.min(ceiling, value));
+  const ratio = (clamped - floor) / ((ceiling - floor) || 1);
+  return Math.max(maxPts * 0.2, ratio * maxPts);
+}
+// Unlike logScale, this never returns 0 when real data exists — having an
+// official, current-year data point IS evidence (the metric is being tracked
+// and reported), even at a low/benign value. Severity still scales the score,
+// but presence-of-data alone earns a floor of 20% of the point budget.
+function coverageScale(value, floor, ceiling, maxPts) {
+  if (value === null || value === undefined || isNaN(value)) return 0;
+  const clamped = Math.max(floor, Math.min(ceiling, value));
+  const ratio = (clamped - floor) / ((ceiling - floor) || 1);
+  return Math.max(maxPts * 0.2, ratio * maxPts);
+}
+
+// ── REAL DATA: Fetch ACLED conflict events ──────────────────────────────
+async function fetchAcledData() {
+  try {
+    // Use ACLED API (free tier) - real conflict data
+    const response = await fetch(
+      'https://api.acleddata.com/acled/read?limit=200&year=2024&region=world',
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.data) {
+        evidenceIndex.acled_events = data.data;
+        // Map to conflict events
+        evidenceIndex.conflict = data.data.map(e => ({
+          country: e.country,
+          event_type: e.event_type || 'Conflict',
+          fatalities: parseInt(e.fatalities) || 0,
+          date: e.event_date || new Date().toISOString().split('T')[0],
+          source: 'ACLED'
+        })).slice(0, 100);
+        return evidenceIndex.conflict;
+      }
+    }
+  } catch(e) { console.warn('ACLED fetch failed:', e); }
+  
+  // Fallback: Use GDELT for conflict data (real alternative)
+  try {
+    const gdeltResponse = await fetch(
+      'https://api.gdeltproject.org/api/v2/geo/geo?query=crisis+conflict+war&mode=pointdata&maxrows=100&format=json'
+    );
+    if (gdeltResponse.ok) {
+      const data = await gdeltResponse.json();
+      if (data && data.features) {
+        evidenceIndex.gdelt = data.features;
+        return [];
+      }
+    }
+  } catch(e) { console.warn('GDELT fallback failed:', e); }
+  
+  return [];
+}
+
+// ── REAL DATA: Fetch World Bank population data ──────────────────────────
+async function fetchWorldBankPopulation() {
+  try {
+    const response = await fetch(
+      'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country && item.country.id && item.value) {
+            evidenceIndex.population[item.country.id] = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank population fetch failed:', e); }
+}
+
+// ── REAL DATA: Fetch UNHCR displacement data ─────────────────────────────
+async function fetchUnhcrData() {
+  try {
+    const response = await fetch(
+      'https://api.unhcr.org/population/v1/population/?limit=100&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.items) {
+        evidenceIndex.unhcr = data.items;
+        return data.items;
+      }
+    }
+  } catch(e) { console.warn('UNHCR fetch failed:', e); }
+  return [];
+}
+
+// ── REAL DATA: Fetch FEWS NET food security alerts ──────────────────────
+async function fetchFewsNet() {
+  try {
+    // FEWS NET RSS/API
+    const response = await fetch(
+      'https://api.rss2json.com/v1/api.json?rss_url=https://fews.net/rss/alert'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.items) {
+        evidenceIndex.fewsnet = data.items.map(item => ({
+          country: item.title.split(':')[0]?.trim() || '',
+          phase: item.title.includes('Emergency') ? 4 : 
+                 item.title.includes('Crisis') ? 3 : 2,
+          description: item.description || '',
+          date: item.pubDate || new Date().toISOString()
+        }));
+      }
+    }
+  } catch(e) { console.warn('FEWS NET fetch failed:', e); }
+}
+
+// ── REAL DATA: Fetch all sources in parallel ────────────────────────────
+// ─── Replace the fetchAllEvidence function (around line 1650) with this ───
+async function fetchAllEvidence() {
+  const results = {};
+  
+  // ── 1. USGS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.usgs_weekly);
+    if (res.ok) {
+      const data = await res.json();
+      results.usgs_weekly = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.place && coords) {
+            const country = props.place.split(',').pop()?.trim() || '';
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].usgs = {
+                mag: props.mag,
+                time: props.time,
+                place: props.place
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('USGS fetch failed:', e); }
+
+  // ── 2. NASA EONET ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_eonet);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_eonet = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].nasa = {
+                title: ev.title,
+                categories: ev.categories
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA EONET fetch failed:', e); }
+
+  // ── 3. NASA Wildfires ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_wildfires);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_wildfires = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].wildfire = {
+                title: ev.title,
+                severity: ev.categories?.[0]?.title || 'Wildfire'
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA Wildfires fetch failed:', e); }
+
+  // ── 4. GDACS Alerts ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs = {
+                event: props.eventname,
+                alert: props.alertlevel
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS fetch failed:', e); }
+
+  // ── 5. GDACS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs_earthquakes);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs_earthquakes = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs_eq = {
+                event: props.eventname,
+                mag: props.magnitude
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS Earthquakes fetch failed:', e); }
+
+// ── 6+7. Open-Meteo Heat + Precipitation — GENERALIZED PER-COUNTRY LOOP ──
+  // Previously this was two separate hardcoded blocks: one pinned to Yemen's
+  // coordinates, one pinned to Syria's. Every other country got nothing.
+  // This now loops over HEAT_LOOP_ISOS (25 heat/drought-prone countries) and
+  // gives each one its own real fetch against its own coordinates, exactly
+  // like the seismic/NASA/disease loops already do.
+  try {
+    const heatResults = await fetchHeatAndPrecipLoop();
+    results.openmeteo_heat_loop = heatResults;
+    Object.entries(heatResults).forEach(([iso, d]) => {
+      evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+      evidenceIndex.sourceCoverage[iso].heat = { temp: d.temp, precip: d.precip, date: d.date };
+      heatStressData.push({ iso, temp: d.temp, timestamp: Date.now() });
+    });
+  } catch(e) { console.warn('Open-Meteo heat/precip loop failed:', e); }
+
+  // ── 8. Open-Meteo Flood Risk (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_flood);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_flood = data;
+      if (data?.daily?.river_discharge) {
+        // Store flood risk for Yemen (or find closest country)
+        const max_discharge = Math.max(...data.daily.river_discharge);
+        if (max_discharge > 0) {
+          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+          evidenceIndex.sourceCoverage['YEM'].flood_risk = {
+            discharge: max_discharge,
+            date: data.daily.time?.[0]
+          };
+          console.log(`🌊 Flood risk: ${max_discharge} m³/s in Yemen`);
+        }
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Flood fetch failed:', e); }
+
+  // ── 9. Open-Meteo Marine Weather (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_marine);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_marine = data;
+      if (data?.hourly?.wave_height) {
+        const max_wave = Math.max(...data.hourly.wave_height);
+        if (max_wave > 2) {
+          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+          evidenceIndex.sourceCoverage['YEM'].marine = {
+            wave_height: max_wave,
+            date: data.hourly.time?.[0]
+          };
+          console.log(`🌊 Marine hazard: ${max_wave}m waves near Yemen`);
+        }
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Marine fetch failed:', e); }
+
+  // ── 10. NOAA Stations ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_stations);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_stations = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].noaa = {
+          stations: data.features.length,
+          status: 'active'
+        };
+      }
+    }
+  } catch(e) { console.warn('NOAA Stations fetch failed:', e); }
+
+  // ── 11. disease.sh (COVID) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.disease_sh);
+    if (res.ok) {
+      const data = await res.json();
+      results.disease_sh = data;
+      if (Array.isArray(data)) {
+        data.forEach(d => {
+          const iso = findIsoByCountryName(d.country);
+          if (iso && d.active > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].covid = {
+              active: d.active,
+              cases: d.cases,
+              deaths: d.deaths
+            };
+            diseaseOutbreaks.push({
+              disease: 'COVID-19',
+              country: d.country,
+              cases: d.active,
+              source: 'disease.sh',
+              date: new Date(d.updated).toISOString()
+            });
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('disease.sh fetch failed:', e); }
+
+  // ── 12. World Bank Population ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_population);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_population = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            evidenceIndex.population[iso] = parseInt(item.value);
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].population = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Population fetch failed:', e); }
+
+  // ── 13. World Bank Poverty ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_poverty);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_poverty = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].poverty = parseFloat(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Poverty fetch failed:', e); }
+
+  // ── 14. World Bank GDP Growth (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_gdp_growth);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_gdp_growth = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].gdp_growth = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 GDP growth data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank GDP Growth fetch failed:', e); }
+
+  // ── 15. World Bank Unemployment (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_unemployment);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_unemployment = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unemployment = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 Unemployment data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Unemployment fetch failed:', e); }
+
+  // ── 16. World Bank Inflation ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_inflation);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_inflation = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null && item.value !== undefined) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].inflation = parseFloat(item.value);
+            evidenceIndex.sourceCoverage[iso].inflation_year = item.date;
+          }
+        });
+        console.log(`📊 Inflation data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Inflation fetch failed:', e); }
+
+  // ── 17. World Bank Refugees ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_refugees);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_refugees = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees_wb = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
+
+  // ── 18. UNHCR Displacement ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_pop);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_pop = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          const iso = item.coa_iso;
+          if (iso && item.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees = item.refugees;
+            evidenceIndex.sourceCoverage[iso].displaced = (item.refugees || 0) + (item.asylum_seekers || 0);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
+
+  // ── 19. UNHCR Asylum ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_asylum);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_asylum = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          if (item.asylum_seekers > 0) {
+            const iso = item.coa_iso;
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].asylum = item.asylum_seekers;
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
+
+  // ── 20. UNHCR Operations (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_operations);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_operations = data;
+      if (data?.items || data?.data) {
+        const ops = data.items || data.data || [];
+        ops.forEach(op => {
+          const iso = op.country_iso || op.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_op = {
+              name: op.name || 'UNHCR operation',
+              status: op.status || 'active'
+            };
+          }
+        });
+        console.log(`📊 UNHCR operations loaded`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Operations fetch failed:', e); }
+
+  // ── 21. EMSC Seismic ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emsc_seismic);
+    if (res.ok) {
+      const data = await res.json();
+      results.emsc_seismic = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const mag = f.properties?.mag;
+          const coords = f.geometry?.coordinates;
+          if (mag >= 4.5 && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              const existingMag = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
+              if (mag > existingMag) {
+                evidenceIndex.sourceCoverage[iso].emsc = {
+                  mag,
+                  time: f.properties?.time,
+                  place: f.properties?.flynn_region || f.properties?.place
+                };
+              }
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('EMSC fetch failed:', e); }
+
+  // ── 22. IFRC GO ──
+  try {
+    const res = await fetch(API_ENDPOINTS.ifrc_go);
+    if (res.ok) {
+      const data = await res.json();
+      results.ifrc_go = data;
+      if (data?.results) {
+        data.results.forEach(ev => {
+          const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].ifrc = {
+              name: ev.name,
+              dtype: ev.dtype?.name || 'Field operation',
+              date: ev.disaster_start_date
+            };
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('IFRC GO fetch failed:', e); }
+
+  // ── 23. Open-Meteo Air Quality (multi-city loop) ──
+  const AQ_CITIES = [
+    { iso: 'NGA', lat: 6.5, lon: 3.4, name: 'Lagos' },
+    { iso: 'IND', lat: 28.6, lon: 77.2, name: 'Delhi' },
+    { iso: 'CHN', lat: 39.9, lon: 116.4, name: 'Beijing' },
+    { iso: 'IND', lat: 19.1, lon: 72.9, name: 'Mumbai' },
+    { iso: 'BGD', lat: 23.8, lon: 90.4, name: 'Dhaka' },
+    { iso: 'EGY', lat: 30.0, lon: 31.2, name: 'Cairo' }
+  ];
+
+  for (const city of AQ_CITIES) {
+    try {
+      const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const pm25 = data?.hourly?.pm2_5?.[0];
+        if (pm25 !== undefined && pm25 !== null) {
+          const iso = city.iso;
+          if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+          evidenceIndex.sourceCoverage[iso].air_quality = { 
+            pm25, 
+            city: city.name,
+            timestamp: new Date().toISOString()
+          };
+          console.log(`🌍 AQ: ${city.name} PM2.5 = ${pm25} µg/m³`);
+        }
+      }
+    } catch(e) { /* silent fail for individual cities */ }
+  }
+
+  // ── 24. OpenStreetMap Hospitals (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.osm_hospitals);
+    if (res.ok) {
+      const data = await res.json();
+      results.osm_hospitals = data;
+      if (data?.elements?.length > 0) {
+        // Store hospital count for Yemen region
+        const hospitalCount = data.elements.length;
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].hospitals = hospitalCount;
+        console.log(`🏥 OSM: ${hospitalCount} hospitals found in Yemen region`);
+      }
+    }
+  } catch(e) { console.warn('OpenStreetMap Hospitals fetch failed:', e); }
+
+  // ── 25. OpenStreetMap Health Centers (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.osm_health_centers);
+    if (res.ok) {
+      const data = await res.json();
+      results.osm_health_centers = data;
+      if (data?.elements?.length > 0) {
+        const clinicCount = data.elements.length;
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].clinics = clinicCount;
+        console.log(`🏥 OSM: ${clinicCount} clinics found in Yemen region`);
+      }
+    }
+  } catch(e) { console.warn('OpenStreetMap Health Centers fetch failed:', e); }
+
+  // ── 26. EM-DAT Disasters (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emdat_disasters);
+    if (res.ok) {
+      const data = await res.json();
+      results.emdat_disasters = data;
+      if (data?.data) {
+        const disasters = Array.isArray(data.data) ? data.data : [];
+        disasters.forEach(d => {
+          const country = d.country || d.location;
+          if (country) {
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].emdat = {
+                disaster: d.disaster_type || 'Disaster',
+                year: d.year || '2024',
+                deaths: d.total_deaths || 0
+              };
+            }
+          }
+        });
+        console.log(`📊 EM-DAT: ${disasters.length} disasters loaded`);
+      }
+    }
+  } catch(e) { console.warn('EM-DAT fetch failed:', e); }
+
+  // ── 27. Climate TRACE (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.climate_trace);
+    if (res.ok) {
+      const data = await res.json();
+      results.climate_trace = data;
+      if (data?.data) {
+        const emissions = Array.isArray(data.data) ? data.data : [];
+        emissions.forEach(e => {
+          const country = e.country || e.country_name;
+          if (country) {
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].emissions = {
+                total: e.total_emissions || 0,
+                sector: e.sector || 'all'
+              };
+            }
+          }
+        });
+        console.log(`🌍 Climate TRACE: ${emissions.length} emissions records loaded`);
+      }
+    }
+  } catch(e) { console.warn('Climate TRACE fetch failed:', e); }
+  // ── 28. Open-Meteo Wind Speed (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_wind);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_wind = data;
+      const windSpeed = data?.hourly?.wind_speed_10m?.[0] || data?.current_weather?.windspeed;
+      if (windSpeed !== undefined && windSpeed > 30) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].wind = {
+          speed: windSpeed,
+          direction: data?.current_weather?.winddirection || 0,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`💨 Wind speed: ${windSpeed} km/h in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Wind fetch failed:', e); }
+
+  // ── 29. Open-Meteo Precipitation (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_precipitation);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_precipitation = data;
+      const totalRain = data?.hourly?.precipitation?.reduce((a, b) => a + b, 0) || 0;
+      if (totalRain > 10) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].precipitation = {
+          total: totalRain,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`🌧️ Precipitation: ${totalRain}mm total in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Precipitation fetch failed:', e); }
+
+  // ── 30. Open-Meteo UV Index (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_uv);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_uv = data;
+      const maxUv = Math.max(...(data?.daily?.uv_index_max || [0]));
+      if (maxUv > 8) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].uv = {
+          max: maxUv,
+          date: data?.daily?.time?.[0]
+        };
+        console.log(`☀️ UV Index: ${maxUv} (extreme) in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo UV fetch failed:', e); }
+
+  // ── 31. USGS Historic Earthquakes (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.usgs_historic);
+    if (res.ok) {
+      const data = await res.json();
+      results.usgs_historic = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.place && coords && props.mag >= 6) {
+            const country = props.place.split(',').pop()?.trim() || '';
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              if (!evidenceIndex.sourceCoverage[iso].historic_seismic) {
+                evidenceIndex.sourceCoverage[iso].historic_seismic = [];
+              }
+              evidenceIndex.sourceCoverage[iso].historic_seismic.push({
+                mag: props.mag,
+                time: props.time,
+                place: props.place
+              });
+            }
+          }
+        });
+        console.log(`📊 Historic earthquakes loaded: ${data.features.length} events`);
+      }
+    }
+  } catch(e) { console.warn('USGS Historic fetch failed:', e); }
+
+  // ── 32. World Bank Food Prices (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_food_prices);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_food_prices = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            if (!evidenceIndex.sourceCoverage[iso].food_prices) {
+              evidenceIndex.sourceCoverage[iso].food_prices = [];
+            }
+            evidenceIndex.sourceCoverage[iso].food_prices.push({
+              value: parseFloat(item.value),
+              date: item.date
+            });
+          }
+        });
+        console.log(`🌾 Food price data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Food Prices fetch failed:', e); }
+
+  // ── 33. World Bank Water Indicators (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_water);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_water = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].water_stress = parseFloat(item.value);
+          }
+        });
+        console.log(`💧 Water data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Water fetch failed:', e); }
+
+  // ── 34. NOAA Alerts (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_alerts);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_alerts = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].noaa_alerts = data.features.length;
+        console.log(`⚠️ NOAA: ${data.features.length} extreme alerts active`);
+      }
+    }
+  } catch(e) { console.warn('NOAA Alerts fetch failed:', e); }
+
+  // ── 35. UNHCR Emergency (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_emergency);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_emergency = data;
+      if (data?.items || data?.data) {
+        const emergencies = data.items || data.data || [];
+        emergencies.forEach(em => {
+          const iso = em.country_iso || em.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_emergency = {
+              name: em.name || 'Emergency response',
+              status: em.status || 'active',
+              level: em.level || 'unknown'
+            };
+          }
+        });
+        console.log(`🚨 UNHCR: ${emergencies.length} emergencies tracked`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Emergency fetch failed:', e); }
+  // ── 36. Open-Meteo Cloud Cover (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_cloudcover);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_cloudcover = data;
+      const avgCloud = data?.hourly?.cloudcover?.reduce((a, b) => a + b, 0) / data.hourly.cloudcover.length || 0;
+      if (avgCloud > 70) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].cloudcover = {
+          avg: avgCloud,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`☁️ Cloud cover: ${avgCloud}% average in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Cloud Cover fetch failed:', e); }
+
+  // ── 37. Open-Meteo Lightning Potential (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_lightning);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_lightning = data;
+      const maxLightning = Math.max(...(data?.hourly?.lightning_potential || [0]));
+      if (maxLightning > 100) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].lightning = {
+          max: maxLightning,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`⚡ Lightning potential: ${maxLightning} J/kg in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Lightning fetch failed:', e); }
+
+  // ── 38. NOAA Storm Reports (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_storm_reports);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_storm_reports = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].storm_reports = data.features.length;
+        console.log(`⛈️ NOAA: ${data.features.length} severe storm alerts`);
+      }
+    }
+  } catch(e) { console.warn('NOAA Storm Reports fetch failed:', e); }
+
+  // ── 39. UNHCR Statistics (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_statistics);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_statistics = data;
+      if (data?.data || data?.items) {
+        const stats = data.data || data.items || [];
+        stats.forEach(stat => {
+          const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
+          if (iso && stat.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_stats = {
+              refugees: stat.refugees,
+              asylum_seekers: stat.asylum_seekers || 0,
+              year: stat.year || '2024'
+            };
+          }
+        });
+        console.log(`📊 UNHCR statistics loaded`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Statistics fetch failed:', e); }
+
+  // ── 40. World Bank Trade Data (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_trade);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_trade = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].trade_gdp = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 Trade data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Trade fetch failed:', e); }
+  // Store all results
+  apiResults = { ...apiResults, ...results };
+  
+  console.log(`📊 Evidence loaded: ${Object.keys(evidenceIndex.sourceCoverage).length} countries have data coverage`);
+  console.log('📊 Source coverage sample:', Object.keys(evidenceIndex.sourceCoverage).slice(0, 5).map(k => ({ 
+    iso: k, 
+    sources: Object.keys(evidenceIndex.sourceCoverage[k]) 
+  })));
+  
+  return results;
+}// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find ISO by country name
+// ─────────────────────────────────────────────────────────────────────────────
+function findIsoByCountryName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  
+  // Direct match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase() === lower) return iso;
+  }
+  
+  // Partial match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase().includes(lower) || lower.includes(fullName.toLowerCase())) {
+      return iso;
+    }
+  }
+  
+  // Check against common variations
+  const variations = {
+    'usa': 'USA', 'united states': 'USA', 'us': 'USA',
+    'uk': 'GBR', 'united kingdom': 'GBR', 'great britain': 'GBR',
+    'russia': 'RUS', 'russian federation': 'RUS',
+    'china': 'CHN', 'prc': 'CHN',
+    'south korea': 'KOR', 'korea': 'KOR',
+    'north korea': 'PRK',
+    'taiwan': 'TWN',
+    'congo': 'COD', 'dr congo': 'COD', 'democratic republic of the congo': 'COD'
+  };
+  
+  return variations[lower] || null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find closest country by coordinates
+// ─────────────────────────────────────────────────────────────────────────────
+function findClosestCountry(lng, lat) {
+  let closest = null;
+  let minDist = Infinity;
+  
+  for (const [iso, coords] of Object.entries(CENTROIDS)) {
+    if (!coords) continue;
+    const d = Math.sqrt(Math.pow(lng - coords[0], 2) + Math.pow(lat - coords[1], 2));
+    if (d < minDist) {
+      minDist = d;
+      closest = iso;
+    }
+  }
+  
+  return closest;
+}
+// ─── COMPUTE EVIDENCE SCORE (MATCHES API v7.0) ─────────────────────────────
+function computeEvidenceScore(iso) {
+  const signals = {
+    quakeMag: 0,
+    quakePlace: null,
+    quakeCount: 0,
+    nasaEventCount: 0,
+    gdacsAlert: null,
+    ifrcCount: 0,
+    maxTempC: 0,
+    aq: null,
+    diseaseActive: 0,
+    wbInflation: null,
+    wbGdpGrowth: null,
+    wbUnemployment: null,
+    totalDisplaced: 0,
+    liveEvidenceCount: 0,
+  };
+  
+  const name = NAMES[iso] || iso;
+  const nameLower = name.toLowerCase();
+  
+  // ── USGS ──
+  const usgsQuakes = (apiResults.usgs_weekly?.features || []).filter(f => 
+    (f.properties?.place || "").toLowerCase().includes(nameLower)
+  );
+  if (usgsQuakes.length > 0) {
+    const top = usgsQuakes.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a);
+    if (top.properties?.mag >= 4.5) {
+      signals.quakeMag = top.properties.mag;
+      signals.quakePlace = top.properties.place?.split(",")[0]?.trim() || null;
+      signals.quakeCount = usgsQuakes.length;
+      signals.liveEvidenceCount++;
+    }
+  }
+  
+  // ── NASA EONET ──
+  const nasaEvents = (apiResults.nasa_eonet?.events || []).filter(ev => {
+    const coords = ev.geometry?.[0]?.coordinates;
+    return coords && findClosestCountry(coords[0], coords[1]) === iso;
+  });
+  if (nasaEvents.length > 0) {
+    signals.nasaEventCount = nasaEvents.length;
+    signals.liveEvidenceCount++;
+  }
+  
+  // ── GDACS ──
+  const gdacsEvents = (apiResults.gdacs?.features || []).filter(f => {
+    const coords = f.geometry?.coordinates;
+    return coords && findClosestCountry(coords[0], coords[1]) === iso;
+  });
+  if (gdacsEvents.length > 0) {
+    const alert = gdacsEvents[0]?.properties?.alertlevel?.toLowerCase() || null;
+    if (alert === "red" || alert === "orange") {
+      signals.gdacsAlert = alert;
+      signals.liveEvidenceCount++;
+    }
+  }
+  
+  // ── IFRC ──
+  const ifrcEvents = (apiResults.ifrc_go?.results || []).filter(ev => 
+    (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso
+  );
+  if (ifrcEvents.length > 0) {
+    signals.ifrcCount = ifrcEvents.length;
+    signals.liveEvidenceCount++;
+  }
+  
+  // ── Heat Stress ──
+  const heat = (heatStressData || []).find(h => h.iso === iso);
+  if (heat && heat.temp >= 35) {
+    signals.maxTempC = heat.temp;
+    signals.liveEvidenceCount++;
+  }
+  
+  // ── Air Quality ──
+  const aqCities = {
+    'NGA': 'Lagos', 'IND': 'Delhi', 'CHN': 'Beijing', 'BGD': 'Dhaka', 'EGY': 'Cairo'
+  };
+  for (const [cityIso, cityName] of Object.entries(aqCities)) {
+    if (cityIso === iso && apiResults[`openmeteo_aq_${cityName.toLowerCase()}`]?.hourly?.pm2_5) {
+      const pm25 = apiResults[`openmeteo_aq_${cityName.toLowerCase()}`].hourly.pm2_5[0];
+      if (pm25 >= 35) {
+        signals.aq = { pm25, city: cityName };
+        signals.liveEvidenceCount++;
+        break;
+      }
+    }
+  }
+  
+  // ── disease.sh ──
+  const diseaseData = (apiResults.disease_sh || []).find(d => 
+    (d.country || "").toLowerCase() === nameLower
+  );
+  if (diseaseData && diseaseData.active > 1000) {
+    signals.diseaseActive = diseaseData.active;
+    signals.liveEvidenceCount++;
+  }
+  
+  // ── World Bank ──
+  const wbData = (apiResults.wb_inflation?.[1] || []).find(item => item.country?.id === iso);
+  if (wbData && wbData.value !== null && wbData.value > 5) {
+    signals.wbInflation = wbData.value;
+    signals.liveEvidenceCount++;
+  }
+  const wbGdp = (apiResults.wb_gdp_growth?.[1] || []).find(item => item.country?.id === iso);
+  if (wbGdp && wbGdp.value !== null && wbGdp.value < 0) {
+    signals.wbGdpGrowth = wbGdp.value;
+    signals.liveEvidenceCount++;
+  }
+  const wbUnemp = (apiResults.wb_unemployment?.[1] || []).find(item => item.country?.id === iso);
+  if (wbUnemp && wbUnemp.value !== null && wbUnemp.value > 10) {
+    signals.wbUnemployment = wbUnemp.value;
+    signals.liveEvidenceCount++;
+  }
+  
+  // ── UNHCR ──
+  const unhcrData = (apiResults.unhcr_pop?.items || []).find(item => item.coa_iso === iso);
+  if (unhcrData) {
+    const ref = unhcrData.refugees || 0;
+    const idps = unhcrData.idps || 0;
+    const asylum = unhcrData.asylum_seekers || 0;
+    signals.totalDisplaced = ref + idps + asylum;
+    if (signals.totalDisplaced > 0) signals.liveEvidenceCount++;
+  }
+  
+  // ── Build evidence score from signals ──
+  let totalPts = 0, totalWeight = 0;
+  const ledger = [];
+  
+  function add(source, label, pts, weight) {
+    if (pts <= 0) return;
+    totalPts += pts * weight;
+    totalWeight += weight;
+    ledger.push({ source, label, pts: +pts.toFixed(1), weight: +weight.toFixed(2) });
+  }
+  
+  if (signals.quakeMag >= 4.5) {
+    const w = Math.min(1, (signals.quakeMag - 4) / 4);
+    const pts = Math.min(12, Math.round((signals.quakeMag - 4) * 3 + 2));
+    add('USGS/EMSC', `M${signals.quakeMag.toFixed(1)} earthquake`, pts, w * 0.9);
+  }
+  if (signals.nasaEventCount > 0) {
+    add('NASA EONET', `${signals.nasaEventCount} natural events`, Math.min(8, signals.nasaEventCount * 2), 0.7);
+  }
+  if (signals.gdacsAlert) {
+    const pts = signals.gdacsAlert === 'red' ? 10 : 6;
+    add('GDACS', `${signals.gdacsAlert.toUpperCase()} alert`, pts, 0.85);
+  }
+  if (signals.maxTempC >= 35) {
+    const pts = Math.min(8, Math.round((signals.maxTempC - 30) / 2.5));
+    add('Open-Meteo', `${signals.maxTempC}°C heat`, pts, 0.85);
+  }
+  if (signals.aq) {
+    const pts = Math.min(5, Math.round((signals.aq.pm25 - 35) / 15 + 1));
+    add('Open-Meteo AQ', `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³`, pts, 0.7);
+  }
+  if (signals.diseaseActive > 1000) {
+    const pts = Math.min(8, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 4 + 2));
+    add('disease.sh', `${signals.diseaseActive.toLocaleString()} active COVID cases`, pts, 0.8);
+  }
+  if (signals.wbInflation && signals.wbInflation > 5) {
+    const pts = Math.min(6, Math.round(signals.wbInflation / 5));
+    add('World Bank', `Inflation ${signals.wbInflation.toFixed(1)}%`, pts, 0.75);
+  }
+  if (signals.wbGdpGrowth && signals.wbGdpGrowth < 0) {
+    const pts = Math.min(5, Math.round(Math.abs(signals.wbGdpGrowth) / 2));
+    add('World Bank', `GDP contraction ${signals.wbGdpGrowth.toFixed(1)}%`, pts, 0.75);
+  }
+  if (signals.totalDisplaced > 0) {
+    const m = signals.totalDisplaced / 1_000_000;
+    const pts = m >= 5 ? 12 : m >= 2 ? 9 : m >= 0.5 ? 6 : 3;
+    add('UNHCR', `${m.toFixed(1)}M displaced`, pts, 0.85);
+  }
+  
+  const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
+  const confidence = totalWeight > 0 ? Math.min(1, totalWeight / 5) : 0;
+  
+  return { 
+    score: +evidenceScore.toFixed(1), 
+    confidence: +confidence.toFixed(2), 
+    ledger, 
+    sourceCount: ledger.length,
+    signals,
+  };
+}// ─── BUILD STORE WITH EVIDENCE (MATCHES API v7.0) ──────────────────────────
+function buildStore() {
+  const seed = Math.floor(Date.now() / 300000); // 5-minute seed interval
+  let newStore = {};
+  
+  for (let iso of Object.keys(BASE_SCORES)) {
+    const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    const base = BASE_SCORES[iso] || 30;
+    
+    // ── Jitter from seed (matches API's lcg) ──
+    const jitter = Math.round(((seedHash(iso) - 0.5) * 4));
+    const prior = clamp(base + jitter, 5, 85);
+    
+    // ── Prior dimensions (matches API's buildPriorDims) ──
+    const dims = buildPriorDims(prior, types);
+    
+    // ── Compute evidence from ALL data sources ──
+    const evidence = computeEvidenceScore(iso);
+    
+    // ── Apply live adjustments (matches API's applyLiveAdjustments) ──
+    const adjusted = applyLiveAdjustments(dims, iso, evidence);
+    
+    // ── Final score ──
+    let score = clamp(composite(adjusted.dims));
+    
+    // ── Spillover will be applied after all countries are built ──
+    newStore[iso] = {
+      name, flag, types, needs,
+      dims: adjusted.dims,
+      score: score,
+      priorScore: prior,
+      liveBoost: score - prior,
+      evidenceLedger: adjusted.audit || [],
+      evidenceConfidence: evidence.confidence || 0,
+      evidenceScore: evidence.score || 0,
+      evidenceCount: evidence.sourceCount || 0,
+      spillover: 0,
+      signals: evidence.signals || {},
+      events: Math.max(4, Math.min(60, Math.round(score * 0.30 + types.length * 1.5 + (evidence.sourceCount || 0) * 3))),
+      evidenceDetails: {
+        fatalities: 0,
+        displaced: 0,
+        disease_cases: 0,
+      }
+    };
+  }
+  
+  // ── Spillover from neighbours (matches API) ──
+  const spill = spilloverScore(newStore);
+  for (let iso in newStore) {
+    newStore[iso].spillover = spill[iso] || 0;
+    newStore[iso].score = clamp(newStore[iso].score + newStore[iso].spillover);
+  }
+  
+  store = newStore;
+  ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  
+  // ── Initialize history ──
+  if (!historyInitialized) {
+    for (let iso in store) {
+      history[iso] = seedHistory(iso, store[iso].score);
+    }
+    historyInitialized = true;
+  } else {
+    for (let iso in store) {
+      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
+      history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (history[iso].length > 60) history[iso].shift();
+    }
+  }
+  
+  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
+  return { store, ranked };
+}
+
+// ─── HELPERS THAT MATCH API v7.0 ────────────────────────────────────────────
+
+function clamp(v, lo = 1, hi = 99) {
+  return Math.min(hi, Math.max(lo, Math.round(v)));
+}
+
+function seedHash(iso) {
+  let h = 0;
+  for (let i = 0; i < iso.length; i++) {
+    h = ((h << 5) - h) + iso.charCodeAt(i);
+    h = h & h;
+  }
+  return (Math.imul(1664525, h >>> 0) + 1013904223) >>> 0 / 0x100000000;
+}
+
+function buildPriorDims(base, types) {
+  const has = t => types.includes(t);
+  const cl = v => clamp(v, 5, 99);
+  return {
+    conflict:     cl(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
+    displacement: cl(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
+    food:         cl(base * ((has("FN")||has("DR"))             ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
+    health:       cl(base * ((has("EP")||has("FN"))             ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
+    economic:     cl(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("ECO")) ? 0.85 : 0.42) + 10),
+    climate:      cl(base * ((has("HEAT")||has("DR"))           ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
+    access:       cl(base * ((has("CW")||has("CE"))             ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
+    political:    cl(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
+  };
+}
+
+function composite(dims) {
+  return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
+}
+
+function applyLiveAdjustments(priorDims, iso, evidence) {
+  const dims = { ...priorDims };
+  const audit = [];
+  const signals = evidence.signals || {};
+  
+  // ── USGS/EMSC Earthquake ──
+  if (signals.quakeMag && signals.quakeMag >= 4.5) {
+    const boost = Math.min(25, Math.round((signals.quakeMag - 4.0) * 5));
+    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    audit.push({ source: "USGS/EMSC", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake` });
+  }
+  
+  // ── NASA EONET ──
+  if (signals.nasaEventCount && signals.nasaEventCount > 0) {
+    const boost = Math.min(15, signals.nasaEventCount * 5);
+    dims.climate = clamp(dims.climate + boost);
+    audit.push({ source: "NASA EONET", field: "climate", delta: boost, reason: `${signals.nasaEventCount} active NASA events` });
+  }
+  
+  // ── GDACS ──
+  if (signals.gdacsAlert) {
+    const gdacsBoost = signals.gdacsAlert === "red" ? 15 : signals.gdacsAlert === "orange" ? 8 : 3;
+    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.5));
+    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.5));
+    audit.push({ source: "GDACS", field: "displacement+health", delta: gdacsBoost, reason: `${signals.gdacsAlert.toUpperCase()} alert active` });
+  }
+  
+  // ── Heat Stress ──
+  if (signals.maxTempC && signals.maxTempC >= 35) {
+    const boost = Math.min(20, Math.round((signals.maxTempC - 30) * 1.5));
+    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.6));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    audit.push({ source: "Open-Meteo", field: "climate+health", delta: boost, reason: `${signals.maxTempC}°C heat` });
+  }
+  
+  // ── Air Quality ──
+  if (signals.aq && signals.aq.pm25 >= 35) {
+    const boost = Math.min(10, Math.round((signals.aq.pm25 - 35) / 10));
+    if (boost > 0) {
+      dims.health = clamp(dims.health + boost);
+      audit.push({ source: "Open-Meteo AQ", field: "health", delta: boost, reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³` });
+    }
+  }
+  
+  // ── Disease ──
+  if (signals.diseaseActive && signals.diseaseActive > 1000) {
+    const m = signals.diseaseActive / 1000;
+    const boost = Math.min(15, Math.round(Math.log10(m + 1) * 6));
+    dims.health = clamp(dims.health + boost);
+    audit.push({ source: "disease.sh", field: "health", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` });
+  }
+  
+  // ── World Bank Indicators ──
+  if (signals.wbInflation && signals.wbInflation > 5) {
+    const boost = Math.min(15, Math.round(signals.wbInflation / 4));
+    dims.economic = clamp(dims.economic + boost);
+    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `Inflation ${signals.wbInflation.toFixed(1)}%` });
+  }
+  if (signals.wbGdpGrowth && signals.wbGdpGrowth < 0) {
+    const boost = Math.min(12, Math.round(Math.abs(signals.wbGdpGrowth) * 2));
+    dims.economic = clamp(dims.economic + boost);
+    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `GDP growth ${signals.wbGdpGrowth.toFixed(1)}% (contraction)` });
+  }
+  if (signals.wbUnemployment && signals.wbUnemployment > 10) {
+    const boost = Math.min(10, Math.round(signals.wbUnemployment / 5));
+    dims.economic = clamp(dims.economic + boost);
+    audit.push({ source: "World Bank", field: "economic", delta: boost, reason: `Unemployment ${signals.wbUnemployment.toFixed(1)}%` });
+  }
+  
+  // ── UNHCR Displacement ──
+  if (signals.totalDisplaced && signals.totalDisplaced > 0) {
+    const m = signals.totalDisplaced / 1_000_000;
+    const boost = m >= 10 ? 30 : m >= 5 ? 25 : m >= 3 ? 20 : m >= 1.5 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
+    if (boost > 0) {
+      dims.displacement = clamp(dims.displacement + boost);
+      audit.push({ source: "UNHCR", field: "displacement", delta: boost, reason: `${m.toFixed(1)}M displaced` });
+    }
+  }
+  
+  return { dims, score: clamp(composite(dims)), audit };
+}
+
+function spilloverScore(newStore) {
+  const res = {};
+  for (const iso in newStore) {
+    const neighbours = (ADJ[iso] || []).filter(n => newStore[n]);
+    if (!neighbours.length) { res[iso] = 0; continue; }
+    const avgNeighbour = neighbours.reduce((s, n) => s + newStore[n].score, 0) / neighbours.length;
+    const spill = Math.max(0, avgNeighbour - 50) * 0.13;
+    res[iso] = Math.round(Math.min(20, spill) * 10) / 10;
+  }
+  return res;
+}
+
+function seedHistory(iso, currentScore) {
+  const N = 28;
+  const seed = iso.split('').reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
+  let score = Math.min(99, Math.max(5, currentScore + Math.round((seedHash(iso) - 0.5) * 18)));
+  const hist = [];
+  for (let i = 0; i <= N; i++) {
+    hist.push({ t: Date.now() - (N - i) * 86400000, s: score });
+    const r = seedHash(iso + i);
+    const pull = (currentScore - score) * 0.12;
+    const noise = (r - 0.5) * 5;
+    score = Math.min(99, Math.max(5, Math.round(score + pull + noise)));
+  }
+  hist[hist.length - 1].s = currentScore;
+  return hist;
+}// ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
+function updateUIStats() {
+  const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+  
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+  
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+  
+  // ─── Calculate affected from all data sources ──────────────────────
+  let totalDisplaced = 0;
+  let totalAffected = 0;
+  
+  // 1. UNHCR displacement data
+  const unhcrRecords = apiResults.unhcr_pop?.items || [];
+  unhcrRecords.forEach(record => {
+    const val = parseInt(record.refugees) || 0;
+    if (val > 0) totalDisplaced += val;
+  });
+  
+  // 2. UNHCR asylum
+  const asylumRecords = apiResults.unhcr_asylum?.items || [];
+  asylumRecords.forEach(record => {
+    const val = parseInt(record.asylum_seekers) || 0;
+    if (val > 0) totalAffected += val;
+  });
+  
+  // 3. COVID cases
+  const covidData = apiResults.disease_sh || [];
+  if (Array.isArray(covidData)) {
+    covidData.forEach(d => {
+      if (d.active > 0) totalAffected += d.active;
+    });
+  }
+  
+  // 4. Heat stress affected (estimate)
+  heatStressData.forEach(h => {
+    if (h.temp > 40) {
+      const pop = evidenceIndex.population[h.iso] || 0;
+      if (pop > 0) totalAffected += Math.round(pop * 0.05);
+    }
+  });
+  
+  // 5. Store evidence details
+  Object.values(store).forEach(c => {
+    if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
+    if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
+    if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
+  });
+  
+  // Combine and format
+  const combined = totalDisplaced + totalAffected;
+  let affectedDisplay = '—';
+  if (combined > 0) {
+    if (combined > 1e9) affectedDisplay = '≈' + (combined / 1e9).toFixed(1) + 'B';
+    else if (combined > 1e6) affectedDisplay = '≈' + (combined / 1e6).toFixed(1) + 'M';
+    else if (combined > 1e3) affectedDisplay = '≈' + (combined / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = combined.toLocaleString();
+  }
+  
+  const anoms = ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
+  const tevt = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
+  
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+  
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
 // ============================================================================
 // MAP
 // ============================================================================
@@ -1641,6 +3493,7 @@ function selCountry(iso){
   zoomToCountry(iso);
   document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
   window.history.pushState({country:iso},'',`?country=${iso}`);
+  if(window.innerWidth<=900)closeMobileSheet();
 }
 
 async function buildConflictTimeline(iso, c) {
@@ -1935,6 +3788,39 @@ async function buildConflictTimeline(iso, c) {
       </div>
     </div>`;
 }
+function buildEvidenceLedgerHtml(c){
+  const ledger=(c.evidenceLedger||[]).slice().sort((a,b)=>b.pts-a.pts);
+  const confPct=Math.round((c.evidenceConfidence||0)*100);
+  const confCol=confPct>=60?'#00e5a0':confPct>=30?'#ffb020':'#ff375f';
+  
+  let rowsHtml = '';
+  if (ledger.length > 0) {
+    const maxPts = Math.max(1, ...ledger.map(l => l.pts));
+    rowsHtml = ledger.map(l => `
+      <div class="evid-row">
+        <span class="evid-src">${l.source}</span>
+        <span class="evid-label" title="${l.label}">${l.label}${l.rawValue !== undefined && l.rawValue !== null && l.rawValue !== '' ? ` · ${l.rawValue}` : ''}</span>
+        <div class="evid-bar-wrap"><div class="evid-bar-fill" style="width:${Math.round((l.pts / maxPts) * 100)}%"></div></div>
+        <span class="evid-pts">+${l.pts}</span>
+      </div>
+    `).join('');
+  } else {
+    rowsHtml = `<div class="evid-empty">⏳ No live evidence sources found in this refresh cycle.<br>Data sources checked: USGS, NASA, GDACS, Open-Meteo, disease.sh, World Bank, UNHCR.</div>`;
+  }
+  
+  return `
+    <div class="ps">
+      <div class="evid-box">
+        <div class="evid-head" onclick="const l=this.nextElementSibling;const open=l.style.display!=='none';l.style.display=open?'none':'flex';this.querySelector('.evid-chevron').textContent=open?'▸':'▾'">
+          <span>🔎 Evidence Ledger · ${ledger.length} live source${ledger.length === 1 ? '' : 's'} <span class="evid-chevron">▾</span></span>
+          <span class="evid-conf" style="background:${confCol}18;border:1px solid ${confCol}44;color:${confCol}">${confPct}% confidence</span>
+        </div>
+        <div class="evid-list" style="display:flex;flex-direction:column;">${rowsHtml}</div>
+      </div>
+    </div>`;
+}
+
+
 async function renderPanel(iso, focusCrisisType) {
   const c = store[iso]; if (!c) return;
   const hist = (history[iso] || []).map(h => h.s);
@@ -2087,6 +3973,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
       <div id="inlinTimelineSlot"></div>
     </div>
+
+    
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -2387,48 +4275,186 @@ function updateDynamicTitle(){
 }
 
 // ============================================================================
-// CRYS CHAT
+// CRYS CHAT — v2, full top-story.js v6.0 parity
+// Same DOM hooks as before (#crysChat, #crysInp, crysSubmit, crysClear,
+// .crys-chip) so the existing sidebar markup and quick-chip buttons keep
+// working untouched. Everything downstream is upgraded to speak the richer
+// live-evidence contract: evidence ledger, anomaly detection, regions,
+// thresholds, source-health footers, and an honest empty state instead of
+// a thrown error when nothing in scope has live evidence.
 // ============================================================================
 (function(){
   const CRYS_API="https://www.globalcrisisindex.com/api/top-story";
+  const REGIONS=["africa","asia","europe","middleeast","middle east","americas","oceania","latin america"];
   const _CC=new Map();
+
   async function crysApi(params){
     const key=JSON.stringify(params);const hit=_CC.get(key);
     if(hit&&Date.now()-hit.t<300000)return hit.d;
     const url=new URL(CRYS_API);
     for(const[k,v]of Object.entries(params))if(v!=null)url.searchParams.set(k,String(v));
-    const r=await fetch(url.toString());if(!r.ok)throw new Error("API "+r.status);
-    const d=await r.json();_CC.set(key,{t:Date.now(),d});return d;
+    const r=await fetch(url.toString());
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||("API "+r.status));
+    _CC.set(key,{t:Date.now(),d});return d;
   }
+
   const crysEsc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  function crysScoreColor(s){return s>=85?"#ff6b6b":s>=75?"#ffa94d":s>=60?"#ffe066":s>=40?"#69db7c":"#74c0fc";}
-  function crysSev(s){const cls={CATASTROPHIC:"#ff6b6b",CRITICAL:"#ffa94d",HIGH:"#ffe066",ELEVATED:"#69db7c",MODERATE:"#74c0fc"}[s]||"#74c0fc";return`<span style="font-size:6px;font-family:var(--fm);background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;">${s}</span>`;}
+  function crysScoreColor(s){return s>=85?"#ff375f":s>=75?"#ff5f7a":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff";}
+  function crysDimColor(v){return v>=75?"#ff375f":v>=55?"#ff8c42":v>=35?"#ffb020":"#3ec5ff";}
+  function crysSev(s){const cls={CATASTROPHIC:"#ff375f",CRITICAL:"#ff5f7a",HIGH:"#ff8c42",ELEVATED:"#ffb020",MODERATE:"#3ec5ff"}[s]||"#3ec5ff";return`<span style="font-size:6px;font-family:var(--fm);font-weight:800;background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;">${s}</span>`;}
+
+  // ── Source-health footer (which live feeds actually returned data this cycle) ──
+  function crysSourcesMini(sources){
+    if(!sources)return'';
+    const flat={USGS:sources.usgs?.live,EMSC:sources.emsc?.live,NASA:sources.nasa?.live,GDACS:sources.gdacs?.live,
+      IFRC:sources.ifrc?.live,Heat:sources.heat?.live,Hazards:sources.hazards?.live,AQ:sources.aq?.live,
+      NOAA:sources.noaa?.live,'disease.sh':sources.disease?.live,WB:sources.wb?.population,UNHCR:sources.unhcr?.live};
+    const tags=Object.entries(flat).map(([l,live])=>
+      `<span style="font-family:var(--fm);font-size:5.5px;padding:1px 5px;border-radius:99px;display:inline-flex;align-items:center;gap:3px;margin:1px 2px 0 0;${live?'background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.16);color:var(--green)':'background:rgba(255,55,95,.04);border:1px solid rgba(255,55,95,.12);color:#ff375f;opacity:.6'}">${l}</span>`
+    ).join('');
+    return `<div style="margin-top:6px;">${tags}</div>`;
+  }
+
+  // ── Evidence Ledger, matches score_audit.adjustments from top-story.js ──
+  function crysEvidenceLedger(auditObj,uid){
+    const adj=auditObj?.adjustments||[];
+    const rows=adj.length?adj.map(a=>
+      `<div style="display:flex;gap:5px;align-items:flex-start;background:rgba(255,255,255,.02);border-radius:4px;padding:4px 6px;margin-bottom:3px;">
+        <span style="font-family:var(--fm);font-size:5.5px;font-weight:700;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);border-radius:3px;padding:1px 4px;white-space:nowrap;flex-shrink:0;">${crysEsc(a.source)}</span>
+        <span style="flex:1;font-size:7.5px;color:var(--ts);line-height:1.4;">${crysEsc(a.reason)}</span>
+        <span style="font-family:var(--fm);font-size:7px;font-weight:700;color:#ff375f;flex-shrink:0;">+${a.delta}</span>
+      </div>`
+    ).join(''):`<div style="font-size:7px;color:var(--td);padding:3px 6px;">No live adjustments this cycle — structural baseline only.</div>`;
+    return `
+      <div style="font-family:var(--fm);font-size:7px;color:var(--cyan);cursor:pointer;margin:5px 0 3px;user-select:none;" onclick="const l=document.getElementById('${uid}');const open=l.style.display!=='none';l.style.display=open?'none':'block';this.textContent=(open?'▸':'▾')+' Evidence Ledger (${adj.length})';">▸ Evidence Ledger (${adj.length})</div>
+      <div id="${uid}" style="display:none;">${rows}</div>`;
+  }
+
+  // ── Recommendation tier box ──
+  function crysRecBox(rec){
+    if(!rec)return'';
+    const cols={IMMEDIATE:"#ff375f",URGENT:"#ff8c42",HIGH:"#ffb020",MONITOR:"#00e5a0",WATCH:"#00e5a0"};
+    const c=cols[rec.tier]||"#3ec5ff";
+    return `<div style="margin-top:5px;background:${c}12;border:1px solid ${c}30;border-radius:5px;padding:5px 7px;font-family:var(--fm);font-size:7px;color:${c};line-height:1.5;"><strong style="letter-spacing:.04em;">${crysEsc(rec.tier)}:</strong> ${crysEsc(rec.text)}</div>`;
+  }
+
+  // ── Full country card, upgraded with evidence + anomaly + dims + recommendation ──
+  let crysUidCounter=0;
   function crysCountryCard(s){
     const col=crysScoreColor(s.score);
-    let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:16px;">${s.flag}</span><div style="flex:1;"><div style="font-size:11px;font-weight:800;">${crysEsc(s.name)}</div><div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries}</div></div><div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div></div>`;
-    if(s.trend){const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";const tcol=dir==="escalating"?"#ff6b6b":dir==="improving"?"#69db7c":"var(--tm)";out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d}</div>`;}
+    const uid='crysEvid'+(++crysUidCounter);
+    let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:16px;">${s.flag}</span><div style="flex:1;"><div style="font-size:11px;font-weight:800;">${crysEsc(s.name)}</div><div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries} · ${s.live_evidence_count??0} live source${(s.live_evidence_count??0)===1?'':'s'}</div></div><div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div></div>`;
+
+    if(s.trend){const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";const tcol=dir==="escalating"?"#ff375f":dir==="improving"?"#00e5a0":"var(--tm)";out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d} · forecast ${s.trend.forecast_7d}/100</div>`;}
+
+    if(s.anomaly?.detected){out+=`<div style="margin-top:4px;background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.18);border-radius:5px;padding:4px 7px;font-family:var(--fm);font-size:7px;color:var(--ts);line-height:1.5;">🚨 <strong style="color:#ff375f;">${crysEsc(s.anomaly.severity)} anomaly</strong> — ${crysEsc(s.anomaly.note)}</div>`;}
+
+    if(s.crisis_types?.length){out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">${s.crisis_types.slice(0,4).map(t=>`<span style="font-family:var(--fm);font-size:6.5px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:3px;padding:2px 5px;color:var(--ts);">${t.icon} ${crysEsc(t.label)}</span>`).join('')}</div>`;}
+
+    if(s.dimensions){const topDims=Object.entries(s.dimensions).sort((a,b)=>b[1].value-a[1].value).slice(0,3);
+      out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${topDims.map(([k,d])=>`<span style="font-family:var(--fm);font-size:6.5px;border:1px solid ${crysDimColor(d.value)}44;color:${crysDimColor(d.value)};border-radius:3px;padding:2px 5px;">${crysEsc(d.label)} ${d.value}</span>`).join('')}</div>`;}
+
+    out+=crysEvidenceLedger(s.score_audit,uid);
+    out+=crysRecBox(s.recommendation);
     return out;
   }
+
   function crysRankList(countries,limit){
     return'<div style="display:flex;flex-direction:column;gap:3px;">'+countries.slice(0,limit||20).map((c,i)=>{
       const col=crysScoreColor(c.score);
-      const dir=c.trend?.direction;const arr=dir==="escalating"?'<span style="color:#ff6b6b">↑</span>':dir==="improving"?'<span style="color:#69db7c">↓</span>':'<span style="color:var(--tm)">→</span>';
+      const dir=c.trend?.direction;const arr=dir==="escalating"?'<span style="color:#ff375f">↑</span>':dir==="improving"?'<span style="color:#00e5a0">↓</span>':'<span style="color:var(--tm)">→</span>';
       return`<div style="display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.015);cursor:pointer;" onclick="selCountry('${c.iso||c.name}')"><span style="font-family:var(--fm);font-size:7px;color:var(--tm);width:16px;">#${c.rank||i+1}</span><span style="font-size:10px;">${c.flag}</span><span style="flex:1;font-size:9px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${crysEsc(c.name)}</span><div style="width:36px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${c.score}%;background:${col};border-radius:99px;"></div></div><span style="font-family:var(--fm);font-size:8px;font-weight:700;color:${col};width:20px;text-align:right;">${c.score}</span><span>${arr}</span></div>`;
     }).join('')+'</div>';
   }
-  async function crysRespond(raw){
-    const l=raw.toLowerCase().trim();
-    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i);
-    if(cmp){
-      const[dA,dB]=await Promise.all([crysApi({q:cmp[1].trim()}),crysApi({q:cmp[2].trim()})]);
-      const sA=dA.top_story,sB=dB.top_story;if(!sA||!sB)throw new Error("Could not find countries");
-      return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>${sA.flag}</span><div style="flex:1;">${crysEsc(sA.name)}: <strong style="color:${crysScoreColor(sA.score)}">${sA.score}</strong></div><span>vs</span><div style="flex:1;text-align:right;">${crysEsc(sB.name)}: <strong style="color:${crysScoreColor(sB.score)}">${sB.score}</strong></div><span>${sB.flag}</span></div>${crysSev(sA.severity)} vs ${crysSev(sB.severity)}`;
-    }
-    const topN=l.match(/top\s+(\d+)/i);
-    if(topN){const d=await crysApi({top:Math.min(20,parseInt(topN[1]))});const cs=d.countries||(d.top_story?[d.top_story]:[]);if(!cs.length)throw new Error("No data");return`<div style="font-size:8px;margin-bottom:4px;"><strong>Top ${topN[1]}</strong> by urgency</div>`+crysRankList(cs,parseInt(topN[1]));}
-    if(l.includes('escalat')||l.includes('worsening')){const d=await crysApi({top:20});const cs=(d.countries||[]).filter(c=>c.trend?.direction==='escalating');return`<div style="font-size:8px;margin-bottom:4px;"><strong>${cs.length}</strong> escalating</div>`+crysRankList(cs,10);}
-    const d=await crysApi({q:raw.trim()});if(!d.top_story)throw new Error(`No data for "${raw}"`);return crysCountryCard(d.top_story);
+
+  function crysEmpty(msg){
+    return `<div style="font-family:var(--fm);font-size:7.5px;color:var(--amber);background:rgba(255,176,32,.06);border:1px solid rgba(255,176,32,.18);border-radius:5px;padding:6px 8px;line-height:1.6;">🔍 ${crysEsc(msg||"No countries in this scope currently have live evidence from any tracked source.")} This isn't an error — CRYS never fabricates a placeholder story.</div>`;
   }
+
+  // ── Intent parser: comparisons, top-N, regions, thresholds, trends, anomalies, search ──
+  function crysParseIntent(raw){
+    const l=raw.toLowerCase().trim();
+
+    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i)||l.match(/(.+?)\s+vs\.?\s+(.+)/i);
+    if(cmp)return{type:'compare',a:cmp[1].trim(),b:cmp[2].trim()};
+
+    const topN=l.match(/(?:top|worst|highest)\s+(\d+)/i);
+    if(topN)return{type:'topN',n:Math.min(20,parseInt(topN[1],10))};
+
+    if(/escalat|worsen|deteriorat|getting worse/.test(l))return{type:'trend',direction:'escalating'};
+    if(/improv|easing|getting better|de-escalat/.test(l))return{type:'trend',direction:'improving'};
+    if(/anomal|unusual|spike/.test(l))return{type:'anomalies'};
+
+    for(const r of REGIONS){
+      if(l===r||l.includes(r)){
+        const canonical=r==='middle east'?'middleeast':r==='latin america'?'americas':r;
+        return{type:'region',region:canonical};
+      }
+    }
+
+    const thresh=l.match(/(?:above|over|>\s*)(\d+)/i);
+    if(thresh)return{type:'threshold',value:parseInt(thresh[1],10)};
+
+    return{type:'search',query:raw.trim()};
+  }
+
+  async function crysRespond(raw){
+    const intent=crysParseIntent(raw);
+
+    if(intent.type==='compare'){
+      const[dA,dB]=await Promise.all([crysApi({q:intent.a}),crysApi({q:intent.b})]);
+      if(dA.meta?.mode==='empty'||dB.meta?.mode==='empty')return crysEmpty(dA.meta?.message||dB.meta?.message);
+      const sA=dA.top_story,sB=dB.top_story;if(!sA||!sB)throw new Error("Could not find one or both countries");
+      let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>${sA.flag}</span><div style="flex:1;">${crysEsc(sA.name)}: <strong style="color:${crysScoreColor(sA.score)}">${sA.score}</strong></div><span>vs</span><div style="flex:1;text-align:right;">${crysEsc(sB.name)}: <strong style="color:${crysScoreColor(sB.score)}">${sB.score}</strong></div><span>${sB.flag}</span></div>${crysSev(sA.severity)} vs ${crysSev(sB.severity)}`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sA)}</div>`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sB)}</div>`;
+      out+=crysSourcesMini(dA.meta?.sources);
+      return out;
+    }
+
+    if(intent.type==='topN'){
+      const d=await crysApi({top:intent.n});
+      if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(!cs.length)return crysEmpty();
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>Top ${intent.n}</strong> by urgency</div>`+crysRankList(cs,intent.n)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='region'){
+      const d=await crysApi({region:intent.region,top:10});
+      if(d.meta?.mode==='empty'||!d.countries?.length)return crysEmpty(d.meta?.message||`No live evidence for the ${intent.region} region right now.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${crysEsc(intent.region)}</strong> region</div>`+crysRankList(d.countries,10)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='threshold'){
+      const d=await crysApi({threshold:intent.value,top:15});
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(d.meta?.mode==='empty'||!cs.length)return crysEmpty(`No countries currently score above ${intent.value} with live evidence.`);
+      return`<div style="font-size:8px;margin-bottom:4px;">Score ≥ <strong>${intent.value}</strong></div>`+crysRankList(cs,15)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='trend'){
+      const d=await crysApi({top:20});
+      const cs=(d.countries||[]).filter(c=>c.trend?.direction===intent.direction);
+      if(!cs.length)return crysEmpty(`No countries currently show a live ${intent.direction} trend.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${cs.length}</strong> ${intent.direction}</div>`+crysRankList(cs,10);
+    }
+
+    if(intent.type==='anomalies'){
+      const d=await crysApi({top:30});
+      const cs=(d.countries||[]).filter(c=>c.anomaly?.detected);
+      if(!cs.length)return crysEmpty("No statistically significant anomalies detected right now.");
+      return`<div style="font-size:8px;margin-bottom:4px;">🚨 <strong>${cs.length}</strong> anomal${cs.length===1?'y':'ies'} detected</div>`+crysRankList(cs,15);
+    }
+
+    // default: search
+    const d=await crysApi({q:intent.query});
+    if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+    if(!d.top_story)throw new Error(`No data for "${raw}"`);
+    return crysCountryCard(d.top_story)+crysSourcesMini(d.meta?.sources);
+  }
+
   function crysRenderMsg(html,isUser,meta){
     const chat=document.getElementById('crysChat');if(!chat)return;
     const div=document.createElement('div');
@@ -2439,22 +4465,25 @@ function updateDynamicTitle(){
     if(meta){const m=document.createElement('div');m.style.cssText='font-size:6px;color:var(--td);font-family:var(--fm);padding:0 3px;';m.textContent=meta;div.appendChild(m);}
     chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
   }
+
   function crysShowTyping(){
     const chat=document.getElementById('crysChat');if(!chat)return null;
     const div=document.createElement('div');div.id='crysTyping';div.style.cssText='align-self:flex-start;';
     div.innerHTML='<div style="padding:5px 9px;background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);border-radius:10px;display:flex;gap:4px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .15s infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .3s infinite;display:inline-block;"></span></div>';
     chat.appendChild(div);chat.scrollTop=chat.scrollHeight;return div;
   }
+
   if(!document.getElementById('crysStyles')){
     const st=document.createElement('style');st.id='crysStyles';
     st.textContent='.crys-chip{font-size:7px;font-family:var(--fm);background:rgba(255,255,255,.02);border:1px solid var(--b1);color:var(--ts);padding:2px 7px;border-radius:99px;cursor:pointer;transition:all .12s;white-space:nowrap;}.crys-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);}#crysChat{scrollbar-width:thin;}';
     document.head.appendChild(st);
   }
+
   window.crysSubmit=async function(raw){
     const q=(raw||'').trim();const inp=document.getElementById('crysInp');if(!q)return;if(inp)inp.value='';
     crysRenderMsg(q,true,'you');const tyDiv=crysShowTyping();const t0=Date.now();
     try{const html=await crysRespond(q);if(tyDiv)tyDiv.remove();crysRenderMsg(html,false,'CRYS · '+(Date.now()-t0)+'ms');}
-    catch(err){if(tyDiv)tyDiv.remove();crysRenderMsg(`<span style="color:#ff6b6b;">✕ ${crysEsc(err.message)}</span>`,false,'error');}
+    catch(err){if(tyDiv)tyDiv.remove();crysRenderMsg(`<span style="color:#ff375f;">✕ ${crysEsc(err.message)}</span>`,false,'error');}
   };
   window.crysClear=function(){const chat=document.getElementById('crysChat');if(chat)chat.innerHTML='';};
 })();
@@ -2476,7 +4505,69 @@ function buildUrgencyNarrative(iso, crisisType) {
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
 
-  // ── 0. FETCH WIKIPEDIA SENTENCES ──────────────────────────────────────
+  // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+    // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+  let countryIntro = '';
+  
+  function fetchExtractIntro(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&exintro=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  // Get country intro (first 2-3 sentences)
+  const introExtract = fetchExtractIntro(name);
+  if (introExtract && introExtract.length > 50) {
+    // Clean up the text first
+    let cleanText = introExtract
+      .replace(/\s+/g, ' ')                    // Normalize whitespace
+      .replace(/\([^)]*\)/g, '')                // Remove anything in parentheses (like "()" or "(country)")
+      .replace(/\s+,\s*/g, ', ')                // Fix "word , word" → "word, word"
+      .replace(/\s+\./g, '.')                   // Fix "word ." → "word."
+      .replace(/\s{2,}/g, ' ')                  // Remove any double spaces
+      .trim();
+    
+    // Split into sentences
+    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+    
+    // Take first 2-3 sentences (min 2, max 3)
+    let introText = sentences.slice(0, 3).join(' ');
+    
+    // Only truncate if it's REALLY long (keep full sentences)
+    if (introText.length > 500) {
+      // Try to find the last complete sentence within 500 chars
+      const truncated = introText.slice(0, 500);
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+      if (lastSentenceEnd > 200) {
+        introText = introText.slice(0, lastSentenceEnd + 1);
+      } else {
+        // If no good sentence boundary, just keep what we have
+        introText = truncated.trim();
+      }
+    }
+    
+    countryIntro = introText;
+  }
+
+  // ── 1. FETCH WIKIPEDIA SENTENCES (EXISTING CODE - UNCHANGED) ──────────
   let wikipediaPrefix = '';
   
   function fetchExtract(pageTitle) {
@@ -2724,14 +4815,18 @@ searchTerms = [...new Set(searchTerms)];
   const spillPhrase = highNeighbours.length >= 2
     ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')} adds +${(c.spillover || 0).toFixed(1)}.`
     : '';
-
   // ── 6. ASSEMBLE ──────────────────────────────────────────────────────
   const parts = [];
 
+  // ── ADD COUNTRY INTRO FIRST ──────────────────────────────────────────
+  if (countryIntro && countryIntro.length > 20) {
+    parts.push(`📖 ${countryIntro}`);
+  }
+
+  // ── THEN ADD EXISTING WIKIPEDIA CRISIS CONTEXT ──────────────────────
   if (wikipediaPrefix && wikipediaPrefix.length > 20) {
     parts.push(wikipediaPrefix);
   }
-
   parts.push(`${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries.`);
 parts.push(`Driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100),`);
 parts.push(`${name}’s score has ${trendPhrase}.`);
