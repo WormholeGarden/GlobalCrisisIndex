@@ -1542,73 +1542,66 @@ async function refresh(){
   loader.style.display='flex';
   const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
   let currentProgress=0;
-  
+
   function adv(n,targetPct){
     targetPct=Math.min(100,Math.max(currentProgress+1,targetPct));
     steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''));});
-    const startPct=currentProgress;
-    const startTime=Date.now();
-    function animateProgress(){
-      const elapsed=Date.now()-startTime;
-      const progress=Math.min(1,elapsed/400);
-      const eased=1-Math.pow(1-progress,3);
-      fill.style.width=Math.min(100,startPct+(targetPct-startPct)*eased)+'%';
-      if(progress<1)requestAnimationFrame(animateProgress);
-      else{fill.style.width=Math.min(100,targetPct)+'%';currentProgress=Math.min(100,targetPct);}
-    }
-    animateProgress();
+    fill.style.width=targetPct+'%';
+    currentProgress=targetPct;
   }
-  adv(0,5);
-  await new Promise(r=>setTimeout(r,200));
-  adv(1,15);
+  adv(0,10);
 
-// ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
-  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
-  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
-  // not as a single pinned URL like the other entries here.)
-  const fetchKeys = Object.keys(API_ENDPOINTS);
-  const fetches = {};
-  for (const k of fetchKeys) {
-    fetches[k] = safe(fetch(API_ENDPOINTS[k], { headers: { 'Accept': 'application/json' } })
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null));
+  let data = null;
+
+  try {
+    const res = await fetch('https://www.globalcrisisindex.com/api/top-story?top=100&force_live=false', { headers: { 'Accept': 'application/json' } });
+    data = await res.json();
+    adv(3,50);
+
+    const countries = data.countries || (data.top_story ? [data.top_story] : []);
+    const newStore = {};
+
+    countries.forEach(c => {
+      if (!c.iso) return;
+      newStore[c.iso] = {
+        name: c.name,
+        flag: c.flag,
+        types: (c.crisis_types || []).map(t => t.code),
+        needs: c.needs || [],
+        dims: Object.fromEntries(Object.entries(c.dimensions || {}).map(([k, d]) => [k, d.value])),
+        score: c.score,
+        priorScore: c.score_audit?.prior_score ?? c.score,
+        events: c.live_evidence_count || 0,
+        spillover: c.spillover?.value || 0,
+        liveBoost: c.score_audit?.live_boost || 0,
+        evidenceCount: c.live_evidence_count || 0,
+        evidenceSources: c.live_evidence_sources || [],
+        evidenceLedger: c.score_audit?.adjustments || [],
+        signals: {},
+      };
+      history[c.iso] = seedHistory(c.iso, c.score);
+    });
+
+    store = newStore;
+    ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+    historyInitialized = true;
+
+    adv(5,85);
+    updateUIStatsFromApi(data);
+    adv(6,100);
+    paintMap();
+    addPulseMarkers();
+    renderRanking();
+
+    toast(`✅ ${ranked.length} countries loaded from live API`);
+  } catch(e) {
+    console.warn('API fetch failed:', e);
+    toast('⚠ Could not load live data from API');
   }
-  const results = await Promise.allSettled(Object.values(fetches));
-  Object.keys(fetches).forEach((k, i) => {
-    apiResults[k] = results[i].status === 'fulfilled' ? results[i].value : null;
-  });
 
-  adv(3,45);
-
-  // ─── FETCH EVIDENCE FROM ALL SOURCES ─────────────────────────────────
-  await fetchAllEvidence();
-  
-  // ─── BUILD TICKER WITH ALL EVIDENCE ──────────────────────────────────
-  buildTickerFromResults();
-  
-  adv(5,78);
-
-  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
-  buildStore();
-  
-  // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
-  updateUIStats();
-
-  adv(6,100);
-  paintMap();
-  addPulseMarkers();
-  renderRanking();
-  await new Promise(r=>setTimeout(r,500));
+  await new Promise(r=>setTimeout(r,300));
   loader.style.display='none';
-  
-  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
-  const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
-  const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
-  const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
-  const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
-  
-  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live`);
-  
+
   refreshTimerSecs=300;
 
   const urlParams=new URLSearchParams(window.location.search);
@@ -1618,7 +1611,49 @@ async function refresh(){
   else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
 
   updateDynamicTitle();
-}// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+}
+
+function updateUIStatsFromApi(data){
+  const top = ranked.slice(0, 20);
+  const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+
+  let totalAffected = 0;
+  (data.countries || (data.top_story ? [data.top_story] : [])).forEach(c => {
+    totalAffected += c.live_evidence?.displacement?.total || 0;
+  });
+  let affectedDisplay = '—';
+  if (totalAffected > 0) {
+    if (totalAffected > 1e9) affectedDisplay = '≈' + (totalAffected / 1e9).toFixed(1) + 'B';
+    else if (totalAffected > 1e6) affectedDisplay = '≈' + (totalAffected / 1e6).toFixed(1) + 'M';
+    else if (totalAffected > 1e3) affectedDisplay = '≈' + (totalAffected / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = totalAffected.toLocaleString();
+  }
+
+  const anoms = data.meta?.anomalies_detected ?? ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
+  const tevt = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
+
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}/ ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
 // NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
 // ────────────────────────────────────────────────────────────────────────
 
