@@ -1023,17 +1023,8 @@ const CHARITIES=[
 // ============================================================================
 // CORE HELPERS
 // ============================================================================
-function composite(d){
-  // Non-linear weighted composite with interaction effects.
-  // NO internal clamp to 99 — that was the actual bug: it pre-saturated
-  // structural scores for every high-conflict country, so by the time
-  // evidence was added, they were already tied at the ceiling.
-  // Clamping happens exactly once, at the very end of the full pipeline.
-  const raw = DIMS.reduce((s,dim) => s + dim.w * (d[dim.k]||0), 0);
-  const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
-  const foodHealth = ((d.food||0)/100) * ((d.health||0)/100) * 8;
-  const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
-  return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
+function composite(dims) {
+  return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0);
 }
 function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2));}
 function entropy(arr){if(arr.length<4)return'—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2);}
@@ -1598,8 +1589,7 @@ async function refresh(){
   adv(5,78);
 
   // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
-  // ─── BUILD EVIDENCE-BASED STORE (now sourced live from top-story.js) ──
-  await buildStore();
+  buildStore();
   
   // ─── UPDATE UI WITH REAL STATS ───────────────────────────────────────
   updateUIStats();
@@ -3299,68 +3289,69 @@ function seededRand(n) {
   const x = Math.sin(n * 9301 + 49297) * 233280;
   return x - Math.floor(x);
 }
-
-
 // ─── REPLACE buildStore() WITH THIS ──────────────────────────────────────────
-// ─── REPLACE buildStore() WITH THIS — pulls scores straight from top-story.js API ──
-async function buildStore() {
+function buildStore() {
+  const refreshSeed = Math.floor(Date.now() / 60000);
   const store = {};
-
-  try {
-    const res = await fetch('https://www.globalcrisisindex.com/api/top-story?top=200&force_live=false', { headers: { 'Accept': 'application/json' } });
-    const data = await res.json();
-    const countries = data.countries || (data.top_story ? [data.top_story] : []);
-
-    countries.forEach(c => {
-      const iso = c.iso;
-      const dims = {};
-      Object.entries(c.dimensions || {}).forEach(([k, v]) => { dims[k] = v.value; });
-
-      store[iso] = {
-        name: c.name,
-        flag: c.flag,
-        types: (c.crisis_types || []).map(t => t.code),
-        needs: c.needs || [],
-        dims,
-        score: c.score,                                   // ← identical to the API's own score
-        priorScore: c.score_audit?.prior_score ?? c.score,
-        events: Math.min(60, Math.max(4, Math.round(
-          c.score * 0.30 +
-          (c.crisis_types?.length || 1) * 1.5 +
-          (c.live_evidence_count || 0) * 3
-        ))),
-        spillover: c.score_audit?.spillover || 0,
-        liveBoost: c.score_audit?.live_boost || 0,
-        evidenceCount: c.live_evidence_count || 0,
-        evidenceSources: c.live_evidence_sources || [],
-        evidenceLedger: c.score_audit?.adjustments || [],
-        signals: { liveEvidenceCount: c.live_evidence_count || 0, evidenceSources: c.live_evidence_sources || [] },
-      };
-    });
-  } catch (e) {
-    console.warn('⚠️ Could not reach top-story API, using local fallback scores:', e);
-    // Fallback only — used if the API is unreachable. Uses the data structures
-    // that actually exist in this file (BASE_SCORES / CTYPES), not the
-    // undefined `COUNTRIES` object the old code referenced.
-    for (const iso of Object.keys(NAMES)) {
-      const prior = BASE_SCORES[iso] || 30;
-      const types = CTYPES[iso] || DEFAULT_T;
-      const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
-      const dims = buildPriorDims(prior, types);
-      const score = Math.max(1, Math.min(99, Math.round(composite(dims))));
-      store[iso] = {
-        name: NAMES[iso] || iso, flag: FLAGS[iso] || '🌍', types, needs, dims, score,
-        priorScore: score, events: 10, spillover: 0, liveBoost: 0,
-        evidenceCount: 0, evidenceSources: [], evidenceLedger: [], signals: {},
-      };
-    }
+  
+  for (const [iso, country] of Object.entries(COUNTRIES)) {
+    // 1. Get base prior from country data
+    const prior = country.prior || 30;
+    const types = country.types || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    const flag = FLAGS[iso] || '🌍';
+    const name = NAMES[iso] || iso;
+    
+    // 2. Build prior dimensions (matches API's buildPriorDims)
+    const dims = buildPriorDims(prior, types);
+    
+    // 3. Compute evidence from LIVE data sources (matches API's extractSignals)
+    const evidence = computeEvidenceScore(iso);
+    const signals = extractLiveSignals(iso);
+    
+    // 4. Apply live adjustments (matches API's applyLiveAdjustments)
+    const adjusted = applyLiveAdjustments(dims, signals);
+    
+    // 5. Final score with clamping (matches API exactly)
+    const rawScore = composite(adjusted.dims);
+    const score = Math.max(1, Math.min(99, Math.round(rawScore)));
+    
+    // 6. Events count based on evidence
+    const events = Math.min(60, Math.max(4, Math.round(
+      score * 0.30 + 
+      types.length * 1.5 + 
+      (signals.liveEvidenceCount || 0) * 3
+    )));
+    
+    store[iso] = {
+      name, flag, types, needs,
+      dims: adjusted.dims,
+      score,
+      priorScore: Math.round(composite(dims)),
+      events,
+      spillover: 0,
+      liveBoost: score - Math.round(composite(dims)),
+      evidenceCount: signals.liveEvidenceCount || 0,
+      evidenceSources: signals.evidenceSources || [],
+      evidenceLedger: adjusted.audit || [],
+      signals: signals,
+    };
   }
-
-  // ── Store and rank — same sort key (score, descending) the API itself uses ──
+  
+  // ── Spillover from neighbours (matches API) ──
+  const spill = spilloverScore(store);
+  for (const iso in store) {
+    store[iso].spillover = spill[iso] || 0;
+    store[iso].score = Math.min(99, Math.max(1, 
+      store[iso].score + store[iso].spillover
+    ));
+  }
+  
+  // ── Store and rank ──
   window.store = store;
   window.ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-
-  // ── Local sparkline history only — purely cosmetic, doesn't affect ranking ──
+  
+  // ── Initialize history ──
   if (!window.historyInitialized) {
     for (const iso in store) {
       window.history[iso] = seedHistory(iso, store[iso].score);
@@ -3373,10 +3364,11 @@ async function buildStore() {
       if (window.history[iso].length > 60) window.history[iso].shift();
     }
   }
-
-  console.log(`📊 Store built from live API: ${Object.keys(store).length} countries, ${window.ranked.filter(i => store[i].score >= 80).length} critical`);
+  
+  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${window.ranked.filter(i => store[i].score >= 80).length} critical`);
   return { store, ranked: window.ranked };
 }
+
 // ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
 function updateUIStats() {
   const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
