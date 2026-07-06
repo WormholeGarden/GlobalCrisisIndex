@@ -1583,12 +1583,6 @@ function buildTickerFromResults(){
 // ============================================================================
 // REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
 // ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
 async function refresh(){
   const loader=document.getElementById('loader');
   const fill=document.getElementById('lFill');
@@ -1644,7 +1638,8 @@ async function refresh(){
   // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
   let apiData = null;
   try {
-    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=100&force_live=false', { 
+    // 🔥 FIX: Use top=136 to get ALL countries
+    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=136&force_live=false', { 
       headers: { 'Accept': 'application/json' } 
     });
     if (apiRes.ok) {
@@ -1792,7 +1787,6 @@ async function refresh(){
 
   updateDynamicTitle();
 }
-
 function updateUIStatsFromApi(data){
   const top = ranked.slice(0, 20);
   const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
