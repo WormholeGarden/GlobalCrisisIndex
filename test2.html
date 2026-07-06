@@ -3777,10 +3777,12 @@ async function buildConflictTimeline(iso, c) {
   const events = [];
 
   // ── Helper to safely parse dates ──
+  // IMPORTANT: returns null (not "now") when the value is missing or unparseable,
+  // so we never silently mislabel an event as having just happened.
   function safeParseDate(dateVal) {
-    if (!dateVal) return new Date();
+    if (!dateVal) return null;
     const d = new Date(dateVal);
-    return isNaN(d.getTime()) ? new Date() : d;
+    return isNaN(d.getTime()) ? null : d;
   }
 
   // ── 1. USGS Earthquakes ──
@@ -4211,6 +4213,19 @@ async function buildConflictTimeline(iso, c) {
     }
   }
 
+  // ── NORMALIZE MISSING/UNPARSEABLE DATES ──
+  // Any event whose date came back null from safeParseDate gets flagged as
+  // "unknown" and pushed to the back of the timeline (oldest), instead of
+  // silently being stamped with the current time (which caused every such
+  // event to incorrectly display as "Just now").
+  const EPOCH = new Date(0);
+  events.forEach(e => {
+    if (!e.date) {
+      e.dateUnknown = true;
+      e.date = EPOCH;
+    }
+  });
+
   // ── DEDUPLICATE ──
   const seen = new Set();
   const uniqueEvents = events.filter(e => {
@@ -4243,7 +4258,9 @@ async function buildConflictTimeline(iso, c) {
   };
 
   function relativeTime(date) {
-    const diff = Date.now() - date.getTime();
+    // Clamp to 0 so any clock-skew or same-instant timestamps can't produce
+    // a negative diff that would otherwise be misread as "Just now".
+    const diff = Math.max(0, Date.now() - date.getTime());
     const h = Math.floor(diff / 3600000);
     const d = Math.floor(diff / 86400000);
     if (h < 1) return '<span style="color:#00e5a0;font-weight:700;">Just now</span>';
@@ -4262,6 +4279,9 @@ async function buildConflictTimeline(iso, c) {
     const isLast = idx === displayed.length - 1;
     const isFirst = idx === 0;
     const isCritical = ev.severity === 'critical';
+    const timeLabel = ev.dateUnknown
+      ? '<span style="color:var(--td);">Date unknown</span>'
+      : relativeTime(ev.date);
 
     return `
       <div style="display:flex;gap:0;position:relative;${isFirst ? '' : ''}">
@@ -4298,7 +4318,7 @@ async function buildConflictTimeline(iso, c) {
               <div style="display:flex;align-items:center;gap:5px;">
                 <span style="font-family:var(--fm);font-size:7px;color:${catColor};background:${catColor}18;border:1px solid ${catColor}33;border-radius:3px;padding:1px 5px;font-weight:600;">${ev.source}</span>
               </div>
-              <div style="font-family:var(--fm);font-size:7px;">${relativeTime(ev.date)}</div>
+              <div style="font-family:var(--fm);font-size:7px;">${timeLabel}</div>
             </div>
           </div>
         </div>
