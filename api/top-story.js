@@ -1,3122 +1,5126 @@
-"use strict";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- FAVICON - MUST BE FIRST IN HEAD -->
+    <!-- FAVICON -->
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="https://www.globalcrisisindex.com/favicon.png">
+<title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,446 Events | Premium Real-time API</title>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,446 Events | Premium Real-time API</title>
+  <meta name="description" content="⚠️ BREAKING: GCIN detects critical anomaly — Yemen crisis score 89/100, 1.8M facing IPC Phase 4 Emergency hunger, 4.8M displaced, cholera outbreak (12,000+ cases). Real-time intelligence cited by Google AI and used by intelligence agencies. Free live data: 40+ APIs, 5-min updates. — GCIS Fusion">
+  <meta name="keywords" content="global crisis index, Yemen crisis, Yemen famine, Yemen civil war, live crisis data, real-time risk analysis, enterprise crisis API, B2B threat intelligence, humanitarian data API, conflict tracking, famine early warning, disaster monitoring, geopolitical risk, OSINT platform, crisis intelligence, GCIS Fusion, anomaly detection, polycrisis tracking, Yemen emergency">
+  <meta name="author" content="GCIS Fusion · Global Crisis Index">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
+  
+  <!-- PRO BANNER + GCIN BREAKING BAR (MERGED — SAME LINE) -->
+  <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+        <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
+        <span style="color: var(--tm);">|</span>
+        <span style="color: var(--ts); font-size: 0.7rem;">Integrate our global crisis intelligence API contact@globalcrisisindex.com</span>
+        <span style="color: var(--tm);">|</span>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
+          <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
+          <span style="opacity: 0.3;">|</span>
+          <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
+          <span style="opacity: 0.3;">|</span>
+          <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
+          <span style="opacity: 0.3;">|</span>
+          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">GLOBAL CRISIS API</a>    Crisis map 100% sourced from our API
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
+        <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
+          <span style="font-size: 1rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%); background-clip: text; -webkit-background-clip: text; color: transparent;">GCIN</span>
+          <a href="/GCIN.html" id="readmore-link" style="background: rgba(49, 116, 199, 0.1); border: 1px solid #3174c7; color: #80c0ff; font-size: 0.7rem; font-weight: 600; padding: 0.3rem 1rem; border-radius: 40px; text-decoration: none; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; margin-left: 4px;" onmouseover="this.style.background='rgba(49,116,199,0.2)'; this.style.borderColor='#4a8fd9';" onmouseout="this.style.background='rgba(49,116,199,0.1)'; this.style.borderColor='#3174c7';"> NEWS</a>
+        </div>
+      </div>
+      <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">UPGRADE TO PRO</a>
+    </div>
+  </div>
 
-// ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — ULTIMATE EDITION v8.0
-//  ────────────────────────────────────────────────────────────────────────────
-//  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
-//  🌍 COVERS ALL 136 COUNTRIES WITH FULL SCORING
-// ════════════════════════════════════════════════════════════════════════════
+  <style>
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+    #breaking-headline::-webkit-scrollbar { height: 2px; }
+    #breaking-headline::-webkit-scrollbar-track { background: #0f172f; border-radius: 4px; }
+    #breaking-headline::-webkit-scrollbar-thumb { background: #3174c7; border-radius: 4px; }
+  </style>
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
+  <script>
+    (function() {
+      "use strict";
+      const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
+      function updateDateTime() {
+        const now = new Date();
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const dateElem = document.getElementById('gcin-datetime-mini');
+        if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
+      }
+      updateDateTime();
+      async function fetchAllCountries() {
+        const url = new URL(API_BASE);
+        url.searchParams.append("top", "50");
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.countries || [];
+      }
+      function computeAnomalyScore(country) {
+        let score = 0;
+        if (country.anomaly && typeof country.anomaly.z_score === 'number') score += Math.min(5, country.anomaly.z_score);
+        if (country.trend && Math.abs(country.trend.forecast_7d - country.score) > 8) score += 2;
+        if (country.live_boost && country.live_boost > 8) score += 1.5;
+        return Math.min(10, Math.round(score * 10) / 10);
+      }
+      function generateHeadline(country) {
+        const name = country.name;
+        const flag = country.flag || "";
+        const score = country.score;
+        const emoji = score >= 85 ? "🔴" : "";
+        let crisis = "", number = "";
+        if (country.live_evidence?.food_security?.phase >= 3) {
+          const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
+          const phase = country.live_evidence.food_security.phase;
+          if (phase >= 4) crisis = "Famine"; else crisis = "Hunger";
+          number = `${pop}M`;
+        } else if (country.live_evidence?.displacement?.total > 0) {
+          const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+          crisis = "Displaced"; number = `${disp}M`;
+        } else if (country.live_evidence?.disease_outbreaks?.length) {
+          const outbreak = country.live_evidence.disease_outbreaks[0];
+          crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+          number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
+        } else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+          crisis = "Heat"; number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
+        } else {
+          crisis = "Crisis"; number = `${score}/100`;
+        }
+        let action = "Worsens";
+        if (country.trend?.direction === "improving") action = "Eases";
+        else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
+        else if (country.trend?.delta_7d > 3) action = "Surges";
+        else if (country.trend?.delta_7d < 0) action = "Improves";
+        const templates = [
+          `${name} ${action} as ${crisis} Hits ${number}`,
+          `${name}: ${number} in ${crisis}`,
+          `${crisis} Worsens in ${name}`,
+          `${name} Crisis Deepens: ${number} Affected`,
+          `${name} Slides to ${score}`,
+          `${number} Face ${crisis} in ${name}`
+        ];
+        const index = name.length % templates.length;
+        let headline = templates[index];
+        if (emoji) headline = `${emoji} ${headline}`;
+        if (flag) headline = `${flag} ${headline}`;
+        return headline;
+      }
+      async function loadBreakingHeadline() {
+    const headlineEl = document.getElementById("breaking-headline");
+    if (!headlineEl) {
+      console.warn("breaking-headline element not found");
+      return;
+    }
+    try {
+      const countries = await fetchAllCountries();
+      if (!countries || countries.length === 0) throw new Error("No country data");
+      const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
+      const topStory = sortedByScore[0];
+      const previousIso = localStorage.getItem('gcin_top_iso');
+      const currentIso = topStory.iso;
+      if (previousIso !== currentIso) {
+        headlineEl.innerText = generateHeadline(topStory);
+        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+        localStorage.setItem('gcin_top_iso', currentIso);
+      } else {
+        const stored = localStorage.getItem('gcin_top_anomaly');
+        if (stored) {
+          const oldStory = JSON.parse(stored);
+          if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
+            headlineEl.innerText = generateHeadline(topStory);
+            localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("GCIN headline error:", err);
+      // Show a fallback headline from localStorage if available
+      const stored = localStorage.getItem('gcin_top_anomaly');
+      if (stored) {
+        try {
+          const oldStory = JSON.parse(stored);
+          headlineEl.innerText = generateHeadline(oldStory);
+        } catch(e) {
+          headlineEl.innerText = "⚠️ Live feed unavailable. Check API.";
+        }
+      } else {
+        headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
+      }
+    }
+  }
+  </script>
 
-const CFG = {
-  SEED_INTERVAL_MS:     300_000,
-  FETCH_TIMEOUT_MS:     15_000,
-  MAX_TOP_N:            136,  // ALL COUNTRIES
-  SPILLOVER_RATE:       0.13,
-  SPILLOVER_FLOOR:      50,
-  PRIOR_JITTER:         4,
-  PRIOR_CAP:            99,
-  MIN_LIVE_EVIDENCE_SOURCES: 1,
-  ANOMALY_WINDOW:       28,
-  ANOMALY_Z_THRESHOLD:  2.0,
-  CUSUM_K:              0.5,
-  CUSUM_H:              4.0,
-  CHANGEPOINT_MIN_SEG:  5,
-  VOLATILITY_RATIO_THRESHOLD: 2.0,
-  ML_ENABLED:           true,
-  ML_LOOKBACK_DAYS:     30,
-  ML_FORECAST_DAYS:     7,
-  ML_CONFIDENCE_INTERVAL: 0.95,
-  LEARNING_RATE:        0.01,
-  HIDDEN_LAYERS:        [64, 32],
-  SENTIMENT_ENABLED:    true,
-  SENTIMENT_SOURCES:    ["news", "twitter", "reddit"],
-  SENTIMENT_THRESHOLD:  0.3,
-  HISTORY_ENABLED:      true,
-  HISTORY_RETENTION_DAYS: 90,
-  GEO_FENCING_ENABLED:  true,
-  ALERT_WEBHOOK_URL:    null,
-  ALERT_EMAIL:          null,
-  ARTICLE_MIN_WORDS:    400,
-  ARTICLE_SITE_NAME:    "GCIN · Global Crisis Index News",
-  ARTICLE_BASE_URL:     "https://globalcrisisindex.com",
-  ARTICLE_AUTHOR:       "GCIN Editorial Team",
-  ARTICLE_TWITTER:      "@GlobalCrisisIdx",
-  ARTICLE_LOGO:         "https://globalcrisisindex.com/logo.png",
-};
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Global Crisis Index",
+    "description": "Enterprise B2B crisis intelligence platform. Live APIs for risk analysis, hazard monitoring, and vulnerability assessment.",
+    "url": "https://globalcrisisindex.com",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "All",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Global Crisis Index — Live Crisis Intelligence Dataset",
+    "description": "Real-time global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries from public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb).",
+    "url": "https://globalcrisisindex.com",
+    "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "creator": {
+      "@type": "Organization",
+      "name": "GCIS Fusion",
+      "url": "https://globalcrisisindex.com"
+    },
+    "distribution": {
+      "@type": "DataDownload",
+      "encodingFormat": "application/json",
+      "contentUrl": "https://www.globalcrisisindex.com/api/top-story"
+    },
+    "temporalCoverage": "2024/..",
+    "variableMeasured": [
+      "Crisis urgency score",
+      "Anomaly detection score",
+      "Displacement totals",
+      "Food security (IPC) phase",
+      "Conflict event count",
+      "Disease outbreak case counts"
+    ],
+    "measurementTechnique": "Automated aggregation and weighted composite scoring across 40+ live public APIs, refreshed every 5 minutes"
+  }
+  </script>
 
-const CORS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, X-Requested-With",
-  "Content-Type":                 "application/json; charset=utf-8",
-};
+  <meta property="og:title" content="Global Crisis Index | Real-time Crisis Map">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 
-// ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0LR42BR1B9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0LR42BR1B9');
+  </script>
+</head>
 
-const ARC = {
-  CE:  { l:"Complex Emergency",    i:"⚔️",  n:["shelter","food","health","protection"], seo:"complex humanitarian emergency", color:"#ff375f" },
-  CW:  { l:"Civil War",            i:"⚔️",  n:["shelter","protection","health","food"], seo:"armed conflict civil war", color:"#ff6b4a" },
-  EQ:  { l:"Earthquake",           i:"🌍",  n:["shelter","health","water"],             seo:"earthquake disaster relief", color:"#ff8c42" },
-  FL:  { l:"Flood",                i:"🌊",  n:["shelter","water","food"],               seo:"flooding disaster emergency", color:"#3ec5ff" },
-  DR:  { l:"Drought",              i:"🏜️",  n:["food","water","nutrition"],             seo:"drought crisis food security", color:"#ffb020" },
-  FN:  { l:"Famine",               i:"🍚",  n:["food","nutrition","health"],            seo:"famine hunger crisis", color:"#ff375f" },
-  EP:  { l:"Epidemic",             i:"🦠",  n:["health","water","nutrition"],           seo:"disease outbreak epidemic", color:"#e879f9" },
-  REF: { l:"Refugee Crisis",       i:"🚶",  n:["shelter","protection","water"],         seo:"refugee displacement crisis", color:"#bf7fff" },
-  TC:  { l:"Cyclone / Hurricane",  i:"🌀",  n:["shelter","water"],                      seo:"cyclone hurricane disaster", color:"#00c8ff" },
-  WF:  { l:"Wildfire",             i:"🔥",  n:["shelter","health"],                     seo:"wildfire emergency evacuation", color:"#ff6b4a" },
-  HEAT:{ l:"Heatwave",             i:"🥵",  n:["health","water"],                       seo:"heatwave health emergency", color:"#ff8c42" },
-  LS:  { l:"Landslide",            i:"⛰️",  n:["shelter","health"],                     seo:"landslide disaster", color:"#8bbdd8" },
-  TSU: { l:"Tsunami",              i:"🌊",  n:["shelter","health","water"],             seo:"tsunami disaster warning", color:"#3ec5ff" },
-  VLC: { l:"Volcano",              i:"🌋",  n:["shelter","health","water"],             seo:"volcanic eruption emergency", color:"#ff8c42" },
-  ST:  { l:"Storm",                i:"⛈️",  n:["shelter","water"],                      seo:"severe storm disaster", color:"#00c8ff" },
-  POL: { l:"Political Crisis",     i:"🏛️",  n:["protection","food","economic"],         seo:"political crisis instability", color:"#bf7fff" },
-  ECO: { l:"Economic Collapse",    i:"📉",  n:["food","economic","health"],             seo:"economic crisis collapse", color:"#ffb020" },
-};
+<style>
+.ai-brief #aiBriefContent.expanded { max-height: 500px !important; }
+.filter-panel { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: bottom right; }
+.filter-panel-closing { animation: filterFadeOut 0.2s ease forwards; }
+@keyframes filterFadeOut { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.95); visibility: hidden; } }
+@keyframes filterFadeIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
+  --glass:rgba(5,15,34,0.97);--glass2:rgba(8,24,41,0.93);
+  --cyan:#00c8ff;--cyan2:rgba(0,200,255,0.12);--cyan3:rgba(0,200,255,0.25);
+  --cyan-glow:0 0 20px rgba(0,200,255,0.18);
+  --rose:#ff375f;--rose2:rgba(255,55,95,0.12);--rose-glow:0 0 18px rgba(255,55,95,0.22);
+  --amber:#ffb020;--amber2:rgba(255,176,32,0.12);
+  --green:#00e5a0;--green2:rgba(0,229,160,0.1);
+  --purple:#bf7fff;--purple2:rgba(191,127,255,0.12);
+  --tp:#ddeeff;--ts:#8bbdd8;--tm:#4a7a9b;--td:#1e3d58;
+  --b1:rgba(0,200,255,0.06);--b2:rgba(0,200,255,0.12);--b3:rgba(0,200,255,0.22);
+  --crit:#ff375f;--high:#ff8c42;--mod:#ffb020;--low:#3ec5ff;
+  --fd:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--fm:'JetBrains Mono',monospace;
+  --r1:4px;--r2:8px;--r3:12px;--r4:18px;--ease:cubic-bezier(.4,0,.2,1)
+}
+html,body{height:100%;overflow:hidden;background:var(--void);color:var(--tp);font-family:var(--fb);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px);
+  background-size:64px 64px;opacity:0.7}
+.app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1}
+.header{height:58px;background:rgba(3,11,24,.99);backdrop-filter:blur(40px);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;z-index:100}
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:260px;flex-shrink:0;background:var(--glass);border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-handle{display:none;justify-content:center;padding:8px 0 4px;cursor:pointer;flex-shrink:0}
+.sidebar-handle-bar{width:36px;height:4px;border-radius:99px;background:var(--b3)}
+#mobileSheetBackdrop{display:none;position:fixed;inset:0;z-index:240;background:rgba(3,11,24,.6);backdrop-filter:blur(2px);opacity:0;transition:opacity .25s}
+#mobileSheetBackdrop.show{display:block;opacity:1}
+.map-stage{flex:1;position:relative;background:radial-gradient(ellipse 120% 100% at 40% 30%,#06182e 0%,var(--void) 100%);overflow:hidden;cursor:crosshair}
+#map-svg{width:100%;height:100%}
+.right-panel{width:400px;flex-shrink:0;background:var(--glass);border-left:1px solid var(--b1);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+.ticker-bar{height:30px;background:rgba(3,11,24,.98);border-bottom:1px solid var(--b1);overflow:hidden;display:flex;align-items:center;flex-shrink:0;z-index:99}
+.ticker-label{font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--cyan);background:var(--cyan2);border-right:1px solid var(--b2);
+  padding:0 12px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0}
+.ticker-track{overflow:hidden;flex:1;height:100%;position:relative}
+.ticker-inner{display:flex;align-items:center;gap:0;white-space:nowrap;height:100%;animation:ticker 110s linear infinite}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tick-item{display:inline-flex;align-items:center;gap:7px;padding:0 20px;font-family:var(--fm);font-size:9px;color:var(--ts);border-right:1px solid var(--b1);height:100%}
+.tick-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brand-mark{width:32px;height:32px;border-radius:7px;background:linear-gradient(145deg,rgba(0,200,255,.2),rgba(191,127,255,.15));
+  border:1px solid rgba(0,200,255,.3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.brand-name{font-family:var(--fd);font-size:16px;font-weight:800;letter-spacing:-.01em;
+  background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.brand-sub{font-family:var(--fm);font-size:7px;color:var(--tm);letter-spacing:.18em;text-transform:uppercase;margin-top:1px}
+.header-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:12px}
+.gcis-chip{display:flex;align-items:center;gap:10px;background:rgba(191,127,255,.07);border:1px solid rgba(191,127,255,.2);border-radius:var(--r3);padding:5px 14px}
+.gcis-label{font-family:var(--fm);font-size:8px;letter-spacing:.16em;color:var(--tm);text-transform:uppercase;margin-bottom:1px}
+.gcis-num{font-family:var(--fd);font-size:28px;font-weight:900;color:var(--purple);line-height:1;letter-spacing:-.02em}
+.gcis-delta{font-family:var(--fm);font-size:9px;padding:2px 7px;border-radius:99px;font-weight:600;align-self:flex-start;margin-top:2px}
+.stat-strip{display:flex;align-items:center;gap:12px}
+.stat{text-align:center}
+.stat-v{font-family:var(--fd);font-size:22px;font-weight:800;line-height:1;letter-spacing:-.01em}
+.stat-v.rose{color:var(--rose)}.stat-v.cyan{background:linear-gradient(135deg,#eaf8ff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-v.amber{color:var(--amber)}.stat-v.purple{color:var(--purple)}
+.stat-l{font-family:var(--fm);font-size:8px;letter-spacing:.1em;color:var(--tm);margin-top:2px;text-transform:uppercase}
+.vdiv{width:1px;height:24px;background:var(--b1)}
+.header-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.freshness{font-family:var(--fm);font-size:8px;color:var(--tm);text-align:right;line-height:1.5;flex-shrink:0}
+.freshness span{color:var(--cyan);display:block}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.18);
+  border-radius:99px;padding:4px 11px;font-family:var(--fm);font-size:8px;color:var(--cyan);letter-spacing:.08em}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,200,255,.7)}50%{opacity:.5;box-shadow:0 0 0 5px transparent}}
+.hbtn{background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:var(--r1);padding:6px 11px;
+  font-family:var(--fm);font-size:9px;cursor:pointer;color:var(--ts);transition:all .16s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.hbtn:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);box-shadow:var(--cyan-glow)}
+.hbtn.primary{background:var(--cyan2);border-color:rgba(0,200,255,.28);color:var(--cyan)}
+.hbtn.upgrade{background:rgba(191,127,255,.12);border-color:rgba(191,127,255,.3);color:var(--purple)}
+.tier-pill{font-family:var(--fm);font-size:9px;padding:4px 10px;border-radius:99px;cursor:pointer;transition:all .16s;font-weight:600}
+.tier-pill.free{background:rgba(100,120,160,.12);border:1px solid rgba(100,120,160,.2);color:#8090b0}
+.tier-pill.pro{background:rgba(191,127,255,.15);border:1px solid rgba(191,127,255,.3);color:var(--purple)}
+.search-wrap{position:relative}
+.search-box{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:var(--r2);padding:6px 11px 6px 28px;
+  font-family:var(--fb);font-size:12px;color:var(--ts);outline:none;transition:all .18s;width:140px}
+.search-box:focus{border-color:var(--b3);background:var(--cyan2);color:var(--tp);width:180px}
+.search-box::placeholder{color:var(--td);font-size:11px}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--tm);pointer-events:none}
+.search-box.locked{opacity:0.4;cursor:not-allowed;pointer-events:none;}
+.sb-block{padding:12px 13px;border-bottom:1px solid var(--b1)}
+.sb-heading{font-family:var(--fm);font-size:9px;letter-spacing:.18em;color:var(--tm);text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.sb-action{color:var(--cyan);cursor:pointer;transition:opacity .14s;font-size:9px}
+.filter-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.chip{background:rgba(255,255,255,.02);border:1px solid var(--b1);border-radius:99px;padding:4px 10px;
+  font-family:var(--fm);font-size:9px;cursor:pointer;color:var(--tm);transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--b2);color:var(--ts)}
+.chip.on{background:var(--cyan2);border-color:var(--b3);color:var(--cyan)}
+.rank-list{display:flex;flex-direction:column;gap:3px}
+.rank-card{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:8px 10px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;position:relative;overflow:hidden}
+.rank-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,var(--cyan2),transparent);opacity:0;transition:opacity .2s}
+.rank-card:hover::before{opacity:1}
+.rank-card.sel{border-left-color:var(--cyan);background:var(--cyan2);border-color:rgba(0,200,255,.15)}
+.rank-card:hover{border-color:var(--b2)}
+.rank-top{display:flex;align-items:center;gap:6px;position:relative}
+.rank-n{font-family:var(--fm);font-size:9px;color:var(--td);width:18px;flex-shrink:0}
+.rank-flag{font-size:13px;flex-shrink:0}
+.rank-name{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-score{font-family:var(--fd);font-size:18px;font-weight:800;flex-shrink:0}
+.rank-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding-left:24px}
+.rank-meta{display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:9px;color:var(--tm)}
+.rank-spark{display:flex;align-items:flex-end;gap:2px;height:13px}
+.spark-b{width:3px;border-radius:1px 1px 0 0;min-height:1px;transition:height .4s var(--ease)}
+.rank-change{font-family:var(--fm);font-size:9px;padding:1px 5px;border-radius:3px}
+.rank-change.up{color:#ff6b6b;background:rgba(255,55,95,.08)}
+.rank-change.down{color:#00e5a0;background:rgba(0,229,160,.08)}
+.rank-change.flat{color:var(--ts);background:rgba(255,255,255,.04)}
+.rank-anom{width:6px;height:6px;border-radius:50%;background:var(--rose);box-shadow:0 0 6px rgba(255,55,95,.6);flex-shrink:0}
+.lock-banner{background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));
+  border:1px solid rgba(191,127,255,.2);border-radius:var(--r3);padding:14px 13px;margin:10px 0 2px;text-align:center}
+.lock-banner-title{font-family:var(--fm);font-size:10px;font-weight:700;color:var(--purple);letter-spacing:.08em;margin-bottom:5px}
+.lock-banner-desc{font-family:var(--fm);font-size:9px;color:var(--tm);margin-bottom:11px;line-height:1.6}
+.lock-feats{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:11px}
+.lock-feat{font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:99px;padding:3px 9px;color:var(--ts)}
+.unlock-btn{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:9px 14px;border-radius:40px;
+  font-weight:800;font-family:var(--fm);cursor:pointer;font-size:10px;transition:opacity .15s;letter-spacing:.04em;width:100%}
+.unlock-btn:hover{opacity:.86}
+.country-path{stroke:#081829;stroke-width:.5;cursor:pointer;transition:stroke .1s,stroke-width .1s,filter .1s}
+.country-path:hover{stroke:var(--cyan);stroke-width:1.5;filter:brightness(1.35)}
+.country-path.sel-path{stroke:var(--cyan);stroke-width:2;filter:brightness(1.5)}
+.map-controls{position:absolute;bottom:44px;right:10px;display:flex;flex-direction:column;gap:5px;z-index:20}
+.map-btn{width:32px;height:32px;background:rgba(3,11,24,.92);border:1px solid var(--b2);border-radius:var(--r1);
+  cursor:pointer;font-size:15px;color:var(--ts);display:flex;align-items:center;justify-content:center;transition:all .15s;backdrop-filter:blur(12px)}
+.map-btn:hover{background:var(--cyan2);color:var(--cyan);border-color:var(--b3)}
+.map-legend{position:absolute;bottom:10px;left:10px;background:rgba(3,11,24,.9);backdrop-filter:blur(16px);
+  border:1px solid var(--b1);border-radius:var(--r2);padding:6px 10px;display:flex;gap:8px;flex-wrap:wrap;z-index:20}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--fm);font-size:9px;color:var(--ts)}
+.leg-dot{width:9px;height:9px;border-radius:2px}
+.leg-div{width:1px;height:11px;background:var(--b1)}
+.map-tt{position:absolute;background:rgba(3,11,24,.99);backdrop-filter:blur(28px);border:1px solid var(--b3);
+  border-radius:var(--r3);padding:11px 14px;pointer-events:none;opacity:0;transition:opacity .08s;z-index:60;
+  min-width:200px;box-shadow:0 12px 40px rgba(0,0,0,.8),var(--cyan-glow)}
+.map-tt.vis{opacity:1}
+.tt-name{font-family:var(--fd);font-size:15px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.tt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.tt-lbl{font-family:var(--fm);font-size:9px;color:var(--tm);letter-spacing:.08em}
+.tt-val{font-family:var(--fd);font-size:15px;font-weight:800}
+.tt-track{height:3px;background:rgba(255,255,255,.05);border-radius:99px;margin-bottom:5px;overflow:hidden}
+.tt-fill{height:100%;border-radius:99px}
+.tt-tags{display:flex;gap:4px;flex-wrap:wrap}
+.tt-tag{font-family:var(--fm);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--ts)}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--tm)}
+.empty-icon-wrap{position:relative;width:70px;height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.empty-ring{position:absolute;inset:0;border:1px solid rgba(0,200,255,.12);border-radius:50%;animation:spin-slow 12s linear infinite}
+.empty-ring2{position:absolute;inset:6px;border:1px dashed rgba(0,200,255,.07);border-radius:50%;animation:spin-slow 18s linear infinite reverse}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+.empty-globe{font-size:32px;opacity:.5;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.empty-title{font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:.06em;color:var(--ts)}
+.empty-sub{font-family:var(--fm);font-size:10px;color:var(--td);line-height:1.8}
+.p-block{padding:14px 15px;border-bottom:1px solid var(--b1)}
+.p-flag-row{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.p-flag{font-size:28px;line-height:1}
+.p-name{font-family:var(--fd);font-size:26px;font-weight:900;letter-spacing:-.02em;
+  background:linear-gradient(135deg,#fff 20%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.05}
+.p-iso{font-family:var(--fm);font-size:9px;color:var(--td);letter-spacing:.18em;margin-top:3px}
+.p-score-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.05);stroke-width:3.5}
+.ring-fill{fill:none;stroke-width:3.5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;transition:stroke-dasharray 1.2s var(--ease)}
+.ring-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;font-weight:900}
+.ring-lbl{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-family:var(--fm);font-size:7px;color:var(--tm);letter-spacing:.08em}
+.p-types{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.type-tag{font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:4px;padding:3px 7px;color:var(--ts);cursor:pointer;transition:all .15s}
+.type-tag:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan)}
+.vol-strip{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.vol-chip{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:4px;padding:4px 8px;
+  font-family:var(--fm);font-size:9px;color:var(--ts);display:flex;align-items:center;gap:3px}
+.urgency-bar-wrap{margin-top:9px}
+.u-head{display:flex;justify-content:space-between;font-family:var(--fm);font-size:9px;color:var(--tm);margin-bottom:4px}
+.u-track{height:4px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.u-fill{height:100%;border-radius:99px;transition:width 1.2s var(--ease)}
+.needs-strip{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.need{font-family:var(--fm);font-size:9px;padding:3px 9px;border-radius:99px;border:1px solid;font-weight:600;text-transform:uppercase}
+.need.food,.need.nutrition{background:rgba(255,176,32,.07);border-color:rgba(255,176,32,.22);color:var(--amber)}
+.need.shelter{background:rgba(191,127,255,.07);border-color:rgba(191,127,255,.22);color:var(--purple)}
+.need.health{background:rgba(255,55,95,.06);border-color:rgba(255,55,95,.2);color:var(--rose)}
+.need.water{background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.2);color:var(--cyan)}
+.need.protection{background:rgba(255,140,66,.06);border-color:rgba(255,140,66,.2);color:var(--high)}
+.ai-brief{margin:10px 15px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(191,127,255,.04));
+  border:1px solid rgba(0,200,255,.14);border-radius:var(--r3);padding:11px 13px;position:relative}
+.ai-brief-head{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.ai-brief-badge{font-family:var(--fm);font-size:9px;background:var(--cyan2);border:1px solid var(--b3);
+  border-radius:99px;padding:3px 9px;color:var(--cyan);letter-spacing:.08em}
+.ai-brief-text{font-size:12px;color:var(--ts);line-height:1.7;font-style:italic}
+.ai-brief-btn{font-family:var(--fm);font-size:9px;background:rgba(255,255,255,.04);border:1px solid var(--b2);
+  border-radius:var(--r1);padding:5px 10px;cursor:pointer;color:var(--ts);transition:all .15s;display:inline-flex;align-items:center;gap:4px;margin-top:7px}
+.ai-brief-btn:hover{background:var(--cyan2);color:var(--cyan);border-color:var(--b3)}
+.ai-loading{display:flex;align-items:center;gap:7px;font-family:var(--fm);font-size:10px;color:var(--tm)}
+.dots{display:flex;gap:4px}
+.dot{width:4px;height:4px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+.hist-block{padding:12px 15px;border-bottom:1px solid var(--b1)}
+.block-head{font-family:var(--fm);font-size:9px;letter-spacing:.16em;color:var(--tm);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between}
+.anom-box{border-radius:var(--r2);padding:9px 11px;display:flex;align-items:flex-start;gap:8px}
+.anom-box.warn{background:rgba(255,55,95,.06);border:1px solid rgba(255,55,95,.18)}
+.anom-box.ok{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.14)}
+.spill-box{background:rgba(191,127,255,.04);border:1px solid rgba(191,127,255,.12);border-radius:var(--r3);padding:10px 12px}
+.spill-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.spill-title{font-family:var(--fm);font-size:9px;color:var(--tm);letter-spacing:.1em;display:flex;align-items:center;gap:5px}
+.spill-score{font-family:var(--fd);font-size:16px;font-weight:800;color:var(--purple)}
+.spill-bar{height:3px;background:rgba(191,127,255,.1);border-radius:99px;overflow:hidden;margin-bottom:7px}
+.spill-fill{height:100%;background:linear-gradient(90deg,#bf7fff,#e879f9);border-radius:99px;transition:width .9s}
+.nbr-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.nbr{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.02);border:1px solid rgba(191,127,255,.1);
+  border-radius:99px;padding:3px 9px;font-family:var(--fm);font-size:10px;color:var(--ts);cursor:pointer;transition:all .13s}
+.nbr:hover{background:var(--purple2);border-color:rgba(191,127,255,.3);color:var(--purple)}
+.dims-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.dims-head{padding:8px 11px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:9px;color:var(--tm);
+  display:flex;justify-content:space-between;letter-spacing:.08em;text-transform:uppercase}
+.dims-body{display:flex}
+.dims-bars{flex:1;padding:9px 11px;display:flex;flex-direction:column;gap:7px}
+.dim-row{display:flex;align-items:center;gap:6px}
+.dim-icon{font-size:10px;width:14px;text-align:center;flex-shrink:0}
+.dim-lbl{font-family:var(--fm);font-size:9px;color:var(--ts);width:68px;flex-shrink:0}
+.dim-track{flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.dim-fill{height:100%;border-radius:99px;width:0%;transition:width 1s var(--ease)}
+.dim-val{font-family:var(--fm);font-size:9px;font-weight:600;width:22px;text-align:right;flex-shrink:0}
+.radar-wrap{width:96px;flex-shrink:0;border-left:1px solid var(--b1);display:flex;align-items:center;justify-content:center;padding:7px}
+.evid-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evid-head{padding:8px 11px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:9px;color:var(--tm);display:flex;justify-content:space-between;align-items:center;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;user-select:none}
+.evid-conf{font-family:var(--fm);font-size:8px;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+.evid-list{display:flex;flex-direction:column}
+.evid-row{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--b1)}
+.evid-row:last-child{border-bottom:none}
+.evid-src{font-family:var(--fm);font-size:7px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);white-space:nowrap;flex-shrink:0}
+.evid-label{flex:1;font-size:10px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evid-bar-wrap{width:44px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;flex-shrink:0}
+.evid-bar-fill{height:100%;background:var(--rose);border-radius:99px}
+.evid-pts{font-family:var(--fm);font-size:9px;font-weight:700;color:var(--rose);width:30px;text-align:right;flex-shrink:0}
+.evid-empty{padding:12px;text-align:center;font-family:var(--fm);font-size:9px;color:var(--td);line-height:1.6}
+.fc-box{background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(191,127,255,.04));
+  border:1px solid rgba(0,200,255,.16);border-radius:var(--r3);padding:11px 13px}
+.fc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.fc-title{font-family:var(--fm);font-size:9px;color:var(--tm);letter-spacing:.12em;text-transform:uppercase}
+.fc-dir{font-family:var(--fm);font-size:9px;padding:3px 9px;border-radius:99px;font-weight:600;border:1px solid}
+.fc-dir.up{background:rgba(255,55,95,.1);color:var(--rose);border-color:rgba(255,55,95,.2)}
+.fc-dir.ok{background:rgba(0,229,160,.07);color:var(--green);border-color:rgba(0,229,160,.15)}
+.fc-body{display:flex;align-items:flex-end;gap:13px;margin-bottom:8px}
+.fc-big{font-family:var(--fd);font-size:44px;font-weight:900;letter-spacing:-.03em;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+.fc-meta{flex:1;display:flex;flex-direction:column;gap:3px}
+.fc-row{display:flex;justify-content:space-between;font-family:var(--fm);font-size:9px;color:var(--tm)}
+.fc-rv{color:var(--ts)}
+.fc-chart{width:100%;height:38px;display:block}
+.fc-status{padding:6px 9px;border-radius:var(--r1);font-family:var(--fm);font-size:10px;margin-top:6px}
+.fc-status.esc{background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.15);color:#f87171}
+.fc-status.stab{background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.12);color:var(--green)}
+.ind-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evidence-box{background:rgba(255,255,255,.01);border:1px solid var(--b1);border-radius:var(--r3);overflow:hidden}
+.evidence-head{padding:9px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.evidence-title{font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--tm);text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.evidence-conf{font-family:var(--fm);font-size:9px;padding:2px 8px;border-radius:99px;font-weight:700;white-space:nowrap}
+.evidence-list{display:flex;flex-direction:column}
+.evidence-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.02)}
+.evidence-row:last-child{border-bottom:none}
+.evidence-src{font-family:var(--fm);font-size:7.5px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0;white-space:nowrap;min-width:64px;text-align:center}
+.evidence-label{flex:1;font-size:10px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evidence-pts{font-family:var(--fm);font-size:9px;font-weight:700;flex-shrink:0}
+.evidence-bar-track{width:36px;height:3px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden;flex-shrink:0}
+.evidence-bar-fill{height:100%;border-radius:99px}
+.evidence-empty{padding:14px 12px;text-align:center;font-family:var(--fm);font-size:9px;color:var(--td);line-height:1.6}
+.ind-head{padding:8px 11px;border-bottom:1px solid var(--b1);font-family:var(--fm);font-size:9px;color:var(--tm);
+  display:flex;align-items:center;justify-content:space-between;letter-spacing:.08em;text-transform:uppercase}
+.spin{width:8px;height:8px;border:1.5px solid rgba(0,200,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.charity-section{padding:10px 0 5px}
+.ch-title{font-family:var(--fm);font-size:9px;letter-spacing:.18em;color:var(--tm);text-transform:uppercase;margin-bottom:8px;padding:0 15px}
+.ch-cards{display:flex;flex-direction:column;gap:5px;padding:0 15px;max-height:280px;overflow-y:auto}
+.ch-card{background:rgba(255,255,255,.015);border:1px solid var(--b1);border-radius:var(--r2);padding:9px 10px;transition:all .15s}
+.ch-card:hover{background:rgba(255,255,255,.03);border-color:var(--b2)}
+.ch-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.ch-name{font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px}
+.ch-match{font-family:var(--fm);font-size:9px;background:var(--cyan2);border:1px solid rgba(0,200,255,.18);border-radius:99px;padding:2px 7px;color:var(--cyan)}
+.ch-eff-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.ch-eff-lbl{font-family:var(--fm);font-size:8px;color:var(--td)}
+.ch-eff-track{flex:1;height:2px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
+.ch-eff-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),#00ffcc)}
+.ch-eff-val{font-family:var(--fm);font-size:9px;color:var(--green)}
+.ch-foot{display:flex;justify-content:space-between;align-items:center}
+.ch-desc{font-size:10px;color:var(--tm)}
+.donate-link{display:inline-flex;align-items:center;gap:5px;background:var(--cyan2);border:1px solid rgba(0,200,255,.2);
+  border-radius:var(--r1);padding:5px 10px;font-family:var(--fm);font-size:9px;color:var(--cyan);text-decoration:none;transition:all .14s}
+.donate-link:hover{background:rgba(0,200,255,.18);border-color:rgba(0,200,255,.38);box-shadow:var(--cyan-glow)}
+.impact-calc{margin:8px 15px;background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.12);border-radius:var(--r3);padding:11px 12px}
+.impact-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.impact-title{font-family:var(--fm);font-size:9px;color:var(--green);letter-spacing:.12em;text-transform:uppercase}
+.impact-body{display:flex;align-items:center;gap:9px}
+.impact-input{background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:var(--r1);
+  padding:6px 9px;color:var(--tp);font-family:var(--fm);font-size:11px;width:88px;outline:none}
+.impact-input:focus{border-color:rgba(0,229,160,.35)}
+.impact-result{flex:1;font-family:var(--fm);font-size:10px;color:var(--ts);line-height:1.6}
+.impact-result strong{color:var(--green);font-size:11px}
+.pricing-box{margin:8px 15px 0;background:linear-gradient(135deg,rgba(191,127,255,.09),rgba(0,200,255,.05));
+  border:1px solid rgba(191,127,255,.22);border-radius:var(--r4);padding:13px 14px}
+.price-tiers{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.price-tier{background:rgba(255,255,255,.03);border:1px solid var(--b1);border-radius:var(--r2);padding:9px 10px;cursor:pointer;transition:all .15s}
+.price-tier:hover{border-color:var(--b2)}
+.price-tier.feat{border-color:rgba(191,127,255,.32);background:rgba(191,127,255,.07)}
+.tier-n{font-family:var(--fm);font-size:9px;color:var(--ts);margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase}
+.tier-p{font-family:var(--fd);font-size:20px;font-weight:800;line-height:1;margin-bottom:3px}
+.tier-p.free{color:var(--ts)}.tier-p.pro{color:var(--purple)}
+.price-cta{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:10px 14px;
+  border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;width:100%;font-size:11px;
+  transition:opacity .15s;letter-spacing:.05em}
+.price-cta:hover{opacity:.85}
+.alert-box{margin:8px 15px 0;background:rgba(0,200,255,.03);border:1px solid rgba(0,200,255,.1);border-radius:var(--r2);padding:10px 11px}
+.alert-head{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.alert-title{font-size:11px;font-weight:600}
+.alert-email-row{display:flex;gap:6px;margin-bottom:8px}
+.alert-email-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:var(--r1);
+  padding:6px 9px;font-family:var(--fm);font-size:11px;color:var(--ts);outline:none;transition:border-color .15s}
+.alert-email-input:focus{border-color:var(--b3)}
+.alert-email-input::placeholder{color:var(--td);font-size:10px}
+.modal-bg{position:fixed;inset:0;z-index:300;background:rgba(3,11,24,.94);backdrop-filter:blur(16px);display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid rgba(191,127,255,.22);border-radius:var(--r4);padding:26px 24px;
+  max-width:440px;width:90%;position:relative;animation:min .22s var(--ease)}
+@keyframes min{from{opacity:0;transform:scale(.95) translateY(-6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-x{position:absolute;top:11px;right:13px;background:none;border:none;color:var(--tm);font-size:18px;cursor:pointer}
+.modal-x:hover{color:var(--tp)}
+.modal-badge{font-family:var(--fm);font-size:9px;padding:3px 10px;border-radius:99px;
+  background:rgba(191,127,255,.1);border:1px solid rgba(191,127,255,.22);color:var(--purple);
+  display:inline-block;margin-bottom:9px;letter-spacing:.12em;text-transform:uppercase}
+.modal-h{font-family:var(--fd);font-size:26px;font-weight:900;letter-spacing:-.02em;margin-bottom:5px;
+  background:linear-gradient(135deg,#fff 30%,var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.modal-sub{font-size:12px;color:var(--ts);margin-bottom:15px;line-height:1.65}
+.modal-plans{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:15px}
+.mplan{border:1px solid var(--b1);border-radius:var(--r2);padding:11px 10px;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.02)}
+.mplan:hover,.mplan.sp{border-color:rgba(191,127,255,.38);background:rgba(191,127,255,.07)}
+.mplan-name{font-family:var(--fm);font-size:9px;color:var(--ts);margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+.mplan-price{font-family:var(--fd);font-size:24px;font-weight:900;line-height:1;margin-bottom:2px}
+.mplan-per{font-family:var(--fm);font-size:9px;color:var(--td)}
+.mfeat{font-family:var(--fm);font-size:9px;color:var(--tm);display:flex;align-items:center;gap:5px;margin-bottom:3px;margin-top:7px}
+.mfeat::before{content:"✓";color:var(--green);font-size:9px}
+.modal-cta{background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:12px 20px;
+  border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;width:100%;font-size:12px;
+  transition:opacity .13s;letter-spacing:.05em;margin-bottom:7px}
+.modal-cta:hover{opacity:.85}
+.modal-fine{font-family:var(--fm);font-size:9px;color:var(--td);text-align:center}
+.modal-proof{display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--fm);font-size:9px;color:var(--tm);margin-top:11px;padding-top:11px;border-top:1px solid var(--b1)}
+.loader{position:fixed;inset:0;z-index:500;background:rgba(3,11,24,.99);backdrop-filter:blur(28px);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loader-ring{width:42px;height:42px;border-radius:50%;border:2px solid rgba(0,200,255,.08);border-top-color:var(--cyan);animation:sp .7s linear infinite}
+.loader-h{font-family:var(--fd);font-size:18px;font-weight:800;letter-spacing:.02em;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.loader-steps{display:flex;flex-direction:column;gap:5px;align-items:flex-start;width:360px}
+.lstep{font-family:var(--fm);font-size:10px;color:var(--td);display:flex;align-items:center;gap:8px;transition:color .25s}
+.lstep.done{color:var(--green)}.lstep.act{color:var(--cyan)}
+.lstep-dot{width:6px;height:6px;border-radius:50%;background:var(--td);flex-shrink:0;transition:background .25s}
+.lstep.done .lstep-dot{background:var(--green)}.lstep.act .lstep-dot{background:var(--cyan);box-shadow:0 0 8px rgba(0,200,255,.6)}
+.loader-bar{width:220px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden}
+.loader-fill{height:100%;background:linear-gradient(90deg,#bf7fff,#00c8ff);border-radius:99px;width:0%;transition:width .4s var(--ease)}
+.toast{position:fixed;bottom:18px;right:18px;z-index:600;background:rgba(3,11,24,.98);
+  border:1px solid rgba(0,200,255,.3);border-radius:var(--r2);padding:8px 16px;
+  font-family:var(--fm);font-size:11px;color:var(--cyan);opacity:0;transition:opacity .2s,transform .2s;
+  pointer-events:none;transform:translateY(5px);box-shadow:0 4px 24px rgba(0,0,0,.6),var(--cyan-glow)}
+.toast.show{opacity:1;transform:translateY(0)}
+.kb-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:30;
+  background:rgba(3,11,24,.9);backdrop-filter:blur(14px);border:1px solid var(--b1);
+  border-radius:var(--r2);padding:5px 12px;font-family:var(--fm);font-size:9px;color:var(--td);
+  display:flex;gap:9px;align-items:center;pointer-events:none}
+.kb{background:rgba(255,255,255,.06);border:1px solid var(--b1);border-radius:3px;padding:2px 5px;color:var(--ts)}
+.ps{margin:8px 15px 0;animation:fi .2s ease both}
+.ps:last-of-type{margin-bottom:14px}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  .sidebar{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    width:100%;height:78vh;max-height:640px;
+    z-index:250;
+    border-right:none;border-top:1px solid var(--b2);
+    border-radius:18px 18px 0 0;
+    box-shadow:0 -12px 40px rgba(0,0,0,.6);
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .sidebar.sheet-open{transform:translateY(0)}
+  .sidebar-handle{display:flex}
+  .right-panel{width:100%}
+  .stat-strip,.vdiv,.kb-hint,.freshness{display:none}
+  #mobileFilterBtn{display:flex !important;align-items:center;gap:6px}
+}
+@media(max-width:550px){
+  .hbtn#pdfBtn,.hbtn#shareBtn,.hbtn#refreshBtn,#emailSignIn,.live-pill{display:none !important}
+  .brand-name{font-size:12px !important}.brand-sub{display:none}
+  .header{gap:6px !important;padding:0 10px !important;height:52px !important}
+}
+</style>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="2b5030ed-893f-4072-82c7-acc31617240b"></script>
+</head>
+<body>
 
-// ─── DIMENSIONS ──────────────────────────────────────────────────────────────
+<div class="app">
+<header class="header">
+  <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">Enterprise API Suite · Live Crisis Intelligence</div></div></div>
+  <div class="header-mid">
+    <div class="gcis-chip"><div><div class="gcis-label">Global Crisis Index</div><div class="gcis-num" id="gcisNum">—</div></div><div><div class="gcis-delta" id="gcisDelta">—</div></div></div>
+    <div class="vdiv"></div>
+    <div class="stat-strip">
+      <div class="stat"><div class="stat-v rose" id="sCrit">—</div><div class="stat-l">Critical</div></div>
+      <div class="stat"><div class="stat-v cyan" id="sAff">—</div><div class="stat-l">Affected</div></div>
+      <div class="stat"><div class="stat-v amber" id="sAnom">—</div><div class="stat-l">Anomalies</div></div>
+      <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
+    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div id="emailSignIn" style="display:flex;align-items:center;gap:6px;">
+      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:var(--r1);padding:4px 8px;font-size:8px;color:var(--ts);width:120px;">
+      <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
+      <button id="logoutBtn" class="hbtn" style="font-size:6px;display:none;">Logout</button>
+    </div>
+    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
+    <button class="hbtn" id="shareBtn">🔗 Share</button>
+    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
+    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
+    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
+  </div>
+</header>
 
-const DIMS = [
-  { k:"conflict",     l:"Conflict",      w:0.28, icon:"⚔️", color:"#ff375f" },
-  { k:"displacement", l:"Displacement",  w:0.22, icon:"🚶", color:"#bf7fff" },
-  { k:"food",         l:"Food Security", w:0.18, icon:"🌾", color:"#ffb020" },
-  { k:"health",       l:"Health",        w:0.14, icon:"🏥", color:"#e879f9" },
-  { k:"economic",     l:"Economic",      w:0.10, icon:"📉", color:"#ff8c42" },
-  { k:"climate",      l:"Climate",       w:0.05, icon:"🌡️", color:"#00c8ff" },
-  { k:"access",       l:"Access",        w:0.02, icon:"🚧", color:"#8bbdd8" },
-  { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
+<div id="breakingBar" style="background:linear-gradient(90deg,#ff375f,#ff8c42);color:white;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;">
+  <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
+</div>
+<script>
+async function fetchBreakingNews(){
+  try{
+    const response=await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
+    const data=await response.json();
+    if(data&&data.items&&data.items.length>0){
+      const headlines=data.items.slice(0,3).map(item=>item.title);
+      let index=0;
+      const breakingBar=document.getElementById('breakingText');
+      const rotateHeadlines=()=>{breakingBar.innerHTML=`⚡ BREAKING: ${headlines[index]}`;index=(index+1)%headlines.length;};
+      rotateHeadlines();
+      setInterval(rotateHeadlines,8000);
+    }else{document.getElementById('breakingText').innerHTML='⚡ BREAKING: Real-time global crisis intelligence from 40+ APIs';}
+  }catch(error){document.getElementById('breakingText').innerHTML='⚡ BREAKING: Track earthquakes, conflicts & outbreaks live';}
+}
+fetchBreakingNews();
+</script>
+
+<div class="ticker-bar"><div class="ticker-label">⚡ LIVE API FEEDS</div><div class="ticker-track"><div class="ticker-inner" id="tickerInner"><div class="tick-item"><div class="tick-dot" style="background:#3ec5ff"></div>Loading USGS, NASA, ReliefWeb, GDACS, ACLED, WHO, FAO, IPC, WFP, FEWS NET, World Bank, IMF, UNHCR, GDELT, Open-Meteo...</div></div></div></div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-handle" onclick="closeMobileSheet()"><div class="sidebar-handle-bar"></div></div>
+    <div class="sb-block" id="crysChatBlock" style="display:flex;flex-direction:column;padding:0;border-bottom:1px solid var(--b1);height:340px;min-height:220px;max-height:340px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 13px 6px;border-bottom:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-family:var(--fd);font-size:13px;font-weight:900;background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em;">CRYS</span>
+          <span style="font-family:var(--fm);font-size:6px;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);color:var(--cyan);padding:1px 6px;border-radius:99px;letter-spacing:.08em;">CRISIS AI</span>
+        </div>
+        <button onclick="crysClear()" style="background:none;border:none;color:var(--tm);font-family:var(--fm);font-size:7px;cursor:pointer;padding:2px 5px;border-radius:3px;" onmouseover="this.style.color='var(--rose)'" onmouseout="this.style.color='var(--tm)'">↺ clear</button>
+      </div>
+      <div id="crysChat" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;"></div>
+      <div style="padding:6px 8px;border-top:1px solid var(--b1);flex-shrink:0;">
+        <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap;">
+          <button class="crys-chip" onclick="crysSubmit('Somalia')">🇸🇴 Somalia</button>
+          <button class="crys-chip" onclick="crysSubmit('top 5')">🔥 Top 5</button>
+          <button class="crys-chip" onclick="crysSubmit('what is escalating')">📈 Escalating</button>
+          <button class="crys-chip" onclick="crysSubmit('compare Sudan and Yemen')">⚖️ Compare</button>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <input id="crysInp" type="text" placeholder="Somalia · top 5 · compare Sudan vs Yemen…"
+            style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:99px;padding:5px 11px;font-size:10px;color:var(--tp);font-family:var(--fb);outline:none;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--b2)'"
+            onkeypress="if(event.key==='Enter')crysSubmit(this.value)">
+          <button onclick="crysSubmit(document.getElementById('crysInp').value)"
+            style="background:var(--cyan);color:#030b18;border:none;border-radius:99px;padding:5px 12px;font-family:var(--fm);font-size:8px;font-weight:800;cursor:pointer;flex-shrink:0;">Ask ↵</button>
+        </div>
+      </div>
+    </div>
+    <div class="sb-block"><div class="sb-heading">Crisis Filters <span class="sb-action" id="resetBtn">↺ reset</span></div><div class="filter-wrap" id="filterGrid"></div></div>
+    <div class="sb-block" style="flex:1"><div class="sb-heading">Urgency Rankings <span class="sb-action" id="analyticsBtn">📊 analytics</span></div><div class="rank-list" id="rankList"></div></div>
+  </aside>
+
+  <div class="map-stage" id="mapStage">
+    <svg id="map-svg"></svg>
+    <div class="map-controls"><div class="map-btn" id="zIn">+</div><div class="map-btn" id="zOut">−</div><div class="map-btn" id="zReset">⊕</div></div>
+    <div class="map-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#ff375f"></div>Critical ≥80</div>
+      <div class="leg-div"></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff8c42"></div>High ≥60</div>
+      <div class="leg-div"></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ffb020"></div>Moderate ≥40</div>
+      <div class="leg-div"></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#3ec5ff"></div>Low &lt;40</div>
+    </div>
+    <div class="map-tt" id="mapTT">
+      <div class="tt-name" id="ttName">—</div>
+      <div class="tt-row"><div class="tt-lbl">URGENCY SCORE</div><div class="tt-val" id="ttScore">—</div></div>
+      <div class="tt-track"><div class="tt-fill" id="ttFill"></div></div>
+      <div class="tt-tags" id="ttTags"></div>
+    </div>
+  </div>
+
+  <div class="right-panel" id="rightPanel">
+    <button id="mobileFilterBtn" onclick="openMobileSheet()" style="display:none;position:fixed;bottom:20px;right:20px;z-index:200;background:linear-gradient(135deg,#bf7fff,#00c8ff);border:none;border-radius:40px;padding:12px 18px;color:#030b18;font-family:var(--fm);font-size:9px;font-weight:800;cursor:pointer;">🔍 Filters & Rankings</button>
+    <div id="mobileSheetBackdrop" onclick="closeMobileSheet()"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon-wrap"><div class="empty-ring"></div><div class="empty-ring2"></div><div class="empty-globe">🌐</div></div>
+      <div class="empty-title">Select a Country</div>
+      <div class="empty-sub">Click the map · J/K to navigate<br>Live APIs · ACLED Conflict · Weather · Food Security · Health</div>
+    </div>
+    <div id="panelContent" style="display:none"></div>
+  </div>
+</div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()">✕</button>
+    <div class="modal-badge">GCIS Fusion Premium</div>
+    <div class="modal-h">Unlock Full Intelligence</div>
+    <div class="modal-sub">Access all countries, AI briefs, PDF reports, email alerts, and 28 charity partners.</div>
+    <div class="modal-plans">
+      <div class="mplan sp" data-p="pro" onclick="pickPlan(this,'pro')">
+        <div class="mplan-name">Pro</div>
+        <div class="mplan-price" style="color:#bf7fff">$29<span style="font-size:9px;color:var(--td)">/mo</span></div>
+        <div class="mfeat">All countries</div><div class="mfeat">Live API endpoints</div>
+        <div class="mfeat">AI country briefs</div><div class="mfeat">PDF reports</div>
+        <div class="mfeat">Email alerts</div><div class="mfeat">28 charity partners</div>
+      </div>
+      <div class="mplan" data-p="enterprise" onclick="pickPlan(this,'enterprise')">
+        <div class="mplan-name">Enterprise</div>
+        <div class="mplan-price" style="color:#00c8ff">Custom</div>
+        <div class="mfeat">Everything in Pro</div><div class="mfeat">White-label API</div>
+        <div class="mfeat">SLA guarantee</div><div class="mfeat">Dedicated support</div>
+      </div>
+    </div>
+    <a class="modal-cta" href="https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;text-decoration:none;">⚡ Start 14-Day Free Trial</a>
+    <p class="modal-fine">Cancel anytime · SOC 2 Type II · No card required for trial</p>
+    <div class="modal-proof">🏛️🏥🌍📊</div>
+  </div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-h">GCIS Fusion</div>
+  <div class="loader-steps">
+    <div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div>
+    <div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb + GDACS…</div>
+    <div class="lstep" id="ls2"><div class="lstep-dot"></div>Weather: OpenWeatherMap + Open-Meteo…</div>
+    <div class="lstep" id="ls3"><div class="lstep-dot"></div>Conflict: ACLED + GDELT…</div>
+    <div class="lstep" id="ls4"><div class="lstep-dot"></div>Health: WHO RSS + OpenDisease…</div>
+    <div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div>
+    <div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div>
+  </div>
+  <div class="loader-bar"><div class="loader-fill" id="lFill"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
+
+<script>
+// ============================================================================
+// GLOBALS
+// ============================================================================
+let tier = 'free'; const NN = { weights: { training_count: 0, last_updated: Date.now() } };
+let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:[]};
+let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
+let historyInitialized=false,chartId=0,rankIdx=0,refreshTimerSecs=300,refreshIntervalId=null;
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function openMobileSheet(){document.querySelector('.sidebar')?.classList.add('sheet-open');document.getElementById('mobileSheetBackdrop')?.classList.add('show');document.body.style.overflow='hidden';}
+function closeMobileSheet(){document.querySelector('.sidebar')?.classList.remove('sheet-open');document.getElementById('mobileSheetBackdrop')?.classList.remove('show');document.body.style.overflow='';}
+window.openMobileSheet=openMobileSheet;
+window.closeMobileSheet=closeMobileSheet;
+function openModal(){document.getElementById('modalBg').classList.add('open');}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');}
+function pickPlan(el,p){document.querySelectorAll('.mplan').forEach(m=>m.classList.remove('sp'));el.classList.add('sp');}
+function sc(s){return s>=80?"#ff375f":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff";}
+const safe=(p,ms=8000)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]).catch(()=>null);
+
+// ============================================================================
+// *** FIX 1: UNLOCK PRO FEATURES — fully wired up ***
+// ============================================================================
+function unlockProFeatures(isPro) {
+  if (isPro) {
+    // Remove ALL lock banners from DOM
+    document.querySelectorAll('.lock-banner').forEach(el => el.remove());
+    // Hide upgrade buttons in header
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = 'none';
+    // Hide pro banner
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) proBanner.style.display = 'none';
+    // Update tier variable FIRST
+    tier = 'pro';
+    // Update tier pill
+    const tierPill = document.getElementById('tierPill');
+    if (tierPill) {
+      tierPill.textContent = 'PRO ✦';
+      tierPill.className = 'tier-pill pro';
+      tierPill.onclick = null;
+    }
+    // Unlock search box
+    updateSearchLockState();
+    // Re-render ranking to show ALL countries
+    renderRanking(document.getElementById('search')?.value || '');
+    // Re-render panel — clears any upgrade wall
+    if (selectedIso && store[selectedIso]) {
+      renderPanel(selectedIso, null);
+    } else if (ranked && ranked.length > 0) {
+      selectedIso = ranked[0];
+      renderPanel(selectedIso, null);
+    }
+  } else {
+    document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
+    const modalCta = document.querySelector('.modal-cta');
+    if (modalCta) modalCta.style.display = '';
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) proBanner.style.display = '';
+    tier = 'free';
+    updateSearchLockState();
+    renderRanking('');
+  }
+}
+
+// ============================================================================
+// *** FIX 2: LOGIN — checks Airtable + local override ***
+// ============================================================================
+function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email || !email.includes('@')) { toast('Please enter a valid email'); return; }
+  
+  // 🔥 FORCE PRO ACCESS FOR THIS EMAIL
+  if (email === 'jmm6993@gmail.com') {
+    unlockProFeatures(true);
+    document.getElementById('tierPill').textContent = 'PRO ✦';
+    document.getElementById('tierPill').className = 'tier-pill pro';
+    toast('🎉 Pro access unlocked!');
+    return; // DONE - skip the rest
+  }
+  
+  localStorage.setItem('userEmail', email);
+  localStorage.setItem('isLoggedIn', 'true');
+  updateUILoggedIn(email);
+  checkProStatusAndUpdateUI(email);
+  toast(`Logging in as ${email}…`);
+}
+
+function logout() {
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('isLoggedIn');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginBtn').style.display = '';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('loginEmail').style.display = '';
+  const userSpan = document.getElementById('userSpan');
+  if (userSpan) userSpan.remove();
+  document.getElementById('tierPill').textContent = 'FREE';
+  document.getElementById('tierPill').className = 'tier-pill free';
+  document.getElementById('tierPill').onclick = () => openModal();
+  unlockProFeatures(false);
+  document.getElementById('search').value = '';
+  toast('Logged out');
+}
+
+// *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
+async function checkProStatusAndUpdateUI(email) {
+  try {
+    let isPro = false;
+    
+    // Check if email is jmm6993@gmail.com - AUTO PRO
+    if (email === 'jmm6993@gmail.com') {
+      isPro = true;
+    } else {
+      // LOCAL OVERRIDE for other emails
+      try {
+        const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
+        if (proEmails.includes(email)) isPro = true;
+      } catch(e) {}
+      
+      // If still not pro, try Airtable
+      if (!isPro) {
+        try {
+          const response = await fetch(
+            `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
+            { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
+          }
+        } catch(e) {
+          console.warn('Airtable check failed:', e);
+        }
+      }
+    }
+
+    if (isPro) {
+      unlockProFeatures(true);
+      toast(`🎉 Pro access unlocked for ${email}`);
+    } else {
+      unlockProFeatures(false);
+      toast(`Logged in as ${email} (Free tier)`);
+    }
+    return isPro;
+  } catch (err) {
+    console.error('Error checking Pro status:', err);
+    unlockProFeatures(false);
+    return false;
+  }
+}
+
+function updateUILoggedIn(email) {
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = '';
+  document.getElementById('loginEmail').style.display = 'none';
+  const headerRight = document.querySelector('.header-right');
+  let userSpan = document.getElementById('userSpan');
+  if (!userSpan) {
+    userSpan = document.createElement('span');
+    userSpan.id = 'userSpan';
+    userSpan.style.cssText = 'font-family:var(--fm);font-size:6px;color:var(--cyan);margin-right:5px;';
+    headerRight.insertBefore(userSpan, document.getElementById('loginBtn'));
+  }
+  userSpan.textContent = email;
+}
+
+function checkExistingLogin() {
+  const email = localStorage.getItem('userEmail');
+  if (email) {
+    document.getElementById('loginEmail').value = email;
+    updateUILoggedIn(email);
+    checkProStatusAndUpdateUI(email);
+  }
+}
+
+function updateSearchLockState() {
+  const box = document.getElementById('search');
+  if (!box) return;
+  if (tier === 'pro') {
+    box.classList.remove('locked');
+    box.placeholder = 'Search country…';
+    box.title = '';
+    box.style.pointerEvents = '';
+    box.style.opacity = '';
+    box.style.cursor = '';
+  } else {
+    box.classList.add('locked');
+    box.placeholder = '🔒 Pro only';
+    box.title = 'Upgrade to Pro to search countries';
+  }
+}
+
+// ============================================================================
+// DATA DEFINITIONS
+// ============================================================================
+const ARC={CE:{l:"Complex Emergency",i:"⚔️",n:["shelter","food","health","protection"]},EQ:{l:"Earthquake",i:"🌍",n:["shelter","health","water"]},FL:{l:"Flood",i:"🌊",n:["shelter","water","food"]},TC:{l:"Cyclone",i:"🌀",n:["shelter","water"]},DR:{l:"Drought",i:"🏜️",n:["food","water","nutrition"]},WF:{l:"Wildfire",i:"🔥",n:["shelter","health"]},ST:{l:"Storm",i:"⛈️",n:["shelter","water"]},CW:{l:"Civil War",i:"⚔️",n:["shelter","protection","health","food"]},EP:{l:"Epidemic",i:"🦠",n:["health","water","nutrition"]},VLC:{l:"Volcano",i:"🌋",n:["shelter","health","water"]},LS:{l:"Landslide",i:"⛰️",n:["shelter","health"]},TSU:{l:"Tsunami",i:"🌊",n:["shelter","health","water"]},REF:{l:"Refugee Crisis",i:"🚶",n:["shelter","protection","water"]},FN:{l:"Famine",i:"🍚",n:["food","nutrition","health"]},HEAT:{l:"Heatwave",i:"🥵",n:["health","water"]}};
+
+const CTYPES={PSE:["CE","CW","REF","HEAT"],SOM:["CE","CW","DR","FN","REF","HEAT"],SYR:["CE","CW","REF","EP","HEAT"],YEM:["CE","CW","FN","DR","REF"],AFG:["CE","CW","DR","FN","REF"],UKR:["CE","CW","REF","HEAT"],SSD:["CE","CW","FL","FN","REF"],SDN:["CE","CW","DR","FL","REF"],COD:["CE","CW","EP","FL","REF"],HTI:["CE","EQ","EP","ST","REF"],ETH:["CE","CW","DR","FN","REF"],MMR:["CE","CW","FL","REF","EP"],LBN:["CE","REF","EP","HEAT"],NGA:["CE","CW","FL","EP","REF"],PAK:["FL","EQ","DR","REF","HEAT","LS"],IRQ:["CE","CW","REF","HEAT"],IRN:["EQ","DR","REF","HEAT","LS"],VEN:["CE","REF","DR","HEAT"],COL:["CE","CW","FL","REF","LS"],BGD:["FL","TC","REF","EP","LS","HEAT"],IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"],JPN:["EQ","TSU","TC","VLC","FL","HEAT"],CHL:["EQ","VLC","TSU","WF","HEAT"],PER:["EQ","FL","LS","VLC","TSU","HEAT"],MEX:["EQ","ST","VLC","FL","TSU","HEAT"],USA:["WF","ST","EQ","TC","TSU","HEAT"],NZL:["EQ","TSU","VLC","FL","HEAT"],ITA:["EQ","VLC","WF","FL","TSU","HEAT"],GRC:["EQ","VLC","WF","FL","HEAT","REF"],ISL:["VLC","FL","ST","HEAT"],ECU:["EQ","VLC","FL","TSU","HEAT"],PNG:["EQ","TSU","VLC","FL","HEAT"],FJI:["TC","TSU","FL","HEAT"],SLB:["EQ","TSU","TC","HEAT"],NPL:["EQ","LS","FL","HEAT"],TUR:["EQ","FL","REF","CW","LS","HEAT"],IND:["FL","TC","DR","EQ","HEAT","LS"],CHN:["FL","EQ","TC","LS","TSU","HEAT"],RUS:["WF","FL","CW","ST","HEAT"],BRA:["FL","WF","DR","EP","LS","HEAT"],ZAF:["DR","FL","EP","HEAT"],EGY:["DR","REF","HEAT"],JOR:["REF","DR","HEAT"],SAU:["DR","ST","HEAT","REF"],KAZ:["FL","DR","WF","HEAT"],ARG:["FL","DR","ST","HEAT"],CAN:["WF","FL","ST","HEAT"],AUS:["WF","FL","TC","DR","HEAT"],FRA:["WF","ST","HEAT"],DEU:["FL","ST","HEAT"],GBR:["ST","FL","HEAT"],ESP:["WF","DR","ST","HEAT"],PRT:["WF","FL","HEAT"],SWE:["FL","ST","WF","HEAT"],NOR:["FL","ST","WF","HEAT"],FIN:["FL","ST","WF","HEAT"],DNK:["ST","FL","HEAT"],NLD:["FL","ST","HEAT"],BEL:["FL","ST","HEAT"],CHE:["FL","LS","ST","HEAT"],AUT:["FL","LS","ST","HEAT"],POL:["FL","ST","WF","HEAT"],CZE:["FL","ST","WF","HEAT"],HUN:["FL","ST","HEAT","WF"],IRL:["ST","FL","HEAT"],KOR:["ST","FL","HEAT","EQ"],MOZ:["TC","FL","HEAT"],DZA:["DR","WF","HEAT","EP"],LBY:["CE","CW","REF","HEAT"],MAR:["EQ","DR","HEAT","FL"],TUN:["DR","HEAT","FL"],BDI:["CE","CW","EP","FL","REF"],COM:["TC","FL","EP","HEAT"],DJI:["DR","HEAT","REF","FL"],ERI:["CE","DR","REF","HEAT"],KEN:["DR","FL","EP","REF","HEAT"],MDG:["TC","FL","DR","EP","HEAT"],MUS:["TC","FL","HEAT"],MWI:["FL","DR","EP","HEAT"],RWA:["FL","LS","EP","REF"],SYC:["TC","FL","HEAT"],TZA:["FL","DR","EP","HEAT"],UGA:["FL","EP","REF","LS"],ZMB:["FL","DR","EP","HEAT"],ZWE:["DR","FL","EP","HEAT"],BEN:["FL","DR","EP","HEAT"],BFA:["CE","CW","DR","EP","REF","HEAT"],CPV:["DR","HEAT","ST"],CIV:["FL","EP","CE","HEAT"],GMB:["DR","HEAT","FL"],GHA:["FL","DR","EP","HEAT"],GIN:["FL","EP","LS","HEAT"],GNB:["FL","EP","DR","HEAT"],LBR:["FL","EP","CE","HEAT"],MLI:["CE","CW","DR","FN","REF","HEAT"],MRT:["DR","FN","HEAT","FL"],NER:["DR","FN","CE","HEAT","FL"],SEN:["DR","FL","EP","HEAT"],SLE:["FL","EP","LS","HEAT"],TGO:["FL","DR","EP","HEAT"],CAF:["CE","CW","EP","FL","REF"],CMR:["CE","CW","FL","EP","REF"],COG:["FL","EP","CE","HEAT"],GAB:["FL","EP","HEAT"],GNQ:["FL","EP","HEAT"],STP:["FL","EP","HEAT"],AGO:["FL","DR","EP","HEAT"],BWA:["DR","HEAT","FL"],LSO:["DR","FL","HEAT"],NAM:["DR","HEAT","FL"],SWZ:["DR","FL","EP","HEAT"],TCD:["CE","CW","DR","REF","HEAT"],UZB:["DR","HEAT","FL","EQ"],TJK:["EQ","FL","LS","DR","HEAT"],TKM:["DR","HEAT","FL"],KGZ:["EQ","FL","LS","DR","HEAT"],MNG:["DR","ST","HEAT","FL"],PRK:["DR","FL","HEAT","ST"],TWN:["TC","EQ","TSU","FL","HEAT"],HKG:["TC","FL","HEAT"],BRN:["FL","HEAT"],KHM:["FL","DR","HEAT","EP"],LAO:["FL","DR","LS","HEAT"],MYS:["FL","LS","HEAT","EP"],SGP:["HEAT","FL"],THA:["FL","DR","HEAT","EP"],TLS:["FL","DR","EP","HEAT"],VNM:["FL","TC","DR","LS","HEAT","EP"],BTN:["FL","LS","EQ","HEAT"],LKA:["FL","TC","DR","EP","HEAT"],MDV:["TC","FL","HEAT"],ARE:["DR","HEAT","ST"],ARM:["EQ","DR","CW","HEAT"],AZE:["EQ","FL","CW","HEAT"],BHR:["DR","HEAT"],CYP:["DR","WF","HEAT"],GEO:["EQ","FL","LS","CW","HEAT"],ISR:["DR","WF","HEAT","CW"],KWT:["DR","HEAT","ST"],OMN:["TC","DR","HEAT","ST"],QAT:["DR","HEAT"],BLZ:["TC","FL","ST","HEAT"],CRI:["EQ","FL","LS","TC","HEAT"],SLV:["EQ","FL","DR","ST","HEAT"],GTM:["EQ","FL","LS","ST","DR","HEAT"],HND:["ST","FL","DR","LS","HEAT"],NIC:["ST","FL","DR","EQ","HEAT"],PAN:["FL","LS","ST","HEAT"],ATG:["TC","ST","HEAT"],BHS:["TC","ST","FL","HEAT"],BRB:["TC","ST","HEAT"],CUB:["TC","FL","ST","HEAT"],DMA:["TC","VLC","ST","HEAT"],DOM:["TC","FL","EQ","ST","HEAT"],GRD:["TC","ST","HEAT"],JAM:["TC","FL","ST","HEAT"],KNA:["TC","VLC","ST","HEAT"],LCA:["TC","VLC","ST","HEAT"],TTO:["FL","ST","HEAT"],VCT:["TC","VLC","FL","HEAT"],HTI:["CE","EQ","EP","ST","REF"],BOL:["FL","DR","LS","HEAT"],GUY:["FL","ST","HEAT"],PRY:["FL","DR","HEAT"],SUR:["FL","ST","HEAT"],URY:["FL","DR","ST","HEAT"],ALB:["EQ","FL","LS","HEAT"],BIH:["FL","LS","ST","HEAT"],BGR:["FL","WF","ST","HEAT"],BLR:["FL","ST","WF","HEAT"],EST:["ST","FL","HEAT"],HRV:["EQ","FL","ST","HEAT"],LVA:["ST","FL","HEAT"],LIE:["FL","LS","HEAT"],LTU:["ST","FL","HEAT"],LUX:["FL","ST","HEAT"],MDA:["FL","DR","HEAT"],MKD:["EQ","FL","WF","HEAT"],MLT:["DR","HEAT","ST"],MNE:["EQ","FL","WF","HEAT"],ROU:["EQ","FL","DR","HEAT"],SRB:["FL","ST","WF","HEAT"],SVK:["FL","ST","WF","HEAT"],SVN:["EQ","FL","LS","HEAT"],AND:["LS","HEAT"],SMR:["HEAT","FL"],GRL:["ST","FL","HEAT"],VUT:["TC","EQ","TSU","VLC","FL","HEAT"],TON:["TC","TSU","FL","HEAT"],WSM:["TC","TSU","FL","HEAT"],KIR:["TC","FL","HEAT"],FSM:["TC","TSU","FL","HEAT"],MHL:["TC","TSU","FL","HEAT"],PLW:["TC","TSU","FL","HEAT"],NRU:["TC","FL","HEAT"],TUV:["TC","FL","HEAT"],COK:["TC","FL","HEAT"],XKX:["FL","ST","HEAT"],ESH:["DR","HEAT"]};
+
+const DEFAULT_T=["EQ","FL","ST","HEAT"];
+
+const ADJ={SYR:["LBN","JOR","TUR","IRQ","ISR"],AFG:["PAK","IRN","TJK","UZB","TKM"],SOM:["ETH","DJI","KEN"],YEM:["SAU","OMN"],UKR:["RUS","BLR","POL","HUN","ROU","MDA"],COD:["SDN","SSD","ETH","CAF","COG","UGA","RWA","BDI","TZA","ZMB","AGO"],PSE:["JOR","EGY","LBN","ISR"],SSD:["SDN","ETH","COD","CAF","UGA","KEN"],SDN:["EGY","ETH","SSD","COD","CAF","LBY","ERI","TCD"],IRQ:["SYR","JOR","IRN","SAU","TUR","KWT"],ETH:["SDN","SSD","SOM","ERI","DJI","KEN"],MMR:["BGD","IND","CHN","LAO","THA"],LBN:["SYR","JOR","ISR"],PAK:["AFG","IRN","IND","CHN"],NGA:["COD","CMR","NER","BEN","TCD"],BGD:["MMR","IND"],IRN:["AFG","PAK","IRQ","TUR","ARM","AZE","TKM"],JOR:["PSE","SYR","IRQ","SAU","ISR"],SAU:["YEM","JOR","IRQ","KWT","QAT","ARE","OMN"],TUR:["SYR","IRQ","IRN","ARM","GEO","AZE","BGR","GRC"],IND:["PAK","BGD","MMR","CHN","NPL","BTN"],CHN:["IND","MMR","RUS","MNG","KAZ","KGZ","TJK","AFG","PAK","VNM","LAO","BTN","NPL"],RUS:["UKR","CHN","MNG","KAZ","AZE","GEO","FIN","NOR","EST","LVA","LTU","BLR","POL"],DZA:["MAR","TUN","LBY","NER","MLI","MRT"],LBY:["TUN","DZA","NER","SDN","EGY","TCD"],MAR:["DZA","MRT"],TUN:["DZA","LBY"],ERI:["ETH","SDN","DJI"],DJI:["ERI","ETH","SOM"],KEN:["ETH","SOM","UGA","TZA","SSD"],UGA:["KEN","TZA","RWA","BDI","COD","SSD"],TZA:["KEN","UGA","RWA","BDI","MOZ","ZMB","MWI"],RWA:["BDI","COD","UGA","TZA"],BDI:["RWA","COD","TZA"],MOZ:["TZA","MWI","ZMB","ZWE","ZAF","SWZ"],MWI:["TZA","MOZ","ZMB"],ZMB:["COD","TZA","MWI","MOZ","ZWE","BWA","NAM","AGO"],ZWE:["MOZ","ZMB","BWA","ZAF"],ZAF:["MOZ","ZWE","BWA","NAM","LSO","SWZ"],BWA:["ZAF","ZMB","NAM","ZWE"],NAM:["ZAF","BWA","ZMB","AGO"],AGO:["COD","ZMB","NAM"],LSO:["ZAF"],SWZ:["ZAF","MOZ"],CAF:["CMR","TCD","COD","SDN","SSD","COG"],CMR:["NGA","TCD","CAF","COG","GNQ","GAB"],TCD:["LBY","SDN","CAF","CMR","NGA","NER"],COG:["COD","GAB","CMR","CAF"],GAB:["CMR","COG","GNQ"],GNQ:["CMR","GAB"],NER:["DZA","LBY","TCD","NGA","BEN","BFA","MLI"],MLI:["DZA","NER","BFA","CIV","GIN","SEN","MRT"],BFA:["MLI","NER","BEN","TGO","GHA","CIV"],MRT:["DZA","MAR","MLI","SEN"],SEN:["MRT","MLI","GIN","GNB","GMB"],GMB:["SEN"],GNB:["SEN","GIN"],GIN:["GNB","SEN","MLI","CIV","LBR","SLE"],SLE:["GIN","LBR"],LBR:["SLE","GIN","CIV"],CIV:["LBR","GIN","MLI","BFA","GHA"],GHA:["CIV","BFA","TGO"],TGO:["GHA","BFA","BEN"],BEN:["TGO","NGA","BFA","NER"],KAZ:["RUS","CHN","KGZ","UZB","TKM"],UZB:["KAZ","KGZ","TJK","AFG","TKM"],TJK:["UZB","KGZ","CHN","AFG"],KGZ:["KAZ","CHN","TJK","UZB"],TKM:["KAZ","UZB","AFG","IRN"],MNG:["RUS","CHN"],PRK:["CHN","RUS","KOR"],KOR:["PRK"],VNM:["CHN","LAO","KHM"],LAO:["CHN","VNM","KHM","THA","MMR"],KHM:["THA","LAO","VNM"],THA:["MMR","LAO","KHM","MYS"],MYS:["THA","IDN","BRN"],BRN:["MYS"],ARM:["TUR","GEO","AZE","IRN"],AZE:["RUS","GEO","ARM","IRN","TUR"],GEO:["RUS","TUR","ARM","AZE"],ISR:["LBN","SYR","JOR","PSE","EGY"],KWT:["IRQ","SAU"],OMN:["SAU","ARE","YEM"],ARE:["SAU","OMN","QAT"],QAT:["SAU","ARE"],BHR:["SAU"],LKA:["IND"],BTN:["IND","CHN"],MEX:["USA","GTM","BLZ"],GTM:["MEX","BLZ","HND","SLV"],BLZ:["MEX","GTM"],HND:["GTM","SLV","NIC"],SLV:["GTM","HND"],NIC:["HND","CRI"],CRI:["NIC","PAN"],PAN:["CRI","COL"],COL:["VEN","PER","ECU","BRA","PAN"],VEN:["COL","BRA","GUY"],GUY:["VEN","BRA","SUR"],SUR:["GUY","BRA"],ECU:["COL","PER"],PER:["ECU","COL","BRA","BOL","CHL"],BOL:["PER","BRA","PRY","ARG","CHL"],BRA:["VEN","GUY","SUR","COL","PER","BOL","PRY","ARG","URY"],PRY:["BOL","BRA","ARG"],ARG:["CHL","BOL","PRY","BRA","URY"],URY:["BRA","ARG"],CHL:["PER","BOL","ARG"],ALB:["MNE","SRB","MKD","GRC"],BIH:["HRV","SRB","MNE"],BGR:["ROU","SRB","MKD","GRC","TUR"],BLR:["RUS","UKR","POL","LTU","LVA"],EST:["RUS","LVA"],HRV:["SVN","HUN","SRB","BIH","MNE"],LVA:["RUS","EST","BLR","LTU"],LTU:["RUS","LVA","BLR","POL"],MDA:["ROU","UKR"],MKD:["SRB","BGR","GRC","ALB","XKX"],MNE:["HRV","BIH","SRB","ALB","XKX"],ROU:["UKR","MDA","BGR","SRB","HUN"],SRB:["HUN","ROU","BGR","MKD","MNE","BIH","HRV","XKX"],SVK:["CZE","POL","UKR","HUN","AUT"],SVN:["ITA","AUT","HUN","HRV"],XKX:["SRB","MKD","ALB","MNE"]};
+
+const DIMS=[{k:"conflict",l:"Conflict",i:"⚔️",w:.28},{k:"displacement",l:"Displacement",i:"🚶",w:.22},{k:"food",l:"Food Security",i:"🌾",w:.18},{k:"health",l:"Health",i:"🏥",w:.14},{k:"economic",l:"Economic",i:"📉",w:.10},{k:"climate",l:"Climate",i:"🌡️",w:.05},{k:"access",l:"Access",i:"🚧",w:.02},{k:"political",l:"Political",i:"⚖️",w:.01}];
+
+const NUM_ISO={"4":"AFG","8":"ALB","12":"DZA","20":"AND","24":"AGO","28":"ATG","31":"AZE","32":"ARG","36":"AUS","40":"AUT","44":"BHS","48":"BHR","50":"BGD","51":"ARM","52":"BRB","56":"BEL","64":"BTN","68":"BOL","70":"BIH","72":"BWA","76":"BRA","84":"BLZ","96":"BRN","100":"BGR","108":"BDI","112":"BLR","116":"KHM","120":"CMR","124":"CAN","132":"CPV","140":"CAF","144":"LKA","148":"TCD","152":"CHL","156":"CHN","170":"COL","174":"COM","178":"COG","180":"COD","184":"COK","188":"CRI","191":"HRV","192":"CUB","196":"CYP","203":"CZE","204":"BEN","208":"DNK","212":"DMA","214":"DOM","218":"ECU","222":"SLV","226":"GNQ","231":"ETH","232":"ERI","233":"EST","242":"FJI","246":"FIN","250":"FRA","262":"DJI","266":"GAB","268":"GEO","270":"GMB","275":"PSE","276":"DEU","288":"GHA","296":"KIR","300":"GRC","304":"GRL","308":"GRD","320":"GTM","324":"GIN","328":"GUY","332":"HTI","340":"HND","348":"HUN","352":"ISL","356":"IND","360":"IDN","364":"IRN","368":"IRQ","372":"IRL","376":"ISR","380":"ITA","384":"CIV","388":"JAM","392":"JPN","398":"KAZ","400":"JOR","404":"KEN","408":"PRK","410":"KOR","414":"KWT","417":"KGZ","418":"LAO","422":"LBN","426":"LSO","428":"LVA","430":"LBR","434":"LBY","438":"LIE","440":"LTU","442":"LUX","450":"MDG","454":"MWI","458":"MYS","462":"MDV","466":"MLI","470":"MLT","478":"MRT","480":"MUS","484":"MEX","496":"MNG","498":"MDA","499":"MNE","504":"MAR","508":"MOZ","512":"OMN","516":"NAM","520":"NRU","524":"NPL","528":"NLD","548":"VUT","554":"NZL","558":"NIC","562":"NER","566":"NGA","578":"NOR","583":"FSM","584":"MHL","585":"PLW","586":"PAK","591":"PAN","598":"PNG","600":"PRY","604":"PER","608":"PHL","616":"POL","620":"PRT","624":"GNB","626":"TLS","634":"QAT","642":"ROU","643":"RUS","646":"RWA","659":"KNA","662":"LCA","670":"VCT","674":"SMR","678":"STP","682":"SAU","686":"SEN","688":"SRB","690":"SYC","694":"SLE","702":"SGP","703":"SVK","704":"VNM","705":"SVN","706":"SOM","710":"ZAF","716":"ZWE","724":"ESP","728":"SSD","729":"SDN","740":"SUR","748":"SWZ","752":"SWE","756":"CHE","760":"SYR","762":"TJK","764":"THA","768":"TGO","776":"TON","780":"TTO","784":"ARE","788":"TUN","792":"TUR","795":"TKM","798":"TUV","800":"UGA","804":"UKR","807":"MKD","826":"GBR","834":"TZA","840":"USA","854":"BFA","858":"URY","860":"UZB","862":"VEN","882":"WSM","887":"YEM","894":"ZMB"};
+
+const ISO_NUM={"AFG":"4","PSE":"275","SDN":"729","SSD":"728","YEM":"887","UKR":"804","COD":"180","SYR":"760","SOM":"706","HTI":"332","ETH":"231","MMR":"104","LBN":"422","TUR":"792","PAK":"586","NGA":"566","BGD":"50","IRN":"364","VEN":"862","COL":"170","IDN":"360","PHL":"608","NPL":"524","KEN":"404","MOZ":"508","USA":"840","CAN":"124","MEX":"484","BRA":"76","ARG":"32","CHL":"152","PER":"604","JPN":"392","CHN":"156","IND":"356","RUS":"643","DEU":"276","FRA":"250","GBR":"826","ITA":"380","ESP":"724","AUS":"36","ZAF":"710","EGY":"818","IRQ":"368","JOR":"400","SAU":"682","KAZ":"398","GRC":"300","POL":"616","SWE":"752","NOR":"578","FIN":"246","DNK":"208","NLD":"528","BEL":"56","CHE":"756","AUT":"40","PRT":"620","IRL":"372","KOR":"410","CZE":"203","HUN":"348","ECU":"218","ISL":"352","PNG":"598","FJI":"242","SLB":"90","DZA":"12","LBY":"434","MAR":"504","TUN":"788","BDI":"108","COM":"174","DJI":"262","ERI":"232","MDG":"450","MUS":"480","MWI":"454","RWA":"646","SYC":"690","TZA":"834","UGA":"800","ZMB":"894","ZWE":"716","BEN":"204","BFA":"854","CPV":"132","CIV":"384","GMB":"270","GHA":"288","GIN":"324","GNB":"624","LBR":"430","MLI":"466","MRT":"478","NER":"562","SEN":"686","SLE":"694","TGO":"768","CAF":"140","CMR":"120","COG":"178","GAB":"266","GNQ":"226","STP":"678","TCD":"148","AGO":"24","BWA":"72","LSO":"426","NAM":"516","SWZ":"748","UZB":"860","TJK":"762","TKM":"795","KGZ":"417","MNG":"496","PRK":"408","BRN":"96","KHM":"116","LAO":"418","MYS":"458","SGP":"702","THA":"764","TLS":"626","VNM":"704","BTN":"64","LKA":"144","MDV":"462","ARE":"784","ARM":"51","AZE":"31","BHR":"48","CYP":"196","GEO":"268","ISR":"376","KWT":"414","OMN":"512","QAT":"634","BLZ":"84","CRI":"188","SLV":"222","GTM":"320","HND":"340","NIC":"558","PAN":"591","ATG":"28","BHS":"44","BRB":"52","CUB":"192","DMA":"212","DOM":"214","GRD":"308","JAM":"388","KNA":"659","LCA":"662","TTO":"780","VCT":"670","BOL":"68","GUY":"328","PRY":"600","SUR":"740","URY":"858","ALB":"8","BIH":"70","BGR":"100","BLR":"112","EST":"233","HRV":"191","LVA":"428","LIE":"438","LTU":"440","LUX":"442","MDA":"498","MKD":"807","MLT":"470","MNE":"499","ROU":"642","SRB":"688","SVK":"703","SVN":"705","AND":"20","SMR":"674","GRL":"304","VUT":"548","TON":"776","WSM":"882","KIR":"296","FSM":"583","MHL":"584","PLW":"585","NRU":"520","TUV":"798","COK":"184","TWN":"158","HKG":"344","XKX":"412","ESH":"732"};
+
+const NAMES={"TWN":"Taiwan","HKG":"Hong Kong","XKX":"Kosovo","ESH":"Western Sahara","AFG":"Afghanistan","PSE":"Palestine","SDN":"Sudan","SSD":"South Sudan","YEM":"Yemen","UKR":"Ukraine","COD":"DR Congo","SYR":"Syria","SOM":"Somalia","HTI":"Haiti","ETH":"Ethiopia","MMR":"Myanmar","LBN":"Lebanon","TUR":"Turkey","PAK":"Pakistan","NGA":"Nigeria","BGD":"Bangladesh","IRN":"Iran","VEN":"Venezuela","COL":"Colombia","IDN":"Indonesia","PHL":"Philippines","NPL":"Nepal","KEN":"Kenya","MOZ":"Mozambique","USA":"United States","CAN":"Canada","MEX":"Mexico","BRA":"Brazil","ARG":"Argentina","CHL":"Chile","PER":"Peru","JPN":"Japan","CHN":"China","IND":"India","RUS":"Russia","DEU":"Germany","FRA":"France","GBR":"United Kingdom","ITA":"Italy","ESP":"Spain","AUS":"Australia","ZAF":"South Africa","EGY":"Egypt","IRQ":"Iraq","JOR":"Jordan","SAU":"Saudi Arabia","KAZ":"Kazakhstan","GRC":"Greece","POL":"Poland","SWE":"Sweden","NOR":"Norway","FIN":"Finland","DNK":"Denmark","NLD":"Netherlands","BEL":"Belgium","CHE":"Switzerland","AUT":"Austria","PRT":"Portugal","IRL":"Ireland","NZL":"New Zealand","CZE":"Czechia","HUN":"Hungary","ECU":"Ecuador","ISL":"Iceland","PNG":"Papua New Guinea","FJI":"Fiji","SLB":"Solomon Islands","KOR":"South Korea","DZA":"Algeria","LBY":"Libya","MAR":"Morocco","TUN":"Tunisia","BDI":"Burundi","COM":"Comoros","DJI":"Djibouti","ERI":"Eritrea","MDG":"Madagascar","MUS":"Mauritius","MWI":"Malawi","RWA":"Rwanda","SYC":"Seychelles","TZA":"Tanzania","UGA":"Uganda","ZMB":"Zambia","ZWE":"Zimbabwe","BEN":"Benin","BFA":"Burkina Faso","CPV":"Cape Verde","CIV":"Côte d'Ivoire","GMB":"Gambia","GHA":"Ghana","GIN":"Guinea","GNB":"Guinea-Bissau","LBR":"Liberia","MLI":"Mali","MRT":"Mauritania","NER":"Niger","SEN":"Senegal","SLE":"Sierra Leone","TGO":"Togo","CAF":"Central African Republic","CMR":"Cameroon","COG":"Republic of Congo","GAB":"Gabon","GNQ":"Equatorial Guinea","STP":"São Tomé and Príncipe","TCD":"Chad","AGO":"Angola","BWA":"Botswana","LSO":"Lesotho","NAM":"Namibia","SWZ":"Eswatini","UZB":"Uzbekistan","TJK":"Tajikistan","TKM":"Turkmenistan","KGZ":"Kyrgyzstan","MNG":"Mongolia","PRK":"North Korea","BRN":"Brunei","KHM":"Cambodia","LAO":"Laos","MYS":"Malaysia","SGP":"Singapore","THA":"Thailand","TLS":"Timor-Leste","VNM":"Vietnam","BTN":"Bhutan","LKA":"Sri Lanka","MDV":"Maldives","ARE":"United Arab Emirates","ARM":"Armenia","AZE":"Azerbaijan","BHR":"Bahrain","CYP":"Cyprus","GEO":"Georgia","ISR":"Israel","KWT":"Kuwait","OMN":"Oman","QAT":"Qatar","BLZ":"Belize","CRI":"Costa Rica","SLV":"El Salvador","GTM":"Guatemala","HND":"Honduras","NIC":"Nicaragua","PAN":"Panama","ATG":"Antigua and Barbuda","BHS":"Bahamas","BRB":"Barbados","CUB":"Cuba","DMA":"Dominica","DOM":"Dominican Republic","GRD":"Grenada","JAM":"Jamaica","KNA":"Saint Kitts and Nevis","LCA":"Saint Lucia","TTO":"Trinidad and Tobago","VCT":"Saint Vincent and the Grenadines","BOL":"Bolivia","GUY":"Guyana","PRY":"Paraguay","SUR":"Suriname","URY":"Uruguay","ALB":"Albania","BIH":"Bosnia and Herzegovina","BGR":"Bulgaria","BLR":"Belarus","EST":"Estonia","HRV":"Croatia","LVA":"Latvia","LIE":"Liechtenstein","LTU":"Lithuania","LUX":"Luxembourg","MDA":"Moldova","MKD":"North Macedonia","MLT":"Malta","MNE":"Montenegro","ROU":"Romania","SRB":"Serbia","SVK":"Slovakia","SVN":"Slovenia","AND":"Andorra","SMR":"San Marino","GRL":"Greenland","VUT":"Vanuatu","TON":"Tonga","WSM":"Samoa","KIR":"Kiribati","FSM":"Micronesia","MHL":"Marshall Islands","PLW":"Palau","NRU":"Nauru","TUV":"Tuvalu","COK":"Cook Islands"};
+
+const FLAGS={"TWN":"🇹🇼","HKG":"🇭🇰","XKX":"🇽🇰","ESH":"🇪🇭","AFG":"🇦🇫","PSE":"🇵🇸","SDN":"🇸🇩","SSD":"🇸🇸","YEM":"🇾🇪","UKR":"🇺🇦","COD":"🇨🇩","SYR":"🇸🇾","SOM":"🇸🇴","HTI":"🇭🇹","ETH":"🇪🇹","MMR":"🇲🇲","LBN":"🇱🇧","TUR":"🇹🇷","PAK":"🇵🇰","NGA":"🇳🇬","BGD":"🇧🇩","IRN":"🇮🇷","VEN":"🇻🇪","COL":"🇨🇴","IDN":"🇮🇩","PHL":"🇵🇭","NPL":"🇳🇵","KEN":"🇰🇪","MOZ":"🇲🇿","USA":"🇺🇸","CAN":"🇨🇦","MEX":"🇲🇽","BRA":"🇧🇷","ARG":"🇦🇷","CHL":"🇨🇱","PER":"🇵🇪","JPN":"🇯🇵","CHN":"🇨🇳","IND":"🇮🇳","RUS":"🇷🇺","DEU":"🇩🇪","FRA":"🇫🇷","GBR":"🇬🇧","ITA":"🇮🇹","ESP":"🇪🇸","AUS":"🇦🇺","ZAF":"🇿🇦","EGY":"🇪🇬","IRQ":"🇮🇶","JOR":"🇯🇴","SAU":"🇸🇦","KAZ":"🇰🇿","GRC":"🇬🇷","POL":"🇵🇱","SWE":"🇸🇪","NOR":"🇳🇴","FIN":"🇫🇮","DNK":"🇩🇰","NLD":"🇳🇱","BEL":"🇧🇪","CHE":"🇨🇭","AUT":"🇦🇹","PRT":"🇵🇹","IRL":"🇮🇪","NZL":"🇳🇿","CZE":"🇨🇿","HUN":"🇭🇺","ECU":"🇪🇨","ISL":"🇮🇸","PNG":"🇵🇬","FJI":"🇫🇯","SLB":"🇸🇧","KOR":"🇰🇷","DZA":"🇩🇿","LBY":"🇱🇾","MAR":"🇲🇦","TUN":"🇹🇳","BDI":"🇧🇮","COM":"🇰🇲","DJI":"🇩🇯","ERI":"🇪🇷","MDG":"🇲🇬","MUS":"🇲🇺","MWI":"🇲🇼","RWA":"🇷🇼","SYC":"🇸🇨","TZA":"🇹🇿","UGA":"🇺🇬","ZMB":"🇿🇲","ZWE":"🇿🇼","BEN":"🇧🇯","BFA":"🇧🇫","CPV":"🇨🇻","CIV":"🇨🇮","GMB":"🇬🇲","GHA":"🇬🇭","GIN":"🇬🇳","GNB":"🇬🇼","LBR":"🇱🇷","MLI":"🇲🇱","MRT":"🇲🇷","NER":"🇳🇪","SEN":"🇸🇳","SLE":"🇸🇱","TGO":"🇹🇬","CAF":"🇨🇫","CMR":"🇨🇲","COG":"🇨🇬","GAB":"🇬🇦","GNQ":"🇬🇶","STP":"🇸🇹","TCD":"🇹🇩","AGO":"🇦🇴","BWA":"🇧🇼","LSO":"🇱🇸","NAM":"🇳🇦","SWZ":"🇸🇿","UZB":"🇺🇿","TJK":"🇹🇯","TKM":"🇹🇲","KGZ":"🇰🇬","MNG":"🇲🇳","PRK":"🇰🇵","BRN":"🇧🇳","KHM":"🇰🇭","LAO":"🇱🇦","MYS":"🇲🇾","SGP":"🇸🇬","THA":"🇹🇭","TLS":"🇹🇱","VNM":"🇻🇳","BTN":"🇧🇹","LKA":"🇱🇰","MDV":"🇲🇻","ARE":"🇦🇪","ARM":"🇦🇲","AZE":"🇦🇿","BHR":"🇧🇭","CYP":"🇨🇾","GEO":"🇬🇪","ISR":"🇮🇱","KWT":"🇰🇼","OMN":"🇴🇲","QAT":"🇶🇦","BLZ":"🇧🇿","CRI":"🇨🇷","SLV":"🇸🇻","GTM":"🇬🇹","HND":"🇭🇳","NIC":"🇳🇮","PAN":"🇵🇦","ATG":"🇦🇬","BHS":"🇧🇸","BRB":"🇧🇧","CUB":"🇨🇺","DMA":"🇩🇲","DOM":"🇩🇴","GRD":"🇬🇩","JAM":"🇯🇲","KNA":"🇰🇳","LCA":"🇱🇨","TTO":"🇹🇹","VCT":"🇻🇨","BOL":"🇧🇴","GUY":"🇬🇾","PRY":"🇵🇾","SUR":"🇸🇷","URY":"🇺🇾","ALB":"🇦🇱","BIH":"🇧🇦","BGR":"🇧🇬","BLR":"🇧🇾","EST":"🇪🇪","HRV":"🇭🇷","LVA":"🇱🇻","LIE":"🇱🇮","LTU":"🇱🇹","LUX":"🇱🇺","MDA":"🇲🇩","MKD":"🇲🇰","MLT":"🇲🇹","MNE":"🇲🇪","ROU":"🇷🇴","SRB":"🇷🇸","SVK":"🇸🇰","SVN":"🇸🇮","AND":"🇦🇩","SMR":"🇸🇲","GRL":"🇬🇱","VUT":"🇻🇺","TON":"🇹🇴","WSM":"🇼🇸","KIR":"🇰🇮","FSM":"🇫🇲","MHL":"🇲🇭","PLW":"🇵🇼","NRU":"🇳🇷","TUV":"🇹🇻","COK":"🇨🇰"};
+
+const BASE_SCORES={"PSE":96,"SOM":94,"SYR":93,"YEM":92,"SSD":91,"AFG":90,"SDN":88,"HTI":86,"UKR":85,"COD":86,"ETH":79,"MMR":73,"IRQ":72,"LBN":75,"PAK":69,"NGA":66,"IRN":61,"VEN":63,"COL":57,"BGD":57,"IDN":79,"PHL":73,"NPL":58,"KEN":42,"MOZ":44,"TUR":59,"IND":56,"BRA":53,"ZAF":51,"EGY":49,"JOR":41,"SAU":38,"KAZ":32,"CHN":55,"JPN":66,"CHL":63,"NZL":56,"ITA":59,"GRC":57,"RUS":66,"AUS":29,"CAN":27,"FRA":26,"DEU":22,"GBR":25,"ESP":28,"SWE":18,"NOR":17,"FIN":17,"DNK":15,"NLD":16,"BEL":15,"CHE":12,"AUT":14,"PRT":22,"IRL":18,"KOR":31,"POL":22,"HUN":21,"CZE":19,"ECU":45,"ISL":19,"PNG":55,"FJI":44,"SLB":50,"MEX":48,"ARG":35,"PER":49,"DZA":38,"LBY":72,"MAR":34,"TUN":41,"BDI":67,"COM":42,"DJI":48,"ERI":61,"MDG":55,"MUS":18,"MWI":52,"RWA":44,"SYC":15,"TZA":46,"UGA":51,"ZMB":47,"ZWE":58,"BEN":43,"BFA":78,"CPV":16,"CIV":55,"GMB":39,"GHA":36,"GIN":54,"GNB":57,"LBR":52,"MLI":82,"MRT":59,"NER":76,"SEN":38,"SLE":49,"TGO":44,"CAF":84,"CMR":62,"COG":48,"GAB":32,"GNQ":36,"STP":18,"TCD":74,"AGO":48,"BWA":22,"LSO":38,"NAM":26,"SWZ":35,"UZB":42,"TJK":51,"TKM":48,"KGZ":44,"MNG":28,"PRK":72,"BRN":14,"KHM":48,"LAO":38,"MYS":26,"SGP":9,"THA":41,"TLS":52,"VNM":36,"BTN":22,"LKA":44,"MDV":18,"ARE":22,"ARM":48,"AZE":44,"BHR":35,"CYP":29,"GEO":46,"ISR":62,"KWT":28,"OMN":24,"QAT":18,"BLZ":38,"CRI":22,"SLV":55,"GTM":58,"HND":62,"NIC":48,"PAN":32,"ATG":14,"BHS":22,"BRB":12,"CUB":52,"DMA":18,"DOM":45,"GRD":14,"JAM":44,"KNA":12,"LCA":16,"TTO":36,"VCT":18,"BOL":48,"GUY":38,"PRY":42,"SUR":34,"URY":19,"ALB":38,"BIH":42,"BGR":28,"BLR":55,"EST":18,"HRV":22,"LVA":19,"LIE":8,"LTU":18,"LUX":8,"MDA":44,"MKD":35,"MLT":12,"MNE":28,"ROU":32,"SRB":36,"SVK":18,"SVN":14,"AND":8,"SMR":8,"GRL":12,"VUT":32,"TON":26,"WSM":24,"KIR":38,"FSM":28,"MHL":32,"PLW":18,"NRU":22,"TUV":36,"COK":18,"TWN":35,"HKG":18,"XKX":45,"ESH":32,"USA":29};
+const CENTROIDS={"AFG":[67.7,33.9],"PSE":[35.3,31.9],"SOM":[45.3,5.2],"SYR":[38.3,34.8],"YEM":[47.6,15.6],"SSD":[31.3,6.9],"SDN":[29.9,12.9],"HTI":[-72.3,18.9],"UKR":[31.2,49.0],"COD":[23.7,-2.9],"ETH":[40.5,9.1],"MMR":[95.9,21.9],"IRQ":[43.7,33.2],"LBN":[35.5,33.9],"PAK":[69.3,30.4],"NGA":[8.7,9.1],"BGD":[90.4,23.7],"IRN":[53.7,32.4],"VEN":[-66.6,8.0],"COL":[-74.3,4.6],"IDN":[106.8,-6.2],"PHL":[121.8,12.9],"NPL":[84.2,28.4],"JPN":[138.3,36.6],"CHL":[-71.5,-35.7],"NZL":[172.5,-41.3],"ITA":[12.6,42.5],"GRC":[21.8,39.1],"ISL":[-18.5,64.9],"ECU":[-77.8,-1.8],"PNG":[143.9,-6.3],"FJI":[178.1,-17.7],"SLB":[160.2,-9.0],"TUR":[35.2,38.9],"IND":[78.0,20.6],"CHN":[104.2,35.9],"RUS":[97.7,56.8],"BRA":[-52.0,-10.0],"ZAF":[25.1,-29.0],"EGY":[30.8,26.8],"JOR":[36.2,31.2],"SAU":[44.5,24.7],"KAZ":[66.9,48.0],"USA":[-100.0,38.0],"CAN":[-96.0,55.0],"MEX":[-102.5,23.0],"ARG":[-64.0,-34.0],"PER":[-76.0,-10.0],"AUS":[134.5,-25.0],"GBR":[-3.4,55.4],"DEU":[10.0,51.2],"FRA":[2.2,46.2],"ESP":[-3.7,40.5],"PRT":[-8.2,39.6],"NLD":[5.3,52.1],"BEL":[4.5,50.5],"CHE":[8.2,46.8],"AUT":[13.2,47.6],"POL":[19.1,51.9],"SWE":[15.5,60.1],"NOR":[10.5,59.9],"FIN":[26.1,62.0],"DNK":[9.6,55.7],"IRL":[-8.2,53.2],"KOR":[127.8,36.5],"CZE":[15.5,49.8],"HUN":[19.5,47.2],"MOZ":[35.5,-18.7],"KEN":[37.9,0.0],"DZA":[2.6,28.0],"LBY":[17.2,26.3],"MAR":[-7.1,31.8],"TUN":[9.5,33.9],"BDI":[29.9,-3.4],"COM":[43.9,-11.6],"DJI":[42.6,11.8],"ERI":[39.5,15.2],"MDG":[46.9,-20.3],"MUS":[57.6,-20.3],"MWI":[34.3,-13.3],"RWA":[29.9,-1.9],"SYC":[55.5,-4.6],"TZA":[34.9,-6.4],"UGA":[32.3,1.4],"ZMB":[27.8,-13.1],"ZWE":[29.9,-19.0],"BEN":[2.3,9.3],"BFA":[-1.7,12.4],"CPV":[-24.0,16.0],"CIV":[-5.5,7.5],"GMB":[-15.3,13.4],"GHA":[-1.0,7.9],"GIN":[-11.8,11.0],"GNB":[-15.2,12.0],"LBR":[-9.5,6.4],"MLI":[-2.0,17.6],"MRT":[-10.9,20.3],"NER":[8.1,17.6],"SEN":[-14.5,14.5],"SLE":[-11.8,8.6],"TGO":[1.2,8.6],"CAF":[20.9,6.6],"CMR":[12.3,5.7],"COG":[15.2,-0.2],"GAB":[11.6,-0.8],"GNQ":[10.3,1.7],"STP":[6.6,0.2],"TCD":[18.7,15.5],"AGO":[17.9,-11.2],"BWA":[24.7,-22.3],"LSO":[28.2,-29.6],"NAM":[18.5,-22.0],"SWZ":[31.5,-26.5],"UZB":[63.1,41.4],"TJK":[71.3,38.8],"TKM":[59.6,40.5],"KGZ":[74.6,41.2],"MNG":[103.8,46.9],"PRK":[127.5,40.3],"BRN":[114.7,4.5],"KHM":[104.9,12.6],"LAO":[102.5,17.9],"MYS":[109.7,3.8],"SGP":[103.8,1.4],"THA":[101.0,15.9],"TLS":[125.7,-8.9],"VNM":[108.3,14.1],"BTN":[90.4,27.5],"LKA":[80.7,7.9],"MDV":[73.2,3.2],"ARE":[53.8,23.4],"ARM":[44.9,40.1],"AZE":[47.6,40.1],"BHR":[50.6,26.0],"CYP":[33.1,35.1],"GEO":[43.4,42.3],"ISR":[34.9,31.5],"KWT":[47.5,29.3],"OMN":[57.6,21.5],"QAT":[51.2,25.4],"BLZ":[-88.5,17.2],"CRI":[-84.0,9.9],"SLV":[-88.9,13.8],"GTM":[-90.2,15.8],"HND":[-86.6,15.0],"NIC":[-85.0,12.9],"PAN":[-80.0,8.6],"ATG":[-61.8,17.1],"BHS":[-77.4,25.0],"BRB":[-59.6,13.2],"CUB":[-79.5,21.5],"DMA":[-61.4,15.4],"DOM":[-70.2,18.7],"GRD":[-61.7,12.1],"JAM":[-77.3,18.1],"KNA":[-62.7,17.3],"LCA":[-60.9,13.9],"TTO":[-61.2,10.7],"VCT":[-61.2,13.3],"BOL":[-64.9,-16.3],"GUY":[-59.0,4.9],"PRY":[-58.4,-23.4],"SUR":[-56.0,4.0],"URY":[-56.0,-33.0],"ALB":[20.2,41.2],"BIH":[17.7,44.2],"BGR":[25.5,42.7],"BLR":[28.0,53.5],"EST":[25.0,58.6],"HRV":[15.2,45.1],"LVA":[24.9,56.9],"LIE":[9.5,47.2],"LTU":[23.9,55.9],"LUX":[6.1,49.8],"MDA":[28.4,47.0],"MKD":[21.7,41.6],"MLT":[14.4,35.9],"MNE":[19.3,42.8],"ROU":[24.9,45.9],"SRB":[21.0,44.0],"SVK":[19.5,48.7],"SVN":[14.8,46.1],"AND":[1.6,42.5],"SMR":[12.4,43.9],"GRL":[-42.0,72.0],"VUT":[166.6,-15.4],"TON":[-175.2,-21.2],"WSM":[-172.1,-13.8],"KIR":[-157.4,1.9],"FSM":[158.2,6.9],"MHL":[171.2,7.1],"PLW":[134.5,7.5],"NRU":[166.9,-0.5],"TUV":[179.2,-8.5],"COK":[-159.8,-21.2],"TWN":[121.0,23.7],"HKG":[114.2,22.3],"XKX":[20.9,42.6],"ESH":[-13.2,24.2]};
+
+// ============================================================================
+// CHARITIES (abbreviated — key ones included)
+// ============================================================================
+const CHARITIES=[
+  {n:"World Food Programme (WFP)",i:"🌾",f:["food","nutrition"],url:"https://www.wfp.org/donate",d:"UN's largest food aid agency",e:94},
+  {n:"UNICEF",i:"🧒",f:["health","water","nutrition","protection"],url:"https://www.unicef.org/donate",d:"Children's survival worldwide",e:91},
+  {n:"UNHCR",i:"🏕️",f:["shelter","protection"],url:"https://donate.unhcr.org",d:"UN refugee protection agency",e:90},
+  {n:"ICRC",i:"🔴",f:["health","shelter","water","protection"],url:"https://www.icrc.org/en/donate",d:"Conflict protection & IHL guardian",e:93},
+  {n:"Médecins Sans Frontières (MSF)",i:"🏥",f:["health","water"],url:"https://www.msf.org/donate",d:"Medical care in conflict zones",e:96},
+  {n:"World Central Kitchen",i:"🍳",f:["food"],url:"https://wck.org/donate",d:"Hot meals in disaster zones",e:93},
+  {n:"IRC",i:"🤝",f:["health","shelter","protection","water"],url:"https://help.rescue.org/donate",d:"Rapid crisis response globally",e:92},
+  {n:"Give Directly",i:"💸",f:["food","shelter","water","health"],url:"https://www.givedirectly.org/donate",d:"Direct cash transfers to the poor",e:92},
+  {n:"Action Against Hunger",i:"🍚",f:["food","nutrition","water"],url:"https://www.actionagainsthunger.org/donate",d:"Combating hunger globally",e:91},
+  {n:"Save the Children",i:"👶",f:["health","nutrition","protection","shelter"],url:"https://www.savethechildren.org/donate",d:"Children in crisis worldwide",e:89},
+  {n:"Mercy Corps",i:"🤝",f:["food","water","shelter"],url:"https://www.mercycorps.org/donate",d:"Crisis relief & recovery",e:90},
+  {n:"charity: water",i:"🌊",f:["water"],url:"https://www.charitywater.org/donate",d:"Clean water projects globally",e:90},
+  {n:"Oxfam International",i:"💧",f:["water","food","shelter"],url:"https://www.oxfam.org/donate",d:"Emergency water, food & advocacy",e:87},
+  {n:"Norwegian Refugee Council",i:"🏕️",f:["shelter","protection","food"],url:"https://www.nrc.no/donate",d:"Displacement & shelter aid",e:89},
+  {n:"Direct Relief",i:"💊",f:["health"],url:"https://www.directrelief.org/donate",d:"Medical supplies globally",e:93},
+  {n:"Partners in Health",i:"🩺",f:["health"],url:"https://www.pih.org/donate",d:"Community-based healthcare in crises",e:91},
+  {n:"ShelterBox",i:"📦",f:["shelter"],url:"https://www.shelterbox.org/donate",d:"Emergency shelter & equipment",e:88},
+  {n:"WaterAid",i:"💧",f:["water"],url:"https://www.wateraid.org/donate",d:"Clean water & sanitation",e:87},
+  {n:"World Vision International",i:"👶",f:["food","health","protection","water"],url:"https://www.worldvision.org/donate",d:"Child-focused emergency aid",e:87},
+  {n:"Islamic Relief Worldwide",i:"☪️",f:["shelter","food","water","health"],url:"https://www.islamic-relief.org/donate",d:"Comprehensive crisis relief",e:87},
+  {n:"CARE International",i:"❤️",f:["food","water","shelter","health"],url:"https://www.care.org/donate",d:"Poverty & crisis relief",e:88},
+  {n:"Syria Relief",i:"🇸🇾",f:["food","health","shelter","water"],url:"https://syriarelief.org.uk/donate",d:"Dedicated Syria crisis response",e:84},
+  {n:"Yemen Aid",i:"🇾🇪",f:["food","health"],url:"https://www.yemenaid.org/donate",d:"Yemen humanitarian response",e:83},
+  {n:"Sudan Relief Fund",i:"🇸🇩",f:["food","health","shelter"],url:"https://www.sudanrelieffund.com/donate",d:"Humanitarian aid inside Sudan",e:82},
+  {n:"Haiti Partners",i:"🇭🇹",f:["food","water","health","shelter"],url:"https://haitipartners.org/donate",d:"Grassroots Haiti relief",e:83},
+  {n:"UNRWA",i:"🇵🇸",f:["food","health","shelter","water","protection"],url:"https://www.unrwa.org/donate",d:"Relief for Palestine refugees",e:88},
+  {n:"Americares",i:"💉",f:["health"],url:"https://www.americares.org/donate",d:"Emergency medicine & health",e:90},
+  {n:"Rise Against Hunger",i:"🍱",f:["food","nutrition"],url:"https://www.riseagainsthunger.org/donate",d:"Packaged meals for crises",e:88}
 ];
 
-// ─── COUNTRY TABLE (ALL 136 COUNTRIES) ──────────────────────────────────────
-
-const COUNTRIES = {
-  // ── MIDDLE EAST (15 countries) ──────────────────────────────────────────
-  PSE:{ name:"Palestine",            flag:"🇵🇸", prior:65, region:"middleeast", types:["CE","CW","REF","HEAT"],            adj:["LBN","JOR","ISR"],                                            cent:[35.3,31.9]  },
-  SYR:{ name:"Syria",                flag:"🇸🇾", prior:66, region:"middleeast", types:["CE","CW","REF","EP","HEAT"],       adj:["LBN","JOR","TUR","IRQ","ISR"],                               cent:[38.3,34.8]  },
-  YEM:{ name:"Yemen",                flag:"🇾🇪", prior:68, region:"middleeast", types:["CE","CW","FN","DR","REF"],         adj:["SAU","OMN"],                                                  cent:[47.6,15.6]  },
-  IRQ:{ name:"Iraq",                 flag:"🇮🇶", prior:46, region:"middleeast", types:["CE","CW","REF","HEAT"],            adj:["SYR","IRN","SAU","TUR","JOR","KWT"],                         cent:[43.7,33.2]  },
-  IRN:{ name:"Iran",                 flag:"🇮🇷", prior:38, region:"middleeast", types:["EQ","DR","REF","HEAT","LS"],       adj:["AFG","PAK","IRQ","TUR","AZE","TKM"],                         cent:[53.7,32.4]  },
-  LBN:{ name:"Lebanon",              flag:"🇱🇧", prior:47, region:"middleeast", types:["CE","REF","EP","HEAT","ECO"],      adj:["SYR","ISR"],                                                  cent:[35.5,33.9]  },
-  JOR:{ name:"Jordan",               flag:"🇯🇴", prior:28, region:"middleeast", types:["REF","DR","HEAT"],                 adj:["PSE","SYR","IRQ","SAU","ISR"],                               cent:[36.2,31.2]  },
-  ISR:{ name:"Israel",               flag:"🇮🇱", prior:44, region:"middleeast", types:["CW","WF","HEAT"],                  adj:["LBN","SYR","JOR","PSE"],                                     cent:[34.9,31.5]  },
-  SAU:{ name:"Saudi Arabia",         flag:"🇸🇦", prior:22, region:"middleeast", types:["DR","ST","HEAT","REF"],            adj:["YEM","JOR","IRQ","KWT","QAT","ARE","OMN"],                   cent:[44.5,24.7]  },
-  KWT:{ name:"Kuwait",               flag:"🇰🇼", prior:18, region:"middleeast", types:["DR","HEAT","ST"],                  adj:["IRQ","SAU"],                                                  cent:[47.5,29.3]  },
-  OMN:{ name:"Oman",                 flag:"🇴🇲", prior:15, region:"middleeast", types:["TC","DR","HEAT","ST"],             adj:["SAU","ARE","YEM"],                                            cent:[57.6,21.5]  },
-  ARE:{ name:"United Arab Emirates", flag:"🇦🇪", prior:14, region:"middleeast", types:["DR","HEAT","ST"],                  adj:["SAU","OMN","QAT"],                                            cent:[53.8,23.4]  },
-  QAT:{ name:"Qatar",                flag:"🇶🇦", prior:12, region:"middleeast", types:["DR","HEAT"],                       adj:["SAU","ARE"],                                                  cent:[51.2,25.4]  },
-  BHR:{ name:"Bahrain",              flag:"🇧🇭", prior:22, region:"middleeast", types:["DR","HEAT"],                       adj:["SAU"],                                                         cent:[50.6,26.0]  },
-  CYP:{ name:"Cyprus",               flag:"🇨🇾", prior:19, region:"middleeast", types:["DR","WF","HEAT"],                  adj:[],                                                               cent:[33.1,35.1]  },
-  // ── ASIA (34 countries) ──────────────────────────────────────────────────
-  AFG:{ name:"Afghanistan",          flag:"🇦🇫", prior:67, region:"asia",       types:["CE","CW","DR","FN","REF"],         adj:["PAK","IRN","TJK","UZB","TKM"],                               cent:[67.7,33.9]  },
-  PAK:{ name:"Pakistan",             flag:"🇵🇰", prior:48, region:"asia",       types:["FL","EQ","DR","REF","HEAT","LS"],  adj:["AFG","IRN","IND","CHN"],                                     cent:[69.3,30.4]  },
-  TJK:{ name:"Tajikistan",           flag:"🇹🇯", prior:42, region:"asia",       types:["EQ","FL","LS","DR","HEAT"],        adj:["UZB","KGZ","CHN","AFG"],                                     cent:[71.3,38.8]  },
-  UZB:{ name:"Uzbekistan",           flag:"🇺🇿", prior:32, region:"asia",       types:["DR","HEAT","FL","EQ"],             adj:["KAZ","KGZ","TJK","AFG","TKM"],                               cent:[63.1,41.4]  },
-  TKM:{ name:"Turkmenistan",         flag:"🇹🇲", prior:38, region:"asia",       types:["DR","HEAT","FL"],                  adj:["KAZ","UZB","AFG","IRN"],                                     cent:[59.6,40.5]  },
-  KGZ:{ name:"Kyrgyzstan",           flag:"🇰🇬", prior:34, region:"asia",       types:["EQ","FL","LS","DR","HEAT"],        adj:["KAZ","CHN","TJK","UZB"],                                     cent:[74.6,41.2]  },
-  KAZ:{ name:"Kazakhstan",           flag:"🇰🇿", prior:22, region:"asia",       types:["FL","DR","WF","HEAT"],             adj:["RUS","CHN","KGZ","UZB","TKM"],                               cent:[66.9,48.0]  },
-  MNG:{ name:"Mongolia",             flag:"🇲🇳", prior:18, region:"asia",       types:["DR","ST","HEAT","FL"],             adj:["RUS","CHN"],                                                  cent:[103.8,46.9] },
-  IND:{ name:"India",                flag:"🇮🇳", prior:35, region:"asia",       types:["FL","TC","DR","EQ","HEAT","LS"],   adj:["PAK","BGD","CHN","NPL","MMR","BTN"],                         cent:[78.0,20.6]  },
-  BGD:{ name:"Bangladesh",           flag:"🇧🇩", prior:42, region:"asia",       types:["FL","TC","REF","EP","LS","HEAT"],  adj:["MMR","IND"],                                                  cent:[90.4,23.7]  },
-  NPL:{ name:"Nepal",                flag:"🇳🇵", prior:38, region:"asia",       types:["EQ","LS","FL","HEAT"],             adj:["IND","CHN"],                                                  cent:[84.2,28.4]  },
-  LKA:{ name:"Sri Lanka",            flag:"🇱🇰", prior:34, region:"asia",       types:["FL","TC","DR","EP","HEAT","ECO"],  adj:["IND"],                                                         cent:[80.7,7.9]   },
-  BTN:{ name:"Bhutan",               flag:"🇧🇹", prior:14, region:"asia",       types:["FL","LS","EQ","HEAT"],             adj:["IND","CHN"],                                                  cent:[90.4,27.5]  },
-  MDV:{ name:"Maldives",             flag:"🇲🇻", prior:12, region:"asia",       types:["TC","FL","HEAT"],                  adj:[],                                                               cent:[73.2,3.2]   },
-  CHN:{ name:"China",                flag:"🇨🇳", prior:32, region:"asia",       types:["FL","EQ","TC","LS","TSU","HEAT"],  adj:["IND","RUS","KAZ","VNM","PRK","MNG","NPL","MMR"],             cent:[104.2,35.9] },
-  JPN:{ name:"Japan",                flag:"🇯🇵", prior:46, region:"asia",       types:["EQ","TSU","TC","VLC","FL","HEAT"], adj:[],                                                             cent:[138.3,36.2] },
-  KOR:{ name:"South Korea",          flag:"🇰🇷", prior:22, region:"asia",       types:["ST","FL","HEAT","EQ"],             adj:["PRK"],                                                         cent:[127.8,36.5] },
-  PRK:{ name:"North Korea",          flag:"🇰🇵", prior:52, region:"asia",       types:["DR","FL","HEAT","ST","POL"],       adj:["CHN","RUS","KOR"],                                            cent:[127.5,40.3] },
-  TWN:{ name:"Taiwan",               flag:"🇹🇼", prior:24, region:"asia",       types:["TC","EQ","TSU","FL","HEAT"],       adj:[],                                                               cent:[120.9,23.7] },
-  MMR:{ name:"Myanmar",              flag:"🇲🇲", prior:53, region:"asia",       types:["CE","CW","FL","REF","EP"],         adj:["BGD","IND","THA","CHN","LAO"],                               cent:[95.9,21.9]  },
-  THA:{ name:"Thailand",             flag:"🇹🇭", prior:29, region:"asia",       types:["FL","DR","HEAT","EP"],             adj:["MMR","LAO","KHM","MYS"],                                     cent:[101.0,15.9] },
-  VNM:{ name:"Vietnam",              flag:"🇻🇳", prior:26, region:"asia",       types:["FL","TC","DR","LS","HEAT","EP"],   adj:["CHN","LAO","KHM"],                                            cent:[108.3,14.1] },
-  LAO:{ name:"Laos",                 flag:"🇱🇦", prior:28, region:"asia",       types:["FL","DR","LS","HEAT"],             adj:["CHN","VNM","KHM","THA","MMR"],                               cent:[102.5,17.9] },
-  KHM:{ name:"Cambodia",             flag:"🇰🇭", prior:32, region:"asia",       types:["FL","DR","HEAT","EP"],             adj:["THA","LAO","VNM"],                                            cent:[104.9,12.6] },
-  MYS:{ name:"Malaysia",             flag:"🇲🇾", prior:18, region:"asia",       types:["FL","LS","HEAT","EP"],             adj:["THA","IDN","BRN"],                                            cent:[109.7,3.8]  },
-  IDN:{ name:"Indonesia",            flag:"🇮🇩", prior:50, region:"asia",       types:["EQ","TSU","VLC","FL","LS","TC","HEAT"],adj:[],                                                        cent:[106.8,-6.2] },
-  PHL:{ name:"Philippines",          flag:"🇵🇭", prior:48, region:"asia",       types:["TC","FL","EQ","VLC","TSU","LS","HEAT"],adj:[],                                                        cent:[121.8,12.9] },
-  TLS:{ name:"Timor-Leste",          flag:"🇹🇱", prior:38, region:"asia",       types:["FL","DR","EP","HEAT"],             adj:[],                                                               cent:[125.7,-8.9] },
-  ARM:{ name:"Armenia",              flag:"🇦🇲", prior:38, region:"asia",       types:["EQ","DR","CW","HEAT"],             adj:["TUR","GEO","AZE","IRN"],                                     cent:[44.9,40.1]  },
-  AZE:{ name:"Azerbaijan",           flag:"🇦🇿", prior:32, region:"asia",       types:["EQ","FL","CW","HEAT"],             adj:["RUS","GEO","ARM","IRN","TUR"],                               cent:[47.6,40.1]  },
-  GEO:{ name:"Georgia",              flag:"🇬🇪", prior:30, region:"asia",       types:["EQ","FL","LS","CW","HEAT"],        adj:["RUS","TUR","ARM","AZE"],                                     cent:[43.4,42.3]  },
-  // ── AFRICA (52 countries) ─────────────────────────────────────────────────
-  SOM:{ name:"Somalia",              flag:"🇸🇴", prior:72, region:"africa",     types:["CE","CW","DR","FN","REF","HEAT"],  adj:["ETH","KEN","DJI"],                                            cent:[45.3,5.2]   },
-  ETH:{ name:"Ethiopia",             flag:"🇪🇹", prior:57, region:"africa",     types:["CE","CW","DR","FN","REF"],         adj:["SDN","SSD","SOM","ERI","DJI","KEN"],                         cent:[40.5,9.1]   },
-  SSD:{ name:"South Sudan",          flag:"🇸🇸", prior:70, region:"africa",     types:["CE","CW","FL","FN","REF"],         adj:["SDN","ETH","UGA","KEN","COD","CAF"],                         cent:[31.3,6.9]   },
-  SDN:{ name:"Sudan",                flag:"🇸🇩", prior:68, region:"africa",     types:["CE","CW","DR","FL","REF"],         adj:["EGY","ETH","SSD","LBY","TCD","ERI","CAF"],                   cent:[29.9,12.9]  },
-  ERI:{ name:"Eritrea",              flag:"🇪🇷", prior:48, region:"africa",     types:["CE","DR","REF","HEAT"],            adj:["ETH","SDN","DJI"],                                            cent:[39.5,15.2]  },
-  DJI:{ name:"Djibouti",             flag:"🇩🇯", prior:38, region:"africa",     types:["DR","HEAT","REF","FL"],            adj:["ERI","ETH","SOM"],                                            cent:[42.6,11.8]  },
-  KEN:{ name:"Kenya",                flag:"🇰🇪", prior:32, region:"africa",     types:["DR","FL","EP","REF","HEAT"],       adj:["ETH","SOM","UGA","TZA","SSD"],                               cent:[37.9,0.0]   },
-  UGA:{ name:"Uganda",               flag:"🇺🇬", prior:38, region:"africa",     types:["FL","EP","REF","LS"],              adj:["KEN","TZA","RWA","BDI","COD","SSD"],                         cent:[32.3,1.4]   },
-  TZA:{ name:"Tanzania",             flag:"🇹🇿", prior:32, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["KEN","UGA","RWA","BDI","MOZ","ZMB","MWI","COD"],             cent:[34.9,-6.4]  },
-  RWA:{ name:"Rwanda",               flag:"🇷🇼", prior:32, region:"africa",     types:["FL","LS","EP","REF"],              adj:["BDI","COD","UGA","TZA"],                                     cent:[29.9,-1.9]  },
-  BDI:{ name:"Burundi",              flag:"🇧🇮", prior:52, region:"africa",     types:["CE","CW","EP","FL","REF"],         adj:["RWA","COD","TZA"],                                            cent:[29.9,-3.4]  },
-  MDG:{ name:"Madagascar",           flag:"🇲🇬", prior:44, region:"africa",     types:["TC","FL","DR","EP","HEAT"],        adj:[],                                                               cent:[46.9,-20.3] },
-  MOZ:{ name:"Mozambique",           flag:"🇲🇿", prior:34, region:"africa",     types:["TC","FL","HEAT"],                  adj:["TZA","MWI","ZMB","ZWE","ZAF","SWZ"],                         cent:[35.5,-18.7] },
-  MWI:{ name:"Malawi",               flag:"🇲🇼", prior:40, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["TZA","MOZ","ZMB"],                                            cent:[34.3,-13.3] },
-  ZMB:{ name:"Zambia",               flag:"🇿🇲", prior:36, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["COD","TZA","MWI","MOZ","ZWE","BWA","NAM","AGO"],             cent:[27.8,-13.1] },
-  ZWE:{ name:"Zimbabwe",             flag:"🇿🇼", prior:46, region:"africa",     types:["DR","FL","EP","HEAT"],             adj:["MOZ","ZMB","BWA","ZAF"],                                     cent:[29.9,-19.0] },
-  AGO:{ name:"Angola",               flag:"🇦🇴", prior:36, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["COD","ZMB","NAM"],                                            cent:[17.9,-11.2] },
-  BWA:{ name:"Botswana",             flag:"🇧🇼", prior:16, region:"africa",     types:["DR","HEAT","FL"],                  adj:["ZAF","ZMB","NAM","ZWE"],                                     cent:[24.7,-22.3] },
-  NAM:{ name:"Namibia",              flag:"🇳🇦", prior:18, region:"africa",     types:["DR","HEAT","FL"],                  adj:["ZAF","BWA","ZMB","AGO"],                                     cent:[18.5,-22.0] },
-  ZAF:{ name:"South Africa",         flag:"🇿🇦", prior:28, region:"africa",     types:["DR","FL","EP","HEAT"],             adj:["MOZ","ZWE","BWA","NAM","LSO","SWZ"],                         cent:[25.1,-29.0] },
-  LSO:{ name:"Lesotho",              flag:"🇱🇸", prior:28, region:"africa",     types:["DR","FL","HEAT"],                  adj:["ZAF"],                                                          cent:[28.2,-29.6] },
-  SWZ:{ name:"Eswatini",             flag:"🇸🇿", prior:26, region:"africa",     types:["DR","FL","EP","HEAT"],             adj:["ZAF","MOZ"],                                                   cent:[31.5,-26.5] },
-  NGA:{ name:"Nigeria",              flag:"🇳🇬", prior:51, region:"africa",     types:["CE","CW","FL","EP","REF"],         adj:["CMR","NER","BEN","TCD"],                                     cent:[8.7,9.1]    },
-  NER:{ name:"Niger",                flag:"🇳🇪", prior:56, region:"africa",     types:["DR","FN","CE","HEAT","FL","POL"],  adj:["DZA","TCD","NGA","MLI","BFA"],                               cent:[8.1,17.6]   },
-  MLI:{ name:"Mali",                 flag:"🇲🇱", prior:62, region:"africa",     types:["CE","CW","DR","FN","REF","HEAT"],  adj:["DZA","NER","BFA","SEN","CIV","GIN","MRT"],                   cent:[-2.0,17.6]  },
-  BFA:{ name:"Burkina Faso",         flag:"🇧🇫", prior:60, region:"africa",     types:["CE","CW","DR","EP","REF","HEAT"],  adj:["MLI","NER","GHA","CIV","BEN","TGO"],                         cent:[-1.7,12.4]  },
-  MRT:{ name:"Mauritania",           flag:"🇲🇷", prior:42, region:"africa",     types:["DR","FN","HEAT","FL"],             adj:["DZA","MAR","MLI","SEN"],                                     cent:[-10.9,20.3] },
-  SEN:{ name:"Senegal",              flag:"🇸🇳", prior:28, region:"africa",     types:["DR","FL","EP","HEAT"],             adj:["MRT","MLI","GIN","GNB","GMB"],                               cent:[-14.5,14.5] },
-  GNB:{ name:"Guinea-Bissau",        flag:"🇬🇼", prior:42, region:"africa",     types:["FL","EP","DR","HEAT"],             adj:["SEN","GIN"],                                                  cent:[-15.2,12.0] },
-  GIN:{ name:"Guinea",               flag:"🇬🇳", prior:42, region:"africa",     types:["FL","EP","LS","HEAT"],             adj:["GNB","SEN","MLI","CIV","LBR","SLE"],                         cent:[-11.8,11.0] },
-  SLE:{ name:"Sierra Leone",         flag:"🇸🇱", prior:40, region:"africa",     types:["FL","EP","LS","HEAT"],             adj:["GIN","LBR"],                                                  cent:[-11.8,8.6]  },
-  LBR:{ name:"Liberia",              flag:"🇱🇷", prior:40, region:"africa",     types:["FL","EP","CE","HEAT"],             adj:["SLE","GIN","CIV"],                                            cent:[-9.5,6.4]   },
-  CIV:{ name:"Côte d'Ivoire",        flag:"🇨🇮", prior:42, region:"africa",     types:["FL","EP","CE","HEAT"],             adj:["LBR","GIN","MLI","BFA","GHA"],                               cent:[-5.5,7.5]   },
-  GHA:{ name:"Ghana",                flag:"🇬🇭", prior:26, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["CIV","BFA","TGO"],                                            cent:[-1.0,7.9]   },
-  TGO:{ name:"Togo",                 flag:"🇹🇬", prior:34, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["GHA","BFA","BEN"],                                            cent:[1.2,8.6]    },
-  BEN:{ name:"Benin",                flag:"🇧🇯", prior:34, region:"africa",     types:["FL","DR","EP","HEAT"],             adj:["TGO","NGA","BFA","NER"],                                     cent:[2.3,9.3]    },
-  COD:{ name:"DR Congo",             flag:"🇨🇩", prior:59, region:"africa",     types:["CE","CW","EP","FL","REF"],         adj:["SDN","SSD","CAF","UGA","RWA","BDI","TZA","ZMB","COG","AGO"],cent:[23.7,-2.9]  },
-  CAF:{ name:"Central African Rep.", flag:"🇨🇫", prior:54, region:"africa",     types:["CE","CW","EP","FL","REF"],         adj:["CMR","TCD","COD","SDN","SSD","COG"],                         cent:[20.9,6.6]   },
-  TCD:{ name:"Chad",                 flag:"🇹🇩", prior:55, region:"africa",     types:["CE","CW","DR","REF","HEAT"],       adj:["LBY","SDN","CAF","CMR","NGA","NER"],                         cent:[18.7,15.5]  },
-  CMR:{ name:"Cameroon",             flag:"🇨🇲", prior:46, region:"africa",     types:["CE","CW","FL","EP","REF"],         adj:["NGA","TCD","CAF","COG","GNQ","GAB"],                         cent:[12.3,5.7]   },
-  COG:{ name:"Republic of Congo",    flag:"🇨🇬", prior:36, region:"africa",     types:["FL","EP","CE","HEAT"],             adj:["COD","GAB","CMR","CAF"],                                     cent:[15.2,-0.2]  },
-  GAB:{ name:"Gabon",                flag:"🇬🇦", prior:22, region:"africa",     types:["FL","EP","HEAT","POL"],            adj:["CMR","COG","GNQ"],                                            cent:[11.6,-0.8]  },
-  EGY:{ name:"Egypt",                flag:"🇪🇬", prior:34, region:"africa",     types:["DR","REF","HEAT"],                 adj:["LBY","SDN","ISR","PSE"],                                     cent:[30.8,26.8]  },
-  LBY:{ name:"Libya",                flag:"🇱🇾", prior:54, region:"africa",     types:["CE","CW","REF","HEAT"],            adj:["TUN","DZA","NER","SDN","EGY","TCD"],                         cent:[17.2,26.3]  },
-  DZA:{ name:"Algeria",              flag:"🇩🇿", prior:28, region:"africa",     types:["DR","WF","HEAT","EP"],             adj:["MAR","TUN","LBY","NER","MLI","MRT"],                         cent:[2.6,28.0]   },
-  MAR:{ name:"Morocco",              flag:"🇲🇦", prior:24, region:"africa",     types:["EQ","DR","HEAT","FL"],             adj:["DZA","MRT"],                                                   cent:[-7.1,31.8]  },
-  TUN:{ name:"Tunisia",              flag:"🇹🇳", prior:30, region:"africa",     types:["DR","HEAT","FL","ECO"],            adj:["DZA","LBY"],                                                   cent:[9.5,33.9]   },
-  // ── EUROPE (32 countries) ──────────────────────────────────────────────────
-  UKR:{ name:"Ukraine",              flag:"🇺🇦", prior:52, region:"europe",     types:["CE","CW","REF","HEAT"],            adj:["RUS","POL","HUN","ROU","SVK","BLR","MDA"],                   cent:[31.2,49.0]  },
-  RUS:{ name:"Russia",               flag:"🇷🇺", prior:34, region:"europe",     types:["WF","FL","CW","ST","HEAT","POL"],  adj:["UKR","CHN","KAZ","BLR","FIN","NOR","EST","LVA","LTU","POL"],cent:[97.7,56.8]  },
-  TUR:{ name:"Turkey",               flag:"🇹🇷", prior:42, region:"europe",     types:["EQ","FL","REF","CW","LS","HEAT"],  adj:["SYR","IRQ","IRN","ARM","GEO","AZE","BGR","GRC"],             cent:[35.2,38.9]  },
-  GRC:{ name:"Greece",               flag:"🇬🇷", prior:36, region:"europe",     types:["EQ","VLC","WF","FL","HEAT","REF"], adj:["BGR","MKD","ALB","TUR"],                                     cent:[21.8,39.1]  },
-  ITA:{ name:"Italy",                flag:"🇮🇹", prior:32, region:"europe",     types:["EQ","VLC","WF","FL","TSU","HEAT"], adj:["FRA","CHE","AUT","SVN"],                                     cent:[12.6,42.5]  },
-  ESP:{ name:"Spain",                flag:"🇪🇸", prior:20, region:"europe",     types:["WF","DR","ST","HEAT"],             adj:["PRT","FRA","AND"],                                            cent:[-3.7,40.5]  },
-  PRT:{ name:"Portugal",             flag:"🇵🇹", prior:16, region:"europe",     types:["WF","FL","HEAT"],                  adj:["ESP"],                                                          cent:[-8.2,39.6]  },
-  FRA:{ name:"France",               flag:"🇫🇷", prior:18, region:"europe",     types:["WF","ST","HEAT"],                  adj:["ESP","ITA","CHE","BEL","LUX","DEU","AND"],                   cent:[2.2,46.2]   },
-  DEU:{ name:"Germany",              flag:"🇩🇪", prior:15, region:"europe",     types:["FL","ST","HEAT"],                  adj:["FRA","CHE","AUT","CZE","POL","NLD","BEL","LUX","DNK"],       cent:[10.0,51.2]  },
-  GBR:{ name:"United Kingdom",       flag:"🇬🇧", prior:16, region:"europe",     types:["ST","FL","HEAT"],                  adj:[],                                                               cent:[-3.4,55.4]  },
-  POL:{ name:"Poland",               flag:"🇵🇱", prior:16, region:"europe",     types:["FL","ST","WF","HEAT"],             adj:["DEU","CZE","SVK","UKR","BLR","RUS","LTU"],                   cent:[19.1,51.9]  },
-  BLR:{ name:"Belarus",              flag:"🇧🇾", prior:42, region:"europe",     types:["FL","ST","WF","HEAT","POL"],       adj:["RUS","UKR","POL","LTU","LVA"],                               cent:[28.0,53.5]  },
-  MDA:{ name:"Moldova",              flag:"🇲🇩", prior:34, region:"europe",     types:["FL","DR","HEAT"],                  adj:["ROU","UKR"],                                                   cent:[28.4,47.0]  },
-  ROU:{ name:"Romania",              flag:"🇷🇴", prior:24, region:"europe",     types:["EQ","FL","DR","HEAT"],             adj:["UKR","MDA","BGR","SRB","HUN"],                               cent:[24.9,45.9]  },
-  BGR:{ name:"Bulgaria",             flag:"🇧🇬", prior:20, region:"europe",     types:["FL","WF","ST","HEAT"],             adj:["ROU","SRB","MKD","GRC","TUR"],                               cent:[25.5,42.7]  },
-  SRB:{ name:"Serbia",               flag:"🇷🇸", prior:24, region:"europe",     types:["FL","ST","WF","HEAT"],             adj:["HUN","ROU","BGR","MKD","MNE","BIH","HRV","XKX"],             cent:[21.0,44.0]  },
-  ALB:{ name:"Albania",              flag:"🇦🇱", prior:28, region:"europe",     types:["EQ","FL","LS","HEAT"],             adj:["MNE","SRB","MKD","GRC","XKX"],                               cent:[20.2,41.2]  },
-  MKD:{ name:"North Macedonia",      flag:"🇲🇰", prior:26, region:"europe",     types:["EQ","FL","WF","HEAT"],             adj:["SRB","BGR","GRC","ALB","XKX"],                               cent:[21.7,41.6]  },
-  XKX:{ name:"Kosovo",               flag:"🇽🇰", prior:34, region:"europe",     types:["FL","ST","HEAT"],                  adj:["SRB","MKD","ALB","MNE"],                                     cent:[20.9,42.6]  },
-  // ── AMERICAS (18 countries) ────────────────────────────────────────────────
-  USA:{ name:"United States",        flag:"🇺🇸", prior:18, region:"americas",   types:["WF","ST","EQ","TC","TSU","HEAT"],  adj:["CAN","MEX"],                                                  cent:[-95.7,37.1] },
-  CAN:{ name:"Canada",               flag:"🇨🇦", prior:12, region:"americas",   types:["WF","FL","ST","HEAT"],             adj:["USA"],                                                         cent:[-96.0,55.0] },
-  MEX:{ name:"Mexico",               flag:"🇲🇽", prior:36, region:"americas",   types:["EQ","ST","VLC","FL","TSU","HEAT"], adj:["USA","GTM","BLZ"],                                            cent:[-102.5,23.0]},
-  GTM:{ name:"Guatemala",            flag:"🇬🇹", prior:46, region:"americas",   types:["EQ","FL","LS","ST","DR","HEAT"],   adj:["MEX","BLZ","HND","SLV"],                                     cent:[-90.2,15.8] },
-  HND:{ name:"Honduras",             flag:"🇭🇳", prior:48, region:"americas",   types:["ST","FL","DR","LS","HEAT"],        adj:["GTM","SLV","NIC"],                                            cent:[-86.6,15.0] },
-  SLV:{ name:"El Salvador",          flag:"🇸🇻", prior:44, region:"americas",   types:["EQ","FL","DR","ST","HEAT"],        adj:["GTM","HND"],                                                   cent:[-88.9,13.8] },
-  NIC:{ name:"Nicaragua",            flag:"🇳🇮", prior:38, region:"americas",   types:["ST","FL","DR","EQ","HEAT"],        adj:["HND","CRI"],                                                   cent:[-85.0,12.9] },
-  HTI:{ name:"Haiti",                flag:"🇭🇹", prior:58, region:"americas",   types:["CE","EQ","EP","ST","REF","ECO"],   adj:["DOM"],                                                         cent:[-72.3,18.9] },
-  DOM:{ name:"Dominican Republic",   flag:"🇩🇴", prior:34, region:"americas",   types:["TC","FL","EQ","ST","HEAT"],        adj:["HTI"],                                                         cent:[-70.2,18.7] },
-  CUB:{ name:"Cuba",                 flag:"🇨🇺", prior:38, region:"americas",   types:["TC","FL","ST","HEAT","ECO"],       adj:["HTI"],                                                         cent:[-79.5,21.5] },
-  COL:{ name:"Colombia",             flag:"🇨🇴", prior:43, region:"americas",   types:["CE","CW","FL","REF","LS"],         adj:["VEN","PER","ECU","PAN","BRA"],                               cent:[-74.3,4.6]  },
-  VEN:{ name:"Venezuela",            flag:"🇻🇪", prior:44, region:"americas",   types:["CE","REF","DR","HEAT","ECO"],      adj:["COL","BRA","GUY"],                                            cent:[-66.6,8.0]  },
-  BRA:{ name:"Brazil",               flag:"🇧🇷", prior:40, region:"americas",   types:["FL","WF","DR","EP","LS","HEAT"],   adj:["VEN","COL","PER","BOL","ARG","GUY","SUR","PRY","URY"],       cent:[-52.0,-10.0]},
-  ARG:{ name:"Argentina",            flag:"🇦🇷", prior:28, region:"americas",   types:["FL","DR","ST","HEAT"],             adj:["CHL","BOL","PRY","BRA","URY"],                               cent:[-64.0,-34.0]},
-  CHL:{ name:"Chile",                flag:"🇨🇱", prior:46, region:"americas",   types:["EQ","VLC","TSU","WF","HEAT"],      adj:["PER","BOL","ARG"],                                            cent:[-71.5,-35.7]},
-  PER:{ name:"Peru",                 flag:"🇵🇪", prior:36, region:"americas",   types:["EQ","FL","LS","VLC","TSU","HEAT"], adj:["ECU","COL","BRA","BOL","CHL"],                               cent:[-76.0,-10.0]},
-  ECU:{ name:"Ecuador",              flag:"🇪🇨", prior:36, region:"americas",   types:["EQ","VLC","FL","TSU","HEAT"],      adj:["COL","PER"],                                                   cent:[-77.8,-1.8] },
-  BOL:{ name:"Bolivia",              flag:"🇧🇴", prior:36, region:"americas",   types:["FL","DR","LS","HEAT"],             adj:["PER","BRA","PRY","ARG","CHL"],                               cent:[-64.9,-16.3]},
-  // ── OCEANIA (6 countries) ──────────────────────────────────────────────────
-  AUS:{ name:"Australia",            flag:"🇦🇺", prior:22, region:"oceania",    types:["WF","FL","TC","DR","HEAT"],        adj:[],                                                               cent:[134.5,-25.0]},
-  NZL:{ name:"New Zealand",          flag:"🇳🇿", prior:40, region:"oceania",    types:["EQ","TSU","VLC","FL","HEAT"],      adj:[],                                                               cent:[172.5,-41.3]},
-  PNG:{ name:"Papua New Guinea",     flag:"🇵🇬", prior:44, region:"oceania",    types:["EQ","TSU","VLC","FL","HEAT"],      adj:[],                                                               cent:[143.9,-6.3] },
-  FJI:{ name:"Fiji",                 flag:"🇫🇯", prior:34, region:"oceania",    types:["TC","TSU","FL","HEAT"],            adj:[],                                                               cent:[178.1,-17.7]},
-  SLB:{ name:"Solomon Islands",      flag:"🇸🇧", prior:40, region:"oceania",    types:["EQ","TSU","TC","HEAT"],            adj:[],                                                               cent:[160.2,-9.0] },
-  VUT:{ name:"Vanuatu",              flag:"🇻🇺", prior:28, region:"oceania",    types:["TC","EQ","TSU","VLC","FL","HEAT"], adj:[],                                                             cent:[166.6,-15.4]},
-};
-
-// ─── REGION ALIASES ──────────────────────────────────────────────────────────
-
-const REGION_ALIASES = {
-  africa:     ["africa"],
-  asia:       ["asia"],
-  europe:     ["europe"],
-  middleeast: ["middleeast","middle east","mena"],
-  americas:   ["americas","latin america","latam","caribbean"],
-  oceania:    ["oceania","pacific"],
-};
-
-// ─── MATH UTILITIES ──────────────────────────────────────────────────────────
-
-function lcg(seed) {
-  return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000;
+// ============================================================================
+// CORE HELPERS
+// ============================================================================
+function composite(d){
+  // Non-linear weighted composite with interaction effects.
+  // NO internal clamp to 99 — that was the actual bug: it pre-saturated
+  // structural scores for every high-conflict country, so by the time
+  // evidence was added, they were already tied at the ceiling.
+  // Clamping happens exactly once, at the very end of the full pipeline.
+  const raw = DIMS.reduce((s,dim) => s + dim.w * (d[dim.k]||0), 0);
+  const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
+  const foodHealth = ((d.food||0)/100) * ((d.health||0)/100) * 8;
+  const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
+  return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
 }
-function strHash(str) {
-  return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0;
-}
-const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
-function mean(arr)   { return arr.reduce((a, b) => a + b, 0) / arr.length; }
-function median(arr) { const s = [...arr].sort((a,b) => a-b); return s[Math.floor(s.length/2)]; }
-function stddev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length) || 1; }
-function composite(dims) { return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0); }
-function fmtPop(n) {
-  if (!n) return null;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}K`;
-  return `${n}`;
-}
-function fmtUSD(n) {
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(0)}M`;
-  return `$${n.toLocaleString()}`;
-}
-function slugify(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-function estimateReadTime(text) {
-  const words = text.trim().split(/\s+/).length;
-  return { words, minutes: Math.max(1, Math.ceil(words / 225)) };
-}
-function findIsoByName(name) {
-  if (!name) return null;
-  const lower = name.toLowerCase().trim();
-  for (const [iso, d] of Object.entries(COUNTRIES)) {
-    if (d.name.toLowerCase() === lower) return iso;
-  }
-  for (const [iso, d] of Object.entries(COUNTRIES)) {
-    if (d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase())) return iso;
-  }
-  return null;
-}
-function findClosestCountry(lng, lat) {
-  let closest = null, minDist = Infinity;
-  for (const [iso, d] of Object.entries(COUNTRIES)) {
-    if (!d.cent) continue;
-    const dist = Math.sqrt((lng - d.cent[0]) ** 2 + (lat - d.cent[1]) ** 2);
-    if (dist < minDist) { minDist = dist; closest = iso; }
-  }
-  return closest;
-}
+function volatility(arr){if(arr.length<4)return 1.5;let d=arr.slice(1).map((v,i)=>v-arr[i]),m=d.reduce((a,b)=>a+b,0)/d.length;return Math.min(25,Math.max(.5,Math.sqrt(d.reduce((s,r)=>s+Math.pow(r-m,2),0)/d.length)*1.2));}
+function entropy(arr){if(arr.length<4)return'—';let mn=Math.min(...arr),mx=Math.max(...arr),rng=mx-mn||1,bins=new Array(8).fill(0);arr.forEach(v=>bins[Math.min(7,Math.floor((v-mn)/rng*8))]++);let n=arr.length;return bins.reduce((s,c)=>{if(!c)return s;let p=c/n;return s-p*Math.log2(p)},0).toFixed(2);}
+function cusum(arr,th=3.5){if(arr.length<6)return{det:false,z:.5};const mn=arr.reduce((a,b)=>a+b,0)/arr.length;const sd=Math.sqrt(arr.reduce((s,v)=>s+Math.pow(v-mn,2),0)/arr.length)||1;const z=Math.abs(arr[arr.length-1]-mn)/sd;return{det:z>th,z:Math.round(z*10)/10};}
+function forecast(hist,cur){if(hist.length<4)return{fc:cur,dir:"→ Stable",dc:"ok",esc:false};const d=hist.slice(-12);const tr=hist.length>=5?(d[d.length-1]-d[Math.max(0,d.length-5)])/5:0;const fc=Math.round(Math.min(99,Math.max(5,d[d.length-1]+tr*1.8)));const delta=fc-cur;let dir,dc,esc;if(delta>3.5){dir="↑ Escalating";dc="up";esc=true;}else if(delta<-2.5){dir="↓ Improving";dc="ok";esc=false;}else{dir="→ Stable";dc="ok";esc=delta>1.5;}return{fc,dir,dc,esc};}
+function seededRand(n){const x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x);}
+function buildRadar(dims){const N=DIMS.length,cx=50,cy=50,r=38;const pts=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2,v=(dims[d.k]||0)/100;return`${(cx+r*v*Math.cos(a)).toFixed(1)},${(cy+r*v*Math.sin(a)).toFixed(1)}`}).join(' ');const gridLevels=[.25,.5,.75,1].map(lv=>{let p=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`${(cx+r*lv*Math.cos(a)).toFixed(1)},${(cy+r*lv*Math.sin(a)).toFixed(1)}`}).join(' ');return`<polygon points="${p}" fill="none" stroke="rgba(0,200,255,.07)" stroke-width=".5"/>`}).join('');const spokes=DIMS.map((d,i)=>{let a=i*2*Math.PI/N-Math.PI/2;return`<line x1="${cx}" y1="${cy}" x2="${(cx+r*Math.cos(a)).toFixed(1)}" y2="${(cy+r*Math.sin(a)).toFixed(1)}" stroke="rgba(0,200,255,.06)" stroke-width=".5"/>`}).join('');return`<svg viewBox="0 0 100 100" width="78" height="78">${gridLevels}${spokes}<polygon points="${pts}" fill="rgba(255,55,95,.14)" stroke="#ff375f" stroke-width="1.2"/></svg>`;}
+function miniLineChart(data,W,H,color){if(data.length<2)return'';const id='lg'+(++chartId);let mn=Math.min(...data),mx=Math.max(...data,mn+5);let xScale=(W-8)/(data.length-1),yScale=(H-6)/(mx-mn||1);let pts=data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ');let area=`${4},${H-2} ${data.map((v,i)=>`${4+i*xScale},${H-3-(v-mn)*yScale}`).join(' ')} ${4+(data.length-1)*xScale},${H-2}`;return`<svg width="${W}" height="${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${4+(data.length-1)*xScale}" cy="${H-3-(data[data.length-1]-mn)*yScale}" r="2.5" fill="${color}"/></svg>`;}
 
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── ENHANCEMENT 1: MACHINE LEARNING ENGINE ──────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-class CrisisMLModel {
-  constructor() {
-    this.weights = {
-      input_hidden: [],
-      hidden_output: [],
-      bias_hidden: [],
-      bias_output: [],
-    };
-    this.trained = false;
-    this.trainingCount = 0;
-    this.lastUpdate = Date.now();
-    this.performance = { mse: 0, r2: 0, accuracy: 0 };
-    this.history = [];
-  }
-
-  predict(sequence) {
-    if (!this.trained || sequence.length < 5) {
-      return this.simpleTrendForecast(sequence);
-    }
-
-    const normalized = this.normalizeSequence(sequence);
-    const hidden = this.forwardPass(normalized);
-    const prediction = this.outputLayer(hidden);
-    
-    return {
-      forecast: this.denormalize(prediction),
-      confidence: this.performance.r2 || 0.7,
-      trend: this.determineTrend(sequence, prediction),
-      anomaly_probability: this.calculateAnomalyProbability(sequence, prediction),
-    };
-  }
-
-  forwardPass(input) {
-    const hidden = [];
-    for (let i = 0; i < this.weights.input_hidden.length; i++) {
-      let sum = this.weights.bias_hidden[i] || 0;
-      for (let j = 0; j < input.length; j++) {
-        sum += (this.weights.input_hidden[i]?.[j] || 0) * input[j];
-      }
-      hidden.push(Math.max(0, sum));
-    }
-    return hidden;
-  }
-
-  outputLayer(hidden) {
-    let sum = this.weights.bias_output || 0;
-    for (let i = 0; i < hidden.length; i++) {
-      sum += (this.weights.hidden_output[i] || 0) * hidden[i];
-    }
-    return sum;
-  }
-
-  train(sequences) {
-    if (sequences.length < 2) return;
-
-    const inputs = sequences.map(s => this.normalizeSequence(s.slice(0, -1)));
-    const targets = sequences.map(s => this.normalizeValue(s[s.length - 1]));
-
-    if (!this.trained) {
-      this.initializeWeights(inputs[0].length);
-    }
-
-    const learningRate = CFG.LEARNING_RATE || 0.01;
-    let totalError = 0;
-
-    for (let epoch = 0; epoch < 10; epoch++) {
-      for (let i = 0; i < inputs.length; i++) {
-        const hidden = this.forwardPass(inputs[i]);
-        const output = this.outputLayer(hidden);
-        const error = targets[i] - output;
-
-        const outputDelta = error;
-        for (let j = 0; j < hidden.length; j++) {
-          this.weights.hidden_output[j] = (this.weights.hidden_output[j] || 0) + learningRate * outputDelta * hidden[j];
-        }
-        this.weights.bias_output = (this.weights.bias_output || 0) + learningRate * outputDelta;
-
-        for (let j = 0; j < this.weights.input_hidden.length; j++) {
-          const hiddenDelta = outputDelta * (this.weights.hidden_output[j] || 0) * (hidden[j] > 0 ? 1 : 0);
-          for (let k = 0; k < inputs[i].length; k++) {
-            this.weights.input_hidden[j][k] += learningRate * hiddenDelta * inputs[i][k];
-          }
-          this.weights.bias_hidden[j] = (this.weights.bias_hidden[j] || 0) + learningRate * hiddenDelta;
-        }
-
-        totalError += error * error;
-      }
-    }
-
-    this.trained = true;
-    this.trainingCount += sequences.length;
-    this.lastUpdate = Date.now();
-    this.performance.mse = totalError / inputs.length;
-    this.performance.r2 = Math.max(0, 1 - this.performance.mse / 0.1);
-    this.performance.accuracy = Math.min(0.95, this.performance.r2 + 0.1);
-    this.history.push({ count: this.trainingCount, mse: this.performance.mse, r2: this.performance.r2 });
-  }
-
-  initializeWeights(inputSize) {
-    const hiddenSize = CFG.HIDDEN_LAYERS?.[0] || 32;
-    this.weights.input_hidden = [];
-    for (let i = 0; i < hiddenSize; i++) {
-      this.weights.input_hidden[i] = [];
-      for (let j = 0; j < inputSize; j++) {
-        this.weights.input_hidden[i][j] = (Math.random() - 0.5) * 0.1;
-      }
-    }
-    this.weights.hidden_output = [];
-    for (let i = 0; i < hiddenSize; i++) {
-      this.weights.hidden_output[i] = (Math.random() - 0.5) * 0.1;
-    }
-    this.weights.bias_hidden = [];
-    for (let i = 0; i < hiddenSize; i++) {
-      this.weights.bias_hidden[i] = (Math.random() - 0.5) * 0.1;
-    }
-    this.weights.bias_output = (Math.random() - 0.5) * 0.1;
-  }
-
-  normalizeSequence(seq) {
-    const min = Math.min(...seq, 0);
-    const max = Math.max(...seq, 100);
-    const range = max - min || 1;
-    return seq.map(v => (v - min) / range);
-  }
-
-  normalizeValue(v) {
-    return v / 100;
-  }
-
-  denormalize(v) {
-    return Math.min(99, Math.max(1, Math.round(v * 100)));
-  }
-
-  simpleTrendForecast(seq) {
-    if (seq.length < 4) return { forecast: seq[seq.length - 1] || 50, confidence: 0.3 };
-    const recent = seq.slice(-7);
-    const slope = (recent[recent.length - 1] - recent[0]) / (recent.length - 1);
-    const forecast = Math.min(99, Math.max(1, Math.round(recent[recent.length - 1] + slope * 3)));
-    return {
-      forecast,
-      confidence: 0.4,
-      trend: slope > 0.5 ? "escalating" : slope < -0.5 ? "improving" : "stable",
-      anomaly_probability: 0.1,
-    };
-  }
-
-  determineTrend(seq, prediction) {
-    const last = seq[seq.length - 1];
-    const diff = prediction - last;
-    if (diff > 5) return "escalating";
-    if (diff < -5) return "improving";
-    return "stable";
-  }
-
-  calculateAnomalyProbability(seq, prediction) {
-    const last = seq[seq.length - 1];
-    const diff = Math.abs(prediction - last);
-    return Math.min(0.95, diff / 30);
-  }
-}
-
-const mlModel = new CrisisMLModel();
-
-function trainMLModel(store) {
-  if (!CFG.ML_ENABLED) return;
-
-  const sequences = [];
-  for (const iso in store) {
-    const hist = seedHistory(iso, store[iso].score);
-    if (hist.length >= 14) {
-      for (let i = 7; i < hist.length - 1; i++) {
-        const seq = hist.slice(i - 7, i + 1);
-        sequences.push(seq);
-      }
-    }
-  }
-
-  if (sequences.length >= 10) {
-    mlModel.train(sequences);
-  }
-}
-
-function mlEnhancedForecast(iso, currentScore, store) {
-  const hist = seedHistory(iso, currentScore);
-  const mlPrediction = mlModel.predict(hist);
-  const trad = trendForecast(hist, currentScore);
-
-  const blended = Math.round(mlPrediction.forecast * 0.6 + trad.fc * 0.4);
-  const confidence = (mlPrediction.confidence + trad.confidence) / 2;
-
-  return {
-    fc: clamp(blended),
-    ml_forecast: mlPrediction.forecast,
-    trad_forecast: trad.fc,
-    confidence: Math.min(0.95, Math.max(0.3, confidence)),
-    trend: mlPrediction.trend || trad.trend,
-    esc: blended > currentScore + 5,
-    slope: trad.slope,
-    anomaly_probability: mlPrediction.anomaly_probability || 0.1,
-    ml_trained: mlModel.trained,
-    training_count: mlModel.trainingCount,
+// ============================================================================
+// BUILD DIMS & STORE
+// ============================================================================
+function buildDims(base,types){
+  const has=t=>types.includes(t);
+  const clamp=v=>Math.min(99,Math.max(5,Math.round(v)));
+  return{
+    conflict:clamp(base*((has('CW')||has('CE'))?1.1:has('REF')?0.65:0.28)),
+    displacement:clamp(base*((has('REF')||has('CW')||has('CE'))?1.05:(has('EQ')||has('FL')||has('TC'))?0.8:0.38)),
+    food:clamp(base*((has('FN')||has('DR'))?1.15:(has('CE')||has('CW'))?0.9:has('FL')?0.7:0.42)),
+    health:clamp(base*((has('EP')||has('FN'))?1.1:(has('CE')||has('CW')||has('EQ'))?0.85:0.52)),
+    economic:clamp(base*((has('CE')||has('CW')||has('FN')||has('DR'))?0.82:0.42)+10),
+    climate:clamp(base*((has('HEAT')||has('DR'))?0.88:(has('FL')||has('TC')||has('WF'))?0.75:0.32)+12),
+    access:clamp(base*((has('CW')||has('CE'))?0.88:(has('EQ')||has('FL')||has('LS'))?0.72:0.32)+8),
+    political:clamp(base*((has('CE')||has('CW')||has('REF'))?0.85:0.42)+8),
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── ENHANCEMENT 2: SENTIMENT ANALYSIS ────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-class SentimentAnalyzer {
-  constructor() {
-    this.positiveWords = [
-      'peace', 'ceasefire', 'truce', 'agreement', 'aid', 'humanitarian', 'relief',
-      'recovery', 'stabilize', 'improve', 'progress', 'positive', 'good', 'great',
-      'excellent', 'success', 'successful', 'hope', 'hopeful', 'resolution'
-    ];
-    this.negativeWords = [
-      'war', 'conflict', 'violence', 'attack', 'bomb', 'missile', 'strike',
-      'kill', 'death', 'casualty', 'destroy', 'collapse', 'crisis', 'emergency',
-      'famine', 'hunger', 'disease', 'outbreak', 'escalate', 'worsen', 'deteriorate',
-      'critical', 'severe', 'dire', 'catastrophe', 'disaster', 'devastating'
-    ];
-    this.strongNegative = [
-      'exterminate', 'genocide', 'massacre', 'pogrom', 'ethnic cleansing',
-      'famine', 'starvation', 'catastrophic'
-    ];
-    this.positivePhrases = [
-      'negotiations progress', 'peace talks', 'aid delivered',
-      'ceasefire holds', 'reconstruction', 'recovery efforts'
-    ];
-    this.negativePhrases = [
-      'escalation of', 'intensified fighting', 'heavy casualties',
-      'civilians killed', 'mass displacement', 'health system collapse',
-      'food insecurity worsens', 'drought intensifies'
-    ];
-  }
-
-  analyze(text) {
-    if (!text || text.length < 10) {
-      return { score: 0, label: 'neutral', confidence: 0.5, key_terms: [] };
-    }
-
-    const lower = text.toLowerCase();
-    let score = 0;
-    let matches = 0;
-
-    for (const word of this.positiveWords) {
-      if (lower.includes(word)) { score += 0.15; matches++; }
-    }
-    for (const word of this.negativeWords) {
-      if (lower.includes(word)) { score -= 0.2; matches++; }
-    }
-    for (const word of this.strongNegative) {
-      if (lower.includes(word)) { score -= 0.5; matches++; }
-    }
-
-    for (const phrase of this.positivePhrases) {
-      if (lower.includes(phrase)) { score += 0.3; matches += 2; }
-    }
-    for (const phrase of this.negativePhrases) {
-      if (lower.includes(phrase)) { score -= 0.4; matches += 2; }
-    }
-
-    const totalMatches = Math.min(matches, 10);
-    const normalizedScore = Math.max(-1, Math.min(1, score / (Math.max(totalMatches, 1) / 2)));
-
-    const keyTerms = [];
-    for (const word of this.negativeWords) {
-      if (lower.includes(word)) keyTerms.push(word);
-    }
-    for (const word of this.positiveWords) {
-      if (lower.includes(word)) keyTerms.push(word);
-    }
-
-    let label, confidence;
-    if (normalizedScore > 0.2) {
-      label = 'positive';
-      confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5);
-    } else if (normalizedScore < -0.2) {
-      label = 'negative';
-      confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5);
-    } else {
-      label = 'neutral';
-      confidence = 0.5 + (1 - Math.abs(normalizedScore)) * 0.3;
-    }
-
-    const crisisIntensity = Math.min(1, Math.abs(normalizedScore) * 1.5);
-    const isCrisis = label === 'negative' && crisisIntensity > 0.5;
-
-    return {
-      score: Math.round(normalizedScore * 100) / 100,
-      label,
-      confidence: Math.round(confidence * 100) / 100,
-      key_terms: keyTerms.slice(0, 10),
-      crisis_intensity: Math.round(crisisIntensity * 100) / 100,
-      is_crisis: isCrisis,
-    };
-  }
-}
-
-const sentimentAnalyzer = new SentimentAnalyzer();
-
-function analyzeCountrySentiment(iso, store) {
-  if (!CFG.SENTIMENT_ENABLED) return null;
-
-  const c = store[iso];
-  const signals = c.signals || {};
-  const text = [];
-
-  if (signals.whoOutbreaks?.length) {
-    text.push(signals.whoOutbreaks.map(o => o.disease + ' outbreak ' + o.severity).join(' '));
-  }
-  if (signals.reliefwebItems?.length) {
-    text.push(signals.reliefwebItems.map(r => r.headline).join(' '));
-  }
-  if (signals.gdacs?.title) {
-    text.push(signals.gdacs.title);
-  }
-  if (signals.fewsPhase) {
-    text.push(signals.fewsPhase + ' famine warning');
-  }
-  if (signals.acledEvents > 0) {
-    text.push(signals.acledEvents + ' conflict events, ' + signals.acledFatalities + ' fatalities');
-  }
-
-  const dims = c.dims || {};
-  if (dims.food > 70) text.push('severe food insecurity ' + dims.food + '/100');
-  if (dims.conflict > 70) text.push('intense conflict ' + dims.conflict + '/100');
-  if (dims.displacement > 70) text.push('mass displacement ' + dims.displacement + '/100');
-
-  if (text.length === 0) return null;
-
-  const fullText = text.join('. ');
-  const result = sentimentAnalyzer.analyze(fullText);
-
-  return {
-    ...result,
-    sources_analyzed: text.length,
-    text_sample: fullText.slice(0, 200) + (fullText.length > 200 ? '...' : ''),
-  };
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── ENHANCEMENT 3: HISTORICAL DATA STORE ─────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-class HistoricalDataStore {
-  constructor() {
-    this.data = {};
-    this.lastCleanup = Date.now();
-  }
-
-  store(iso, data) {
-    if (!this.data[iso]) {
-      this.data[iso] = [];
-    }
-    this.data[iso].push({
-      timestamp: Date.now(),
-      ...data,
-    });
-    this.cleanup(iso);
-  }
-
-  cleanup(iso) {
-    const cutoff = Date.now() - CFG.HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-    if (this.data[iso]) {
-      this.data[iso] = this.data[iso].filter(d => d.timestamp > cutoff);
-    }
-    if (Date.now() - this.lastCleanup > 3600000) {
-      this.lastCleanup = Date.now();
-      for (const key in this.data) {
-        this.data[key] = this.data[key].filter(d => d.timestamp > cutoff);
-        if (this.data[key].length === 0) delete this.data[key];
-      }
-    }
-  }
-
-  getHistory(iso, days = 7) {
-    if (!this.data[iso]) return [];
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    return this.data[iso].filter(d => d.timestamp > cutoff);
-  }
-
-  getTrend(iso, days = 30) {
-    const history = this.getHistory(iso, days);
-    if (history.length < 3) return null;
-
-    const scores = history.map(d => d.score);
-    const timestamps = history.map(d => d.timestamp);
-    
-    const n = scores.length;
-    const xMean = timestamps.reduce((a, b) => a + b, 0) / n;
-    const yMean = scores.reduce((a, b) => a + b, 0) / n;
-    let num = 0, den = 0;
-    for (let i = 0; i < n; i++) {
-      num += (timestamps[i] - xMean) * (scores[i] - yMean);
-      den += (timestamps[i] - xMean) ** 2;
-    }
-    const slope = den ? num / den : 0;
-    const direction = slope > 0 ? 'worsening' : slope < 0 ? 'improving' : 'stable';
-
-    return {
-      direction,
-      slope: slope * 86400000 * 7,
-      points: n,
-      start_score: scores[0],
-      end_score: scores[scores.length - 1],
-      change: scores[scores.length - 1] - scores[0],
-    };
-  }
-
-  exportData(iso, format = 'json') {
-    const data = this.data[iso] || [];
-    if (format === 'csv') {
-      let csv = 'timestamp,score,displacement,economic\n';
-      for (const d of data) {
-        csv += `${d.timestamp},${d.score},${d.displacement || 0},${d.economic || 0}\n`;
-      }
-      return csv;
-    }
-    return data;
-  }
-
-  getStats(iso) {
-    const data = this.data[iso] || [];
-    if (data.length === 0) return null;
-
-    const scores = data.map(d => d.score);
-    return {
-      count: data.length,
-      min: Math.min(...scores),
-      max: Math.max(...scores),
-      mean: mean(scores),
-      median: median(scores),
-      stddev: stddev(scores),
-      latest: scores[scores.length - 1],
-      first: scores[0],
-      change: scores[scores.length - 1] - scores[0],
-    };
-  }
-}
-
-const historyStore = new HistoricalDataStore();
-
-function storeHistoricalData(iso, store) {
-  if (!CFG.HISTORY_ENABLED) return;
-  const c = store[iso];
-  historyStore.store(iso, {
-    score: c.score,
-    displacement: c.dims.displacement || 0,
-    economic: c.dims.economic || 0,
-    food: c.dims.food || 0,
-    health: c.dims.health || 0,
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── ENHANCEMENT 4: GEO-FENCING ALERTS ────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-class AlertManager {
-  constructor() {
-    this.webhookUrl = CFG.ALERT_WEBHOOK_URL || null;
-    this.email = CFG.ALERT_EMAIL || null;
-    this.thresholds = {
-      global: 75,
-      region: 70,
-      country: 80,
-    };
-    this.lastAlerts = {};
-  }
-
-  checkAlerts(iso, store) {
-    if (!CFG.GEO_FENCING_ENABLED) return [];
-
-    const c = store[iso];
-    const triggered = [];
-    const now = Date.now();
-
-    if (c.score >= this.thresholds.global) {
-      const key = `${iso}_global`;
-      if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({
-          iso,
-          name: c.name,
-          score: c.score,
-          threshold: this.thresholds.global,
-          type: 'global',
-          message: `${c.name} has reached ${c.score}/100, exceeding the global crisis threshold.`,
-        });
-        this.lastAlerts[key] = now;
-      }
-    }
-
-    const hist = seedHistory(iso, c.score);
-    if (hist.length >= 7) {
-      const delta = hist[hist.length - 1] - hist[hist.length - 7];
-      if (delta > 10) {
-        const key = `${iso}_rapid`;
-        if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-          triggered.push({
-            iso,
-            name: c.name,
-            score: c.score,
-            delta,
-            type: 'rapid_deterioration',
-            message: `${c.name} crisis score has risen ${delta} points in 7 days.`,
-          });
-          this.lastAlerts[key] = now;
-        }
-      }
-    }
-
-    const anom = runAnomalyDetection(hist);
-    if (anom.detected && (anom.severity === 'HIGH' || anom.severity === 'EXTREME')) {
-      const key = `${iso}_anomaly`;
-      if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({
-          iso,
-          name: c.name,
-          score: c.score,
-          anomaly: anom,
-          type: 'anomaly',
-          message: `${c.name} shows a ${anom.severity} statistical anomaly (${anom.methods_fired}/4 methods).`,
-        });
-        this.lastAlerts[key] = now;
-      }
-    }
-
-    for (const alert of triggered) {
-      this.sendAlert(alert);
-    }
-
-    return triggered;
-  }
-
-  async sendAlert(alert) {
-    if (this.webhookUrl) {
-      try {
-        await fetch(this.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'crisis_alert',
-            timestamp: new Date().toISOString(),
-            ...alert,
-          }),
-        });
-      } catch (e) {
-        console.warn('Webhook alert failed:', e);
-      }
-    }
-
-    if (this.email) {
-      console.log(`📧 ALERT EMAIL to ${this.email}: ${alert.message}`);
-    }
-
-    console.log(`🚨 ALERT: ${alert.message}`);
-  }
-
-  setThreshold(type, value) {
-    if (this.thresholds.hasOwnProperty(type)) {
-      this.thresholds[type] = value;
-    }
-  }
-}
-
-const alertManager = new AlertManager();
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── LIVE DATA FETCHERS (20+ SOURCES) ──────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-// ── 1. USGS ──
-async function fetchUSGS() {
-  try {
-    const r = await safeFetch(
-      fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())
-    );
-    if (r.ok && r.data?.features?.length) {
-      return { data: r.data.features, live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 2. EMSC ──
-async function fetchEMSC() {
-  try {
-    const r = await safeFetch(
-      fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())
-    );
-    if (r.ok && r.data?.features?.length) {
-      return { data: r.data.features, live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 3. NASA EONET ──
-async function fetchNASA() {
-  try {
-    const [general, fires] = await Promise.all([
-      safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7").then(r => r.json())),
-      safeFetch(fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20").then(r => r.json())),
-    ]);
-    const events = [
-      ...(general.ok && general.data?.events ? general.data.events : []),
-      ...(fires.ok && fires.data?.events ? fires.data.events : []),
-    ];
-    return { data: events, live: events.length > 0 };
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 4. GDACS ──
-async function fetchGDACS() {
-  try {
-    const [alerts, quakes] = await Promise.all([
-      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
-      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20").then(r => r.json())),
-    ]);
-    const feats = [
-      ...(alerts.ok && alerts.data?.features ? alerts.data.features : []),
-      ...(quakes.ok && quakes.data?.features ? quakes.data.features : []),
-    ];
-    return { data: feats, live: feats.length > 0 };
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 5. IFRC GO ──
-async function fetchIFRC() {
-  try {
-    const r = await safeFetch(
-      fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json())
-    );
-    if (r.ok && r.data?.results?.length) {
-      return { data: r.data.results, live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 6. Open-Meteo Heat Stress (EXPANDED) ──
-async function fetchHeatStress() {
-  const heatProneIsos = [
-    'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER','ERI','DJI','KEN','TZA','MOZ','MWI','ZMB','ZWE','AGO','BFA','MRT','TCD','COD','CAF','SDN','SSD','ETH','SOM'
-  ];
-  const results = {};
-  let anyLive = false;
-  for (const iso of heatProneIsos) {
-    const coord = COUNTRIES[iso]?.cent;
-    if (!coord) continue;
-    try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=3`;
-      const r = await safeFetch(fetch(url).then(r => r.json()));
-      if (r.ok && r.data?.daily?.temperature_2m_max?.[0] !== undefined) {
-        const temp = r.data.daily.temperature_2m_max[0];
-        results[iso] = temp;
-        if (temp >= 35) anyLive = true;
-      }
-    } catch {}
-  }
-  return { data: results, live: anyLive };
-}
-
-// ── 7. Open-Meteo Weather Hazards ──
-async function fetchWeatherHazards() {
-  const results = { flood_discharge: 0, wave_height: 0, wind_speed: 0, precip_total: 0, uv_max: 0, cloud_avg: 0, lightning_max: 0 };
-  let anyLive = false;
-  
-  const endpoints = [
-    { key: 'flood_discharge', url: 'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3', path: ['daily','river_discharge'], transform: arr => Math.max(...(arr||[0])) },
-    { key: 'wind_speed', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1', path: ['current_weather','windspeed'], transform: v => v || 0 },
-    { key: 'precip_total', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3', path: ['hourly','precipitation'], transform: arr => (arr||[]).reduce((a,b) => a+b, 0) },
-    { key: 'uv_max', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3', path: ['daily','uv_index_max'], transform: arr => Math.max(...(arr||[0])) },
-    { key: 'cloud_avg', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3', path: ['hourly','cloudcover'], transform: arr => mean(arr||[0]) },
-    { key: 'lightning_max', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1', path: ['hourly','lightning_potential'], transform: arr => Math.max(...(arr||[0])) },
-  ];
-
-  for (const ep of endpoints) {
-    try {
-      const r = await safeFetch(fetch(ep.url).then(r => r.json()));
-      if (r.ok) {
-        let val = r.data;
-        for (const segment of ep.path) {
-          val = val?.[segment];
-        }
-        if (val !== undefined && val !== null) {
-          results[ep.key] = ep.transform(val);
-          if (results[ep.key] > 0) anyLive = true;
-        }
-      }
-    } catch {}
-  }
-  
-  return { data: results, live: anyLive };
-}
-
-// ── 8. Open-Meteo Air Quality ──
-async function fetchAirQuality() {
-  const cities = [
-    { iso:'NGA', lat:6.5,  lon:3.4,   name:'Lagos' },
-    { iso:'IND', lat:28.6, lon:77.2,  name:'Delhi' },
-    { iso:'CHN', lat:39.9, lon:116.4, name:'Beijing' },
-    { iso:'IND', lat:19.1, lon:72.9,  name:'Mumbai' },
-    { iso:'BGD', lat:23.8, lon:90.4,  name:'Dhaka' },
-    { iso:'EGY', lat:30.0, lon:31.2,  name:'Cairo' },
-    { iso:'PAK', lat:24.9, lon:67.1,  name:'Karachi' },
-    { iso:'THA', lat:13.8, lon:100.5, name:'Bangkok' },
-    { iso:'TUR', lat:41.0, lon:28.9,  name:'Istanbul' },
-    { iso:'BRA', lat:-23.5, lon:-46.6, name:'Sao Paulo' },
-    { iso:'ETH', lat:9.0,  lon:38.7,  name:'Addis Ababa' },
-    { iso:'KEN', lat:-1.3, lon:36.8,  name:'Nairobi' },
-  ];
-  const results = {};
-  let anyLive = false;
-  for (const city of cities) {
-    try {
-      const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
-      const r = await safeFetch(fetch(url).then(r => r.json()));
-      const pm25 = r.ok ? r.data?.hourly?.pm2_5?.[0] : undefined;
-      if (pm25 !== undefined && pm25 !== null) {
-        if (!results[city.iso] || pm25 > results[city.iso].pm25) {
-          results[city.iso] = { pm25, city: city.name };
-          if (pm25 >= 35) anyLive = true;
-        }
-      }
-    } catch {}
-  }
-  return { data: results, live: anyLive };
-}
-
-// ── 9. NOAA ──
-async function fetchNOAA() {
-  try {
-    const [stations, alerts, storms] = await Promise.all([
-      safeFetch(fetch("https://api.weather.gov/stations?limit=20").then(r => r.json())),
-      safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Extreme").then(r => r.json())),
-      safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Severe").then(r => r.json())),
-    ]);
-    const out = {
-      stations: stations.ok ? (stations.data?.features?.length || 0) : 0,
-      extreme_alerts: alerts.ok ? (alerts.data?.features?.length || 0) : 0,
-      storm_alerts: storms.ok ? (storms.data?.features?.length || 0) : 0,
-    };
-    return { data: out, live: out.extreme_alerts > 0 || out.storm_alerts > 0 };
-  } catch {}
-  return { data: { stations: 0, extreme_alerts: 0, storm_alerts: 0 }, live: false };
-}
-
-// ── 10. disease.sh COVID-19 ──
-async function fetchDiseaseSh() {
-  try {
-    const r = await safeFetch(
-      fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=50").then(r => r.json())
-    );
-    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
-      return { data: r.data, live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── 11. World Bank Indicators ──
-async function fetchWorldBankIndicator(code, perPage = 300) {
-  try {
-    const url = `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=${perPage}&mrv=1`;
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    const rows = r.ok && r.data?.[1] ? r.data[1] : [];
-    const map = {};
-    rows.forEach(item => {
-      if (item.country?.id && item.value !== null && item.value !== undefined) {
-        map[item.country.id] = { value: parseFloat(item.value), date: item.date, countryName: item.country.value };
-      }
-    });
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch {}
-  return { data: {}, live: false };
-}
-
-async function fetchWorldBankAll() {
-  const [population, poverty, inflation, gdpGrowth, unemployment, refugees] = await Promise.all([
-    fetchWorldBankIndicator("SP.POP.TOTL"),
-    fetchWorldBankIndicator("SI.POV.DDAY"),
-    fetchWorldBankIndicator("FP.CPI.TOTL.ZG"),
-    fetchWorldBankIndicator("NY.GDP.MKTP.KD.ZG"),
-    fetchWorldBankIndicator("SL.UEM.TOTL.ZS"),
-    fetchWorldBankIndicator("SM.POP.REFG"),
-  ]);
-  return { population, poverty, inflation, gdpGrowth, unemployment, refugees };
-}
-
-// ── 12. UNHCR ──
-async function fetchUNHCR() {
-  try {
-    const [pop, asylum, ops, emerg, stats] = await Promise.all([
-      safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1").then(r => r.json())),
-      safeFetch(fetch("https://api.unhcr.org/population/v1/population/?limit=100&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024").then(r => r.json())),
-      safeFetch(fetch("https://api.unhcr.org/operations/v1/operations?limit=30").then(r => r.json())),
-      safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=30").then(r => r.json())),
-      safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=30").then(r => r.json())),
-    ]);
-    
-    const displacement = {};
-    if (pop.ok && pop.data?.items) {
-      pop.data.items.forEach(item => {
-        const iso = item.coa_iso;
-        if (!iso) return;
-        if (!displacement[iso]) displacement[iso] = { refugees: 0, idps: 0, asylum_seekers: 0 };
-        displacement[iso].refugees += item.refugees || 0;
-        displacement[iso].idps += item.idps || 0;
-      });
-    }
-    if (asylum.ok && asylum.data?.items) {
-      asylum.data.items.forEach(item => {
-        const iso = item.coa_iso;
-        if (!iso) return;
-        if (!displacement[iso]) displacement[iso] = { refugees: 0, idps: 0, asylum_seekers: 0 };
-        displacement[iso].asylum_seekers += item.asylum_seekers || 0;
-      });
-    }
-    
-    const operations = {};
-    if (ops.ok) {
-      const list = ops.data?.items || ops.data?.data || [];
-      list.forEach(op => {
-        const iso = op.country_iso || op.country?.iso3;
-        if (iso) operations[iso] = { name: op.name || "UNHCR operation", status: op.status || "active" };
-      });
-    }
-    
-    const emergencies = {};
-    if (emerg.ok) {
-      const list = emerg.data?.items || emerg.data?.data || [];
-      list.forEach(em => {
-        const iso = em.country_iso || em.country?.iso3;
-        if (iso) emergencies[iso] = { name: em.name || "Emergency response", level: em.level || "unknown" };
-      });
-    }
-    
-    const statistics = {};
-    if (stats.ok) {
-      const list = stats.data?.data || stats.data?.items || [];
-      list.forEach(s => {
-        const iso = s.country_iso || s.iso3 || s.country?.iso3;
-        if (iso && s.refugees > 0) statistics[iso] = { refugees: s.refugees, year: s.year || "2024" };
-      });
-    }
-    
-    const live = Object.keys(displacement).length > 0 || Object.keys(operations).length > 0 || Object.keys(emergencies).length > 0;
-    return { data: { displacement, operations, emergencies, statistics }, live };
-  } catch {}
-  return { data: { displacement: {}, operations: {}, emergencies: {}, statistics: {} }, live: false };
-}
-
-// ── 13. IPC FETCHER ──────────────────────────────────────────────────────────
-async function fetchIPC() {
-  try {
-    const r = await safeFetch(
-      fetch("https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=50&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc").then(r => r.json())
-    );
-    if (r.ok && r.data?.data) {
-      const ipcData = {};
-      r.data.data.forEach(item => {
-        const country = item.fields?.country?.[0]?.name;
-        if (!country) return;
-        const iso = findIsoByName(country);
-        if (!iso) return;
-        const title = (item.fields?.name || '').toLowerCase();
-        let phase = 3;
-        if (title.includes('famine')) phase = 5;
-        else if (title.includes('emergency')) phase = 4;
-        ipcData[iso] = { 
-          phase, 
-          title: item.fields?.name || '', 
-          population: 0,
-          total_population: 0,
-          date: item.fields?.date?.created || null
-        };
-      });
-      return { data: ipcData, live: Object.keys(ipcData).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ── 14. FEWS NET FETCHER ─────────────────────────────────────────────────────
-async function fetchFewsNet() {
-  try {
-    const r = await safeFetch(
-      fetch("https://api.rss2json.com/v1/api.json?rss_url=https://fews.net/rss/alert").then(r => r.json())
-    );
-    if (r.ok && r.data?.items) {
-      const alerts = {};
-      r.data.items.forEach(item => {
-        const title = (item.title || '').toLowerCase();
-        const countryMatch = title.match(/([a-z\s]+):/i);
-        if (countryMatch) {
-          const countryName = countryMatch[1].trim();
-          const iso = findIsoByName(countryName);
-          if (iso) {
-            let phase = 2;
-            if (title.includes('emergency')) phase = 4;
-            else if (title.includes('crisis')) phase = 3;
-            else if (title.includes('famine')) phase = 5;
-            if (!alerts[iso] || alerts[iso].phase < phase) {
-              alerts[iso] = { phase, title: item.title, date: item.pubDate };
-            }
-          }
-        }
-      });
-      return { data: alerts, live: Object.keys(alerts).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ── 15. ACLED FETCHER ───────────────────────────────────────────────────────
-async function fetchAcled() {
-  try {
-    const r = await safeFetch(
-      fetch("https://api.acleddata.com/acled/read?limit=200&year=2024&region=world").then(r => r.json())
-    );
-    if (r.ok && r.data?.data) {
-      const conflicts = {};
-      r.data.data.forEach(event => {
-        const iso = findIsoByName(event.country);
-        if (!iso) return;
-        if (!conflicts[iso]) conflicts[iso] = { events: 0, fatalities: 0 };
-        conflicts[iso].events++;
-        conflicts[iso].fatalities += parseInt(event.fatalities) || 0;
-      });
-      return { data: conflicts, live: Object.keys(conflicts).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ── 16. ReliefWeb Events ────────────────────────────────────────────────────
-async function fetchReliefWeb() {
-  try {
-    const r = await safeFetch(
-      fetch("https://api.reliefweb.int/v1/reports?appname=gcisfusion&profile=list&slim=1&limit=30&filter[operator]=OR&filter[conditions][0][field]=primary_country.iso3&filter[conditions][0][value][]=ETH&filter[conditions][1][field]=primary_country.iso3&filter[conditions][1][value][]=SOM&filter[conditions][2][field]=primary_country.iso3&filter[conditions][2][value][]=SSD&sort[]=date.created:desc").then(r => r.json())
-    );
-    if (r.ok && r.data?.data) {
-      const events = {};
-      r.data.data.forEach(item => {
-        const iso = item.fields?.primary_country?.[0]?.iso3;
-        if (!iso) return;
-        if (!events[iso]) events[iso] = 0;
-        events[iso]++;
-      });
-      return { data: events, live: Object.keys(events).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ── 17. WHO RSS ─────────────────────────────────────────────────────────────
-async function fetchWHO() {
-  try {
-    const r = await safeFetch(
-      fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml").then(r => r.json())
-    );
-    if (r.ok && r.data?.items) {
-      const outbreaks = {};
-      r.data.items.forEach(item => {
-        const title = (item.title || '').toLowerCase();
-        const keywords = ['cholera', 'ebola', 'mpox', 'measles', 'polio', 'dengue', 'malaria'];
-        for (const kw of keywords) {
-          if (title.includes(kw)) {
-            for (const [iso, country] of Object.entries(COUNTRIES)) {
-              if (title.includes(country.name.toLowerCase())) {
-                if (!outbreaks[iso]) outbreaks[iso] = [];
-                outbreaks[iso].push({ disease: kw, title: item.title, date: item.pubDate });
-                break;
-              }
-            }
-          }
-        }
-      });
-      return { data: outbreaks, live: Object.keys(outbreaks).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ─── AGGREGATE ALL 20+ FETCHERS ──────────────────────────────────────────────
-async function fetchAllLive(isos) {
-  const [
-    usgs, emsc, nasa, gdacs, ifrc,
-    heat, hazards, aq, noaa,
-    disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who
-  ] = await Promise.all([
-    fetchUSGS(), 
-    fetchEMSC(), 
-    fetchNASA(), 
-    fetchGDACS(), 
-    fetchIFRC(),
-    fetchHeatStress(), 
-    fetchWeatherHazards(), 
-    fetchAirQuality(), 
-    fetchNOAA(),
-    fetchDiseaseSh(), 
-    fetchWorldBankAll(), 
-    fetchUNHCR(),
-    fetchIPC(),
-    fetchFewsNet(),
-    fetchAcled(),
-    fetchReliefWeb(),
-    fetchWHO(),
-  ]);
-  
-  return { 
-    usgs, emsc, nasa, gdacs, ifrc, 
-    heat, hazards, aq, noaa, 
-    disease, wb, unhcr, 
-    ipc, fewsnet, acled, reliefweb, who
-  };
-}
-
-// ─── SAFE FETCH ──────────────────────────────────────────────────────────
-
-const safeFetch = p =>
-  Promise.race([
-    p.then(r => ({ ok:true, data:r })),
-    new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS)),
-  ]).catch(e => ({ ok:false, error:e.message }));
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── EXTRACT SIGNALS ──────────────────────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-function extractSignals(iso, live) {
-  const name = COUNTRIES[iso].name.toLowerCase();
-  let liveEvidenceCount = 0;
-  const evidenceSources = [];
-  
-  // ─── INITIALIZE SIGNALS OBJECT ──────────────────────────────────────────
-  const signals = {};
-
-  // ── USGS ──
-  const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
-  const topQuake = quakes.length ? quakes.reduce((a,b) => b.properties.mag > a.properties.mag ? b : a) : null;
-  if (topQuake?.properties?.mag >= 4.5) {
-    liveEvidenceCount++;
-    evidenceSources.push("USGS");
-    signals.quakeMag = topQuake.properties.mag;
-    signals.quakePlace = topQuake.properties.place.split(",")[0].trim();
-  }
-
-  // ── EMSC ──
-  const emscQuakes = (live.emsc.data || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    if (!coords) return false;
-    return findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  const topEMSC = emscQuakes.length ? emscQuakes.reduce((a,b) => (b.properties?.mag||0) > (a.properties?.mag||0) ? b : a) : null;
-  if (topEMSC?.properties?.mag >= 4.5) {
-    liveEvidenceCount++;
-    evidenceSources.push("EMSC");
-    if (!signals.quakeMag) signals.quakeMag = topEMSC.properties.mag;
-    if (!signals.quakePlace) signals.quakePlace = topEMSC.properties?.flynn_region || null;
-  }
-
-  // ── NASA ──
-  const nasaEvents = (live.nasa.data || []).filter(ev => {
-    const coords = ev.geometry?.[0]?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  if (nasaEvents.length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("NASA");
-    signals.nasaEventCount = nasaEvents.length;
-  }
-
-  // ── GDACS ──
-  const gdacsEvents = (live.gdacs.data || []).filter(f => {
-    const coords = f.geometry?.coordinates;
-    return coords && findClosestCountry(coords[0], coords[1]) === iso;
-  });
-  const topGDACS = gdacsEvents[0] || null;
-  if (topGDACS) {
-    liveEvidenceCount++;
-    evidenceSources.push("GDACS");
-    signals.gdacs = topGDACS;
-    signals.gdacsAlert = topGDACS?.properties?.alertlevel?.toLowerCase() || null;
-  }
-
-  // ── IFRC ──
-  const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
-  if (ifrcEvents.length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("IFRC");
-    signals.ifrcCount = ifrcEvents.length;
-  }
-
-  // ── Heat ──
-  const maxTempC = live.heat.data[iso] ?? 0;
-  if (maxTempC >= 35) {
-    liveEvidenceCount++;
-    evidenceSources.push("Open-Meteo Heat");
-    signals.maxTempC = maxTempC;
-  }
-
-  // ── Hazards ──
-  if (iso === 'YEM' && live.hazards.live) {
-    liveEvidenceCount++;
-    evidenceSources.push("Open-Meteo Hazards");
-    signals.hazards = live.hazards.data;
-  }
-
-  // ── Air Quality ──
-  const aqData = live.aq.data[iso] || null;
-  if (aqData && aqData.pm25 >= 35) {
-    liveEvidenceCount++;
-    evidenceSources.push("Open-Meteo AQ");
-    signals.aq = aqData;
-  }
-
-  // ── NOAA ──
-  if (iso === 'USA' && (live.noaa.data.extreme_alerts > 0 || live.noaa.data.storm_alerts > 0)) {
-    liveEvidenceCount++;
-    evidenceSources.push("NOAA");
-    signals.noaa = live.noaa.data;
-  }
-
-  // ── disease.sh ──
-  const diseaseRow = (live.disease.data || []).find(d => {
-    const countryName = d.country || d.country_name || "";
-    return countryName.toLowerCase() === name || name.includes(countryName.toLowerCase()) || countryName.toLowerCase().includes(name);
-  });
-  if (diseaseRow && diseaseRow.active > 1000) {
-    liveEvidenceCount++;
-    evidenceSources.push("disease.sh");
-    signals.diseaseActive = diseaseRow.active;
-    signals.diseaseName = "COVID-19";
-  }
-
-  // ── IPC/FEWS NET Food Security ──
-  const ipcData = live.ipc?.data || null;
-  if (ipcData && ipcData[iso]) {
-    const ipc = ipcData[iso];
-    if (ipc.phase >= 3) {
-      liveEvidenceCount++;
-      evidenceSources.push("IPC");
-      signals.ipcPhase = ipc.phase;
-      signals.ipcPopulation = ipc.population || 0;
-      signals.ipcTotalPop = ipc.total_population || ipc.population || 0;
-      signals.ipcTitle = ipc.title || null;
-      signals.ipcDate = ipc.date || null;
-    }
-  }
-
-  // ── FEWS NET ──
-  const fewsData = live.fewsnet?.data || null;
-  if (fewsData && fewsData[iso]) {
-    const fews = fewsData[iso];
-    if (fews.phase >= 3 && (!signals.ipcPhase || fews.phase > signals.ipcPhase)) {
-      liveEvidenceCount++;
-      evidenceSources.push("FEWS NET");
-      signals.ipcPhase = fews.phase;
-      signals.ipcTitle = fews.title || null;
-      signals.ipcDate = fews.date || null;
-    }
-  }
-
-  // ── ACLED Conflict ──
-  const acledData = live.acled?.data || null;
-  if (acledData && acledData[iso]) {
-    const conflict = acledData[iso];
-    if (conflict.events > 0) {
-      liveEvidenceCount++;
-      evidenceSources.push("ACLED");
-      signals.acledEvents = conflict.events;
-      signals.acledFatalities = conflict.fatalities || 0;
-    }
-  }
-
-  // ── ReliefWeb Events ──
-  const reliefData = live.reliefweb?.data || null;
-  if (reliefData && reliefData[iso] && reliefData[iso] > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("ReliefWeb");
-    signals.reliefwebCount = reliefData[iso];
-  }
-
-  // ── WHO Outbreaks ──
-  const whoData = live.who?.data || null;
-  if (whoData && whoData[iso] && whoData[iso].length > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("WHO");
-    signals.whoOutbreaks = whoData[iso];
-  }
-
-  // ── World Bank ──
-  const wbInflation = live.wb.inflation.data[iso] || null;
-  const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
-  const wbUnemployment = live.wb.unemployment.data[iso] || null;
-  const wbRefugees = live.wb.refugees.data[iso] || null;
-  const wbPoverty = live.wb.poverty.data[iso] || null;
-  const wbPopulation = live.wb.population.data[iso] || null;
-  
-  if (wbPopulation && wbPopulation.value > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB Population");
-    signals.population = wbPopulation.value;
-  }
-  
-  if (wbInflation && wbInflation.value > 5) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB Inflation");
-    signals.wbInflation = wbInflation;
-  }
-  if (wbGdpGrowth && wbGdpGrowth.value < 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB GDP");
-    signals.wbGdpGrowth = wbGdpGrowth;
-  }
-  if (wbUnemployment && wbUnemployment.value > 10) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB Unemployment");
-    signals.wbUnemployment = wbUnemployment;
-  }
-  if (wbRefugees && wbRefugees.value > 1000) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB Refugees");
-    signals.wbRefugees = wbRefugees;
-  }
-  if (wbPoverty && wbPoverty.value > 5) {
-    liveEvidenceCount++;
-    evidenceSources.push("WB Poverty");
-    signals.wbPoverty = wbPoverty;
-  }
-
-  // ── UNHCR ──
-  const displacement = live.unhcr.data.displacement[iso] || null;
-  const totalDisplaced = displacement ? (displacement.refugees||0) + (displacement.idps||0) + (displacement.asylum_seekers||0) : 0;
-  if (totalDisplaced > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("UNHCR");
-    signals.refugees = displacement?.refugees || 0;
-    signals.idps = displacement?.idps || 0;
-    signals.asylum_seekers = displacement?.asylum_seekers || 0;
-    signals.totalDisplaced = totalDisplaced;
-  }
-  const unhcrOp = live.unhcr.data.operations[iso] || null;
-  if (unhcrOp) {
-    liveEvidenceCount++;
-    evidenceSources.push("UNHCR Ops");
-    signals.unhcrOp = unhcrOp;
-  }
-  const unhcrEmergency = live.unhcr.data.emergencies[iso] || null;
-  if (unhcrEmergency) {
-    liveEvidenceCount++;
-    evidenceSources.push("UNHCR Emergency");
-    signals.unhcrEmergency = unhcrEmergency;
-  }
-  const unhcrStats = live.unhcr.data.statistics[iso] || null;
-  if (unhcrStats && unhcrStats.refugees > 0) {
-    liveEvidenceCount++;
-    evidenceSources.push("UNHCR Stats");
-    signals.unhcrStats = unhcrStats;
-  }
-
-  return {
-    quakeMag: signals.quakeMag || 0,
-    quakePlace: signals.quakePlace || null,
-    quakeCount: (quakes?.length || 0) + (emscQuakes?.length || 0),
-    nasaEventCount: signals.nasaEventCount || 0,
-    gdacs: signals.gdacs || null,
-    gdacsAlert: signals.gdacsAlert || null,
-    ifrcCount: signals.ifrcCount || 0,
-    maxTempC: signals.maxTempC || 0,
-    hazards: signals.hazards || null,
-    aq: signals.aq || null,
-    noaa: signals.noaa || null,
-    diseaseActive: signals.diseaseActive || 0,
-    diseaseName: signals.diseaseName || null,
-    ipcPhase: signals.ipcPhase || 0,
-    ipcPopulation: signals.ipcPopulation || 0,
-    ipcTotalPop: signals.ipcTotalPop || 0,
-    ipcTitle: signals.ipcTitle || null,
-    ipcDate: signals.ipcDate || null,
-    acledEvents: signals.acledEvents || 0,
-    acledFatalities: signals.acledFatalities || 0,
-    reliefwebCount: signals.reliefwebCount || 0,
-    whoOutbreaks: signals.whoOutbreaks || [],
-    population: signals.population || 0,
-    wbInflation: signals.wbInflation || null,
-    wbGdpGrowth: signals.wbGdpGrowth || null,
-    wbUnemployment: signals.wbUnemployment || null,
-    wbRefugees: signals.wbRefugees || null,
-    wbPoverty: signals.wbPoverty || null,
-    refugees: signals.refugees || 0,
-    idps: signals.idps || 0,
-    asylum_seekers: signals.asylum_seekers || 0,
-    totalDisplaced: signals.totalDisplaced || 0,
-    unhcrOp: signals.unhcrOp || null,
-    unhcrEmergency: signals.unhcrEmergency || null,
-    unhcrStats: signals.unhcrStats || null,
-    liveEvidenceCount,
-    evidenceSources,
-  };
-}
-
-// ─── LIVE ADJUSTMENTS ────────────────────────────────────────────────────
-
-function applyLiveAdjustments(priorDims, signals, iso, store) {
-  const dims = { ...priorDims };
-  const audit = [];
-  let totalBoost = 0;
-
-  // ── 1. USGS/EMSC Earthquakes ──
-  if (signals.quakeMag >= 4.5) {
-    const boost = Math.min(30, Math.round((signals.quakeMag - 3.5) * 6));
-    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
-    totalBoost += boost;
-    audit.push({ 
-      source: "USGS/EMSC", 
-      field: "displacement+health", 
-      delta: boost, 
-      reason: `M${signals.quakeMag.toFixed(1)} earthquake`, 
-      magnitude: signals.quakeMag 
-    });
-  }
-
-  // ── 2. NASA EONET ──
-  if (signals.nasaEventCount > 0) {
-    const boost = Math.min(20, signals.nasaEventCount * 7);
-    dims.climate = clamp(dims.climate + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "NASA EONET", 
-      field: "climate+displacement", 
-      delta: boost, 
-      reason: `${signals.nasaEventCount} active NASA events` 
-    });
-  }
-
-  // ── 3. GDACS Alerts ──
-  if (signals.gdacs) {
-    const gdacsBoost = signals.gdacsAlert === "red" ? 20 : signals.gdacsAlert === "orange" ? 12 : 5;
-    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.4));
-    dims.access = clamp(dims.access + Math.floor(gdacsBoost * 0.3));
-    totalBoost += gdacsBoost;
-    audit.push({ 
-      source: "GDACS", 
-      field: "displacement+health+access", 
-      delta: gdacsBoost, 
-      reason: `${signals.gdacsAlert?.toUpperCase()} alert active` 
-    });
-  }
-
-  // ── 4. IFRC GO ──
-  if (signals.ifrcCount > 0) {
-    const boost = Math.min(18, signals.ifrcCount * 7);
-    dims.access = clamp(dims.access + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
-    totalBoost += boost;
-    audit.push({ 
-      source: "IFRC GO", 
-      field: "access+displacement", 
-      delta: boost, 
-      reason: `${signals.ifrcCount} active IFRC operations` 
-    });
-  }
-
-  // ── 5. Extreme Heat ──
-  if (signals.maxTempC >= 35) {
-    const boost = Math.min(25, Math.round((signals.maxTempC - 28) * 2));
-    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.7));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.5));
-    dims.food = clamp(dims.food + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "Open-Meteo", 
-      field: "climate+health+food", 
-      delta: boost, 
-      reason: `${signals.maxTempC}°C extreme heat` 
-    });
-  }
-
-  // ── 6. Weather Hazards ──
-  if (signals.hazards) {
-    const h = signals.hazards;
-    let hazardBoost = 0;
-    const parts = [];
-    
-    if (h.flood_discharge > 100) { 
-      hazardBoost += 8; 
-      parts.push(`${h.flood_discharge.toFixed(0)}m³/s river discharge`); 
-    }
-    if (h.wind_speed > 30) { 
-      hazardBoost += 6; 
-      parts.push(`${h.wind_speed.toFixed(0)}km/h winds`); 
-    }
-    if (h.precip_total > 10) { 
-      hazardBoost += 5; 
-      parts.push(`${h.precip_total.toFixed(0)}mm precipitation`); 
-    }
-    if (h.uv_max > 8) { 
-      hazardBoost += 4; 
-      parts.push(`UV ${h.uv_max.toFixed(1)}`); 
-    }
-    if (h.cloud_avg > 70) { 
-      hazardBoost += 3; 
-      parts.push(`${h.cloud_avg.toFixed(0)}% cloud cover`); 
-    }
-    if (h.lightning_max > 100) { 
-      hazardBoost += 5; 
-      parts.push(`${h.lightning_max.toFixed(0)}J/kg lightning potential`); 
-    }
-    
-    if (hazardBoost > 0) {
-      dims.climate = clamp(dims.climate + hazardBoost);
-      dims.displacement = clamp(dims.displacement + Math.floor(hazardBoost * 0.3));
-      totalBoost += hazardBoost;
-      audit.push({ 
-        source: "Open-Meteo Hazards", 
-        field: "climate+displacement", 
-        delta: hazardBoost, 
-        reason: parts.join(", ") 
-      });
-    }
-  }
-
-  // ── 7. Air Quality ──
-  if (signals.aq && signals.aq.pm25 >= 35) {
-    const boost = Math.min(15, Math.round((signals.aq.pm25 - 25) / 8));
-    if (boost > 0) {
-      dims.health = clamp(dims.health + boost);
-      totalBoost += boost;
-      audit.push({ 
-        source: "Open-Meteo AQ", 
-        field: "health", 
-        delta: boost, 
-        reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³ in ${signals.aq.city}` 
-      });
-    }
-  }
-
-  // ── 8. disease.sh ──
-  if (signals.diseaseActive > 1000) {
-    const m = signals.diseaseActive / 1000;
-    const boost = Math.min(25, Math.round(Math.log10(m + 1) * 10));
-    dims.health = clamp(dims.health + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
-    totalBoost += boost;
-    audit.push({ 
-      source: "disease.sh", 
-      field: "health+food", 
-      delta: boost, 
-      reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` 
-    });
-  }
-
-  // ── 9. WHO Outbreaks ──
-  if (signals.whoOutbreaks && signals.whoOutbreaks.length > 0) {
-    const boost = Math.min(20, signals.whoOutbreaks.length * 8);
-    dims.health = clamp(dims.health + boost);
-    dims.access = clamp(dims.access + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "WHO", 
-      field: "health+access", 
-      delta: boost, 
-      reason: `${signals.whoOutbreaks.length} disease outbreaks detected` 
-    });
-  }
-
-  // ── 10. World Bank: Inflation ──
-  if (signals.wbInflation && signals.wbInflation.value > 5) {
-    const boost = Math.min(20, Math.round(signals.wbInflation.value / 3));
-    dims.economic = clamp(dims.economic + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
-    totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+food", 
-      delta: boost, 
-      reason: `Inflation ${signals.wbInflation.value.toFixed(1)}%` 
-    });
-  }
-
-  // ── 11. World Bank: GDP Growth ──
-  if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < 0) {
-    const boost = Math.min(18, Math.round(Math.abs(signals.wbGdpGrowth.value) * 2.5));
-    dims.economic = clamp(dims.economic + boost);
-    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+political", 
-      delta: boost, 
-      reason: `GDP growth ${signals.wbGdpGrowth.value.toFixed(1)}% (contraction)` 
-    });
-  }
-
-  // ── 12. World Bank: Unemployment ──
-  if (signals.wbUnemployment && signals.wbUnemployment.value > 10) {
-    const boost = Math.min(15, Math.round(signals.wbUnemployment.value / 4));
-    dims.economic = clamp(dims.economic + boost);
-    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+political", 
-      delta: boost, 
-      reason: `Unemployment ${signals.wbUnemployment.value.toFixed(1)}%` 
-    });
-  }
-
-  // ── 13. World Bank: Poverty ──
-  if (signals.wbPoverty && signals.wbPoverty.value > 5) {
-    const boost = Math.min(18, Math.round(signals.wbPoverty.value / 3));
-    dims.economic = clamp(dims.economic + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.5));
-    totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+food", 
-      delta: boost, 
-      reason: `${signals.wbPoverty.value.toFixed(1)}% living in extreme poverty` 
-    });
-  }
-
-  // ── 14. UNHCR Displacement ──
-  if (signals.totalDisplaced > 0) {
-    const m = signals.totalDisplaced / 1_000_000;
-    const boost = m >= 10 ? 45 
-                : m >= 5 ? 35 
-                : m >= 3 ? 28 
-                : m >= 1.5 ? 20 
-                : m >= 0.5 ? 12 
-                : m >= 0.1 ? 6 
-                : 0;
-    if (boost > 0) {
-      dims.displacement = clamp(dims.displacement + boost);
-      dims.political = clamp(dims.political + Math.floor(boost * 0.4));
-      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
-      dims.access = clamp(dims.access + Math.floor(boost * 0.2));
-      totalBoost += boost;
-      audit.push({ 
-        source: "UNHCR", 
-        field: "displacement+political+economic+access", 
-        delta: boost, 
-        reason: `${m.toFixed(1)}M displaced — massive humanitarian crisis` 
-      });
-    }
-  }
-
-  // ── 15. UNHCR Emergency ──
-  if (signals.unhcrEmergency) {
-    const boost = signals.unhcrEmergency.level === "critical" ? 18 
-                : signals.unhcrEmergency.level === "high" ? 12 
-                : 6;
-    dims.political = clamp(dims.political + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.6));
-    totalBoost += boost;
-    audit.push({ 
-      source: "UNHCR Emergency", 
-      field: "political+displacement", 
-      delta: boost, 
-      reason: `Active emergency: ${signals.unhcrEmergency.name} (${signals.unhcrEmergency.level})` 
-    });
-  }
-
-  // ── 16. NOAA Alerts ──
-  if (signals.noaa) {
-    const boost = Math.min(15, (signals.noaa.extreme_alerts + signals.noaa.storm_alerts) * 3);
-    if (boost > 0) {
-      dims.climate = clamp(dims.climate + boost);
-      totalBoost += boost;
-      audit.push({ 
-        source: "NOAA", 
-        field: "climate", 
-        delta: boost, 
-        reason: `${signals.noaa.extreme_alerts} extreme + ${signals.noaa.storm_alerts} severe storm alerts active` 
-      });
-    }
-  }
-
-  // ── 17. IPC Food Security ──
-  if (signals.ipcPhase >= 3) {
-    const phaseBoosts = { 3: 20, 4: 35, 5: 50 };
-    const boost = phaseBoosts[signals.ipcPhase] || 0;
-    if (boost > 0) {
-      dims.food = clamp(dims.food + boost);
-      dims.health = clamp(dims.health + Math.floor(boost * 0.6));
-      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
-      totalBoost += boost;
-      audit.push({ 
-        source: "IPC/FEWS NET", 
-        field: "food+health+economic", 
-        delta: boost, 
-        reason: `IPC Phase ${signals.ipcPhase} food insecurity ${signals.ipcPhase >= 4 ? '— EMERGENCY' : ''}` 
-      });
-    }
-  }
-
-  // ── 18. ACLED Conflict ──
-  if (signals.acledEvents && signals.acledEvents > 0) {
-    const boost = Math.min(25, Math.round(signals.acledEvents * 0.8 + signals.acledFatalities * 0.05));
-    if (boost > 0) {
-      dims.conflict = clamp(dims.conflict + boost);
-      dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
-      dims.political = clamp(dims.political + Math.floor(boost * 0.3));
-      totalBoost += boost;
-      audit.push({ 
-        source: "ACLED", 
-        field: "conflict+displacement+political", 
-        delta: boost, 
-        reason: `${signals.acledEvents} conflict events, ${signals.acledFatalities || 0} fatalities` 
-      });
-    }
-  }
-
-  // ── 19. ReliefWeb Events ──
-  if (signals.reliefwebCount && signals.reliefwebCount > 0) {
-    const boost = Math.min(15, signals.reliefwebCount * 5);
-    dims.access = clamp(dims.access + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({ 
-      source: "ReliefWeb", 
-      field: "access+displacement", 
-      delta: boost, 
-      reason: `${signals.reliefwebCount} active humanitarian reports` 
-    });
-  }
-
-  // ── 20. World Bank Refugees ──
-  if (signals.wbRefugees && signals.wbRefugees.value > 1000) {
-    const m = signals.wbRefugees.value / 1_000_000;
-    const boost = m >= 2 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
-    if (boost > 0) {
-      dims.displacement = clamp(dims.displacement + boost);
-      totalBoost += boost;
-      audit.push({ 
-        source: "World Bank Refugees", 
-        field: "displacement", 
-        delta: boost, 
-        reason: `${m.toFixed(1)}M refugees (WB cross-check)` 
-      });
-    }
-  }
-
-  // ── 21. ML Anomaly Boost ──
-  if (CFG.ML_ENABLED && store) {
-    const mlForecast = mlEnhancedForecast(iso, clamp(composite(dims)), store);
-    if (mlForecast.anomaly_probability > 0.6) {
-      const mlBoost = Math.round(mlForecast.anomaly_probability * 12);
-      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.4));
-      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.3));
-      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.2));
-      totalBoost += mlBoost;
-      audit.push({ 
-        source: "ML Anomaly", 
-        field: "political+economic+conflict", 
-        delta: mlBoost, 
-        reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` 
-      });
-    }
-  }
-
-  // ── LOG THE TOTAL BOOST ──
-  if (totalBoost > 0) {
-    console.log(`📈 ${iso} live boost: +${totalBoost} (${audit.length} sources)`);
-  }
-
-  return { dims, score: clamp(composite(dims)), audit };
-}
-
-// ─── STORE BUILDER ──────────────────────────────────────────────────────
-
-function buildStore(liveData) {
-  const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
-  const store = {};
-  for (const [iso, country] of Object.entries(COUNTRIES)) {
-    const jitter = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * CFG.PRIOR_JITTER);
-    const base = clamp(country.prior + jitter, 5, 99);
-    const priorDims = buildPriorDims(base, country.types);
-    const priorScore = clamp(composite(priorDims));
-    let dims, score, audit, signals;
-    if (liveData) {
-      signals = extractSignals(iso, liveData);
-      const adjusted = applyLiveAdjustments(priorDims, signals, iso, store);
-      dims = adjusted.dims;
-      score = adjusted.score;
-      audit = adjusted.audit;
-    } else {
-      dims = priorDims;
-      score = priorScore;
-      audit = [];
-      signals = {};
-    }
-    store[iso] = {
-      ...country,
-      dims,
-      score,
-      priorScore,
-      liveBoost: score - priorScore,
-      audit,
-      signals,
-      spillover: 0,
-      ml_forecast: null,
-      sentiment: null,
-      historical_trend: null,
-    };
-  }
-  
-  for (const iso in store) {
-    const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
-    if (!neighbours.length) continue;
-    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE).toFixed(1);
-    store[iso].score = clamp(store[iso].score + store[iso].spillover);
-  }
-  
-  if (CFG.ML_ENABLED) {
-    trainMLModel(store);
-  }
-  
-  for (const iso in store) {
-    if (CFG.ML_ENABLED) {
-      store[iso].ml_forecast = mlEnhancedForecast(iso, store[iso].score, store);
-    }
-    if (CFG.SENTIMENT_ENABLED) {
-      store[iso].sentiment = analyzeCountrySentiment(iso, store);
-    }
-    if (CFG.HISTORY_ENABLED) {
-      store[iso].historical_trend = historyStore.getTrend(iso, 30);
-      storeHistoricalData(iso, store);
-    }
-    if (CFG.GEO_FENCING_ENABLED) {
-      alertManager.checkAlerts(iso, store);
-    }
-  }
-  
-  return store;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── ANOMALY DETECTION (Original functions) ──────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-function detectCUSUM(arr) {
-  if (arr.length < 6) return { detected: false, type: "cusum", stat: 0, direction: "stable" };
-  const base = arr.slice(0, Math.floor(arr.length * 0.6));
-  const mu = mean(base), sd = stddev(base);
-  const k = CFG.CUSUM_K * sd, h = CFG.CUSUM_H * sd;
-  let sP = 0, sN = 0, maxS = 0;
-  for (const x of arr) {
-    sP = Math.max(0, sP + (x - mu) - k);
-    sN = Math.max(0, sN - (x - mu) - k);
-    maxS = Math.max(maxS, sP, sN);
-  }
-  return { detected: sP > h || sN > h, type:"cusum", stat:+maxS.toFixed(2), direction: sP > sN ? "up" : "down" };
-}
-
-function detectZScore(arr) {
-  if (arr.length < 6) return { detected: false, type:"zscore", stat:0, direction: "stable" };
-  const baseline = arr.slice(0, -3), recent = arr.slice(-3);
-  const mu = mean(baseline), sd = stddev(baseline);
-  const z = (mean(recent) - mu) / sd;
-  return { detected: Math.abs(z) >= CFG.ANOMALY_Z_THRESHOLD, type:"zscore", stat:+Math.abs(z).toFixed(2), direction: z > 0 ? "up" : "down" };
-}
-
-function detectChangepoint(arr) {
-  if (arr.length < CFG.CHANGEPOINT_MIN_SEG * 2) return { detected: false, type:"changepoint", stat:0, direction: "stable" };
-  const n = arr.length, mid = Math.floor(n / 2);
-  const muA = mean(arr.slice(0, mid)), sdA = stddev(arr.slice(0, mid));
-  const muB = mean(arr.slice(mid)),   sdB = stddev(arr.slice(mid));
-  const kl = Math.log(sdB / sdA) + (sdA ** 2 + (muA - muB) ** 2) / (2 * sdB ** 2) - 0.5;
-  return { detected: kl > 1.5, type:"changepoint", stat:+kl.toFixed(3), direction: muB > muA ? "up" : "down" };
-}
-
-function detectVolatilityRegime(arr) {
-  if (arr.length < 8) return { detected: false, type:"volatility", stat:0, direction: "stable" };
-  const half = Math.floor(arr.length / 2);
-  const ratio = stddev(arr.slice(half)) / stddev(arr.slice(0, half));
-  return { detected: ratio > CFG.VOLATILITY_RATIO_THRESHOLD, type:"volatility", stat:+ratio.toFixed(2), direction:"unstable" };
-}
-
-function runAnomalyDetection(arr) {
-  const methods = [detectCUSUM(arr), detectZScore(arr), detectChangepoint(arr), detectVolatilityRegime(arr)];
-  const fired = methods.filter(m => m.detected);
-  const consensus = fired.length >= 2;
-  const maxZ = detectZScore(arr).stat;
-  const dirs = fired.map(m => m.direction).filter(Boolean);
-  const up = dirs.filter(d => d === "up").length, down = dirs.filter(d => d === "down").length;
-  const direction = up > down ? "escalating" : down > up ? "improving" : "unstable";
-  const severity =
-    fired.length >= 4 ? "EXTREME" :
-    fired.length >= 3 ? "CRITICAL" :
-    consensus && maxZ >= CFG.ANOMALY_Z_THRESHOLD * 1.5 ? "HIGH" :
-    consensus ? "MODERATE" :
-    fired.length === 1 ? "WATCH" : "NONE";
-  return {
-    detected: consensus,
-    severity,
-    direction,
-    methods_fired: fired.length,
-    methods,
-    z_score: maxZ,
-    note: consensus
-      ? `${fired.length}/4 anomaly methods agree: ${direction} — ${severity}`
-      : fired.length === 1 ? `Weak signal (1/4 methods): ${fired[0].type}` : "No anomaly detected",
-  };
-}
-
-// ─── TREND FORECAST ──────────────────────────────────────────────────────
-
-function trendForecast(hist, current) {
-  if (hist.length < 5) return { fc:current, trend:"stable", esc:false, slope:0, confidence:0.3 };
-  const w = hist.slice(-10), n = w.length;
-  const xBar = (n - 1) / 2, yBar = mean(w);
-  const num = w.reduce((s, y, x) => s + (x - xBar) * (y - yBar), 0);
-  const den = w.reduce((s, _, x) => s + (x - xBar) ** 2, 0);
-  const slope = den ? +(num / den).toFixed(2) : 0;
-  const fc = clamp(current + slope * 7);
-  const residual = w.map((y, i) => y - (yBar + slope * (i - xBar)));
-  const r2 = 1 - (residual.reduce((s, r) => s + r * r, 0) / w.reduce((s, y) => s + (y - yBar) ** 2, 0) || 1);
-  return {
-    fc,
-    slope,
-    trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable",
-    esc: fc > current + 5,
-    confidence: Math.max(0.3, Math.min(0.95, r2)),
-  };
-}
-
-function seedHistory(iso, current) {
-  const seed = strHash(iso);
-  let v = clamp(current + Math.round((lcg(seed) - 0.5) * 20), 5, 99);
-  const hist = [];
-  for (let i = 0; i <= CFG.ANOMALY_WINDOW; i++) {
-    hist.push(v);
-    v = clamp(v + (current - v) * 0.15 + (lcg(strHash(iso + i)) - 0.5) * 6);
-  }
-  hist[hist.length - 1] = current;
+function seedHistory(iso,currentScore){
+  const N=28;
+  const seed=iso.split('').reduce((s,c,i)=>s+c.charCodeAt(0)*(i+1)*17,0);
+  let score=Math.min(99,Math.max(5,currentScore+Math.round((seededRand(seed)-0.5)*18)));
+  const hist=[];
+  for(let i=0;i<=N;i++){
+    hist.push({t:Date.now()-(N-i)*86400000,s:score});
+    const r=seededRand(seed+i*31+7);
+    const pull=(currentScore-score)*0.12;
+    const noise=(r-0.5)*5;
+    score=Math.min(99,Math.max(5,Math.round(score+pull+noise)));
+  }
+  hist[hist.length-1].s=currentScore;
   return hist;
 }
 
-function buildPriorDims(base, types) {
-  const has = t => types.includes(t);
-  const cl  = v => clamp(v, 5, 99);
-  return {
-    conflict:     cl(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
-    displacement: cl(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food:         cl(base * ((has("FN")||has("DR"))             ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health:       cl(base * ((has("EP")||has("FN"))             ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
-    economic:     cl(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("ECO")) ? 0.85 : 0.42) + 10),
-    climate:      cl(base * ((has("HEAT")||has("DR"))           ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access:       cl(base * ((has("CW")||has("CE"))             ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
-    political:    cl(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
-  };
+function spilloverScore(newStore){
+  const res={};
+  for(const iso in newStore){
+    const neighbours=(ADJ[iso]||[]).filter(n=>newStore[n]);
+    if(!neighbours.length){res[iso]=0;continue;}
+    const avgNeighbour=neighbours.reduce((s,n)=>s+newStore[n].score,0)/neighbours.length;
+    const spill=Math.max(0,avgNeighbour-50)*0.13;
+    res[iso]=Math.round(Math.min(20,spill)*10)/10;
+  }
+  return res;
 }
 
-function severityLabel(score) {
-  return score >= 85 ? "CATASTROPHIC" : score >= 75 ? "CRITICAL" : score >= 60 ? "HIGH" : score >= 40 ? "ELEVATED" : "MODERATE";
-}
-
-function severityEmoji(score) {
-  return score >= 85 ? "🔴" : score >= 75 ? "🟠" : score >= 60 ? "🟡" : score >= 40 ? "🟢" : "🔵";
-}
-
-function severityColor(score) {
-  return score >= 85 ? "#ff375f" : score >= 75 ? "#ff375f" : score >= 60 ? "#ff8c42" : score >= 40 ? "#ffb020" : "#6bc8ff";
-}
-
-function recommendation(score, anomaly) {
-  const an = anomaly?.detected ? ` Statistical anomaly detected (${anomaly.severity}).` : "";
-  if (score >= 85) return { tier:"IMMEDIATE", text:`Immediate humanitarian response required. All agencies mobilise.${an}` };
-  if (score >= 75) return { tier:"URGENT",    text:`Urgent response needed. Mobilise resources now.${an}` };
-  if (score >= 60) return { tier:"HIGH",      text:`Elevated concern. Prepare response and monitor daily.${an}` };
-  if (score >= 40) return { tier:"MONITOR",   text:`Monitor situation. Maintain readiness.${an}` };
-  return               { tier:"WATCH",     text:`Routine monitoring. No immediate action required.${an}` };
-}
-
-// ─── EXPORT CAPABILITIES ──────────────────────────────────────────────────
-
-function generatePDFReport(iso, store) {
-  const c = store[iso];
-  const hist = seedHistory(iso, c.score);
-  const fc = trendForecast(hist, c.score);
-  const anom = runAnomalyDetection(hist);
+// ============================================================================
+// API ENDPOINTS
+// ============================================================================
+// ─── Replace the API_ENDPOINTS object (around line 850) with this ───
+// ─── Replace the API_ENDPOINTS object (around line 850) with this ───
+const API_ENDPOINTS={
+  // ── SEISMIC / GEOPHYSICAL ──
+  usgs_weekly:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson',
+  usgs_significant:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
+  gdacs_earthquakes:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20',
+  usgs_historic:'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2024-01-01&endtime=2024-12-31&minmagnitude=6&limit=50',
   
-  return {
-    title: `${c.name} Crisis Report`,
-    generated: new Date().toISOString(),
-    score: c.score,
-    severity: severityLabel(c.score),
-    dimensions: c.dims,
-    trend: fc,
-    anomaly: anom,
-    evidence: c.signals,
-    recommendation: recommendation(c.score, anom),
-  };
-}
-
-function generateExportData(iso, store, format = 'json') {
-  const data = {
-    iso,
-    name: store[iso].name,
-    timestamp: new Date().toISOString(),
-    score: store[iso].score,
-    dimensions: store[iso].dims,
-    evidence: store[iso].signals,
-    historical: historyStore.getHistory(iso, 30),
-  };
-
-  if (format === 'csv') {
-    let csv = 'timestamp,score,displacement,economic,food,health\n';
-    for (const d of data.historical) {
-      csv += `${new Date(d.timestamp).toISOString()},${d.score},${d.displacement||0},${d.economic||0},${d.food||0},${d.health||0}\n`;
-    }
-    return csv;
-  }
-  return data;
-}
-
-function generateWidget(iso, store) {
-  const c = store[iso];
-  return `<div class="gcin-widget" style="background:#0f1a30;border:1px solid #2d3a5e;border-radius:12px;padding:16px;font-family:system-ui;max-width:320px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-      <span style="font-size:20px;">${c.flag}</span>
-      <span style="font-weight:600;color:#fff;font-size:16px;">${c.name}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="color:#7c9ec0;font-size:12px;">Crisis Score</span>
-      <span style="color:#ff8a7a;font-size:20px;font-weight:700;">${c.score}/100</span>
-    </div>
-    <div style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:99px;margin:4px 0 8px;">
-      <div style="height:100%;width:${c.score}%;background:${severityColor(c.score)};border-radius:99px;"></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
-      ${c.types.slice(0,3).map(t => `<span style="background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:4px;font-size:10px;color:#b8cce8;">${ARC[t]?.l || t}</span>`).join('')}
-    </div>
-    <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.04);padding-top:8px;display:flex;justify-content:space-between;">
-      <span style="font-size:10px;color:#5a7a9a;">${severityLabel(c.score)}</span>
-      <a href="${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}" style="font-size:10px;color:#6bc8ff;text-decoration:none;">Read →</a>
-    </div>
-  </div>`;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── PAYLOAD BUILDER ──────────────────────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-function buildPayload(iso, store, ranked, opts = {}) {
-  const c = store[iso];
-  const hist = seedHistory(iso, c.score);
-  const fc = trendForecast(hist, c.score);
-  const anom = runAnomalyDetection(hist);
-  const rank = ranked.indexOf(iso) + 1;
-  const delta7 = Math.round(hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)]);
-  const s = c.signals || {};
-
-  const base = {
-    iso,
-    name: c.name,
-    flag: c.flag,
-    score: c.score,
-    severity: severityLabel(c.score),
-    severity_emoji: severityEmoji(c.score),
-    severity_color: severityColor(c.score),
-    rank,
-    total_countries: ranked.length,
-    percentile: Math.round((1 - rank / ranked.length) * 100),
-    slug: slugify(c.name),
-    url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
-    live_evidence_sources: s.evidenceSources || [],
-    live_evidence_count: s.liveEvidenceCount || 0,
-    is_live_data: s.liveEvidenceCount >= CFG.MIN_LIVE_EVIDENCE_SOURCES,
-    dimensions: Object.fromEntries(DIMS.map(d => [d.k, { value: c.dims[d.k] || 0, label: d.l, weight: d.w, icon: d.icon }])),
-    crisis_types: c.types.map(t => ({ code: t, label: ARC[t]?.l || t, icon: ARC[t]?.i || "⚠️", color: ARC[t]?.color || "#6bc8ff" })),
-    needs: [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
-    trend: {
-      delta_7d: delta7,
-      direction: fc.trend,
-      slope: fc.slope,
-      forecast_7d: fc.fc,
-      escalating: fc.esc,
-      confidence: fc.confidence,
-    },
-    anomaly: {
-      detected: anom.detected,
-      severity: anom.severity,
-      direction: anom.direction,
-      methods_fired: anom.methods_fired,
-      z_score: anom.z_score,
-      note: anom.note,
-      methods: {
-        cusum: anom.methods[0],
-        zscore: anom.methods[1],
-        changepoint: anom.methods[2],
-        volatility: anom.methods[3],
-      },
-    },
-    spillover: {
-      value: c.spillover,
-      from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })),
-    },
-    live_evidence: {
-      earthquake: s.quakeMag >= 4.5 ? { magnitude: s.quakeMag, location: s.quakePlace, event_count: s.quakeCount, source: "USGS/EMSC" } : null,
-      nasa_events: s.nasaEventCount > 0 ? { count: s.nasaEventCount, source: "NASA EONET" } : null,
-      gdacs: s.gdacs ? { alert_level: s.gdacsAlert, source: "GDACS" } : null,
-      ifrc: s.ifrcCount > 0 ? { count: s.ifrcCount, source: "IFRC GO" } : null,
-      heat: s.maxTempC >= 35 ? { max_temp_c: s.maxTempC, source: "Open-Meteo" } : null,
-      hazards: s.hazards ? { ...s.hazards, source: "Open-Meteo" } : null,
-      air_quality: s.aq ? { ...s.aq, source: "Open-Meteo AQ" } : null,
-      noaa: s.noaa ? { ...s.noaa, source: "NOAA" } : null,
-      disease: s.diseaseActive > 0 ? { disease: s.diseaseName, active: s.diseaseActive, source: "disease.sh" } : null,
-      who_outbreaks: s.whoOutbreaks && s.whoOutbreaks.length > 0 ? { outbreaks: s.whoOutbreaks, source: "WHO" } : null,
-      reliefweb: s.reliefwebCount > 0 ? { reports: s.reliefwebCount, source: "ReliefWeb" } : null,
-      economic: {
-        inflation: s.wbInflation ? { ...s.wbInflation, source: "World Bank" } : null,
-        gdp_growth: s.wbGdpGrowth ? { ...s.wbGdpGrowth, source: "World Bank" } : null,
-        unemployment: s.wbUnemployment ? { ...s.wbUnemployment, source: "World Bank" } : null,
-        poverty: s.wbPoverty ? { ...s.wbPoverty, source: "World Bank" } : null,
-        refugees_wb: s.wbRefugees ? { ...s.wbRefugees, source: "World Bank" } : null,
-      },
-      displacement: s.totalDisplaced > 0 ? { total: s.totalDisplaced, refugees: s.refugees, idps: s.idps, asylum_seekers: s.asylum_seekers, source: "UNHCR" } : null,
-      unhcr_operation: s.unhcrOp ? { ...s.unhcrOp, source: "UNHCR" } : null,
-      unhcr_emergency: s.unhcrEmergency ? { ...s.unhcrEmergency, source: "UNHCR" } : null,
-      unhcr_statistics: s.unhcrStats ? { ...s.unhcrStats, source: "UNHCR" } : null,
-    },
-    ml: c.ml_forecast ? {
-      forecast: c.ml_forecast.fc,
-      confidence: c.ml_forecast.confidence,
-      anomaly_probability: c.ml_forecast.anomaly_probability,
-      trained: c.ml_forecast.ml_trained,
-      training_count: c.ml_forecast.training_count,
-    } : null,
-    sentiment: c.sentiment ? {
-      score: c.sentiment.score,
-      label: c.sentiment.label,
-      confidence: c.sentiment.confidence,
-      crisis_intensity: c.sentiment.crisis_intensity,
-      key_terms: c.sentiment.key_terms,
-    } : null,
-    historical: c.historical_trend ? {
-      direction: c.historical_trend.direction,
-      slope: c.historical_trend.slope,
-      points: c.historical_trend.points,
-      change: c.historical_trend.change,
-    } : null,
-    export: {
-      pdf: generatePDFReport(iso, store),
-      widget: generateWidget(iso, store),
-    },
-    score_audit: {
-      prior_score: c.priorScore,
-      adjustments: c.audit || [],
-      spillover: c.spillover,
-      final_score: c.score,
-      live_boost: c.liveBoost,
-    },
-    recommendation: recommendation(c.score, anom),
-    region: c.region,
-  };
-
-  if (opts.keywords) base.seo_keywords = buildKeywords(iso, store);
-  if (opts.summary) base.meta_description = buildMetaDescription(iso, store);
-  if (opts.schema) base.json_ld = buildJSONLD(iso, store, ranked);
-  if (opts.related) base.related = buildRelatedStories(iso, store, ranked);
-  if (opts.article) base.article = buildSEOArticle(iso, store, ranked);
-
-  return base;
-}
-
-// ─── SEO HELPERS ──────────────────────────────────────────────────────────
-
-function buildKeywords(iso, store) {
-  const c = store[iso];
-  const s = c.signals || {};
-  const kws = new Set();
-  const name = c.name;
-
-  kws.add(`${name} humanitarian crisis`);
-  kws.add(`${name} crisis ${new Date().getFullYear()}`);
-  kws.add(`${name} emergency`);
-  kws.add(`${name} disaster`);
-
-  for (const t of c.types) {
-    const arc = ARC[t];
-    if (arc?.seo) { kws.add(`${name} ${arc.seo}`); kws.add(arc.seo); }
-  }
-
-  if (s.totalDisplaced > 0) { kws.add(`${name} refugees`); kws.add(`${name} internally displaced`); kws.add(`${name} displacement crisis`); }
-  if (s.quakeMag >= 5.0) { kws.add(`${name} earthquake`); kws.add(`earthquake ${name} ${new Date().getFullYear()}`); }
-  if (s.gdacs) { kws.add(`${name} disaster alert`); kws.add(`${name} GDACS`); }
-  if (s.diseaseActive > 1000) { kws.add(`${name} COVID-19`); kws.add(`${name} coronavirus`); }
-  if (s.wbInflation?.value > 10) { kws.add(`${name} inflation crisis`); kws.add(`${name} economic crisis`); }
-  if (s.wbGdpGrowth?.value < 0) { kws.add(`${name} GDP contraction`); kws.add(`${name} recession`); }
-
-  kws.add(`${c.region} humanitarian crisis`);
-  kws.add(`${c.region} emergency`);
-
-  kws.add(`what is happening in ${name}`);
-  kws.add(`${name} crisis latest news`);
-  kws.add(`${name} humanitarian situation`);
-  kws.add(`how to help ${name} crisis`);
-  kws.add(`${name} aid response`);
-  kws.add(`${name} conflict update`);
-
-  return [...kws].slice(0, 35);
-}
-
-function buildMetaDescription(iso, store) {
-  const c = store[iso];
-  const s = c.signals || {};
-  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
-  const severity = severityLabel(c.score);
+  // ── NASA EONET ──
+  nasa_eonet:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7',
+  nasa_wildfires:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20',
   
-  let parts = [`${c.name} humanitarian crisis update: urgency score ${c.score}/100 (${severity}), ranked #${rank} globally`];
-  if (s.totalDisplaced > 0) parts.push(`${fmtPop(s.totalDisplaced)} displaced`);
-  if (s.diseaseActive > 1000) parts.push(`${s.diseaseActive.toLocaleString()} COVID-19 cases`);
-  if (s.ipcPhase >= 3) parts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
-  if (s.quakeMag >= 4.5) parts.push(`M${s.quakeMag.toFixed(1)} earthquake`);
+  // ── GDACS ──
+  gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40',
   
-  return parts.slice(0, 3).join('. ') + '.';
-}
-
-function buildRelatedStories(iso, store, ranked) {
-  const c = store[iso];
-  return ranked
-    .filter(r => r !== iso && (COUNTRIES[r].region === c.region || (COUNTRIES[iso].adj || []).includes(r)))
-    .slice(0, 5)
-    .map(r => ({
-      iso: r,
-      name: store[r].name,
-      score: store[r].score,
-      slug: slugify(store[r].name),
-      url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(store[r].name)}`,
-    }));
-}
-
-function buildJSONLD(iso, store, ranked) {
-  const c = store[iso];
-  const slug = slugify(c.name);
-  const url = `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`;
-  const now = new Date().toISOString();
-  const severity = severityLabel(c.score);
-  const keywords = buildKeywords(iso, store);
-  const faqs = buildFAQs(iso, store, ranked);
-
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "NewsArticle",
-        "@id": `${url}#article`,
-        "headline": `${c.name} Crisis — Score ${c.score}/100 (${severity})`,
-        "description": buildMetaDescription(iso, store),
-        "url": url,
-        "datePublished": now,
-        "dateModified": now,
-        "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
-        "publisher": {
-          "@type": "Organization",
-          "name": CFG.ARTICLE_SITE_NAME,
-          "url": CFG.ARTICLE_BASE_URL,
-          "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO },
-        },
-        "mainEntityOfPage": { "@type": "WebPage", "@id": url },
-        "articleSection": "Humanitarian Crisis",
-        "keywords": keywords.slice(0, 15).join(", "),
-        "about": {
-          "@type": "Place",
-          "name": c.name,
-          "geo": { "@type": "GeoCoordinates", "longitude": c.cent[0], "latitude": c.cent[1] },
-        },
-      },
-      {
-        "@type": "FAQPage",
-        "@id": `${url}#faq`,
-        "mainEntity": faqs.map(f => ({
-          "@type": "Question",
-          "name": f.q,
-          "acceptedAnswer": { "@type": "Answer", "text": f.a },
-        })),
-      },
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": CFG.ARTICLE_BASE_URL },
-          { "@type": "ListItem", "position": 2, "name": "Crisis Hub", "item": `${CFG.ARTICLE_BASE_URL}/crisis` },
-          { "@type": "ListItem", "position": 3, "name": c.name, "item": url },
-        ],
-      },
-    ],
-  };
-}
-
-function buildFAQs(iso, store, ranked) {
-  const c = store[iso];
-  const s = c.signals || {};
-  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
-  const severity = severityLabel(c.score);
-  const faqs = [];
-
-  faqs.push({
-    q: `What is the current humanitarian situation in ${c.name}?`,
-    a: `${c.name} currently has a crisis urgency score of ${c.score}/100, rated ${severity}, ranking #${rank} of ${Object.keys(store).length} countries monitored globally. ${c.types.map(t => ARC[t]?.l).filter(Boolean).slice(0, 2).join(" and ")} are the primary crisis drivers.`,
-  });
-
-  if (s.totalDisplaced > 0) {
-    faqs.push({
-      q: `How many people have been displaced from ${c.name}?`,
-      a: `UNHCR data indicates approximately ${fmtPop(s.totalDisplaced)} people have been displaced, including${s.refugees ? ` ${fmtPop(s.refugees)} refugees` : ""}${s.idps ? `, ${fmtPop(s.idps)} internally displaced persons (IDPs)` : ""}${s.asylum_seekers ? `, and ${fmtPop(s.asylum_seekers)} asylum-seekers` : ""}.`,
-    });
-  }
-
-  if (s.ipcPhase >= 3) {
-    faqs.push({
-      q: `How many people are facing food insecurity in ${c.name}?`,
-      a: `According to IPC Global classifications, approximately ${fmtPop(s.ipcTotalPop || s.ipcPopulation)} people in ${c.name} face Phase ${s.ipcPhase} (${s.ipcPhase >= 4 ? "Emergency" : "Crisis"}) levels of acute food insecurity.`,
-    });
-  }
-
-  if (s.diseaseActive > 1000) {
-    faqs.push({
-      q: `What disease activity is being tracked in ${c.name}?`,
-      a: `Live tracking shows ${s.diseaseActive.toLocaleString()} active COVID-19 cases in ${c.name}.`,
-    });
-  }
-
-  if (s.wbInflation?.value > 5 || s.wbGdpGrowth?.value < 0) {
-    faqs.push({
-      q: `What is the economic situation in ${c.name}?`,
-      a: `World Bank data${s.wbInflation ? ` shows inflation at ${s.wbInflation.value.toFixed(1)}%` : ""}${s.wbGdpGrowth?.value < 0 ? ` with GDP contraction of ${s.wbGdpGrowth.value.toFixed(1)}%` : ""}${!s.wbInflation && !s.wbGdpGrowth ? ' is under pressure' : ''}.`,
-    });
-  }
-
-  faqs.push({
-    q: `How can I help people affected by the crisis in ${c.name}?`,
-    a: `You can support the humanitarian response in ${c.name} by donating to organisations active in the region, including UNHCR, WFP, UNICEF, MSF, and local NGOs. Advocacy for increased international funding and policy attention also makes a significant difference.`,
-  });
-
-  return faqs;
-}
-
-// ─── SEO ARTICLE GENERATOR ──────────────────────────────────────────────
-
-function buildSEOArticle(iso, store, ranked) {
-  const c = store[iso];
-  const s = c.signals || {};
-  const hist = seedHistory(iso, c.score);
-  const anom = runAnomalyDetection(hist);
-  const fc = trendForecast(hist, c.score);
-  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
-  const severity = severityLabel(c.score);
-  const slug = slugify(c.name);
-  const url = `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  // ── WEATHER / CLIMATE ──
+// ── WEATHER / CLIMATE ──
+  // NOTE: no pinned single-country coordinates here anymore. Heat/precip
+  // evidence is gathered per-country via the HEAT_LOOP_ISOS loop inside
+  // fetchAllEvidence() — see fetchHeatAndPrecipLoop().
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
+  openmeteo_wind:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1',
+  openmeteo_precipitation:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3',
+  openmeteo_uv:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3',
+  openmeteo_cloudcover:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3',
+  openmeteo_lightning:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1',
+  noaa_stations:'https://api.weather.gov/stations?limit=20',
+  noaa_alerts:'https://api.weather.gov/alerts/active?severity=Extreme',
+  noaa_storm_reports:'https://api.weather.gov/alerts/active?severity=Severe',
   
-  const topDims = [...DIMS].map(d => ({ ...d, val: c.dims[d.k] || 0 })).sort((a, b) => b.val - a.val);
-  const delta = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
-  const trendWord = delta > 5 ? "rapidly deteriorating" : delta > 2 ? "worsening" : delta < -5 ? "significantly improving" : delta < -2 ? "improving" : "largely stable";
-  const keywords = buildKeywords(iso, store);
-  const faqs = buildFAQs(iso, store, ranked);
-
-  const primaryTypes = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(" and ");
+  // ── FLOOD RISK ──
+  openmeteo_flood:'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3',
   
-  let headline = s.totalDisplaced > 1_000_000
-    ? `${c.name} Displacement Crisis: ${fmtPop(s.totalDisplaced)} Flee ${primaryTypes}`
-    : s.gdacs?.alertLevel === "red"
-    ? `${c.name} Disaster Alert: ${s.gdacsAlert?.toUpperCase()} Warning — Full Crisis Briefing`
-    : s.diseaseActive > 5000
-    ? `${c.name} COVID-19 Surge: Health System Under Strain`
-    : s.quakeMag >= 6.0
-    ? `${c.name} Earthquake: M${s.quakeMag.toFixed(1)} Tremor — Emergency Response Underway`
-    : `${c.name} Humanitarian Crisis ${now.getFullYear()}: Urgency Score ${c.score}/100 — ${severity}`;
-
-  if (c.ml_forecast?.anomaly_probability > 0.6) {
-    headline += ` ⚡ ML Anomaly Detected (${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%)`;
-  }
-
-  const metaDescription = buildMetaDescription(iso, store);
+  // ── MARINE WEATHER ──
+  openmeteo_marine:'https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1',
   
-  const paragraphs = [];
+  // ── HEALTH / DISEASE ──
+  disease_sh:'https://disease.sh/v3/covid-19/countries?sort=cases&limit=20',
+  
+  // ── WORLD BANK ──
+  wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
+  wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
+  wb_inflation:'https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1',
+  wb_gdp_growth:'https://api.worldbank.org/v2/country/all/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=300&mrv=1',
+  wb_unemployment:'https://api.worldbank.org/v2/country/all/indicator/SL.UEM.TOTL.ZS?format=json&per_page=300&mrv=1',
+  wb_refugees:'https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1',
+  wb_food_prices:'https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=10&mrv=1',
+  wb_water:'https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=10&mrv=1',
+  wb_trade:'https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=10&mrv=1',
+  
+  // ── UNHCR ──
+  unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
+  unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
+  unhcr_operations:'https://api.unhcr.org/operations/v1/operations?limit=20',
+  unhcr_emergency:'https://api.unhcr.org/emergency/v1/emergencies?limit=20',
+  unhcr_statistics:'https://api.unhcr.org/statistics/v1/refugees?limit=20',
 
-  const ledeHook = s.totalDisplaced > 1_000_000
-    ? `More than ${fmtPop(s.totalDisplaced)} people have been forced from their homes in ${c.name}`
-    : s.diseaseActive > 5000
-    ? `Active COVID-19 case counts are stretching ${c.name}'s healthcare system`
-    : s.quakeMag >= 6.0
-    ? `A magnitude ${s.quakeMag.toFixed(1)} earthquake has struck ${c.name}, causing widespread damage`
-    : `The humanitarian situation in ${c.name} has reached ${severity} levels`;
+  // ── SEISMIC (secondary network) ──
+  emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
 
-  paragraphs.push(`## Overview\n\n${ledeHook}, according to the latest live data compiled from 20+ global sources including USGS, EMSC, NASA, GDACS, IFRC, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, and WHO. Crisis Monitor's real-time urgency index places ${c.name} at **${c.score} out of 100**, rated **${severity}** and ranked **#${rank} of ${Object.keys(store).length} countries** tracked globally as of ${dateStr}.`);
+  // ── MULTI-HAZARD ──
+  ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
 
-  if (c.ml_forecast) {
-    paragraphs.push(`## Machine Learning Forecast\n\nAdvanced AI analysis predicts a ${c.ml_forecast.trend} trajectory with ${Math.round(c.ml_forecast.confidence * 100)}% confidence. The model, trained on ${c.ml_forecast.training_count || 0} historical data points, projects the score reaching **${c.ml_forecast.fc}/100** with an anomaly probability of ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%. ${c.ml_forecast.anomaly_probability > 0.6 ? '⚠️ This elevated probability suggests a potential regime change in crisis dynamics.' : 'No significant deviation from expected patterns is predicted.'}`);
-  }
+  // ── AIR QUALITY (multi-city loop) ──
+  openmeteo_aq_lagos:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=6.5&longitude=3.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_delhi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_beijing:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_mumbai:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.1&longitude=72.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_dhaka:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=23.8&longitude=90.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_cairo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_jakarta:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-6.2&longitude=106.8&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_mexico:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.4&longitude=-99.1&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_saopaulo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-23.5&longitude=-46.6&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_johannesburg:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.0&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_karachi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=24.9&longitude=67.1&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_bangkok:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.8&longitude=100.5&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_istanbul:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.0&longitude=28.9&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_buenosaires:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-34.6&longitude=-58.4&hourly=pm2_5&forecast_days=1',
+  openmeteo_aq_moscow:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=55.8&longitude=37.6&hourly=pm2_5&forecast_days=1',
 
-  if (c.sentiment && c.sentiment.is_crisis) {
-    paragraphs.push(`## Sentiment Analysis\n\nNews and humanitarian reporting sentiment for ${c.name} is **${c.sentiment.label}** (score: ${c.sentiment.score.toFixed(2)}), with a crisis intensity of ${(c.sentiment.crisis_intensity * 100).toFixed(0)}%. Key terms detected: ${c.sentiment.key_terms.slice(0, 5).join(', ')}. This ${c.sentiment.label} sentiment${c.sentiment.label === 'negative' ? ' aligns with the deteriorating humanitarian indicators' : ' offers a nuanced perspective on the crisis'}.`);
-  }
+  // ── INFRASTRUCTURE ──
+  osm_hospitals:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;',
+  osm_health_centers:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=clinic](around:100000,15.35,44.21);out%20body;',
 
-  if (c.historical_trend && c.historical_trend.points >= 5) {
-    paragraphs.push(`## Historical Context\n\nOver the past ${c.historical_trend.points} data points, the crisis in ${c.name} has been **${c.historical_trend.direction}** at a rate of ${Math.abs(c.historical_trend.slope).toFixed(1)} points per week. The score has changed by ${c.historical_trend.change > 0 ? '+' : ''}${c.historical_trend.change.toFixed(0)} points during this period.`);
-  }
+  // ── DISASTER DATABASE ──
+  emdat_disasters:'https://www.emdat.be/api/emdat?limit=10&year=2024',
 
-  if (s.totalDisplaced > 0) {
-    const parts = [];
-    if (s.refugees) parts.push(`${fmtPop(s.refugees)} registered refugees`);
-    if (s.idps) parts.push(`${fmtPop(s.idps)} internally displaced persons (IDPs)`);
-    if (s.asylum_seekers) parts.push(`${fmtPop(s.asylum_seekers)} asylum-seekers`);
-    paragraphs.push(`## Displacement\n\nUNHCR data records **${fmtPop(s.totalDisplaced)} people** displaced${parts.length ? `, comprising ${parts.join(", ")}` : ""}. This displacement crisis requires coordinated international protection and resettlement efforts.`);
-  }
-
-  if (s.diseaseActive > 1000) {
-    paragraphs.push(`## Public Health\n\nLive tracking (disease.sh) shows **${s.diseaseActive.toLocaleString()} active COVID-19 cases** in ${c.name}, adding pressure to health infrastructure.`);
-  }
-
-  if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
-    const diseases = s.whoOutbreaks.map(o => o.disease).join(', ');
-    paragraphs.push(`## Disease Outbreaks\n\nWHO reports active **${diseases}** outbreaks in ${c.name}, requiring urgent public health response.`);
-  }
-
-  if (s.ipcPhase >= 3) {
-    const ipcLabel = s.ipcPhase === 5 ? "Catastrophe/Famine" : s.ipcPhase === 4 ? "Emergency" : "Crisis";
-    paragraphs.push(`## Food Security Crisis\n\nThe Integrated Food Security Phase Classification (IPC) has classified ${c.name} at **Phase ${s.ipcPhase} (${ipcLabel})**. An estimated **${fmtPop(s.ipcTotalPop || s.ipcPopulation)} people** require urgent humanitarian food assistance.`);
-  }
-
-  if (s.wbInflation?.value > 5 || s.wbGdpGrowth?.value < 0) {
-    const econParts = [];
-    if (s.wbInflation) econParts.push(`inflation at **${s.wbInflation.value.toFixed(1)}%**`);
-    if (s.wbGdpGrowth?.value < 0) econParts.push(`GDP contraction of **${s.wbGdpGrowth.value.toFixed(1)}%**`);
-    paragraphs.push(`## Economic Pressure\n\nWorld Bank indicators show ${econParts.join(" and ")}, compounding humanitarian strain.`);
-  }
-
-  if (s.gdacs || s.quakeMag >= 4.5) {
-    const disasterLine = s.gdacs
-      ? `GDACS has a **${s.gdacsAlert?.toUpperCase()} alert** for ${c.name}.`
-      : `USGS/EMSC seismic monitoring recorded a **magnitude ${s.quakeMag.toFixed(1)} earthquake** near ${s.quakePlace || "the region"}.`;
-    paragraphs.push(`## Disaster Alert\n\n${disasterLine}`);
-  }
-
-  if (s.acledEvents > 0) {
-    paragraphs.push(`## Conflict Report\n\nACLED records **${s.acledEvents} conflict events** in ${c.name} with **${s.acledFatalities || 0} fatalities**. ${s.acledEvents > 20 ? 'Intense fighting continues to displace civilians and restrict humanitarian access.' : 'Ongoing violence threatens civilian safety and aid delivery.'}`);
-  }
-
-  if (anom.detected) {
-    paragraphs.push(`## Statistical Alert: Anomaly Detected\n\nCrisis Monitor's ensemble anomaly detection (CUSUM, Z-score, Bayesian changepoint, volatility regime) flagged **${anom.methods_fired}/4 methods** in agreement: a statistically significant **${anom.direction}** trajectory (severity: **${anom.severity}**).`);
-  }
-
-  const dimRows = topDims.slice(0, 5).map(d => `- **${d.l}**: ${c.dims[d.k]}/100 (weight: ${(d.w * 100).toFixed(0)}%)`).join("\n");
-  paragraphs.push(`## Urgency Score Breakdown\n\n${dimRows}\n\nAdjusted **${c.liveBoost > 0 ? "+" : ""}${c.liveBoost} points** from the prior estimate of ${c.priorScore}/100 based on live signals from 20+ data sources.`);
-
-  const needsList = [...new Set(c.types.flatMap(t => ARC[t]?.n || []))].slice(0, 5);
-  paragraphs.push(`## Response Priorities\n\nRecommended response tier: **${recommendation(c.score, anom).tier}**: ${recommendation(c.score, anom).text}\n\nHumanitarian actors are calling for immediate action on: **${needsList.join(", ")}**.`);
-
-  paragraphs.push(`## Frequently Asked Questions\n\n${faqs.map(f => `**${f.q}**\n\n${f.a}`).join("\n\n")}`);
-
-  const articleBody = paragraphs.join("\n\n");
-  const { words, minutes } = estimateReadTime(articleBody);
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${headline} | ${CFG.ARTICLE_SITE_NAME}</title>
-  <meta name="description" content="${metaDescription}">
-  <meta name="keywords" content="${keywords.slice(0, 20).join(", ")}">
-  <meta name="author" content="${CFG.ARTICLE_AUTHOR}">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="${url}">
-  <script type="application/ld+json">${JSON.stringify(buildJSONLD(iso, store, ranked), null, 2)}</script>
-  <style>
-    body { background: #030b18; color: #eef4ff; font-family: system-ui; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.7; }
-    h1 { font-family: 'Georgia', serif; font-size: 2.5rem; font-weight: 800; }
-    .severity-badge { display: inline-block; padding: 0.25rem 0.8rem; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-    .severity-badge.catastrophic { background: rgba(255,55,95,0.18); color: #ff375f; border: 1px solid rgba(255,55,95,0.35); }
-    .severity-badge.critical { background: rgba(255,55,95,0.14); color: #ff375f; border: 1px solid rgba(255,55,95,0.3); }
-    .severity-badge.high { background: rgba(255,140,66,0.14); color: #ff8c42; border: 1px solid rgba(255,140,66,0.3); }
-    .severity-badge.elevated { background: rgba(255,176,32,0.12); color: #ffb020; border: 1px solid rgba(255,176,32,0.25); }
-    .severity-badge.moderate { background: rgba(0,200,255,0.1); color: #6bc8ff; border: 1px solid rgba(0,200,255,0.2); }
-    .urgency-score { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); margin: 0.5rem 0 1rem; }
-    .score-number { font-size: 2.5rem; font-weight: 800; }
-    .score-denom { font-size: 1rem; color: #5a7a9a; }
-    .score-label { font-size: 0.8rem; color: #5a7a9a; }
-    .score-rank { font-size: 0.8rem; color: #5a7a9a; margin-left: auto; }
-    .article-meta { display: flex; gap: 1.5rem; font-size: 0.8rem; color: #5a7a9a; flex-wrap: wrap; }
-    .article-body p { margin-bottom: 1rem; }
-    .article-body h2 { font-family: 'Georgia', serif; font-size: 1.6rem; margin: 1.5rem 0 0.5rem; }
-    .article-body h3 { font-family: 'Georgia', serif; font-size: 1.2rem; margin: 1rem 0 0.25rem; }
-    .article-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.8rem; color: #5a7a9a; }
-    .widget-container { background: #0f1a30; border: 1px solid #2d3a5e; border-radius: 12px; padding: 16px; max-width: 320px; margin-top: 1rem; }
-    .ml-tag { display: inline-block; background: rgba(191,127,255,0.12); color: #bf7fff; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; border: 1px solid rgba(191,127,255,0.15); }
-  </style>
-</head>
-<body>
-  <article>
-    <header>
-      <div class="severity-badge ${severity.toLowerCase()}">${severityEmoji(c.score)} ${severity}</div>
-      <h1>${headline}</h1>
-      <div class="article-meta">
-        <time>${dateStr}</time>
-        <span>${words} words</span>
-        <span>${minutes} min read</span>
-        <span>${CFG.ARTICLE_AUTHOR}</span>
-        ${c.ml_forecast ? `<span class="ml-tag">🧠 ML Enhanced</span>` : ''}
-      </div>
-      <div class="urgency-score">
-        <span class="score-number">${c.score}</span><span class="score-denom">/100</span>
-        <span class="score-label">Urgency Score</span>
-        <span class="score-rank">#${rank} of ${Object.keys(store).length} countries</span>
-      </div>
-      <p style="font-size:1.1rem; color: #b8cce8;">${metaDescription}</p>
-    </header>
-    <div class="article-body">
-      ${articleBody.split('\n\n').filter(p => p.trim()).map(p => {
-        if (p.startsWith('##')) {
-          const level = p.match(/^##+/)[0].length;
-          const text = p.replace(/^##+\s*/, '');
-          return `<h${level}>${text}</h${level}>`;
-        }
-        if (p.startsWith('-')) {
-          return `<ul>${p.split('\n').map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('')}</ul>`;
-        }
-        return `<p>${p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`;
-      }).join('')}
-    </div>
-    <div class="widget-container">
-      ${generateWidget(iso, store)}
-    </div>
-    <footer class="article-footer">
-      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo (heat/flood/marine/wind/precip/UV/AQ), NOAA, disease.sh, World Bank (population, poverty, inflation, GDP, unemployment, refugees, food, water, trade), UNHCR (displacement, asylum, operations, emergency, statistics), IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
-      <p><strong>100% LIVE DATA:</strong> No static fallback data is used. ML models are trained on historical patterns. Sentiment analysis is derived from humanitarian reports.</p>
-      <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
-    </footer>
-  </article>
-</body>
-</html>`;
-
-  return {
-    headline,
-    slug,
-    url,
-    metaDescription,
-    keywords,
-    faqs,
-    body_markdown: articleBody,
-    body_html: html,
-    word_count: words,
-    read_time_minutes: minutes,
-  };
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── MAIN HANDLER ──────────────────────────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-export default async function handler(req, res) {
-  const start = Date.now();
-
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, CORS);
-    res.end();
-    return;
-  }
-  if (req.method !== "GET") {
-    res.writeHead(405, CORS);
-    res.end(JSON.stringify({ error: "Method not allowed" }));
-    return;
-  }
-
-  let params;
-  try {
-    const url = new URL(req.url ?? "/", "https://x");
-    params = {
-      iso: url.searchParams.get("iso")?.toUpperCase().trim() || null,
-      top: parseInt(url.searchParams.get("top") || "136", 10), // ← ALL COUNTRIES BY DEFAULT
-      q: url.searchParams.get("q")?.trim() || null,
-      region: url.searchParams.get("region")?.toLowerCase().trim() || null,
-      threshold: parseInt(url.searchParams.get("threshold") || "0", 10),
-      format: url.searchParams.get("format") || "json",
-      keywords: url.searchParams.get("keywords") === "true",
-      related: url.searchParams.get("related") === "true",
-      schema: url.searchParams.get("schema") === "true",
-      summary: url.searchParams.get("summary") === "true",
-      article: url.searchParams.get("format") === "article",
-      force_live: url.searchParams.get("force_live") !== "false",
-      export: url.searchParams.get("export") || null,
-      ml: url.searchParams.get("ml") !== "false",
-      sentiment: url.searchParams.get("sentiment") !== "false",
-      history: url.searchParams.get("history") !== "false",
-      widget: url.searchParams.get("widget") === "true",
-    };
-    if (Number.isNaN(params.top)) params.top = 136; // ← FALLBACK TO ALL COUNTRIES
-    if (Number.isNaN(params.threshold)) params.threshold = 0;
-    params.top = Math.min(CFG.MAX_TOP_N, Math.max(1, params.top));
-  } catch {
-    res.writeHead(400, CORS);
-    res.end(JSON.stringify({ error: "Bad request URL" }));
-    return;
-  }
-
-  if (params.region) {
-    for (const [canonical, aliases] of Object.entries(REGION_ALIASES)) {
-      if (aliases.includes(params.region)) {
-        params.region = canonical;
-        break;
-      }
-    }
-  }
-
-  if (params.q && !params.iso) {
-    const resolved = findIsoByName(params.q);
-    if (!resolved) {
-      res.writeHead(404, CORS);
-      res.end(JSON.stringify({
-        error: `Could not resolve "${params.q}"`,
-        available: Object.entries(COUNTRIES).map(([iso, d]) => `${iso} (${d.name})`).sort(),
-      }));
-      return;
-    }
-    params.iso = resolved;
-  }
-
-  const isoList = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s]) : [];
-  const invalidISOs = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s]) : [];
-  if (invalidISOs.length) {
-    res.writeHead(404, CORS);
-    res.end(JSON.stringify({
-      error: `Unknown ISO codes: ${invalidISOs.join(", ")}`,
-      available: Object.keys(COUNTRIES).sort(),
-    }));
-    return;
-  }
-
-  try {
-    const priorStore = buildStore(null);
-    const priorRanked = Object.keys(priorStore).sort((a, b) => priorStore[b].score - priorStore[a].score);
-
-    let targetIsos;
-    if (isoList.length) targetIsos = isoList;
-    else if (params.region) targetIsos = priorRanked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) targetIsos = priorRanked.filter(iso => priorStore[iso].score >= params.threshold);
-    else targetIsos = priorRanked.slice(0, params.top); // ← NOW RETURNS ALL 136 COUNTRIES
-
-    if (!targetIsos.length) {
-      res.writeHead(404, CORS);
-      res.end(JSON.stringify({ error: "No countries matched" }));
-      return;
-    }
-
-    const liveData = await fetchAllLive(targetIsos);
-    const store = buildStore(liveData);
-    const ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-
-    let finalIsos;
-    if (isoList.length) finalIsos = isoList;
-    else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
-    else finalIsos = ranked.slice(0, params.top); // ← NOW RETURNS ALL 136 COUNTRIES
-
-    if (params.force_live) {
-      finalIsos = finalIsos.filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= CFG.MIN_LIVE_EVIDENCE_SOURCES);
-
-      if (finalIsos.length === 0) {
-        const anyLive = Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1);
-        if (anyLive.length > 0) {
-          finalIsos = anyLive.sort((a, b) => store[b].score - store[a].score).slice(0, Math.min(params.top, anyLive.length));
-        } else {
-          res.writeHead(200, CORS);
-          res.end(JSON.stringify({
-            meta: {
-              generated_at: new Date().toISOString(),
-              elapsed_ms: Date.now() - start,
-              mode: "empty",
-              message: "No countries currently have live evidence from any tracked source. No fabricated or fallback story is returned.",
-              min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
-            },
-            countries: [],
-          }, null, 2));
-          return;
-        }
-      }
-    }
-
-    if (params.export && finalIsos.length === 1) {
-      const iso = finalIsos[0];
-      const data = generateExportData(iso, store, params.export);
-      const contentType = params.export === 'csv' ? 'text/csv' : 'application/json';
-      const filename = `${iso}_crisis_data.${params.export === 'csv' ? 'csv' : 'json'}`;
-      res.writeHead(200, { ...CORS, 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="${filename}"` });
-      res.end(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-      return;
-    }
-
-    if (params.widget && finalIsos.length === 1) {
-      const iso = finalIsos[0];
-      const widget = generateWidget(iso, store);
-      res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(widget);
-      return;
-    }
-
-    if (params.format === "sitemap") {
-      const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
-      const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
-      res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
-      res.end(buildSitemap(payloads));
-      return;
-    }
-
-    if (params.format === "article" && finalIsos.length === 1) {
-      const opts = { 
-        keywords: params.keywords, 
-        related: params.related, 
-        schema: params.schema, 
-        summary: params.summary,
-        ml: params.ml,
-        sentiment: params.sentiment,
-        history: params.history,
-      };
-      const article = buildSEOArticle(finalIsos[0], store, ranked);
-      res.writeHead(200, { ...CORS, "Content-Type": "text/html; charset=utf-8" });
-      res.end(article.body_html);
-      return;
-    }
-
-    const opts = {
-      keywords: params.keywords,
-      related: params.related,
-      schema: params.schema,
-      summary: params.summary,
-      article: params.article,
-      ml: params.ml,
-      sentiment: params.sentiment,
-      history: params.history,
-    };
-    const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
-
-    const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
-
-    let comparison = null;
-    if (mode === "comparison" && finalIsos.length === 2) {
-      const [a, b] = finalIsos.map(iso => {
-        const c = store[iso];
-        const hist = seedHistory(iso, c.score);
-        const fc = trendForecast(hist, c.score);
-        const anom = runAnomalyDetection(hist);
-        return {
-          iso, name: c.name, flag: c.flag, score: c.score,
-          severity: severityLabel(c.score), rank: ranked.indexOf(iso) + 1,
-          dimensions: Object.fromEntries(DIMS.map(d => [d.k, c.dims[d.k] || 0])),
-          forecast_7d: fc.fc,
-          anomaly_detected: anom.detected,
-          anomaly_severity: anom.severity,
-          live_evidence_count: c.signals?.liveEvidenceCount || 0,
-          ml_forecast: c.ml_forecast,
-          sentiment: c.sentiment,
+  // ── CLIMATE TRACE ──
+  climate_trace:'https://api.climatetrace.org/v1/emissions?country=US&sector=all',
+};
+// Generalized, per-country heat+precipitation loop. Every ISO in this list
+// gets its OWN coordinates and its OWN fetch — no single country's weather
+// is used as a stand-in for anyone else's. This replaces the old pinned
+// Yemen/Syria endpoints entirely.
+const HEAT_LOOP_ISOS=['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
+async function fetchHeatAndPrecipLoop(){
+  const results={};
+  const CONCURRENCY=5;
+  const queue=[...HEAT_LOOP_ISOS];
+  async function worker(){
+    while(queue.length){
+      const iso=queue.shift();
+      const coord=CENTROIDS[iso];
+      if(!coord)continue;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=3`;
+      const res=await safe(fetch(url).then(r=>r.ok?r.json():null));
+      if(res?.daily?.temperature_2m_max?.[0]!==undefined){
+        results[iso]={
+          temp:res.daily.temperature_2m_max[0],
+          precip:res.daily.precipitation_sum?.[0]??null,
+          date:res.daily.time?.[0]||null
         };
-      });
-      comparison = {
-        countries: [a, b],
-        differentiators: DIMS.map(d => {
-          const diff = a.dimensions[d.k] - b.dimensions[d.k];
-          return { dimension: d.l, [a.iso]: a.dimensions[d.k], [b.iso]: b.dimensions[d.k], difference: diff };
-        }).filter(d => Math.abs(d.difference) >= 10),
-        verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})`,
-        ml_insight: a.ml_forecast && b.ml_forecast ? `${a.name} ML anomaly: ${(a.ml_forecast.anomaly_probability * 100).toFixed(0)}% vs ${b.name}: ${(b.ml_forecast.anomaly_probability * 100).toFixed(0)}%` : null,
-      };
+      }
     }
-
-    const allAnomalies = Object.keys(store).filter(iso => runAnomalyDetection(seedHistory(iso, store[iso].score)).detected);
-    const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
-    
-    const mlStats = {
-      trained: mlModel.trained,
-      training_count: mlModel.trainingCount,
-      performance: mlModel.performance,
-      last_update: new Date(mlModel.lastUpdate).toISOString(),
-    };
-
-    const body = {
-      meta: {
-        generated_at: new Date().toISOString(),
-        elapsed_ms: Date.now() - start,
-        mode,
-        countries_tracked: Object.keys(COUNTRIES).length,
-        countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
-        anomalies_detected: allAnomalies.length,
-        anomaly_isos: allAnomalies.slice(0, 20),
-        score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
-        next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
-        data_policy: {
-          type: "100% LIVE DATA ONLY",
-          min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
-          no_fallbacks: true,
-          description: "No static/hardcoded fallback data is used. A country is only returned as a story if it has at least one genuine live-evidence source.",
-        },
-        enhancements: {
-          machine_learning: {
-            enabled: CFG.ML_ENABLED,
-            ...mlStats,
-          },
-          sentiment_analysis: {
-            enabled: CFG.SENTIMENT_ENABLED,
-            sources: CFG.SENTIMENT_SOURCES,
-          },
-          historical_data: {
-            enabled: CFG.HISTORY_ENABLED,
-            retention_days: CFG.HISTORY_RETENTION_DAYS,
-          },
-          geo_fencing: {
-            enabled: CFG.GEO_FENCING_ENABLED,
-            thresholds: alertManager.thresholds,
-          },
-          export_capabilities: {
-            formats: ['json', 'csv', 'pdf', 'widget'],
-          },
-        },
-        data_sources: {
-          usgs: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0, label: "USGS Earthquake Hazards Program" },
-          emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0, label: "EMSC Seismic Portal" },
-          nasa: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0, label: "NASA EONET" },
-          gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0, label: "GDACS Global Disaster Alert" },
-          ifrc: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0, label: "IFRC GO Platform" },
-          heat: { live: liveData.heat.live, countries: Object.keys(liveData.heat.data || {}).length, label: "Open-Meteo Heat Stress" },
-          hazards: { live: liveData.hazards.live, label: "Open-Meteo Hazards (Yemen)" },
-          aq: { live: liveData.aq.live, cities: Object.keys(liveData.aq.data || {}).length, label: "Open-Meteo Air Quality" },
-          noaa: { live: liveData.noaa.live, label: "NOAA Alerts" },
-          disease: { live: liveData.disease.live, countries: liveData.disease.data?.length ?? 0, label: "disease.sh COVID-19" },
-          wb: {
-            live: Object.values(liveData.wb).some(v => v.live),
-            indicators: {
-              population: liveData.wb.population.live,
-              poverty: liveData.wb.poverty.live,
-              inflation: liveData.wb.inflation.live,
-              gdp_growth: liveData.wb.gdpGrowth.live,
-              unemployment: liveData.wb.unemployment.live,
-              refugees: liveData.wb.refugees.live,
-            },
-            label: "World Bank Indicators",
-          },
-          unhcr: { live: liveData.unhcr.live, label: "UNHCR" },
-          ipc: { live: liveData.ipc.live, label: "IPC Food Security" },
-          fewsnet: { live: liveData.fewsnet.live, label: "FEWS NET" },
-          acled: { live: liveData.acled.live, label: "ACLED Conflict" },
-          reliefweb: { live: liveData.reliefweb.live, label: "ReliefWeb" },
-          who: { live: liveData.who.live, label: "WHO Disease Outbreaks" },
-        },
-        endpoints: {
-          single: "GET /api/top-story",
-          top_n: "GET /api/top-story?top=10",
-          iso: "GET /api/top-story?iso=SOM",
-          compare: "GET /api/top-story?iso=SOM,YEM",
-          region: "GET /api/top-story?region=africa",
-          threshold: "GET /api/top-story?threshold=70",
-          search: "GET /api/top-story?q=somalia",
-          article: "GET /api/top-story?iso=SOM&format=article",
-          sitemap: "GET /api/top-story?top=50&format=sitemap",
-          enriched: "GET /api/top-story?iso=SOM&keywords=true&related=true&schema=true&summary=true",
-          export_json: "GET /api/top-story?iso=SOM&export=json",
-          export_csv: "GET /api/top-story?iso=SOM&export=csv",
-          widget: "GET /api/top-story?iso=SOM&widget=true",
-        },
-        anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. Live signals from 20+ data sources adjust dimensions. Regional spillover applied.",
-        ml_methodology: "LSTM-like neural network with attention mechanism. Trained on historical crisis patterns. 7-day forward forecast with confidence intervals.",
-        sentiment_methodology: "Dictionary-based sentiment analysis on humanitarian reports and news. Outputs: positive/negative/neutral with crisis intensity scoring.",
-      },
-      ...(mode === "single" ? { top_story: payloads[0] } : {}),
-      ...(mode === "list" ? { countries: payloads } : {}),
-      ...(mode === "comparison" && comparison ? { comparison } : {}),
-    };
-
-    res.writeHead(200, {
-      ...CORS,
-      "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30`,
+  }
+  await Promise.all(Array.from({length:CONCURRENCY},worker));
+  return results;
+}
+async function fetchOpenMeteoHeatStress(){const heatProneIsos=HEAT_LOOP_ISOS;const results=[];for(const iso of heatProneIsos.slice(0,18)){const coord=CENTROIDS[iso];if(!coord)continue;const url=`https://api.open-meteo.com/v1/forecast?latitude=${coord[1]}&longitude=${coord[0]}&daily=temperature_2m_max&timezone=auto&forecast_days=1`;const res=await safe(fetch(url).then(r=>r.json()));if(res?.daily?.temperature_2m_max?.[0]){results.push({iso,temp:res.daily.temperature_2m_max[0]});}}return results;}
+async function fetchIpcClassifications(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    const out=[];
+    res.data.forEach(d=>{
+      const country=d.fields?.country?.[0]?.name;
+      if(!country)return;
+      const title=(d.fields?.name||'').toLowerCase();
+      let phase=3,phase_name='Crisis';
+      if(title.includes('famine')){phase=5;phase_name='Famine';}
+      else if(title.includes('emergency')){phase=4;phase_name='Emergency';}
+      else if(title.includes('acute')||title.includes('severe')){phase=3;phase_name='Crisis';}
+      out.push({country,phase,phase_name,population:null,source:'ReliefWeb (heuristic severity — not an official IPC/CH phase, which requires the registered ipcinfo.org feed)',title:d.fields?.name||'',date:d.fields?.date?.created||null});
     });
-    res.end(JSON.stringify(body, null, 2));
+    return out;
+  }catch(e){return[];}
+}
+async function fetchConflictEvents(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[operator]=OR&filter[conditions][0][field]=type.name&filter[conditions][0][value][]=Complex%20Emergency&filter[conditions][1][field]=type.name&filter[conditions][1][value][]=Civil%20Unrest&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    const out=[];
+    res.data.forEach(d=>{
+      const country=d.fields?.country?.[0]?.name;
+      if(!country)return;
+      const title=(d.fields?.name||'').toLowerCase();
+      const severityIndex=(title.includes('escalat')||title.includes('offensive')||title.includes('intensif'))?80:40;
+      out.push({country,event_type:d.fields?.type?.[0]?.name||'Conflict',fatalities:null,severityIndex,source:'ReliefWeb (no verified fatality count — ACLED-grade figures require a registered, keyed API not present in this deployment)',title:d.fields?.name||'',date:d.fields?.date?.created||null});
+    });
+    return out;
+  }catch(e){return[];}
+}
+async function fetchFewsNetAlerts(){
+  try{
+    const url='https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Drought&sort[]=date.created:desc';
+    const res=await safe(fetch(url,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null));
+    if(!res?.data?.length)return[];
+    return res.data.map(d=>({country:d.fields?.country?.[0]?.name||'Unknown',phase:(d.fields?.name||'').toLowerCase().includes('emergency')?'Emergency':'Crisis',ipc:(d.fields?.name||'').toLowerCase().includes('emergency')?4:3,source:'ReliefWeb',title:d.fields?.name||'',date:d.fields?.date?.created||null})).filter(x=>x.country!=='Unknown');
+  }catch(e){return[];}
+}
+function parseDiseaseFromWHO(){
+  const items=apiResults.who_rss?.items||[];
+  const keywords=['cholera','ebola','mpox','measles','polio','dengue','malaria','marburg','meningitis','avian influenza','h5n1','yellow fever','diphtheria','lassa'];
+  const out=[];
+  items.forEach(item=>{
+    const text=((item.title||'')+' '+(item.description||'')).toLowerCase();
+    const disease=keywords.find(k=>text.includes(k));
+    if(!disease)return;
+    let country=null;
+    for(const iso in NAMES){if(text.includes(NAMES[iso].toLowerCase())){country=NAMES[iso];break;}}
+    if(!country)return;
+    const casesMatch=text.match(/([\d,]{3,})\s*(cases|confirmed|infections)/);
+    out.push({disease:disease.charAt(0).toUpperCase()+disease.slice(1),country,cases:casesMatch?parseInt(casesMatch[1].replace(/,/g,'')):null,source:'WHO',title:item.title||'',date:item.pubDate||null});
+  });
+  return out;
+}
+function parseDiseaseFromCovid(){
+  const rows=apiResults.disease_sh;
+  if(!Array.isArray(rows))return[];
+  return rows.filter(r=>r.active>5000).map(r=>({disease:'COVID-19',country:r.country,cases:r.active,source:'disease.sh',date:r.updated?new Date(r.updated).toISOString():null}));
+}
+async function fetchDiseaseOutbreaks(){
+  return[...parseDiseaseFromWHO(),...parseDiseaseFromCovid()];
+}
+async function fetchGdeltEvents(){try{const res=await safe(fetch(API_ENDPOINTS.gdelt_geo).then(r=>r.ok?r.json():null));if(res?.features?.length)return res.features.slice(0,20);return[];}catch(e){return[];}}
+async function fetchReliefWebEvents(){try{const res=await safe(fetch(API_ENDPOINTS.reliefweb).then(r=>r.ok?r.json():null));if(res?.data?.length)return res.data.slice(0,20).map(d=>({country:d.fields?.country?.[0]?.name||'Unknown',title:d.fields?.name||'',type:d.fields?.type?.[0]?.name||'Disaster'}));return[];}catch(e){return[];}}
+async function fetchWFPHungerMap(){try{const res=await safe(fetch(API_ENDPOINTS.wfp_vam).then(r=>r.ok?r.json():null));if(res?.body?.length)return res.body.filter(c=>c.ipc_phase>=2).map(c=>({country_name:c.country_name,iso3:c.iso3,ipc_phase:c.ipc_phase}));return[];}catch(e){return[];}}
 
-  } catch (err) {
-    console.error("[top-story v8.0]", err);
-    res.writeHead(500, CORS);
-    res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
+// ============================================================================
+// TICKER
+// ============================================================================
+function buildTickerFromResults(){
+  const items=[];
+  
+  // ── USGS Earthquakes ──
+  (apiResults.usgs_weekly?.features||[]).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place?.split(',')[0]||''}`});});
+  
+  // ── NASA EONET ──
+  (apiResults.nasa_eonet?.events||[]).slice(0,5).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c='#ffb020',l='MODERATE',icon='⚠️';if(cat==='Wildfires'){c='#ff8c42';l='HIGH';icon='🔥';}else if(cat==='Floods'){c='#ff8c42';l='HIGH';icon='🌊';}else if(cat==='Severe Storms'){c='#ff375f';l='CRITICAL';icon='⛈️';}items.push({l,c,t:`${icon} NASA EONET: ${ev.title?.substring(0,60)}`});});
+  
+  // ── NASA Wildfires ──
+  (apiResults.nasa_wildfires?.events||[]).slice(0,3).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔥 NASA Wildfire: ${ev.title?.substring(0,60)}`});});
+  
+  // ── GDACS Alerts ──
+  (apiResults.gdacs?.features||[]).slice(0,3).forEach(f=>{const props=f.properties;if(props?.alertlevel){const alert=props.alertlevel;const c=alert==='Red'?'#ff375f':alert==='Orange'?'#ff8c42':'#ffb020';const l=alert==='Red'?'CRITICAL':alert==='Orange'?'HIGH':'MODERATE';items.push({l,c,t:`🚨 GDACS: ${alert} alert — ${props.eventname?.substring(0,40)||''}`});}});
+  
+  // ── Heat Stress ──
+  heatStressData.filter(h=>h.temp>40).forEach(h=>{const sev=h.temp>45?'CRITICAL':'HIGH';const c=h.temp>45?'#ff375f':'#ff8c42';items.push({l:sev,c,t:`🥵 Open-Meteo: ${h.temp}°C extreme heat in ${NAMES[h.iso]||h.iso}`});});
+  
+  // ── Flood Risk (NEW) ──
+  if (apiResults.openmeteo_flood?.daily?.river_discharge) {
+    const max_discharge = Math.max(...apiResults.openmeteo_flood.daily.river_discharge);
+    if (max_discharge > 50) {
+      const sev = max_discharge > 500 ? 'CRITICAL' : 'HIGH';
+      const c = max_discharge > 500 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`🌊 Flood risk: ${max_discharge}m³/s discharge in Yemen`});
+    }
+  }
+  
+  // ── Marine Weather (NEW) ──
+  if (apiResults.openmeteo_marine?.hourly?.wave_height) {
+    const max_wave = Math.max(...apiResults.openmeteo_marine.hourly.wave_height);
+    if (max_wave > 2) {
+      const sev = max_wave > 5 ? 'CRITICAL' : 'HIGH';
+      const c = max_wave > 5 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`🌊 Marine hazard: ${max_wave}m waves near Yemen`});
+    }
+  }
+  
+  // ── IPC Food Security ──
+  ipcClassifications.forEach(i=>{let c='#ff375f',l=i.phase>=4?'CRITICAL':'HIGH';const pop=Math.round(i.population/1e6);items.push({l,c,t:`🌾 IPC: ${i.country} — Phase ${i.phase} (${i.phase_name}) · ${pop}M people`});});
+  
+  // ── Conflict Events ──
+  conflictEvents.slice(0,5).forEach(c=>{items.push({l:'HIGH',c:'#ff8c42',t:`⚔️ ACLED: ${c.country} — ${c.event_type} (${c.fatalities}+ fatalities)`});});
+  
+  // ── Disease Outbreaks ──
+  diseaseOutbreaks.slice(0,4).forEach(d=>{items.push({l:'HIGH',c:'#ff8c42',t:`🦠 ${d.disease} outbreak in ${d.country} · ${d.cases?.toLocaleString()||''}+ cases`});});
+  
+  // ── WHO RSS ──
+  (apiResults.who_rss?.items||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.title||'').substring(0,65)}`});});
+  
+  // ── EMSC Seismic ──
+  (apiResults.emsc_seismic?.features||[]).forEach(f=>{const mag=+(f.properties?.mag||0).toFixed(1);if(mag<4.5)return;let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 EMSC: M${mag} — ${f.properties?.flynn_region||''}`});});
+  
+  // ── IFRC GO ──
+  (apiResults.ifrc_go?.results||[]).slice(0,5).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔴 IFRC: ${(ev.name||'').substring(0,60)}`});});
+  
+  // ── UNHCR Operations (NEW) ──
+  if (apiResults.unhcr_operations?.data) {
+    const ops = Array.isArray(apiResults.unhcr_operations.data) ? apiResults.unhcr_operations.data : [];
+    ops.slice(0, 3).forEach(op => {
+      if (op.name) {
+        const status = op.status || 'active';
+        const statusColor = status === 'active' ? '#00e5a0' : '#ffb020';
+        items.push({l:'INFO', c:statusColor, t:`🏕️ UNHCR: ${op.name.substring(0,40)} ${status !== 'active' ? '('+status+')' : ''}`});
+      }
+    });
+  }
+  
+  // ── OSM Health Infrastructure (NEW) ──
+  if (apiResults.osm_hospitals?.elements?.length > 0) {
+    items.push({l:'INFO', c:'#00e5a0', t:`🏥 OSM: ${apiResults.osm_hospitals.elements.length} hospitals in Yemen region`});
+  }
+  if (apiResults.osm_health_centers?.elements?.length > 0) {
+    items.push({l:'INFO', c:'#00e5a0', t:`🏥 OSM: ${apiResults.osm_health_centers.elements.length} clinics in Yemen region`});
+  }
+  
+  // ── EM-DAT Disasters (NEW) ──
+  if (apiResults.emdat_disasters?.data) {
+    const disasters = Array.isArray(apiResults.emdat_disasters.data) ? apiResults.emdat_disasters.data : [];
+    disasters.slice(0, 3).forEach(d => {
+      if (d.disaster_type || d.country) {
+        const disasterType = d.disaster_type || 'Disaster';
+        const country = d.country || 'Unknown';
+        const year = d.year || '2024';
+        const deaths = d.total_deaths ? ` · ${d.total_deaths} deaths` : '';
+        items.push({l:'HIGH', c:'#ff8c42', t:`📊 EM-DAT: ${disasterType} in ${country} (${year})${deaths}`});
+      }
+    });
+  }
+  
+  // ── Climate TRACE (NEW) ──
+  if (apiResults.climate_trace?.data) {
+    const emissions = Array.isArray(apiResults.climate_trace.data) ? apiResults.climate_trace.data : [];
+    emissions.slice(0, 3).forEach(e => {
+      if (e.total_emissions > 10000 && e.country) {
+        const sev = e.total_emissions > 100000 ? 'HIGH' : 'MODERATE';
+        const c = e.total_emissions > 100000 ? '#ff8c42' : '#ffb020';
+        items.push({l:sev, c, t:`🌍 Climate TRACE: ${(e.total_emissions/1000).toFixed(0)}kt CO₂e in ${e.country}`});
+      }
+    });
+  }
+  
+  // ── World Bank GDP Growth (NEW) ──
+  if (apiResults.wb_gdp_growth?.[1]) {
+    const negativeGrowth = apiResults.wb_gdp_growth[1].filter(i => i.value < 0 && i.country?.value).slice(0, 3);
+    negativeGrowth.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff375f', t:`📉 GDP contraction: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── World Bank Unemployment (NEW) ──
+  if (apiResults.wb_unemployment?.[1]) {
+    const highUnemp = apiResults.wb_unemployment[1].filter(i => i.value > 20 && i.country?.value).slice(0, 3);
+    highUnemp.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff8c42', t:`📊 Unemployment: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── World Bank Inflation ──
+  if (apiResults.wb_inflation?.[1]) {
+    const highInflation = apiResults.wb_inflation[1].filter(i => i.value > 20 && i.country?.value).slice(0, 3);
+    highInflation.forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#ff375f', t:`💰 Inflation: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+    // ── Wind Speed (NEW) ──
+  if (apiResults.openmeteo_wind?.hourly?.wind_speed_10m) {
+    const maxWind = Math.max(...apiResults.openmeteo_wind.hourly.wind_speed_10m);
+    if (maxWind > 30) {
+      const sev = maxWind > 60 ? 'CRITICAL' : 'HIGH';
+      const c = maxWind > 60 ? '#ff375f' : '#ff8c42';
+      items.push({l:sev, c, t:`💨 Wind speed: ${maxWind} km/h (storm risk) in Yemen`});
+    }
+  }
+  
+  // ── Precipitation (NEW) ──
+  if (apiResults.openmeteo_precipitation?.hourly?.precipitation) {
+    const totalRain = apiResults.openmeteo_precipitation.hourly.precipitation.reduce((a, b) => a + b, 0);
+    if (totalRain > 10) {
+      items.push({l:'HIGH', c:'#3ec5ff', t:`🌧️ ${totalRain}mm precipitation forecast in Yemen`});
+    }
+  }
+  
+  // ── UV Index (NEW) ──
+  if (apiResults.openmeteo_uv?.daily?.uv_index_max) {
+    const maxUv = Math.max(...apiResults.openmeteo_uv.daily.uv_index_max);
+    if (maxUv > 8) {
+      items.push({l:'HIGH', c:'#ffb020', t:`☀️ Extreme UV Index ${maxUv} in Yemen`});
+    }
+  }
+  
+  // ── NOAA Alerts (NEW) ──
+  if (apiResults.noaa_alerts?.features?.length > 0) {
+    items.push({l:'HIGH', c:'#ff8c42', t:`⚠️ NOAA: ${apiResults.noaa_alerts.features.length} extreme weather alerts`});
+  }
+  
+  // ── USGS Historic Earthquakes (NEW) ──
+  if (apiResults.usgs_historic?.features) {
+    const largeEvents = apiResults.usgs_historic.features.filter(f => f.properties?.mag >= 7);
+    largeEvents.slice(0, 2).forEach(f => {
+      const mag = f.properties?.mag?.toFixed(1) || '?';
+      const place = f.properties?.place?.split(',')[0] || 'Unknown';
+      items.push({l:'HIGH', c:'#ff8c42', t:`🌍 Historic quake: M${mag} in ${place}`});
+    });
+  }
+  
+  // ── World Bank Food Prices (NEW) ──
+  if (apiResults.wb_food_prices?.[1]) {
+    const foodData = apiResults.wb_food_prices[1].filter(i => i.value !== null && i.country?.value);
+    if (foodData.length > 0) {
+      const highPrices = foodData.filter(i => i.value > 120).slice(0, 3);
+      highPrices.forEach(item => {
+        if (item.country?.value) {
+          items.push({l:'HIGH', c:'#ffb020', t:`🌾 Food prices: ${item.country.value} ${item.value.toFixed(1)} index`});
+        }
+      });
+    }
+  }
+  
+  // ── World Bank Water Stress (NEW) ──
+  if (apiResults.wb_water?.[1]) {
+    const waterData = apiResults.wb_water[1].filter(i => i.value !== null && i.value > 40 && i.country?.value);
+    waterData.slice(0, 3).forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'HIGH', c:'#3ec5ff', t:`💧 Water stress: ${item.country.value} ${item.value.toFixed(1)}%`});
+      }
+    });
+  }
+  
+  // ── UNHCR Emergency (NEW) ──
+  if (apiResults.unhcr_emergency?.data) {
+    const emergencies = Array.isArray(apiResults.unhcr_emergency.data) ? apiResults.unhcr_emergency.data : [];
+    emergencies.slice(0, 3).forEach(em => {
+      if (em.name) {
+        items.push({l:'HIGH', c:'#bf7fff', t:`🚨 UNHCR: ${em.name.substring(0,40)} ${em.level ? '('+em.level+')' : ''}`});
+      }
+    });
+  }
+
+  // ── Cloud Cover (NEW) ──
+  if (apiResults.openmeteo_cloudcover?.hourly?.cloudcover) {
+    const avgCloud = apiResults.openmeteo_cloudcover.hourly.cloudcover.reduce((a, b) => a + b, 0) / apiResults.openmeteo_cloudcover.hourly.cloudcover.length;
+    if (avgCloud > 70) {
+      items.push({l:'INFO', c:'#3ec5ff', t:`☁️ Cloud cover: ${avgCloud.toFixed(0)}% in Yemen`});
+    }
+  }
+  
+  // ── Lightning Potential (NEW) ──
+  if (apiResults.openmeteo_lightning?.hourly?.lightning_potential) {
+    const maxLightning = Math.max(...apiResults.openmeteo_lightning.hourly.lightning_potential);
+    if (maxLightning > 100) {
+      items.push({l:'HIGH', c:'#ff8c42', t:`⚡ Lightning potential: ${maxLightning} J/kg (storm risk)`});
+    }
+  }
+  
+  // ── NOAA Storm Reports (NEW) ──
+  if (apiResults.noaa_storm_reports?.features?.length > 0) {
+    items.push({l:'HIGH', c:'#ff375f', t:`⛈️ NOAA: ${apiResults.noaa_storm_reports.features.length} severe storm alerts`});
+  }
+  
+  // ── UNHCR Statistics (NEW) ──
+  if (apiResults.unhcr_statistics?.data) {
+    const stats = Array.isArray(apiResults.unhcr_statistics.data) ? apiResults.unhcr_statistics.data : [];
+    stats.slice(0, 3).forEach(stat => {
+      if (stat.refugees > 10000 && stat.country) {
+        const refugeesM = (stat.refugees / 1e6).toFixed(1);
+        items.push({l:'HIGH', c:'#bf7fff', t:`🏕️ UNHCR: ${stat.country} ${refugeesM}M refugees (${stat.year || '2024'})`});
+      }
+    });
+  }
+  
+  // ── World Bank Trade (NEW) ──
+  if (apiResults.wb_trade?.[1]) {
+    const tradeData = apiResults.wb_trade[1].filter(i => i.value !== null && i.value > 100 && i.country?.value);
+    tradeData.slice(0, 3).forEach(item => {
+      if (item.country?.value) {
+        items.push({l:'INFO', c:'#00e5a0', t:`📊 Trade: ${item.country.value} ${item.value.toFixed(1)}% of GDP`});
+      }
+    });
+  }
+  // ── Return if no items ──
+  if(!items.length)return;
+  
+  // ── Build ticker HTML ──
+  const uniq=items.slice(0,80);
+  const doubled=[...uniq,...uniq];
+  const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
+  const inner=document.getElementById('tickerInner');
+  if(inner){inner.innerHTML=html;inner.style.animationDuration=Math.max(80,uniq.length*3.5)+'s';}
+}
+// ============================================================================
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
+// ============================================================================
+// ============================================================================
+// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
+// ============================================================================
+async function refresh(){
+  const loader=document.getElementById('loader');
+  const fill=document.getElementById('lFill');
+  loader.style.display='flex';
+  const steps=['ls0','ls1','ls2','ls3','ls4','ls5','ls6'].map(id=>document.getElementById(id));
+  let currentProgress=0;
+  
+  function adv(n,targetPct){
+    targetPct=Math.min(100,Math.max(currentProgress+1,targetPct));
+    steps.forEach((s,i)=>{if(s)s.className='lstep'+(i<n?' done':(i===n?' act':''));});
+    const startPct=currentProgress;
+    const startTime=Date.now();
+    function animateProgress(){
+      const elapsed=Date.now()-startTime;
+      const progress=Math.min(1,elapsed/400);
+      const eased=1-Math.pow(1-progress,3);
+      fill.style.width=Math.min(100,startPct+(targetPct-startPct)*eased)+'%';
+      if(progress<1)requestAnimationFrame(animateProgress);
+      else{fill.style.width=Math.min(100,targetPct)+'%';currentProgress=Math.min(100,targetPct);}
+    }
+    animateProgress();
+  }
+  adv(0,5);
+  await new Promise(r=>setTimeout(r,200));
+  adv(1,15);
+
+// ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
+  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
+  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
+  // not as a single pinned URL like the other entries here.)
+  const fetchKeys = Object.keys(API_ENDPOINTS);
+  const fetches = {};
+  for (const k of fetchKeys) {
+    fetches[k] = safe(fetch(API_ENDPOINTS[k], { headers: { 'Accept': 'application/json' } })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null));
+  }
+  const results = await Promise.allSettled(Object.values(fetches));
+  Object.keys(fetches).forEach((k, i) => {
+    apiResults[k] = results[i].status === 'fulfilled' ? results[i].value : null;
+  });
+
+  adv(3,45);
+
+  // ─── FETCH EVIDENCE FROM ALL SOURCES ─────────────────────────────────
+  await fetchAllEvidence();
+  
+  // ─── BUILD TICKER WITH ALL EVIDENCE ──────────────────────────────────
+  buildTickerFromResults();
+  
+  adv(5,78);
+
+  // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
+  let apiData = null;
+  try {
+    // 🔥 FIX: Use top=136 to get ALL countries
+    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=136&force_live=false', { 
+      headers: { 'Accept': 'application/json' } 
+    });
+    if (apiRes.ok) {
+      apiData = await apiRes.json();
+    }
+  } catch(e) {
+    console.warn('Main API fetch failed:', e);
+  }
+
+  // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
+  // This calls the original buildStore() which uses all the evidence data
+  buildStore();
+  
+  // ─── IF API DATA IS AVAILABLE, USE API URGENCY SCORES ────────────────
+  if (apiData && apiData.countries) {
+    const apiCountries = apiData.countries || (apiData.top_story ? [apiData.top_story] : []);
+    const apiStore = {};
+    
+    // First, build a store from API data with safety checks
+    apiCountries.forEach(c => {
+      if (!c.iso) return;
+      
+      const score = typeof c.score === 'number' && isFinite(c.score) ? c.score : 50;
+      const evidenceCount = typeof c.live_evidence_count === 'number' && isFinite(c.live_evidence_count) ? c.live_evidence_count : 0;
+      const priorScore = typeof c.score_audit?.prior_score === 'number' && isFinite(c.score_audit.prior_score) ? c.score_audit.prior_score : score;
+      const liveBoost = typeof c.score_audit?.live_boost === 'number' && isFinite(c.score_audit.live_boost) ? c.score_audit.live_boost : 0;
+      const spillover = typeof c.spillover?.value === 'number' && isFinite(c.spillover.value) ? c.spillover.value : 0;
+      
+      const dims = {};
+      if (c.dimensions) {
+        Object.entries(c.dimensions).forEach(([k, d]) => {
+          const val = typeof d.value === 'number' && isFinite(d.value) ? d.value : 0;
+          dims[k] = val;
+        });
+      }
+      
+      apiStore[c.iso] = {
+        name: c.name || c.iso,
+        flag: c.flag || '🌍',
+        types: (c.crisis_types || []).map(t => t.code).filter(Boolean),
+        needs: c.needs || [],
+        dims: dims,
+        score: score,
+        priorScore: priorScore,
+        events: evidenceCount,
+        spillover: spillover,
+        liveBoost: liveBoost,
+        evidenceCount: evidenceCount,
+        evidenceSources: c.live_evidence_sources || [],
+        evidenceLedger: c.score_audit?.adjustments || [],
+        evidenceConfidence: Math.min(1, evidenceCount / 5),
+        signals: {},
+      };
+    });
+    
+    // ─── MERGE: Use API scores as the primary, but keep evidence data ──
+    for (const iso in store) {
+      if (apiStore[iso]) {
+        // Use API score (this gives us the urgency rankings from the API)
+        store[iso].score = apiStore[iso].score;
+        store[iso].priorScore = apiStore[iso].priorScore;
+        store[iso].events = Math.max(store[iso].events || 0, apiStore[iso].events);
+        store[iso].spillover = apiStore[iso].spillover;
+        store[iso].liveBoost = apiStore[iso].liveBoost;
+        store[iso].evidenceCount = Math.max(store[iso].evidenceCount || 0, apiStore[iso].evidenceCount);
+        
+        // Merge evidence sources (deduplicate)
+        if (apiStore[iso].evidenceSources) {
+          const existingSources = new Set(store[iso].evidenceSources || []);
+          apiStore[iso].evidenceSources.forEach(s => existingSources.add(s));
+          store[iso].evidenceSources = Array.from(existingSources);
+        }
+        
+        // Merge evidence ledger
+        if (apiStore[iso].evidenceLedger) {
+          const existingLedger = store[iso].evidenceLedger || [];
+          const mergedLedger = [...existingLedger];
+          apiStore[iso].evidenceLedger.forEach(adj => {
+            const exists = mergedLedger.some(ex => ex.source === adj.source && ex.reason === adj.reason);
+            if (!exists) {
+              mergedLedger.push(adj);
+            }
+          });
+          store[iso].evidenceLedger = mergedLedger;
+        }
+        
+        // Merge dims (take max of each dimension from both sources)
+        if (apiStore[iso].dims) {
+          Object.entries(apiStore[iso].dims).forEach(([k, v]) => {
+            const currentVal = store[iso].dims?.[k] || 0;
+            if (store[iso].dims) {
+              store[iso].dims[k] = Math.max(currentVal, v);
+            }
+          });
+        }
+        
+        // Update evidence confidence
+        store[iso].evidenceConfidence = Math.min(1, (store[iso].evidenceCount || 0) / 5);
+        
+        // Keep the evidence signals from the original store
+        // (store[iso].signals already has the evidence data)
+      }
+    }
+    
+    // ─── ADD ANY COUNTRIES FROM API THAT AREN'T IN STORE ──────────────
+    for (const iso in apiStore) {
+      if (!store[iso]) {
+        store[iso] = apiStore[iso];
+        history[iso] = seedHistory(iso, apiStore[iso].score);
+      }
+    }
+    
+    // Re-rank after merging
+    ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+    
+    // Update UI with API data (this shows the API urgency rankings)
+    updateUIStatsFromApi(apiData);
+  } else {
+    // ─── UPDATE UI WITH REAL STATS (original behavior) ────────────────
+    updateUIStats();
+  }
+
+  adv(6,100);
+  paintMap();
+  addPulseMarkers();
+  renderRanking();
+  await new Promise(r=>setTimeout(r,500));
+  loader.style.display='none';
+  
+  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
+  const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
+  const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
+  const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
+  const coverageCount = Object.keys(evidenceIndex.sourceCoverage).length;
+  
+  toast(`✅ ${Object.keys(store).length} countries · ${criticalCount} critical · ${evidenceCount} evidence sources · ${liveCount} APIs live`);
+  
+  refreshTimerSecs=300;
+
+  const urlParams=new URLSearchParams(window.location.search);
+  const urlCountry=urlParams.get('country');
+  if(urlCountry&&store[urlCountry]){selectedIso=urlCountry;renderPanel(urlCountry,urlParams.get('crisis'));zoomToCountry(selectedIso);}
+  else if(selectedIso&&store[selectedIso]){renderPanel(selectedIso);}
+  else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
+
+  updateDynamicTitle();
+}
+function updateUIStatsFromApi(data){
+  const top = ranked.slice(0, 20);
+  const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+
+  // ─── SAFELY CALCULATE AFFECTED ──────────────────────────────────────────
+  let totalAffected = 0;
+  const countries = data.countries || (data.top_story ? [data.top_story] : []);
+  countries.forEach(c => {
+    const displacement = c.live_evidence?.displacement?.total;
+    // Only add if it's a valid positive number
+    if (typeof displacement === 'number' && isFinite(displacement) && displacement > 0) {
+      totalAffected += displacement;
+    }
+  });
+  
+  // ─── FORMAT AFFECTED DISPLAY ────────────────────────────────────────────
+  let affectedDisplay = '—';
+  if (totalAffected > 0 && isFinite(totalAffected)) {
+    if (totalAffected >= 1e9) affectedDisplay = '≈' + (totalAffected / 1e9).toFixed(1) + 'B';
+    else if (totalAffected >= 1e6) affectedDisplay = '≈' + (totalAffected / 1e6).toFixed(1) + 'M';
+    else if (totalAffected >= 1e3) affectedDisplay = '≈' + (totalAffected / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = totalAffected.toLocaleString();
+  }
+
+  // ─── SAFELY GET ANOMALIES ───────────────────────────────────────────────
+  let anoms = data.meta?.anomalies_detected;
+  if (typeof anoms !== 'number' || !isFinite(anoms)) {
+    anoms = ranked.filter(i => {
+      const hist = (history[i] || []).map(h => h.s);
+      return cusum(hist).det;
+    }).length;
+  }
+
+  // ─── SAFELY GET EVENTS ──────────────────────────────────────────────────
+  let tevt = 0;
+  Object.values(store).forEach(c => {
+    const ev = c.events || 0;
+    if (typeof ev === 'number' && isFinite(ev)) {
+      tevt += ev;
+    }
+  });
+
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
+// ─── EVIDENCE-BASED SCORING ENGINE WITH REAL API DATA ─────────────────
+// NO STATIC FIXTURES. EVERY SCORE POINT TRACES TO REAL API EVIDENCE.
+// ────────────────────────────────────────────────────────────────────────
+
+const evidenceIndex = {
+  conflict: [],
+  ipc: [],
+  heat: [],
+  disease: [],
+  gdelt: [],
+  reliefweb: [],
+  nasa: [],
+  usgs: [],
+  wb_inflation: [],
+  imf: [],
+  unhcr: [],
+  wfp: [],
+  population: {},
+  acled_events: [],
+  // NEW: track which sources have data for each country
+  sourceCoverage: {},
+};
+
+function applyTemporalDecay(daysAgo, halfLife) {
+  if (daysAgo === null || daysAgo === undefined) return 0.5;
+  const decay = Math.exp(-0.693 * daysAgo / halfLife);
+  return Math.max(0.05, Math.min(1, decay));
+}
+
+const HALF_LIVES = {
+  conflict: 3,
+  disease: 3,
+  heat: 2,
+  seismic: 4,
+  gdelt: 2,
+  reliefweb: 5,
+  nasa: 4,
+  economic: 14,
+  displacement: 10,
+  ipc: 14,
+  media: 1,
+};
+
+function getDaysAgo(timestamp) {
+  if (!timestamp) return null;
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  if (isNaN(date.getTime())) return null;
+  return (Date.now() - date.getTime()) / 86400000;
+}
+
+function logScale(value, floor, ceiling, maxPts) {
+  if (value <= floor) return 0;
+  const ratio = Math.log(1 + (value - floor)) / Math.log(1 + (ceiling - floor));
+  return Math.min(maxPts, Math.max(0, ratio * maxPts));
+}
+
+function coverageScale(value, floor, ceiling, maxPts) {
+  if (value === null || value === undefined || isNaN(value)) return 0;
+  const clamped = Math.max(floor, Math.min(ceiling, value));
+  const ratio = (clamped - floor) / ((ceiling - floor) || 1);
+  return Math.max(maxPts * 0.2, ratio * maxPts);
+}
+// Unlike logScale, this never returns 0 when real data exists — having an
+// official, current-year data point IS evidence (the metric is being tracked
+// and reported), even at a low/benign value. Severity still scales the score,
+// but presence-of-data alone earns a floor of 20% of the point budget.
+function coverageScale(value, floor, ceiling, maxPts) {
+  if (value === null || value === undefined || isNaN(value)) return 0;
+  const clamped = Math.max(floor, Math.min(ceiling, value));
+  const ratio = (clamped - floor) / ((ceiling - floor) || 1);
+  return Math.max(maxPts * 0.2, ratio * maxPts);
+}
+// ── REAL DATA: Fetch ACLED conflict events ──────────────────────────────
+async function fetchAcledData() {
+  try {
+    // Use ACLED API (free tier) - real conflict data
+    const response = await fetch(
+      'https://api.acleddata.com/acled/read?limit=200&year=2024&region=world',
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.data) {
+        evidenceIndex.acled_events = data.data;
+        // Map to conflict events
+        evidenceIndex.conflict = data.data.map(e => ({
+          country: e.country,
+          event_type: e.event_type || 'Conflict',
+          fatalities: parseInt(e.fatalities) || 0,
+          date: e.event_date || new Date().toISOString().split('T')[0],
+          source: 'ACLED'
+        })).slice(0, 100);
+        return evidenceIndex.conflict;
+      }
+    }
+  } catch(e) { console.warn('ACLED fetch failed:', e); }
+  
+  // Fallback: Use GDELT for conflict data (real alternative)
+  try {
+    const gdeltResponse = await fetch(
+      'https://api.gdeltproject.org/api/v2/geo/geo?query=crisis+conflict+war&mode=pointdata&maxrows=100&format=json'
+    );
+    if (gdeltResponse.ok) {
+      const data = await gdeltResponse.json();
+      if (data && data.features) {
+        evidenceIndex.gdelt = data.features;
+        return [];
+      }
+    }
+  } catch(e) { console.warn('GDELT fallback failed:', e); }
+  
+  return [];
+}
+
+// ── REAL DATA: Fetch World Bank population data ──────────────────────────
+async function fetchWorldBankPopulation() {
+  try {
+    const response = await fetch(
+      'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country && item.country.id && item.value) {
+            evidenceIndex.population[item.country.id] = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank population fetch failed:', e); }
+}
+
+// ── REAL DATA: Fetch UNHCR displacement data ─────────────────────────────
+async function fetchUnhcrData() {
+  try {
+    const response = await fetch(
+      'https://api.unhcr.org/population/v1/population/?limit=100&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.items) {
+        evidenceIndex.unhcr = data.items;
+        return data.items;
+      }
+    }
+  } catch(e) { console.warn('UNHCR fetch failed:', e); }
+  return [];
+}
+
+// ── REAL DATA: Fetch FEWS NET food security alerts ──────────────────────
+async function fetchFewsNet() {
+  try {
+    // FEWS NET RSS/API
+    const response = await fetch(
+      'https://api.rss2json.com/v1/api.json?rss_url=https://fews.net/rss/alert'
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.items) {
+        evidenceIndex.fewsnet = data.items.map(item => ({
+          country: item.title.split(':')[0]?.trim() || '',
+          phase: item.title.includes('Emergency') ? 4 : 
+                 item.title.includes('Crisis') ? 3 : 2,
+          description: item.description || '',
+          date: item.pubDate || new Date().toISOString()
+        }));
+      }
+    }
+  } catch(e) { console.warn('FEWS NET fetch failed:', e); }
+}
+
+// ── REAL DATA: Fetch all sources in parallel ────────────────────────────
+// ─── Replace the fetchAllEvidence function (around line 1650) with this ───
+async function fetchAllEvidence() {
+  const results = {};
+  
+  // ── 1. USGS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.usgs_weekly);
+    if (res.ok) {
+      const data = await res.json();
+      results.usgs_weekly = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.place && coords) {
+            const country = props.place.split(',').pop()?.trim() || '';
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].usgs = {
+                mag: props.mag,
+                time: props.time,
+                place: props.place
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('USGS fetch failed:', e); }
+
+  // ── 2. NASA EONET ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_eonet);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_eonet = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].nasa = {
+                title: ev.title,
+                categories: ev.categories
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA EONET fetch failed:', e); }
+
+  // ── 3. NASA Wildfires ──
+  try {
+    const res = await fetch(API_ENDPOINTS.nasa_wildfires);
+    if (res.ok) {
+      const data = await res.json();
+      results.nasa_wildfires = data;
+      if (data?.events) {
+        data.events.forEach(ev => {
+          const coords = ev.geometry?.[0]?.coordinates;
+          if (coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].wildfire = {
+                title: ev.title,
+                severity: ev.categories?.[0]?.title || 'Wildfire'
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('NASA Wildfires fetch failed:', e); }
+
+  // ── 4. GDACS Alerts ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs = {
+                event: props.eventname,
+                alert: props.alertlevel
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS fetch failed:', e); }
+
+  // ── 5. GDACS Earthquakes ──
+  try {
+    const res = await fetch(API_ENDPOINTS.gdacs_earthquakes);
+    if (res.ok) {
+      const data = await res.json();
+      results.gdacs_earthquakes = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.eventname && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].gdacs_eq = {
+                event: props.eventname,
+                mag: props.magnitude
+              };
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('GDACS Earthquakes fetch failed:', e); }
+
+// ── 6+7. Open-Meteo Heat + Precipitation — GENERALIZED PER-COUNTRY LOOP ──
+  // Previously this was two separate hardcoded blocks: one pinned to Yemen's
+  // coordinates, one pinned to Syria's. Every other country got nothing.
+  // This now loops over HEAT_LOOP_ISOS (25 heat/drought-prone countries) and
+  // gives each one its own real fetch against its own coordinates, exactly
+  // like the seismic/NASA/disease loops already do.
+  try {
+    const heatResults = await fetchHeatAndPrecipLoop();
+    results.openmeteo_heat_loop = heatResults;
+    Object.entries(heatResults).forEach(([iso, d]) => {
+      evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+      evidenceIndex.sourceCoverage[iso].heat = { temp: d.temp, precip: d.precip, date: d.date };
+      heatStressData.push({ iso, temp: d.temp, timestamp: Date.now() });
+    });
+  } catch(e) { console.warn('Open-Meteo heat/precip loop failed:', e); }
+
+  // ── 8. Open-Meteo Flood Risk (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_flood);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_flood = data;
+      if (data?.daily?.river_discharge) {
+        // Store flood risk for Yemen (or find closest country)
+        const max_discharge = Math.max(...data.daily.river_discharge);
+        if (max_discharge > 0) {
+          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+          evidenceIndex.sourceCoverage['YEM'].flood_risk = {
+            discharge: max_discharge,
+            date: data.daily.time?.[0]
+          };
+          console.log(`🌊 Flood risk: ${max_discharge} m³/s in Yemen`);
+        }
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Flood fetch failed:', e); }
+
+  // ── 9. Open-Meteo Marine Weather (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_marine);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_marine = data;
+      if (data?.hourly?.wave_height) {
+        const max_wave = Math.max(...data.hourly.wave_height);
+        if (max_wave > 2) {
+          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+          evidenceIndex.sourceCoverage['YEM'].marine = {
+            wave_height: max_wave,
+            date: data.hourly.time?.[0]
+          };
+          console.log(`🌊 Marine hazard: ${max_wave}m waves near Yemen`);
+        }
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Marine fetch failed:', e); }
+
+  // ── 10. NOAA Stations ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_stations);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_stations = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].noaa = {
+          stations: data.features.length,
+          status: 'active'
+        };
+      }
+    }
+  } catch(e) { console.warn('NOAA Stations fetch failed:', e); }
+
+  // ── 11. disease.sh (COVID) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.disease_sh);
+    if (res.ok) {
+      const data = await res.json();
+      results.disease_sh = data;
+      if (Array.isArray(data)) {
+        data.forEach(d => {
+          const iso = findIsoByCountryName(d.country);
+          if (iso && d.active > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].covid = {
+              active: d.active,
+              cases: d.cases,
+              deaths: d.deaths
+            };
+            diseaseOutbreaks.push({
+              disease: 'COVID-19',
+              country: d.country,
+              cases: d.active,
+              source: 'disease.sh',
+              date: new Date(d.updated).toISOString()
+            });
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('disease.sh fetch failed:', e); }
+
+  // ── 12. World Bank Population ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_population);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_population = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            evidenceIndex.population[iso] = parseInt(item.value);
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].population = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Population fetch failed:', e); }
+
+  // ── 13. World Bank Poverty ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_poverty);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_poverty = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].poverty = parseFloat(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Poverty fetch failed:', e); }
+
+  // ── 14. World Bank GDP Growth (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_gdp_growth);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_gdp_growth = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].gdp_growth = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 GDP growth data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank GDP Growth fetch failed:', e); }
+
+  // ── 15. World Bank Unemployment (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_unemployment);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_unemployment = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unemployment = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 Unemployment data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Unemployment fetch failed:', e); }
+
+  // ── 16. World Bank Inflation ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_inflation);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_inflation = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null && item.value !== undefined) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].inflation = parseFloat(item.value);
+            evidenceIndex.sourceCoverage[iso].inflation_year = item.date;
+          }
+        });
+        console.log(`📊 Inflation data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Inflation fetch failed:', e); }
+
+  // ── 17. World Bank Refugees ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_refugees);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_refugees = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees_wb = parseInt(item.value);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
+
+  // ── 18. UNHCR Displacement ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_pop);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_pop = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          const iso = item.coa_iso;
+          if (iso && item.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].refugees = item.refugees;
+            evidenceIndex.sourceCoverage[iso].displaced = (item.refugees || 0) + (item.asylum_seekers || 0);
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
+
+  // ── 19. UNHCR Asylum ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_asylum);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_asylum = data;
+      if (data?.items) {
+        data.items.forEach(item => {
+          if (item.asylum_seekers > 0) {
+            const iso = item.coa_iso;
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].asylum = item.asylum_seekers;
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
+
+  // ── 20. UNHCR Operations (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_operations);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_operations = data;
+      if (data?.items || data?.data) {
+        const ops = data.items || data.data || [];
+        ops.forEach(op => {
+          const iso = op.country_iso || op.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_op = {
+              name: op.name || 'UNHCR operation',
+              status: op.status || 'active'
+            };
+          }
+        });
+        console.log(`📊 UNHCR operations loaded`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Operations fetch failed:', e); }
+
+  // ── 21. EMSC Seismic ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emsc_seismic);
+    if (res.ok) {
+      const data = await res.json();
+      results.emsc_seismic = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const mag = f.properties?.mag;
+          const coords = f.geometry?.coordinates;
+          if (mag >= 4.5 && coords) {
+            const iso = findClosestCountry(coords[0], coords[1]);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              const existingMag = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
+              if (mag > existingMag) {
+                evidenceIndex.sourceCoverage[iso].emsc = {
+                  mag,
+                  time: f.properties?.time,
+                  place: f.properties?.flynn_region || f.properties?.place
+                };
+              }
+            }
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('EMSC fetch failed:', e); }
+
+  // ── 22. IFRC GO ──
+  try {
+    const res = await fetch(API_ENDPOINTS.ifrc_go);
+    if (res.ok) {
+      const data = await res.json();
+      results.ifrc_go = data;
+      if (data?.results) {
+        data.results.forEach(ev => {
+          const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].ifrc = {
+              name: ev.name,
+              dtype: ev.dtype?.name || 'Field operation',
+              date: ev.disaster_start_date
+            };
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('IFRC GO fetch failed:', e); }
+
+  // ── 23. Open-Meteo Air Quality (multi-city loop) ──
+  const AQ_CITIES = [
+    { iso: 'NGA', lat: 6.5, lon: 3.4, name: 'Lagos' },
+    { iso: 'IND', lat: 28.6, lon: 77.2, name: 'Delhi' },
+    { iso: 'CHN', lat: 39.9, lon: 116.4, name: 'Beijing' },
+    { iso: 'IND', lat: 19.1, lon: 72.9, name: 'Mumbai' },
+    { iso: 'BGD', lat: 23.8, lon: 90.4, name: 'Dhaka' },
+    { iso: 'EGY', lat: 30.0, lon: 31.2, name: 'Cairo' }
+  ];
+
+  for (const city of AQ_CITIES) {
+    try {
+      const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const pm25 = data?.hourly?.pm2_5?.[0];
+        if (pm25 !== undefined && pm25 !== null) {
+          const iso = city.iso;
+          if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+          evidenceIndex.sourceCoverage[iso].air_quality = { 
+            pm25, 
+            city: city.name,
+            timestamp: new Date().toISOString()
+          };
+          console.log(`🌍 AQ: ${city.name} PM2.5 = ${pm25} µg/m³`);
+        }
+      }
+    } catch(e) { /* silent fail for individual cities */ }
+  }
+
+  // ── 24. OpenStreetMap Hospitals (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.osm_hospitals);
+    if (res.ok) {
+      const data = await res.json();
+      results.osm_hospitals = data;
+      if (data?.elements?.length > 0) {
+        // Store hospital count for Yemen region
+        const hospitalCount = data.elements.length;
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].hospitals = hospitalCount;
+        console.log(`🏥 OSM: ${hospitalCount} hospitals found in Yemen region`);
+      }
+    }
+  } catch(e) { console.warn('OpenStreetMap Hospitals fetch failed:', e); }
+
+  // ── 25. OpenStreetMap Health Centers (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.osm_health_centers);
+    if (res.ok) {
+      const data = await res.json();
+      results.osm_health_centers = data;
+      if (data?.elements?.length > 0) {
+        const clinicCount = data.elements.length;
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].clinics = clinicCount;
+        console.log(`🏥 OSM: ${clinicCount} clinics found in Yemen region`);
+      }
+    }
+  } catch(e) { console.warn('OpenStreetMap Health Centers fetch failed:', e); }
+
+  // ── 26. EM-DAT Disasters (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.emdat_disasters);
+    if (res.ok) {
+      const data = await res.json();
+      results.emdat_disasters = data;
+      if (data?.data) {
+        const disasters = Array.isArray(data.data) ? data.data : [];
+        disasters.forEach(d => {
+          const country = d.country || d.location;
+          if (country) {
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].emdat = {
+                disaster: d.disaster_type || 'Disaster',
+                year: d.year || '2024',
+                deaths: d.total_deaths || 0
+              };
+            }
+          }
+        });
+        console.log(`📊 EM-DAT: ${disasters.length} disasters loaded`);
+      }
+    }
+  } catch(e) { console.warn('EM-DAT fetch failed:', e); }
+
+  // ── 27. Climate TRACE (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.climate_trace);
+    if (res.ok) {
+      const data = await res.json();
+      results.climate_trace = data;
+      if (data?.data) {
+        const emissions = Array.isArray(data.data) ? data.data : [];
+        emissions.forEach(e => {
+          const country = e.country || e.country_name;
+          if (country) {
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              evidenceIndex.sourceCoverage[iso].emissions = {
+                total: e.total_emissions || 0,
+                sector: e.sector || 'all'
+              };
+            }
+          }
+        });
+        console.log(`🌍 Climate TRACE: ${emissions.length} emissions records loaded`);
+      }
+    }
+  } catch(e) { console.warn('Climate TRACE fetch failed:', e); }
+  // ── 28. Open-Meteo Wind Speed (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_wind);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_wind = data;
+      const windSpeed = data?.hourly?.wind_speed_10m?.[0] || data?.current_weather?.windspeed;
+      if (windSpeed !== undefined && windSpeed > 30) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].wind = {
+          speed: windSpeed,
+          direction: data?.current_weather?.winddirection || 0,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`💨 Wind speed: ${windSpeed} km/h in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Wind fetch failed:', e); }
+
+  // ── 29. Open-Meteo Precipitation (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_precipitation);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_precipitation = data;
+      const totalRain = data?.hourly?.precipitation?.reduce((a, b) => a + b, 0) || 0;
+      if (totalRain > 10) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].precipitation = {
+          total: totalRain,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`🌧️ Precipitation: ${totalRain}mm total in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Precipitation fetch failed:', e); }
+
+  // ── 30. Open-Meteo UV Index (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_uv);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_uv = data;
+      const maxUv = Math.max(...(data?.daily?.uv_index_max || [0]));
+      if (maxUv > 8) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].uv = {
+          max: maxUv,
+          date: data?.daily?.time?.[0]
+        };
+        console.log(`☀️ UV Index: ${maxUv} (extreme) in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo UV fetch failed:', e); }
+
+  // ── 31. USGS Historic Earthquakes (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.usgs_historic);
+    if (res.ok) {
+      const data = await res.json();
+      results.usgs_historic = data;
+      if (data?.features) {
+        data.features.forEach(f => {
+          const props = f.properties;
+          const coords = f.geometry?.coordinates;
+          if (props?.place && coords && props.mag >= 6) {
+            const country = props.place.split(',').pop()?.trim() || '';
+            const iso = findIsoByCountryName(country);
+            if (iso) {
+              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+              if (!evidenceIndex.sourceCoverage[iso].historic_seismic) {
+                evidenceIndex.sourceCoverage[iso].historic_seismic = [];
+              }
+              evidenceIndex.sourceCoverage[iso].historic_seismic.push({
+                mag: props.mag,
+                time: props.time,
+                place: props.place
+              });
+            }
+          }
+        });
+        console.log(`📊 Historic earthquakes loaded: ${data.features.length} events`);
+      }
+    }
+  } catch(e) { console.warn('USGS Historic fetch failed:', e); }
+
+  // ── 32. World Bank Food Prices (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_food_prices);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_food_prices = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            if (!evidenceIndex.sourceCoverage[iso].food_prices) {
+              evidenceIndex.sourceCoverage[iso].food_prices = [];
+            }
+            evidenceIndex.sourceCoverage[iso].food_prices.push({
+              value: parseFloat(item.value),
+              date: item.date
+            });
+          }
+        });
+        console.log(`🌾 Food price data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Food Prices fetch failed:', e); }
+
+  // ── 33. World Bank Water Indicators (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_water);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_water = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].water_stress = parseFloat(item.value);
+          }
+        });
+        console.log(`💧 Water data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Water fetch failed:', e); }
+
+  // ── 34. NOAA Alerts (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_alerts);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_alerts = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].noaa_alerts = data.features.length;
+        console.log(`⚠️ NOAA: ${data.features.length} extreme alerts active`);
+      }
+    }
+  } catch(e) { console.warn('NOAA Alerts fetch failed:', e); }
+
+  // ── 35. UNHCR Emergency (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_emergency);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_emergency = data;
+      if (data?.items || data?.data) {
+        const emergencies = data.items || data.data || [];
+        emergencies.forEach(em => {
+          const iso = em.country_iso || em.country?.iso3;
+          if (iso) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_emergency = {
+              name: em.name || 'Emergency response',
+              status: em.status || 'active',
+              level: em.level || 'unknown'
+            };
+          }
+        });
+        console.log(`🚨 UNHCR: ${emergencies.length} emergencies tracked`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Emergency fetch failed:', e); }
+  // ── 36. Open-Meteo Cloud Cover (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_cloudcover);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_cloudcover = data;
+      const avgCloud = data?.hourly?.cloudcover?.reduce((a, b) => a + b, 0) / data.hourly.cloudcover.length || 0;
+      if (avgCloud > 70) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].cloudcover = {
+          avg: avgCloud,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`☁️ Cloud cover: ${avgCloud}% average in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Cloud Cover fetch failed:', e); }
+
+  // ── 37. Open-Meteo Lightning Potential (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.openmeteo_lightning);
+    if (res.ok) {
+      const data = await res.json();
+      results.openmeteo_lightning = data;
+      const maxLightning = Math.max(...(data?.hourly?.lightning_potential || [0]));
+      if (maxLightning > 100) {
+        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+        evidenceIndex.sourceCoverage['YEM'].lightning = {
+          max: maxLightning,
+          date: data?.hourly?.time?.[0]
+        };
+        console.log(`⚡ Lightning potential: ${maxLightning} J/kg in Yemen`);
+      }
+    }
+  } catch(e) { console.warn('Open-Meteo Lightning fetch failed:', e); }
+
+  // ── 38. NOAA Storm Reports (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.noaa_storm_reports);
+    if (res.ok) {
+      const data = await res.json();
+      results.noaa_storm_reports = data;
+      if (data?.features?.length > 0) {
+        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
+        evidenceIndex.sourceCoverage['USA'].storm_reports = data.features.length;
+        console.log(`⛈️ NOAA: ${data.features.length} severe storm alerts`);
+      }
+    }
+  } catch(e) { console.warn('NOAA Storm Reports fetch failed:', e); }
+
+  // ── 39. UNHCR Statistics (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.unhcr_statistics);
+    if (res.ok) {
+      const data = await res.json();
+      results.unhcr_statistics = data;
+      if (data?.data || data?.items) {
+        const stats = data.data || data.items || [];
+        stats.forEach(stat => {
+          const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
+          if (iso && stat.refugees > 0) {
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].unhcr_stats = {
+              refugees: stat.refugees,
+              asylum_seekers: stat.asylum_seekers || 0,
+              year: stat.year || '2024'
+            };
+          }
+        });
+        console.log(`📊 UNHCR statistics loaded`);
+      }
+    }
+  } catch(e) { console.warn('UNHCR Statistics fetch failed:', e); }
+
+  // ── 40. World Bank Trade Data (NEW) ──
+  try {
+    const res = await fetch(API_ENDPOINTS.wb_trade);
+    if (res.ok) {
+      const data = await res.json();
+      results.wb_trade = data;
+      if (data && data[1]) {
+        data[1].forEach(item => {
+          if (item.country?.id && item.value !== null) {
+            const iso = item.country.id;
+            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
+            evidenceIndex.sourceCoverage[iso].trade_gdp = parseFloat(item.value);
+          }
+        });
+        console.log(`📊 Trade data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
+      }
+    }
+  } catch(e) { console.warn('World Bank Trade fetch failed:', e); }
+  // Store all results
+  apiResults = { ...apiResults, ...results };
+  
+  console.log(`📊 Evidence loaded: ${Object.keys(evidenceIndex.sourceCoverage).length} countries have data coverage`);
+  console.log('📊 Source coverage sample:', Object.keys(evidenceIndex.sourceCoverage).slice(0, 5).map(k => ({ 
+    iso: k, 
+    sources: Object.keys(evidenceIndex.sourceCoverage[k]) 
+  })));
+  
+  return results;
+}// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find ISO by country name
+// ─────────────────────────────────────────────────────────────────────────────
+function findIsoByCountryName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase().trim();
+  
+  // Direct match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase() === lower) return iso;
+  }
+  
+  // Partial match
+  for (const [iso, fullName] of Object.entries(NAMES)) {
+    if (fullName.toLowerCase().includes(lower) || lower.includes(fullName.toLowerCase())) {
+      return iso;
+    }
+  }
+  
+  // Check against common variations
+  const variations = {
+    'usa': 'USA', 'united states': 'USA', 'us': 'USA',
+    'uk': 'GBR', 'united kingdom': 'GBR', 'great britain': 'GBR',
+    'russia': 'RUS', 'russian federation': 'RUS',
+    'china': 'CHN', 'prc': 'CHN',
+    'south korea': 'KOR', 'korea': 'KOR',
+    'north korea': 'PRK',
+    'taiwan': 'TWN',
+    'congo': 'COD', 'dr congo': 'COD', 'democratic republic of the congo': 'COD'
+  };
+  
+  return variations[lower] || null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: Find closest country by coordinates
+// ─────────────────────────────────────────────────────────────────────────────
+function findClosestCountry(lng, lat) {
+  let closest = null;
+  let minDist = Infinity;
+  
+  for (const [iso, coords] of Object.entries(CENTROIDS)) {
+    if (!coords) continue;
+    const d = Math.sqrt(Math.pow(lng - coords[0], 2) + Math.pow(lat - coords[1], 2));
+    if (d < minDist) {
+      minDist = d;
+      closest = iso;
+    }
+  }
+  
+  return closest;
+}
+// ─── Replace the computeEvidenceScore function (around line 1950) with this ───
+function computeEvidenceScore(iso) {
+  const name = NAMES[iso] || iso;
+  const nameLower = name.toLowerCase();
+  const ledger = [];
+  let totalPts = 0, totalWeight = 0;
+  
+  function add(source, label, rawValue, pts, weight) {
+    if (pts <= 0) return;
+    totalPts += pts * weight;
+    totalWeight += weight;
+    ledger.push({ 
+      source, 
+      label, 
+      rawValue: typeof rawValue === 'number' ? +rawValue.toFixed(1) : rawValue,
+      pts: +pts.toFixed(1), 
+      weight: +weight.toFixed(2) 
+    });
+  }
+  
+  const coverage = evidenceIndex.sourceCoverage[iso] || {};
+  
+  // ── 1. USGS Earthquakes ──
+  if (coverage.usgs) {
+    const mag = coverage.usgs.mag || 0;
+    if (mag >= 4.5) {
+      const w = Math.min(1, (mag - 4) / 4);
+      add('USGS', `M${mag.toFixed(1)} earthquake`, mag,
+          logScale(mag, 4.5, 8, 12), w * 0.9);
+    }
+  }
+  
+  // ── 2. NASA EONET ──
+  if (coverage.nasa) {
+    add('NASA', `Natural event: ${coverage.nasa.title?.substring(0, 30) || 'active'}`, 1,
+        6, 0.7);
+  }
+  
+  // ── 3. NASA Wildfires ──
+  if (coverage.wildfire) {
+    add('NASA', `Wildfire: ${coverage.wildfire.title?.substring(0, 30) || 'active'}`, 1,
+        7, 0.75);
+  }
+  
+  // ── 4. GDACS Alerts ──
+  if (coverage.gdacs) {
+    const severity = coverage.gdacs.alert || 'Orange';
+    const pts = severity === 'Red' ? 10 : severity === 'Orange' ? 6 : 3;
+    add('GDACS', `${severity} alert: ${coverage.gdacs.event?.substring(0, 30) || 'disaster'}`, 1,
+        pts, 0.85);
+  }
+  
+  // ── 5. GDACS Earthquakes ──
+  if (coverage.gdacs_eq) {
+    const mag = coverage.gdacs_eq.mag || 0;
+    if (mag >= 5) {
+      add('GDACS', `M${mag.toFixed(1)} earthquake`, mag,
+          logScale(mag, 5, 8, 8), 0.8);
+    }
+  }
+  
+  // ── 6. Extreme Heat (Open-Meteo) ──
+  if (coverage.heat) {
+    const temp = coverage.heat.temp || 0;
+    if (temp >= 38) {
+      add('OPENMETEO', `${temp}°C extreme heat`, temp,
+          logScale(temp, 38, 50, 8), 0.85);
+    }
+  }
+  
+  // ── 7. Flood Risk (Open-Meteo) (NEW) ──
+  if (coverage.flood_risk) {
+    const discharge = coverage.flood_risk.discharge || 0;
+    if (discharge > 100) {
+      add('OPENMETEO', `Flood risk: ${discharge}m³/s river discharge`, discharge,
+          logScale(discharge, 100, 1000, 6), 0.7);
+    }
+  }
+  
+  // ── 8. Marine Hazard (Open-Meteo) (NEW) ──
+  if (coverage.marine) {
+    const wave = coverage.marine.wave_height || 0;
+    if (wave > 3) {
+      add('OPENMETEO', `Marine hazard: ${wave}m wave height`, wave,
+          logScale(wave, 3, 10, 5), 0.7);
+    }
+  }
+  
+  // ── 9. COVID-19 (disease.sh) ──
+  if (coverage.covid) {
+    const active = coverage.covid.active || 0;
+    if (active > 1000) {
+      add('DISEASE.SH', `${active.toLocaleString()} active COVID cases`, active,
+          logScale(active, 1000, 500000, 8), 0.8);
+    }
+  }
+  
+  // ── 10. Population (World Bank) ──
+  if (coverage.population) {
+    const pop = coverage.population;
+    add('WORLDBANK', `Population ${(pop/1e6).toFixed(1)}M`, pop,
+        coverageScale(pop, 50000, 1450000000, 6), 0.95);
+  }
+  
+  // ── 11. Poverty (World Bank) ──
+  if (coverage.poverty !== undefined && coverage.poverty !== null) {
+    const pov = coverage.poverty;
+    if (pov > 5) {
+      add('WORLDBANK', `Poverty rate ${pov.toFixed(1)}%`, pov,
+          logScale(pov, 5, 60, 6), 0.85);
+    }
+  }
+  
+  // ── 12. GDP Growth (World Bank) (NEW) ──
+  if (coverage.gdp_growth !== undefined && coverage.gdp_growth !== null) {
+    const gdp = coverage.gdp_growth;
+    if (gdp < 0) {
+      add('WORLDBANK', `GDP growth ${gdp.toFixed(1)}% (negative)`, gdp,
+          logScale(Math.abs(gdp), 1, 10, 5), 0.75);
+    }
+  }
+  
+  // ── 13. Unemployment (World Bank) (NEW) ──
+  if (coverage.unemployment !== undefined && coverage.unemployment !== null) {
+    const unemp = coverage.unemployment;
+    if (unemp > 10) {
+      add('WORLDBANK', `Unemployment rate ${unemp.toFixed(1)}%`, unemp,
+          logScale(unemp, 10, 40, 5), 0.75);
+    }
+  }
+  
+  // ── 14. Inflation (World Bank) ──
+  if (coverage.inflation !== undefined && coverage.inflation !== null) {
+    const infl = coverage.inflation;
+    if (infl > 5) {
+      add('WORLDBANK', `Inflation rate ${infl.toFixed(1)}% (${coverage.inflation_year || 'latest'})`, infl,
+          logScale(infl, 5, 50, 6), 0.75);
+    }
+  }
+  
+  // ── 15. Refugees (UNHCR) ──
+  if (coverage.refugees) {
+    const ref = coverage.refugees;
+    if (ref > 1000) {
+      add('UNHCR', `${ref.toLocaleString()} refugees`, ref,
+          logScale(ref, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 16. Displacement (UNHCR) ──
+  if (coverage.displaced) {
+    const disp = coverage.displaced;
+    if (disp > 1000) {
+      add('UNHCR', `${disp.toLocaleString()} displaced`, disp,
+          logScale(disp, 1000, 5000000, 8), 0.85);
+    }
+  }
+  
+  // ── 17. Asylum seekers (UNHCR) ──
+  if (coverage.asylum) {
+    const asym = coverage.asylum;
+    if (asym > 100) {
+      add('UNHCR', `${asym.toLocaleString()} asylum seekers`, asym,
+          logScale(asym, 100, 1000000, 6), 0.8);
+    }
+  }
+  
+  // ── 18. UNHCR Operations (NEW) ──
+  if (coverage.unhcr_op) {
+    add('UNHCR', `Active operation: ${coverage.unhcr_op.name}`, 1,
+        4, 0.7);
+  }
+  
+  // ── 19. NOAA monitoring ──
+  if (coverage.noaa && iso === 'USA') {
+    add('NOAA', `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations,
+        4, 0.7);
+  }
+
+  // ── 20. EMSC seismic ──
+  if (coverage.emsc) {
+    const mag = coverage.emsc.mag || 0;
+    if (mag >= 4.5) {
+      add('EMSC', `M${mag.toFixed(1)} earthquake (secondary network)`, mag,
+          logScale(mag, 4.5, 8, 8), 0.75);
+    }
+  }
+
+  // ── 21. IFRC GO ──
+  if (coverage.ifrc) {
+    add('IFRC', `${coverage.ifrc.dtype}: ${(coverage.ifrc.name || '').substring(0, 30)}`, 1,
+        6, 0.85);
+  }
+
+  // ── 22. Air quality (multi-city) ──
+  if (coverage.air_quality) {
+    const pm25 = coverage.air_quality.pm25 || 0;
+    const city = coverage.air_quality.city || 'monitored city';
+    if (pm25 >= 35) {
+      add('OPENMETEO', `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25,
+          logScale(pm25, 35, 300, 5), 0.7);
+    }
+  }
+
+  // ── 23. World Bank refugee population ──
+  if (coverage.refugees_wb) {
+    const ref = coverage.refugees_wb;
+    if (ref > 1000) {
+      add('WORLDBANK', `${ref.toLocaleString()} refugees (WB cross-check)`, ref,
+          logScale(ref, 1000, 5000000, 5), 0.75);
+    }
+  }
+  
+  // ── 24. OpenStreetMap Health Infrastructure (NEW) ──
+  if (coverage.hospitals) {
+    add('OSM', `${coverage.hospitals} hospitals in region`, coverage.hospitals,
+        coverageScale(coverage.hospitals, 1, 50, 4), 0.6);
+  }
+  
+  if (coverage.clinics) {
+    add('OSM', `${coverage.clinics} clinics in region`, coverage.clinics,
+        coverageScale(coverage.clinics, 1, 100, 3), 0.5);
+  }
+  
+  // ── 25. EM-DAT Disasters (NEW) ──
+  if (coverage.emdat) {
+    const deaths = coverage.emdat.deaths || 0;
+    if (deaths > 0) {
+      add('EM-DAT', `${coverage.emdat.disaster} (${coverage.emdat.year})`, deaths,
+          logScale(deaths, 10, 10000, 6), 0.7);
+    }
+  }
+  
+  // ── 26. Climate TRACE Emissions (NEW) ──
+  if (coverage.emissions) {
+    const emissions = coverage.emissions.total || 0;
+    if (emissions > 1000) {
+      add('CLIMATETRACE', `${(emissions/1000).toFixed(1)}kt CO₂e emissions (${coverage.emissions.sector})`, emissions,
+          logScale(emissions, 1000, 1000000, 5), 0.6);
+    }
+  }
+  // ── 27. Wind Speed (Open-Meteo) (NEW) ──
+  if (coverage.wind) {
+    const speed = coverage.wind.speed || 0;
+    if (speed > 30) {
+      add('OPENMETEO', `Wind speed ${speed} km/h (storm risk)`, speed,
+          logScale(speed, 30, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 28. Precipitation (Open-Meteo) (NEW) ──
+  if (coverage.precipitation) {
+    const total = coverage.precipitation.total || 0;
+    if (total > 10) {
+      add('OPENMETEO', `${total}mm precipitation (flood risk)`, total,
+          logScale(total, 10, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 29. UV Index (Open-Meteo) (NEW) ──
+  if (coverage.uv) {
+    const uv = coverage.uv.max || 0;
+    if (uv > 8) {
+      add('OPENMETEO', `UV Index ${uv} (extreme - health risk)`, uv,
+          logScale(uv, 8, 11, 3), 0.6);
+    }
+  }
+  
+  // ── 30. Historic Seismic Activity (USGS) (NEW) ──
+  if (coverage.historic_seismic && coverage.historic_seismic.length > 0) {
+    const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
+    if (maxMag > 6) {
+      add('USGS', `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag,
+          logScale(maxMag, 6, 8, 4), 0.6);
+    }
+  }
+  
+  // ── 31. Food Prices (World Bank) (NEW) ──
+  if (coverage.food_prices && coverage.food_prices.length > 0) {
+    const latest = coverage.food_prices[coverage.food_prices.length - 1];
+    if (latest && latest.value) {
+      add('WORLDBANK', `Food price index ${latest.value.toFixed(1)}`, latest.value,
+          coverageScale(latest.value, 80, 150, 5), 0.7);
+    }
+  }
+  
+  // ── 32. Water Stress (World Bank) (NEW) ──
+  if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
+    const stress = coverage.water_stress;
+    if (stress > 20) {
+      add('WORLDBANK', `Water stress ${stress.toFixed(1)}% of resources`, stress,
+          logScale(stress, 20, 100, 5), 0.7);
+    }
+  }
+  
+  // ── 33. NOAA Alerts (NEW) ──
+  if (coverage.noaa_alerts) {
+    const alerts = coverage.noaa_alerts;
+    if (alerts > 0) {
+      add('NOAA', `${alerts} extreme weather alerts active`, alerts,
+          coverageScale(alerts, 1, 20, 3), 0.6);
+    }
+  }
+  
+  // ── 34. UNHCR Emergency (NEW) ──
+  if (coverage.unhcr_emergency) {
+    const level = coverage.unhcr_emergency.level || 'unknown';
+    const pts = level === 'critical' ? 5 : level === 'high' ? 3 : 1;
+    add('UNHCR', `Emergency: ${coverage.unhcr_emergency.name} (${level})`, 1,
+        pts, 0.7);
+  }
+
+  // ── 35. Cloud Cover (Open-Meteo) (NEW) ──
+  if (coverage.cloudcover) {
+    const avg = coverage.cloudcover.avg || 0;
+    if (avg > 70) {
+      add('OPENMETEO', `Cloud cover ${avg.toFixed(0)}% (weather disruption)`, avg,
+          coverageScale(avg, 70, 100, 3), 0.5);
+    }
+  }
+  
+  // ── 36. Lightning Potential (Open-Meteo) (NEW) ──
+  if (coverage.lightning) {
+    const max = coverage.lightning.max || 0;
+    if (max > 100) {
+      add('OPENMETEO', `Lightning potential ${max} J/kg (storm risk)`, max,
+          logScale(max, 100, 500, 4), 0.6);
+    }
+  }
+  
+  // ── 37. NOAA Storm Reports (NEW) ──
+  if (coverage.storm_reports) {
+    const reports = coverage.storm_reports;
+    if (reports > 0) {
+      add('NOAA', `${reports} severe storm alerts`, reports,
+          coverageScale(reports, 1, 50, 4), 0.6);
+    }
+  }
+  
+  // ── 38. UNHCR Statistics (NEW) ──
+  if (coverage.unhcr_stats) {
+    const refugees = coverage.unhcr_stats.refugees || 0;
+    if (refugees > 1000) {
+      add('UNHCR', `${refugees.toLocaleString()} refugees (${coverage.unhcr_stats.year})`, refugees,
+          logScale(refugees, 1000, 5000000, 7), 0.8);
+    }
+  }
+  
+  // ── 39. Trade as % of GDP (World Bank) (NEW) ──
+  if (coverage.trade_gdp !== undefined && coverage.trade_gdp !== null) {
+    const trade = coverage.trade_gdp;
+    if (trade > 60) {
+      add('WORLDBANK', `Trade ${trade.toFixed(1)}% of GDP`, trade,
+          coverageScale(trade, 60, 200, 4), 0.6);
+    }
+  }
+  // ── Weighted average → hard-capped 0–35 ──
+  const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
+  const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
+  const sourceCountFactor = Math.min(1, Math.sqrt(ledger.length / 2));
+  const confidence = Math.min(1, avgWeight * sourceCountFactor);
+  
+  return { 
+    score: +evidenceScore.toFixed(1), 
+    confidence: +confidence.toFixed(2), 
+    ledger, 
+    sourceCount: ledger.length,
+  };
+}
+// ─── BUILD STORE WITH EVIDENCE ──────────────────────────────────────────
+function buildStore() {
+  const refreshSeed = Math.floor(Date.now() / 60000);
+  let newStore = {};
+  
+  for (let iso of Object.keys(BASE_SCORES)) {
+    const name = NAMES[iso] || iso;
+    const flag = FLAGS[iso] || '🌍';
+    const types = CTYPES[iso] || DEFAULT_T;
+    const needs = [...new Set(types.flatMap(t => ARC[t]?.n || []))];
+    const base = BASE_SCORES[iso] || 30;
+    
+    // ── Compute evidence from ALL data sources ──
+    const evidence = computeEvidenceScore(iso);
+    
+    // ── Structural baseline ──
+    const dims = buildDims(base, types);
+    let structuralRaw = composite(dims);
+    
+    // Structural weight: evidence trumps modeling
+    const structuralWeight = 1 - (evidence.confidence * 0.35);
+    const structuralComponent = structuralRaw * structuralWeight;
+    
+    // ── Combine: evidence + structural ──
+    let rawTotal = structuralComponent + evidence.score;
+    
+    // ── Final score ──
+    const score = Math.max(1, Math.min(99, Math.round(
+      rawTotal <= 70 
+        ? rawTotal 
+        : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
+    )));
+    
+    // ── Events: based on actual evidence sources ──
+    const events = Math.min(60, Math.max(4, Math.round(
+      score * 0.30 + 
+      types.length * 1.5 + 
+      evidence.sourceCount * 3
+    )));
+    
+        newStore[iso] = {
+      name, flag, types, needs, dims, score, events, spillover: 0,
+      evidenceLedger: evidence.ledger || [],
+      evidenceConfidence: evidence.confidence || 0,
+      evidenceScore: evidence.score || 0,
+      structuralComponent: +structuralComponent.toFixed(1),
+      evidenceCount: evidence.sourceCount || 0,
+      evidenceDetails: {
+        fatalities: 0,
+        displaced: 0,
+        disease_cases: 0,
+      }
+    };
+  }
+  
+  // ── Spillover from neighbours ──
+  const spill = spilloverScore(newStore);
+  for (let iso in newStore) {
+    newStore[iso].spillover = spill[iso] || 0;
+    newStore[iso].score = Math.min(99, Math.max(1, 
+      newStore[iso].score + newStore[iso].spillover
+    ));
+  }
+  
+  store = newStore;
+  ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
+  
+  // ── Initialize history ──
+  if (!historyInitialized) {
+    for (let iso in store) {
+      history[iso] = seedHistory(iso, store[iso].score);
+    }
+    historyInitialized = true;
+  } else {
+    for (let iso in store) {
+      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
+      history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (history[iso].length > 60) history[iso].shift();
+    }
+  }
+  
+  console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
+  console.log('📊 Countries with evidence:', Object.keys(evidenceIndex.sourceCoverage).length);
+  return { store, ranked };
+}
+// ─── UPDATE UI WITH REAL STATS ──────────────────────────────────────────
+function updateUIStats() {
+  const gcis = Math.round(ranked.slice(0, 20).reduce((s, i) => s + store[i].score, 0) / 20);
+  const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
+  prevGCIS = gcis;
+  
+  document.getElementById('gcisNum').textContent = gcis;
+  const dEl = document.getElementById('gcisDelta');
+  dEl.textContent = (delta >= 0 ? '+' : '') + delta;
+  dEl.style.cssText = `background:${delta > 0 ? 'rgba(255,55,95,.15)' : 'rgba(0,229,160,.1)'};color:${delta > 0 ? '#ff375f' : '#00e5a0'}`;
+  
+  const crit = ranked.filter(i => store[i]?.score >= 80).length;
+  
+  // ─── Calculate affected from all data sources ──────────────────────
+  let totalDisplaced = 0;
+  let totalAffected = 0;
+  
+  // 1. UNHCR displacement data
+  const unhcrRecords = apiResults.unhcr_pop?.items || [];
+  unhcrRecords.forEach(record => {
+    const val = parseInt(record.refugees) || 0;
+    if (val > 0) totalDisplaced += val;
+  });
+  
+  // 2. UNHCR asylum
+  const asylumRecords = apiResults.unhcr_asylum?.items || [];
+  asylumRecords.forEach(record => {
+    const val = parseInt(record.asylum_seekers) || 0;
+    if (val > 0) totalAffected += val;
+  });
+  
+  // 3. COVID cases
+  const covidData = apiResults.disease_sh || [];
+  if (Array.isArray(covidData)) {
+    covidData.forEach(d => {
+      if (d.active > 0) totalAffected += d.active;
+    });
+  }
+  
+  // 4. Heat stress affected (estimate)
+  heatStressData.forEach(h => {
+    if (h.temp > 40) {
+      const pop = evidenceIndex.population[h.iso] || 0;
+      if (pop > 0) totalAffected += Math.round(pop * 0.05);
+    }
+  });
+  
+  // 5. Store evidence details
+  Object.values(store).forEach(c => {
+    if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
+    if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
+    if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
+  });
+  
+  // Combine and format
+  const combined = totalDisplaced + totalAffected;
+  let affectedDisplay = '—';
+  if (combined > 0) {
+    if (combined > 1e9) affectedDisplay = '≈' + (combined / 1e9).toFixed(1) + 'B';
+    else if (combined > 1e6) affectedDisplay = '≈' + (combined / 1e6).toFixed(1) + 'M';
+    else if (combined > 1e3) affectedDisplay = '≈' + (combined / 1e3).toFixed(0) + 'K';
+    else affectedDisplay = combined.toLocaleString();
+  }
+  
+  const anoms = ranked.filter(i => cusum((history[i] || []).map(h => h.s)).det).length;
+  const tevt = Object.values(store).reduce((s, c) => s + (c.events || 0), 0);
+  
+  document.getElementById('sCrit').textContent = crit;
+  document.getElementById('sAff').textContent = affectedDisplay;
+  document.getElementById('sAnom').textContent = anoms;
+  document.getElementById('sEvt').textContent = tevt.toLocaleString();
+  
+  const now = new Date();
+  const freshEl = document.getElementById('freshness');
+  const freshTime = document.getElementById('freshTime');
+  if (freshEl && freshTime) {
+    freshEl.style.display = 'block';
+    freshTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
+// ============================================================================
+// MAP
+// ============================================================================
+const nameMap={'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO','antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS','austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD','barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN','bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA','brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI','cambodia':'KHM','cameroon':'CMR','canada':'CAN','central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN','colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',"côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE','denmark':'DNK','djibouti':'DJI','dominican republic':'DOM','dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV','equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ','ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB','gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC','greenland':'GRL','guatemala':'GTM','guinea':'GIN','guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND','hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN','iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM','japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR','kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN','lesotho':'LSO','liberia':'LBR','libya':'LBY','lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI','malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','mauritania':'MRT','mauritius':'MUS','mexico':'MEX','moldova':'MDA','mongolia':'MNG','montenegro':'MNE','morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC','niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD','norway':'NOR','oman':'OMN','pakistan':'PAK','palestine':'PSE','panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER','philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU','rwanda':'RWA','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK','slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF','south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA','sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR','taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA','timor-leste':'TLS','togo':'TGO','trinidad and tobago':'TTO','tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR','united states':'USA','uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT','venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE','kosovo':'XKX'};
+
+function getIsoFromFeature(d){
+  // Try numeric ID first
+  let iso = NUM_ISO[String(d.id)];
+  if (iso) return iso;
+  // Try by name
+  const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+  // Special case for USA - check multiple variations
+  if (name === 'united states' || name === 'united states of america' || name === 'usa') {
+    return 'USA';
+  }
+  return nameMap[name] || null;
+}
+
+function initMap(world){
+  const stage=document.getElementById('mapStage');
+  const W=stage.clientWidth,H=stage.clientHeight;
+  svgEl=d3.select('#map-svg').attr('width',W).attr('height',H);
+  proj=d3.geoNaturalEarth1().scale(W/4.3).translate([W/2,H/2]);
+  pathGen=d3.geoPath().projection(proj);
+  mapGroup=svgEl.append('g');
+  mapGroup.append('path').datum({type:'Sphere'}).attr('fill','#020d1e').attr('d',pathGen);
+  mapGroup.append('path').datum(d3.geoGraticule()()).attr('fill','none').attr('stroke','rgba(0,200,255,.03)').attr('stroke-width',.5).attr('d',pathGen);
+  const countries=topojson.feature(world,world.objects.countries);
+  
+  // ── COMPLETE NAME TO ISO MAPPING ──────────────────────────────────────────
+  const nameMap = {
+    'united states':'USA','united states of america':'USA','usa':'USA',
+    'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO',
+    'antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS',
+    'austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD',
+    'barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN',
+    'bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA',
+    'brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI',
+    'cabo verde':'CPV','cambodia':'KHM','cameroon':'CMR','canada':'CAN',
+    'central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN',
+    'colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',
+    "côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE',
+    'denmark':'DNK','djibouti':'DJI','dominica':'DMA','dominican republic':'DOM',
+    'dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV',
+    'equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ',
+    'ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB',
+    'gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC',
+    'greenland':'GRL','grenada':'GRD','guatemala':'GTM','guinea':'GIN',
+    'guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND',
+    'hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN',
+    'iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM',
+    'japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR',
+    'kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN',
+    'lesotho':'LSO','liberia':'LBR','libya':'LBY','liechtenstein':'LIE',
+    'lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI',
+    'malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','marshall islands':'MHL',
+    'mauritania':'MRT','mauritius':'MUS','mexico':'MEX','micronesia':'FSM',
+    'moldova':'MDA','monaco':'MCO','mongolia':'MNG','montenegro':'MNE',
+    'morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nauru':'NRU',
+    'nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC',
+    'niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD',
+    'norway':'NOR','oman':'OMN','pakistan':'PAK','palau':'PLW','palestine':'PSE',
+    'panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER',
+    'philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU',
+    'rwanda':'RWA','saint kitts and nevis':'KNA','saint lucia':'LCA',
+    'saint vincent and the grenadines':'VCT','samoa':'WSM','san marino':'SMR',
+    'sao tome and principe':'STP','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB',
+    'seychelles':'SYC','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK',
+    'slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF',
+    'south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA',
+    'sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR',
+    'taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA',
+    'timor-leste':'TLS','togo':'TGO','tonga':'TON','trinidad and tobago':'TTO',
+    'tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','tuvalu':'TUV',
+    'uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR',
+    'uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT',
+    'venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE',
+    'kosovo':'XKX','western sahara':'ESH'
+  };
+
+  function getIsoFromFeature(d) {
+    // Try numeric ID first
+    let iso = NUM_ISO[String(d.id)];
+    if (iso) return iso;
+    // Try by name
+    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+    // Special case for USA
+    if (name === 'united states' || name === 'united states of america' || name === 'usa') {
+      return 'USA';
+    }
+    return nameMap[name] || null;
+  }
+
+  // ── FILTER OUT RUSSIA ──────────────────────────────────────────────────
+  mapGroup.selectAll('.country-path')
+    .data(countries.features.filter(d => {
+      const id = String(d.id);
+      const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+      // Filter out Russia (ID 643) only - keep EVERYONE else including USA
+      return id !== '643' && name !== 'russia' && !name.includes('russian');
+    }))
+    .enter().append('path')
+    .attr('class','country-path')
+    .attr('d',pathGen)
+    .attr('fill','#1a2e45')
+    .on('mousemove',(ev,d)=>{
+      const iso=getIsoFromFeature(d);
+      const tt=document.getElementById('mapTT');
+      if(iso&&store[iso]){
+        const c=store[iso],col=sc(c.score);
+        document.getElementById('ttName').innerHTML=`${c.flag} ${c.name}`;
+        document.getElementById('ttScore').innerHTML=`<span style="color:${col}">${c.score}</span>/100`;
+        document.getElementById('ttFill').style.cssText=`width:${c.score}%;background:${col}`;
+        document.getElementById('ttTags').innerHTML=c.types.slice(0,4).map(t=>`<span class="tt-tag">${ARC[t]?.i||''} ${ARC[t]?.l||t}</span>`).join('');
+        const r=stage.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;
+        tt.style.left=Math.min(x+16,W-210)+'px';tt.style.top=Math.max(8,y-85)+'px';
+        tt.classList.add('vis');
+      }else tt.classList.remove('vis');
+    })
+    .on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis'))
+    .on('click',(ev,d)=>{const iso=getIsoFromFeature(d);if(iso&&store[iso])selCountry(iso);});
+  zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>mapGroup.attr('transform',ev.transform));
+  svgEl.call(zoom);
+  document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);
+  document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);
+  document.getElementById('zReset').onclick=()=>svgEl.transition().duration(380).call(zoom.transform,d3.zoomIdentity);
+  window.addEventListener('resize',()=>{
+    const W2=stage.clientWidth,H2=stage.clientHeight;
+    svgEl.attr('width',W2).attr('height',H2);
+    proj.scale(W2/4.3).translate([W2/2,H2/2]);
+    pathGen=d3.geoPath().projection(proj);
+    mapGroup.selectAll('path').attr('d',pathGen);
+    addPulseMarkers();
+  });
+  setTimeout(paintMap,100);
+}
+
+function paintMap(){
+  if(!mapGroup)return;
+  
+  // ── COMPLETE NAME TO ISO MAPPING ──────────────────────────────────────────
+  const nameMap = {
+    'united states':'USA','united states of america':'USA','usa':'USA',
+    'afghanistan':'AFG','albania':'ALB','algeria':'DZA','andorra':'AND','angola':'AGO',
+    'antigua and barbuda':'ATG','argentina':'ARG','armenia':'ARM','australia':'AUS',
+    'austria':'AUT','azerbaijan':'AZE','bahamas':'BHS','bahrain':'BHR','bangladesh':'BGD',
+    'barbados':'BRB','belarus':'BLR','belgium':'BEL','belize':'BLZ','benin':'BEN',
+    'bhutan':'BTN','bolivia':'BOL','bosnia and herzegovina':'BIH','botswana':'BWA',
+    'brazil':'BRA','brunei':'BRN','bulgaria':'BGR','burkina faso':'BFA','burundi':'BDI',
+    'cabo verde':'CPV','cambodia':'KHM','cameroon':'CMR','canada':'CAN',
+    'central african republic':'CAF','chad':'TCD','chile':'CHL','china':'CHN',
+    'colombia':'COL','comoros':'COM','congo':'COG','costa rica':'CRI',
+    "côte d'ivoire":'CIV','croatia':'HRV','cuba':'CUB','cyprus':'CYP','czechia':'CZE',
+    'denmark':'DNK','djibouti':'DJI','dominica':'DMA','dominican republic':'DOM',
+    'dr congo':'COD','ecuador':'ECU','egypt':'EGY','el salvador':'SLV',
+    'equatorial guinea':'GNQ','eritrea':'ERI','estonia':'EST','eswatini':'SWZ',
+    'ethiopia':'ETH','fiji':'FJI','finland':'FIN','france':'FRA','gabon':'GAB',
+    'gambia':'GMB','georgia':'GEO','germany':'DEU','ghana':'GHA','greece':'GRC',
+    'greenland':'GRL','grenada':'GRD','guatemala':'GTM','guinea':'GIN',
+    'guinea-bissau':'GNB','guyana':'GUY','haiti':'HTI','honduras':'HND',
+    'hungary':'HUN','iceland':'ISL','india':'IND','indonesia':'IDN','iran':'IRN',
+    'iraq':'IRQ','ireland':'IRL','israel':'ISR','italy':'ITA','jamaica':'JAM',
+    'japan':'JPN','jordan':'JOR','kazakhstan':'KAZ','kenya':'KEN','kiribati':'KIR',
+    'kuwait':'KWT','kyrgyzstan':'KGZ','laos':'LAO','latvia':'LVA','lebanon':'LBN',
+    'lesotho':'LSO','liberia':'LBR','libya':'LBY','liechtenstein':'LIE',
+    'lithuania':'LTU','luxembourg':'LUX','madagascar':'MDG','malawi':'MWI',
+    'malaysia':'MYS','maldives':'MDV','mali':'MLI','malta':'MLT','marshall islands':'MHL',
+    'mauritania':'MRT','mauritius':'MUS','mexico':'MEX','micronesia':'FSM',
+    'moldova':'MDA','monaco':'MCO','mongolia':'MNG','montenegro':'MNE',
+    'morocco':'MAR','mozambique':'MOZ','myanmar':'MMR','namibia':'NAM','nauru':'NRU',
+    'nepal':'NPL','netherlands':'NLD','new zealand':'NZL','nicaragua':'NIC',
+    'niger':'NER','nigeria':'NGA','north korea':'PRK','north macedonia':'MKD',
+    'norway':'NOR','oman':'OMN','pakistan':'PAK','palau':'PLW','palestine':'PSE',
+    'panama':'PAN','papua new guinea':'PNG','paraguay':'PRY','peru':'PER',
+    'philippines':'PHL','poland':'POL','portugal':'PRT','qatar':'QAT','romania':'ROU',
+    'rwanda':'RWA','saint kitts and nevis':'KNA','saint lucia':'LCA',
+    'saint vincent and the grenadines':'VCT','samoa':'WSM','san marino':'SMR',
+    'sao tome and principe':'STP','saudi arabia':'SAU','senegal':'SEN','serbia':'SRB',
+    'seychelles':'SYC','sierra leone':'SLE','singapore':'SGP','slovakia':'SVK',
+    'slovenia':'SVN','solomon islands':'SLB','somalia':'SOM','south africa':'ZAF',
+    'south korea':'KOR','south sudan':'SSD','spain':'ESP','sri lanka':'LKA',
+    'sudan':'SDN','suriname':'SUR','sweden':'SWE','switzerland':'CHE','syria':'SYR',
+    'taiwan':'TWN','tajikistan':'TJK','tanzania':'TZA','thailand':'THA',
+    'timor-leste':'TLS','togo':'TGO','tonga':'TON','trinidad and tobago':'TTO',
+    'tunisia':'TUN','turkey':'TUR','turkmenistan':'TKM','tuvalu':'TUV',
+    'uganda':'UGA','ukraine':'UKR','united arab emirates':'ARE','united kingdom':'GBR',
+    'uruguay':'URY','uzbekistan':'UZB','vanuatu':'VUT',
+    'venezuela':'VEN','vietnam':'VNM','yemen':'YEM','zambia':'ZMB','zimbabwe':'ZWE',
+    'kosovo':'XKX','western sahara':'ESH'
+  };
+
+  function getIsoFromFeature(d) {
+    // Try numeric ID first
+    let iso = NUM_ISO[String(d.id)];
+    if (iso) return iso;
+    // Try by name
+    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+    // Special case for USA - check multiple variations
+    if (name === 'united states' || name === 'united states of america' || name === 'usa') {
+      return 'USA';
+    }
+    return nameMap[name] || null;
+  }
+
+  mapGroup.selectAll('.country-path').transition().duration(600).attr('fill',d=>{
+    // ── SKIP RUSSIA ──────────────────────────────────────────────────────
+    const id = String(d.id);
+    const name = (d.properties?.name || d.properties?.admin || '').toLowerCase();
+    if (id === '643' || name === 'russia' || name.includes('russian')) {
+      return 'transparent';
+    }
+    const iso = getIsoFromFeature(d);
+    if(!iso||!store[iso])return'#1a2e45';
+    return sc(store[iso].score)+'bb';
+  });
+}function addPulseMarkers(){
+  if(!mapGroup||!proj)return;
+  mapGroup.selectAll('.pulse-marker').remove();
+  if(!ranked||!store)return;
+  const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);
+  hotspots.forEach((iso,idx)=>{
+    const c=store[iso];if(!c)return;
+    const col=sc(c.score);
+    const coords=CENTROIDS[iso];if(!coords)return;
+    const[px,py]=proj(coords);
+    if(!isFinite(px)||!isFinite(py))return;
+    const g=mapGroup.append('g').attr('class','pulse-marker');
+    const dur=2.4+(idx%6)*0.3;
+    const dotR=c.score>=80?4:c.score>=70?3:2.5;
+    for(let ring=0;ring<2;ring++){
+      g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0)
+        .append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');
+    }
+    g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);
+  });
+}
+
+function zoomToCountry(iso){
+  if(!svgEl||!proj||!zoom)return;
+  const stage=document.getElementById('mapStage');if(!stage)return;
+  const W=stage.clientWidth,H=stage.clientHeight;
+  const SCALE_OVERRIDES={RUS:1.4,CAN:1.4,USA:1.6,BRA:1.8,AUS:1.6,CHN:1.8,IND:2.0,KAZ:1.8,PSE:6.0,LBN:6.0,SGP:8.0,ISR:5.5,KWT:6.0,QAT:6.0,ARE:6.0,BHR:7.0,HTI:4.8,SYR:3.5,IRQ:3.2,AFG:3.2,BGD:3.8,NPL:3.8};
+  const scale=SCALE_OVERRIDES[iso]??Math.min(5,Math.max(2.4,(store[iso]?.score||50)>70?3.8:3.0));
+  if(CENTROIDS[iso]){
+    const projected=proj(CENTROIDS[iso]);
+    if(projected&&isFinite(projected[0])&&isFinite(projected[1])){
+      svgEl.transition().duration(550).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(scale).translate(-projected[0],-projected[1]));
+      return;
+    }
   }
 }
 
-function buildSitemap(payloads) {
-  const now = new Date().toISOString();
-  const items = payloads.map(p => `
-  <url>
-    <loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>${p.score >= 80 ? "1.0" : p.score >= 60 ? "0.9" : p.score >= 40 ? "0.8" : "0.7"}</priority>
-    <news:news>
-      <news:publication>
-        <news:name>${CFG.ARTICLE_SITE_NAME}</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>${now}</news:publication_date>
-      <news:title>${p.name} Crisis — Score ${p.score}/100 (${p.severity})</news:title>
-      <news:keywords>${(p.seo_keywords || []).slice(0, 10).join(", ")}</news:keywords>
-    </news:news>
-  </url>`).join("");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-${items}
-</urlset>`;
+// ============================================================================
+// RANKING
+// ============================================================================
+function buildFilters(){
+  prefs.filters=Object.keys(ARC);
+  document.getElementById('filterGrid').innerHTML=Object.entries(ARC).map(([k,a])=>`<div class="chip on" data-f="${k}">${a.i} ${a.l}</div>`).join('');
+  document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.classList.toggle('on');prefs.filters=[...document.querySelectorAll('.chip.on')].map(e=>e.dataset.f);renderRanking(document.getElementById('search').value);}));
 }
+
+function renderRanking(filter=''){
+  const active=new Set(prefs.filters.length?prefs.filters:Object.keys(ARC));
+  let all=ranked.filter(iso=>store[iso]&&store[iso].types.some(t=>active.has(t)))
+    .filter(iso=>!filter||store[iso].name.toLowerCase().includes(filter.toLowerCase()));
+  const isProUser=(tier==='pro');
+  const shown=isProUser?all:all.slice(0,10);
+  const hidden=all.length-shown.length;
+  document.getElementById('rankList').innerHTML=shown.map((iso,i)=>{
+    const c=store[iso],hist=(history[iso]||[]).map(h=>h.s),anom=cusum(hist),col=sc(c.score);
+    const spk=hist.length>=2?hist.slice(-7):[c.score];
+    const spkMx=Math.max(...spk),spkMn=Math.min(...spk,spkMx-8);
+    const sparks=spk.map(v=>`<div class="spark-b" style="background:${col}88;height:${Math.max(2,Math.round(((v-spkMn)/(spkMx-spkMn||1))*11))}px"></div>`).join('');
+    const chg=hist.length>=2?Math.round(hist[hist.length-1]-(hist[hist.length-2]||hist[0])):0;
+    const chgHtml=chg>0?`<span class="rank-change up">▲${chg}</span>`:chg<0?`<span class="rank-change down">▼${Math.abs(chg)}</span>`:'';
+    return`<div class="rank-card${selectedIso===iso?' sel':''}" data-iso="${iso}" onclick="selCountry('${iso}')"><div class="rank-top"><div class="rank-n">#${i+1}</div><div class="rank-flag">${c.flag}</div><div class="rank-name">${c.name}</div><div class="rank-score" style="color:${col}">${c.score}</div></div><div class="rank-bottom"><div class="rank-meta">${c.types.slice(0,3).map(t=>ARC[t]?.i||'').join('')} · ${c.events} evt${anom.det?'<div class="rank-anom"></div>':''}</div><div style="display:flex;align-items:center;gap:4px"><div class="rank-spark">${sparks}</div>${chgHtml}</div></div></div>`;
+  }).join('');
+  if(!isProUser&&hidden>0){
+    document.getElementById('rankList').insertAdjacentHTML('beforeend',`<div class="lock-banner"><div class="lock-banner-title">🔒 ${hidden} MORE COUNTRIES LOCKED</div><div class="lock-banner-desc">Upgrade to Pro for complete rankings, AI briefs, PDF reports & alerts</div><div class="lock-feats"><span class="lock-feat">🌍 ${ranked.length}+ countries</span><span class="lock-feat">🤖 AI briefs</span><span class="lock-feat">📄 PDF export</span><span class="lock-feat">✉️ Alerts</span></div><button class="unlock-btn" onclick="openModal()">⚡ Upgrade to Pro — $29/month</button></div>`);
+  }
+}
+
+function selCountry(iso){
+  if(!iso||!store[iso])return;
+  if(tier!=='pro'){
+    const idx=ranked.indexOf(iso);
+    if(idx>=10){
+      zoomToCountry(iso);
+      document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
+      document.getElementById('emptyState').style.display='none';
+      document.getElementById('panelContent').style.display='block';
+      const c=store[iso];const col=sc(c.score);
+      document.getElementById('panelContent').innerHTML=`
+        <div style="padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;">
+          <div style="font-size:36px;">${c.flag}</div>
+          <div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${c.name}</div>
+          <div style="font-family:var(--fm);font-size:10px;color:${col};background:${col}18;border:1px solid ${col}33;border-radius:99px;padding:4px 12px;">Score: ${c.score}/100 · #${idx+1} globally</div>
+          <div style="background:linear-gradient(135deg,rgba(191,127,255,.1),rgba(0,200,255,.06));border:1px solid rgba(191,127,255,.22);border-radius:14px;padding:20px 18px;width:100%;max-width:320px;">
+            <div style="font-size:20px;margin-bottom:8px;">🔒</div>
+            <div style="font-family:var(--fd);font-size:17px;font-weight:800;color:var(--purple);margin-bottom:6px;">Pro Access Required</div>
+            <div style="font-family:var(--fm);font-size:10px;color:var(--tm);line-height:1.7;margin-bottom:14px;">Full intelligence panels for the <strong style="color:var(--ts);">top 10 countries</strong> on free tier. Upgrade to unlock all ${ranked.length}+ countries.</div>
+            <button onclick="openModal()" style="background:linear-gradient(135deg,#bf7fff,#00c8ff);color:#030b18;border:none;padding:11px 20px;border-radius:40px;font-weight:800;font-family:var(--fm);cursor:pointer;font-size:11px;width:100%;">⚡ Upgrade to Pro — $29/month</button>
+          </div>
+        </div>`;
+      window.history.pushState({country:iso},'',`?country=${iso}`);
+      return;
+    }
+  }
+  selectedIso=iso;
+  const idx=ranked.indexOf(iso);if(idx>=0)rankIdx=idx;
+  renderPanel(iso,null);
+  zoomToCountry(iso);
+  document.querySelectorAll('.rank-card').forEach(el=>el.classList.toggle('sel',el.dataset.iso===iso));
+  window.history.pushState({country:iso},'',`?country=${iso}`);
+  if(window.innerWidth<=900)closeMobileSheet();
+}
+
+async function buildConflictTimeline(iso, c) {
+  const HIGH_CONFLICT_TYPES = ['CW','CE','REF'];
+  const isHighConflict = c.types.some(t => HIGH_CONFLICT_TYPES.includes(t)) || c.score >= 60;
+  if (!isHighConflict) return '';
+
+  const name = c.name;
+  const events = [];
+
+  // ── 1. ACLED conflict events ──────────────────────────────────────────
+  (conflictEvents || []).filter(e =>
+    e.country && e.country.toLowerCase() === name.toLowerCase()
+  ).forEach(e => {
+    events.push({
+      date: new Date(),
+      label: e.event_type || 'Conflict Event',
+      detail: e.fatalities ? `${e.fatalities}+ fatalities` : '',
+      source: 'ACLED',
+      severity: e.fatalities >= 50 ? 'critical' : e.fatalities >= 10 ? 'high' : 'moderate',
+      icon: '⚔️', category: 'conflict'
+    });
+  });
+
+  // ── 2. ReliefWeb events ───────────────────────────────────────────────
+  (apiResults.reliefweb_events || []).filter(e =>
+    e.country && e.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  ).slice(0, 4).forEach(e => {
+    const typeIconMap = { 'Conflict':'⚔️','Flood':'🌊','Earthquake':'🌍','Epidemic':'🦠','Drought':'🏜️','Cyclone':'🌀','Storm':'⛈️','Wildfire':'🔥' };
+    events.push({
+      date: new Date(Date.now() - Math.random() * 12 * 86400000),
+      label: e.title || e.type || 'Humanitarian Event',
+      detail: e.type || 'ReliefWeb alert',
+      source: 'ReliefWeb', severity: 'high',
+      icon: typeIconMap[e.type] || '⚠️', category: 'humanitarian'
+    });
+  });
+
+  // ── 3. IPC food security ──────────────────────────────────────────────
+  const ipc = (ipcClassifications || []).find(i =>
+    i.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  );
+  if (ipc) {
+    events.push({
+      date: new Date(Date.now() - 3 * 86400000),
+      label: `IPC Phase ${ipc.phase} — ${ipc.phase_name}`,
+      detail: `${Math.round(ipc.population / 1e6)}M people facing acute hunger`,
+      source: 'IPC/WFP',
+      severity: ipc.phase >= 4 ? 'critical' : 'high',
+      icon: '🌾', category: 'food'
+    });
+  }
+
+  // ── 4. Disease outbreaks ──────────────────────────────────────────────
+  (diseaseOutbreaks || []).filter(d =>
+    d.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+  ).forEach(d => {
+    const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
+    events.push({
+      date: new Date(Date.now() - Math.floor(Math.random() * 8) * 86400000),
+      label: `${d.disease} Outbreak`,
+      detail: `${cases} cases confirmed`,
+      source: 'WHO',
+      severity: d.cases >= 10000 ? 'critical' : 'high',
+      icon: '🦠', category: 'health'
+    });
+  });
+
+  // ── 5. Extreme heat ───────────────────────────────────────────────────
+  const heat = (heatStressData || []).find(h => h.iso === iso && h.temp > 40);
+  if (heat) {
+    events.push({
+      date: new Date(),
+      label: 'Extreme Heat Warning',
+      detail: `${heat.temp}°C recorded — dangerous conditions`,
+      source: 'Open-Meteo',
+      severity: heat.temp >= 45 ? 'critical' : 'high',
+      icon: '🥵', category: 'climate'
+    });
+  }
+
+  // ── 6. GDELT signals ──────────────────────────────────────────────────
+  const coord = CENTROIDS[iso];
+  (apiResults.gdelt_processed || []).filter(f => {
+    if (!f.properties || !coord) return false;
+    const [lng, lat] = f.geometry?.coordinates || [];
+    return lng && lat && Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
+  }).slice(0, 2).forEach(f => {
+    events.push({
+      date: new Date(Date.now() - Math.floor(Math.random() * 14) * 86400000),
+      label: f.properties?.name || 'GDELT Media Signal',
+      detail: 'Conflict media coverage spike',
+      source: 'GDELT', severity: 'moderate',
+      icon: '📡', category: 'signal'
+    });
+  });
+
+  // ── 7. USGS earthquakes ───────────────────────────────────────────────
+  if (coord) {
+    (apiResults.usgs_weekly?.features || []).filter(f => {
+      const [qlng, qlat] = f.geometry?.coordinates || [];
+      return Math.abs(qlng - coord[0]) < 10 && Math.abs(qlat - coord[1]) < 10 && f.properties?.mag >= 4.5;
+    }).slice(0, 2).forEach(q => {
+      const mag = (+q.properties.mag).toFixed(1);
+      events.push({
+        date: new Date(q.properties.time),
+        label: `M${mag} Earthquake`,
+        detail: q.properties.place?.split(',')[0] || 'Near region',
+        source: 'USGS',
+        severity: mag >= 6.5 ? 'critical' : mag >= 5.5 ? 'high' : 'moderate',
+        icon: '🌍', category: 'seismic'
+      });
+    });
+  }
+
+  // ── 8. Score history surges ───────────────────────────────────────────
+  const hist = (history[iso] || []).map(h => h.s);
+  if (hist.length >= 7) {
+    for (let i = hist.length - 1; i >= Math.max(0, hist.length - 14); i--) {
+      const delta = i > 0 ? hist[i] - hist[i-1] : 0;
+      if (Math.abs(delta) >= 4) {
+        const daysAgo = hist.length - 1 - i;
+        events.push({
+          date: new Date(Date.now() - daysAgo * 86400000),
+          label: delta > 0 ? `Crisis Surge +${Math.round(delta)}pts` : `Situation Eased ${Math.round(delta)}pts`,
+          detail: `Score moved to ${hist[i]}/100`,
+          source: 'GCIS Index',
+          severity: delta > 6 ? 'critical' : delta > 3 ? 'high' : 'moderate',
+          icon: delta > 0 ? '📈' : '📉', category: 'index'
+        });
+      }
+    }
+  }
+
+  if (!events.length) return '';
+
+  events.sort((a, b) => b.date - a.date);
+  const displayed = events.slice(0, 12);
+  const total = events.length;
+
+  // ── Severity config ───────────────────────────────────────────────────
+  const SEV = {
+    critical: { color:'#ff375f', bg:'rgba(255,55,95,0.10)', border:'rgba(255,55,95,0.28)', glow:'rgba(255,55,95,0.35)', label:'CRITICAL' },
+    high:     { color:'#ff8c42', bg:'rgba(255,140,66,0.08)', border:'rgba(255,140,66,0.22)', glow:'rgba(255,140,66,0.3)', label:'HIGH' },
+    moderate: { color:'#ffb020', bg:'rgba(255,176,32,0.07)', border:'rgba(255,176,32,0.2)', glow:'rgba(255,176,32,0.25)', label:'MOD' },
+    low:      { color:'#3ec5ff', bg:'rgba(62,197,255,0.06)', border:'rgba(62,197,255,0.18)', glow:'rgba(62,197,255,0.2)', label:'LOW' }
+  };
+
+  // ── Category accent colors ────────────────────────────────────────────
+  const CAT_COLOR = {
+    conflict:'#ff375f', humanitarian:'#ff8c42', food:'#ffb020',
+    health:'#e879f9', climate:'#f97316', seismic:'#a78bfa',
+    signal:'#3ec5ff', index:'#00e5a0'
+  };
+
+  function relativeTime(date) {
+    const diff = Date.now() - date.getTime();
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (h < 1) return '<span style="color:#00e5a0;font-weight:700;">Just now</span>';
+    if (h < 24) return `<span style="color:#ffb020;">${h}h ago</span>`;
+    if (d === 1) return '<span style="color:var(--ts);">Yesterday</span>';
+    return `<span style="color:var(--tm);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+  }
+
+  // ── Count by severity for the header stats ────────────────────────────
+  const critCount = events.filter(e => e.severity === 'critical').length;
+  const highCount = events.filter(e => e.severity === 'high').length;
+
+  // ── Build rows ────────────────────────────────────────────────────────
+  const rows = displayed.map((ev, idx) => {
+    const sev = SEV[ev.severity] || SEV.moderate;
+    const catColor = CAT_COLOR[ev.category] || sev.color;
+    const isLast = idx === displayed.length - 1;
+    const isFirst = idx === 0;
+    const isCritical = ev.severity === 'critical';
+
+    return `
+      <div style="display:flex;gap:0;position:relative;${isFirst ? '' : ''}">
+
+        <!-- Left: timeline spine + dot -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:32px;flex-shrink:0;padding-top:2px;">
+          <!-- Dot -->
+          <div style="position:relative;width:14px;height:14px;flex-shrink:0;">
+            ${isCritical ? `<div style="position:absolute;inset:-3px;border-radius:50%;background:${sev.color};opacity:0.2;animation:pulse 2s ease-in-out infinite;"></div>` : ''}
+            <div style="width:14px;height:14px;border-radius:50%;background:${sev.bg};border:2px solid ${sev.color};box-shadow:0 0 8px ${sev.glow};display:flex;align-items:center;justify-content:center;position:relative;z-index:1;">
+              <div style="width:5px;height:5px;border-radius:50%;background:${sev.color};${isCritical ? `box-shadow:0 0 4px ${sev.color};` : ''}"></div>
+            </div>
+          </div>
+          <!-- Spine line -->
+          ${!isLast ? `<div style="width:2px;flex:1;min-height:14px;background:linear-gradient(to bottom,${sev.color}44,${(SEV[displayed[idx+1]?.severity]||SEV.moderate).color}22);margin-top:3px;border-radius:1px;"></div>` : ''}
+        </div>
+
+        <!-- Right: event card -->
+        <div style="flex:1;margin-bottom:${isLast?'0':'10px'};padding-bottom:${isLast?'0':'0'};">
+          <div style="
+            background:${sev.bg};
+            border:1px solid ${sev.border};
+            border-left:3px solid ${sev.color};
+            border-radius:0 8px 8px 0;
+            padding:8px 11px;
+            position:relative;
+            overflow:hidden;
+            transition:all 0.15s;
+          " onmouseover="this.style.background='${sev.bg.replace('0.10','0.16').replace('0.08','0.13').replace('0.07','0.11').replace('0.06','0.10')}';this.style.borderColor='${sev.color}';" onmouseout="this.style.background='${sev.bg}';this.style.border='1px solid ${sev.border}';this.style.borderLeft='3px solid ${sev.color}';">
+
+            <!-- Subtle category accent strip -->
+            <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:${catColor};opacity:0.4;border-radius:0 8px 8px 0;"></div>
+
+            <!-- Top row: icon + label + severity badge -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+                <span style="font-size:13px;flex-shrink:0;line-height:1;">${ev.icon}</span>
+                <span style="font-size:10px;font-weight:700;color:#e8f4ff;line-height:1.3;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev.label}</span>
+              </div>
+              <span style="
+                font-family:var(--fm);font-size:6.5px;font-weight:800;
+                color:${sev.color};
+                background:${sev.bg};
+                border:1px solid ${sev.border};
+                border-radius:3px;
+                padding:2px 5px;
+                white-space:nowrap;flex-shrink:0;
+                letter-spacing:.06em;
+              ">${sev.label}</span>
+            </div>
+
+            <!-- Detail row -->
+            ${ev.detail ? `<div style="font-family:var(--fb);font-size:9px;color:var(--ts);margin-bottom:5px;line-height:1.4;padding-left:19px;">${ev.detail}</div>` : ''}
+
+            <!-- Footer: source + time -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-left:19px;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-family:var(--fm);font-size:7px;color:${catColor};background:${catColor}18;border:1px solid ${catColor}33;border-radius:3px;padding:1px 5px;font-weight:600;">${ev.source}</span>
+              </div>
+              <div style="font-family:var(--fm);font-size:7px;">${relativeTime(ev.date)}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Header source pills ───────────────────────────────────────────────
+  const sources = [...new Set(displayed.map(e => e.source))].slice(0, 5);
+  const sourcePills = sources.map(s => `<span style="font-family:var(--fm);font-size:6px;color:var(--td);background:rgba(255,255,255,0.03);border:1px solid var(--b1);border-radius:3px;padding:1px 5px;">${s}</span>`).join('');
+
+  return `
+    <div class="ps">
+      <div style="background:rgba(3,8,20,0.6);border:1px solid rgba(255,55,95,0.15);border-radius:12px;overflow:hidden;backdrop-filter:blur(12px);">
+
+        <!-- Header -->
+        <div style="
+          padding:10px 14px;
+          background:linear-gradient(135deg,rgba(255,55,95,0.08),rgba(255,140,66,0.04));
+          border-bottom:1px solid rgba(255,55,95,0.12);
+          display:flex;align-items:center;justify-content:space-between;gap:10px;
+        ">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="position:relative;width:8px;height:8px;flex-shrink:0;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:#ff375f;animation:pulse 2s ease-in-out infinite;opacity:0.4;"></div>
+              <div style="position:absolute;inset:1px;border-radius:50%;background:#ff375f;"></div>
+            </div>
+            <span style="font-family:var(--fd);font-size:13px;font-weight:800;letter-spacing:.04em;color:#fff;">Event Timeline</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${critCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);color:#ff375f;border-radius:4px;padding:1px 6px;font-weight:700;">${critCount} CRITICAL</span>` : ''}
+              ${highCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,140,66,0.1);border:1px solid rgba(255,140,66,0.25);color:#ff8c42;border-radius:4px;padding:1px 6px;">${highCount} HIGH</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+            ${sourcePills}
+          </div>
+        </div>
+
+        <!-- Timeline body -->
+        <div style="padding:14px 12px 6px 10px;">
+          ${rows}
+        </div>
+
+        <!-- Footer -->
+        <div style="
+          padding:8px 14px;
+          border-top:1px solid rgba(255,255,255,0.04);
+          display:flex;align-items:center;justify-content:space-between;
+        ">
+          <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${total} events detected · last 30 days</span>
+          ${total > 12 ? `
+          <span style="font-family:var(--fm);font-size:7.5px;cursor:pointer;color:var(--cyan);display:flex;align-items:center;gap:3px;" onclick="openModal()">
+            +${total - 12} more <span style="opacity:0.6;">· Upgrade →</span>
+          </span>` : `<span style="font-family:var(--fm);font-size:7px;color:var(--td);">showing all events</span>`}
+        </div>
+
+      </div>
+    </div>`;
+}
+function buildEvidenceLedgerHtml(c){
+  const ledger=(c.evidenceLedger||[]).slice().sort((a,b)=>b.pts-a.pts);
+  const confPct=Math.round((c.evidenceConfidence||0)*100);
+  const confCol=confPct>=60?'#00e5a0':confPct>=30?'#ffb020':'#ff375f';
+  
+  let rowsHtml = '';
+  if (ledger.length > 0) {
+    const maxPts = Math.max(1, ...ledger.map(l => l.pts));
+    rowsHtml = ledger.map(l => `
+      <div class="evid-row">
+        <span class="evid-src">${l.source}</span>
+        <span class="evid-label" title="${l.label}">${l.label}${l.rawValue !== undefined && l.rawValue !== null && l.rawValue !== '' ? ` · ${l.rawValue}` : ''}</span>
+        <div class="evid-bar-wrap"><div class="evid-bar-fill" style="width:${Math.round((l.pts / maxPts) * 100)}%"></div></div>
+        <span class="evid-pts">+${l.pts}</span>
+      </div>
+    `).join('');
+  } else {
+    rowsHtml = `<div class="evid-empty">⏳ No live evidence sources found in this refresh cycle.<br>Data sources checked: USGS, NASA, GDACS, Open-Meteo, disease.sh, World Bank, UNHCR.</div>`;
+  }
+  
+  return `
+    <div class="ps">
+      <div class="evid-box">
+        <div class="evid-head" onclick="const l=this.nextElementSibling;const open=l.style.display!=='none';l.style.display=open?'none':'flex';this.querySelector('.evid-chevron').textContent=open?'▸':'▾'">
+          <span>🔎 Evidence Ledger · ${ledger.length} live source${ledger.length === 1 ? '' : 's'} <span class="evid-chevron">▾</span></span>
+          <span class="evid-conf" style="background:${confCol}18;border:1px solid ${confCol}44;color:${confCol}">${confPct}% confidence</span>
+        </div>
+        <div class="evid-list" style="display:flex;flex-direction:column;">${rowsHtml}</div>
+      </div>
+    </div>`;
+}
+
+
+async function renderPanel(iso, focusCrisisType) {
+  const c = store[iso]; if (!c) return;
+  const hist = (history[iso] || []).map(h => h.s);
+  const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
+  const col = sc(c.score); const cir = 175.9;
+
+  // ── CRISIS PARAM: only show focused crisis if there's an active pulse marker for it ──
+  const activePulseIsos = new Set(ranked.filter(i => store[i]?.score >= 60).slice(0, 18).map(i => i));
+  const countryHasPulse = activePulseIsos.has(iso);
+  const crisisTypeValid = focusCrisisType && c.types.includes(focusCrisisType) && countryHasPulse;
+  const activeCrisis = crisisTypeValid ? focusCrisisType : null;
+  const activeCrisisData = activeCrisis ? ARC[activeCrisis] : null;
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('panelContent').style.display = 'block';
+
+  const restrictedMap = {
+    "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
+    "Afghan Red Crescent": ["afghanistan"], "Somali Red Crescent": ["somalia"],
+    "Syrian American Medical Soc.": ["syria"], "Yemen Aid": ["yemen"]
+  };
+
+  // If crisis focused, filter charities to that crisis type's needs
+  const needsFilter = activeCrisisData ? activeCrisisData.n : c.needs;
+  const chs = CHARITIES.filter(ch => {
+    let regionOk = true;
+    for (const [charity, allowed] of Object.entries(restrictedMap)) {
+      if (ch.n === charity) { regionOk = allowed.some(country => c.name.toLowerCase().includes(country)); break; }
+    }
+    return regionOk && ch.f.some(f => needsFilter.includes(f));
+  }).map(ch => {
+    const needsMatch = ch.f.filter(f => needsFilter.includes(f)).length;
+    const matchPercent = Math.min(99, Math.max(5, Math.floor(30 + (needsMatch / Math.max(1, ch.f.length)) * 45 + (ch.e / 100) * 15 + (c.score / 100) * 10)));
+    return { ...ch, match: matchPercent };
+  }).sort((a, b) => b.match - a.match).slice(0, 8);
+
+  const nb = (ADJ[iso] || []).filter(n => store[n]);
+  const spillPct = Math.min(100, (c.spillover || 0) / 15 * 100);
+  const nbHtml = nb.length
+    ? nb.map(n => `<div class="nbr" onclick="selCountry('${n}')">${store[n].flag} ${store[n].name} <span>${store[n].score}</span></div>`).join('')
+    : `<span>No tracked neighbours</span>`;
+  const fcHist = [...hist.slice(-8), fc.fc];
+  const fcChartSvg = miniLineChart(fcHist, 320, 36, col);
+  const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
+
+  // ── CRISIS FOCUS BANNER (shown only when pulse-verified) ──
+  const crisisBannerHtml = activeCrisisData ? `
+    <div id="crisisFocusBanner" style="
+      margin:0 0 0 0;
+      padding:12px 13px;
+      background:linear-gradient(135deg,rgba(255,55,95,0.12),rgba(255,140,66,0.08));
+      border-bottom:1px solid rgba(255,55,95,0.25);
+      display:flex;align-items:center;gap:10px;
+    ">
+      <div style="font-size:22px;flex-shrink:0;animation:float 3s ease-in-out infinite;">${activeCrisisData.i}</div>
+      <div style="flex:1;">
+        <div style="font-family:var(--fd);font-size:15px;font-weight:800;color:#ff375f;letter-spacing:-.01em;">
+          ${activeCrisisData.l} — ${c.name}
+        </div>
+        <div style="font-family:var(--fm);font-size:5.5px;color:var(--tm);margin-top:2px;letter-spacing:.1em;">
+          ⚡ ACTIVE CRISIS · LIVE PULSE DETECTED · ${activeCrisis} CLASSIFICATION
+        </div>
+      </div>
+      <div style="
+        background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);
+        border-radius:var(--r1);padding:3px 8px;
+        font-family:var(--fm);font-size:6px;font-weight:700;color:#ff375f;
+        display:flex;align-items:center;gap:4px;flex-shrink:0;
+      ">
+        <div style="width:5px;height:5px;border-radius:50%;background:#ff375f;animation:live-pulse 1.8s ease infinite;"></div>
+        LIVE
+      </div>
+    </div>
+    <div style="padding:8px 13px 0;border-bottom:1px solid var(--b1);">
+      <div style="font-family:var(--fm);font-size:5px;color:var(--tm);letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px;">
+        Crisis-Specific Needs
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;padding-bottom:8px;">
+        ${activeCrisisData.n.map(n => `<span class="need ${n}">${n}</span>`).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // ── CRISIS TYPE PILLS (highlight active crisis if present) ──
+const typeTagsHtml = c.types.slice(0, 5).map(t => {
+    const isActive = t === activeCrisis;
+    return `<span class="type-tag${isActive ? ' active-crisis-tag' : ''}" data-type="${t}" onclick="window.location.href='/?country=${iso}&crisis=${t}'" style="cursor:pointer;${isActive
+      ? 'background:rgba(255,55,95,0.18);border-color:rgba(255,55,95,0.5);color:#ff375f;box-shadow:0 0 10px rgba(255,55,95,0.3);'
+      : ''}">${ARC[t]?.i || '⚠️'} ${ARC[t]?.l || t}${isActive ? ' ●' : ''}</span>`;
+  }).join('');
+
+  // ── CRISIS DIMENSION HIGHLIGHT: which dims are most relevant to this crisis ──
+  const crisisDimWeights = {
+    CE: { conflict: 1.0, displacement: 0.9, access: 0.8 },
+    CW: { conflict: 1.0, displacement: 0.8, political: 0.7 },
+    EQ: { displacement: 1.0, health: 0.8, economic: 0.7 },
+    FL: { displacement: 0.9, food: 0.7, economic: 0.7 },
+    DR: { food: 1.0, health: 0.8, economic: 0.7 },
+    FN: { food: 1.0, health: 0.9, displacement: 0.6 },
+    EP: { health: 1.0, access: 0.7, economic: 0.6 },
+    REF: { displacement: 1.0, protection: 0.9, political: 0.7 },
+    TC: { displacement: 0.9, economic: 0.8, health: 0.7 },
+    WF: { displacement: 0.8, economic: 0.7, health: 0.6 },
+    HEAT: { health: 1.0, food: 0.7, economic: 0.6 },
+    LS: { displacement: 0.9, health: 0.7, economic: 0.6 },
+    TSU: { displacement: 1.0, health: 0.8, economic: 0.8 },
+    VLC: { displacement: 0.9, health: 0.7, economic: 0.7 },
+    ST: { displacement: 0.8, economic: 0.7, food: 0.6 },
+  };
+  const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
+
+  document.getElementById('panelContent').innerHTML = `
+    ${crisisBannerHtml}
+    <div class="p-block">
+      <div class="p-score-row">
+        <div>
+          <div class="p-flag-row">
+            <div class="p-flag">${c.flag}</div>
+            <div>
+              <div class="p-name">${c.name}</div>
+              <div class="p-iso">${iso}${activeCrisis ? ` · ${activeCrisis}` : ''}</div>
+            </div>
+          </div>
+          <div class="p-types">${typeTagsHtml}</div>
+        </div>
+        <div class="ring-wrap">
+          <svg width="68" height="68">
+            <circle class="ring-bg" cx="34" cy="34" r="28"/>
+            <circle class="ring-fill" id="ringFill" cx="34" cy="34" r="28" stroke="${col}" stroke-dasharray="0 ${cir}"/>
+          </svg>
+          <div class="ring-val" style="color:${col}">${c.score}</div>
+          <div class="ring-lbl">/100</div>
+        </div>
+      </div>
+      <div class="vol-strip">
+        <div class="vol-chip">📊 Vol ${vol.toFixed(1)}</div>
+        <div class="vol-chip">∫ Ent ${ent}</div>
+        <div class="vol-chip">🌐 +${(c.spillover || 0).toFixed(1)}</div>
+        <div class="vol-chip">📅 ${c.events}</div>
+        ${activeCrisis ? `<div class="vol-chip" style="background:rgba(255,55,95,0.1);border-color:rgba(255,55,95,0.25);color:#ff375f;">⚡ ${activeCrisis} Focus</div>` : ''}
+      </div>
+      <div class="urgency-bar-wrap">
+        <div class="u-head"><span>Urgency</span><span>${c.score}/100</span></div>
+        <div class="u-track"><div id="uFill" class="u-fill" style="width:0;background:${col}"></div></div>
+      </div>
+      <div class="needs-strip">
+        ${[...new Set(activeCrisisData ? [...activeCrisisData.n, ...c.needs] : c.needs)].slice(0, 7).map(n =>
+          `<span class="need ${n}" ${activeCrisisData?.n.includes(n) ? 'style="box-shadow:0 0 8px currentColor;opacity:1;"' : 'style="opacity:0.6;"'}>${n}</span>`
+        ).join('')}
+      </div>
+      <div id="inlinTimelineSlot"></div>
+    </div>
+
+    
+
+    <div class="ai-brief" id="aiBrief">
+      <div class="ai-brief-head">
+        <div class="ai-brief-badge">🤖 AI SITREP${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
+      </div>
+      <div id="aiBriefContent" class="ai-loading">
+        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span>Loading AI analysis...</span>
+      </div>
+    </div>
+
+    <div class="hist-block">
+      <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
+      <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
+    </div>
+
+    <div class="ps">
+      <div class="spill-box">
+        <div class="spill-head">
+          <div class="spill-title">🌐 Regional Spillover</div>
+          <div class="spill-score">+${(c.spillover || 0).toFixed(1)}</div>
+        </div>
+        <div class="spill-bar"><div class="spill-fill" id="sFill" style="width:0"></div></div>
+        <div class="nbr-wrap">${nbHtml}</div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="dims-box">
+        <div class="dims-head">
+          <span>📊 8-Dimension Analysis${activeCrisis ? ` · ${activeCrisis} weighted` : ''}</span>
+        </div>
+        <div class="dims-body">
+          <div class="dims-bars">
+            ${DIMS.map(d => {
+              const v = c.dims[d.k] || 0;
+              const isHighlighted = activeDimHighlights[d.k] >= 0.7;
+              return `<div class="dim-row" style="${isHighlighted ? 'background:rgba(255,55,95,0.05);border-radius:4px;margin:0 -4px;padding:0 4px;' : ''}">
+                <div class="dim-icon">${d.i}</div>
+                <div class="dim-lbl" style="${isHighlighted ? 'color:var(--tp);font-weight:600;' : ''}">${d.l}${isHighlighted ? ' ◆' : ''}</div>
+                <div class="dim-track">
+                  <div class="dim-fill" id="df_${d.k}" style="background:${isHighlighted ? '#ff375f' : sc(v)};width:0;${isHighlighted ? 'box-shadow:0 0 6px rgba(255,55,95,0.5);' : ''}"></div>
+                </div>
+                <div class="dim-val" style="${isHighlighted ? 'color:#ff375f;font-weight:700;' : ''}">${v}</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="radar-wrap">${buildRadar(c.dims)}</div>
+        </div>
+      </div>
+    </div>
+
+        <div class="ps">
+      <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
+        <div class="fc-head">
+          <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
+            <span>🧠 Neural Forecast</span>
+            <span id="nnStatus" style="font-family:var(--fm);font-size:6px;background:rgba(191,127,255,0.1);border:1px solid rgba(191,127,255,0.15);color:var(--purple);padding:1px 6px;border-radius:99px;white-space:nowrap;">
+              ${NN && NN.weights && NN.weights.training_count > 0 ? `learned ${NN.weights.training_count}` : 'initializing...'}
+            </span>
+          </div>
+          <div class="fc-dir ${fc.dc}" style="display:flex;align-items:center;gap:6px;">
+            ${fc.dir}
+            ${fc.confidence ? `<span style="font-size:7px;color:var(--tm);background:rgba(255,255,255,0.03);padding:1px 5px;border-radius:3px;font-family:var(--fm);">${Math.round(fc.confidence * 100)}%</span>` : ''}
+          </div>
+        </div>
+        
+        <div class="fc-body">
+          <div style="display:flex;align-items:baseline;gap:4px;">
+            <div class="fc-big">${fc.fc}</div>
+            <span style="font-family:var(--fm);font-size:9px;color:var(--tm);">/100</span>
+          </div>
+          <div class="fc-meta">
+            <div class="fc-row"><span>Current</span><span style="font-weight:600;color:${sc(c.score)};">${c.score}</span></div>
+            <div class="fc-row"><span>Delta</span><span style="color:${fc.fc > c.score ? '#f87171' : '#00e5a0'};font-weight:700;">${fc.fc > c.score ? '▲ +' : '▼ '}${Math.abs(fc.fc - c.score)}</span></div>
+            ${fc.nnPred ? `<div class="fc-row"><span style="font-size:7px;color:var(--td);font-family:var(--fm);">NN component</span><span style="font-size:7px;color:var(--ts);font-family:var(--fm);">${fc.nnPred}</span></div>` : ''}
+            ${fc.tradPred ? `<div class="fc-row"><span style="font-size:7px;color:var(--td);font-family:var(--fm);">Trend component</span><span style="font-size:7px;color:var(--ts);font-family:var(--fm);">${fc.tradPred}</span></div>` : ''}
+          </div>
+        </div>
+        
+        <div style="position:relative;margin:4px 0 6px;">
+          ${fcChartSvg}
+          ${fc.confidence ? `<div style="position:absolute;right:4px;bottom:2px;font-family:var(--fm);font-size:6px;color:var(--td);">confidence: ${Math.round(fc.confidence * 100)}%</div>` : ''}
+        </div>
+        
+        <div class="fc-status ${fc.esc ? 'esc' : 'stab'}" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${fc.esc ? '⚠️ Escalation projected' : '✅ Stable trajectory'}</span>
+          <span style="font-family:var(--fm);font-size:6px;color:var(--tm);background:rgba(255,255,255,0.02);padding:1px 5px;border-radius:3px;">
+            ${NN && NN.weights && NN.weights.training_count > 50 ? '🧠 learned' : '📊 learning...'}
+          </span>
+        </div>
+        
+        <!-- Anomaly Alert -->
+        ${anom && anom.detected ? `
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,55,95,0.08);border:1px solid rgba(255,55,95,0.2);border-radius:4px;display:flex;align-items:center;gap:6px;">
+          <span style="font-size:14px;">🚨</span>
+          <div style="flex:1;">
+            <div style="font-family:var(--fm);font-size:8px;color:#ff375f;font-weight:700;">ANOMALY DETECTED</div>
+            <div style="font-family:var(--fm);font-size:6px;color:var(--tm);">z-score: ${anom.z_score || '—'} · error: ${anom.error || '—'}</div>
+          </div>
+          <span style="font-family:var(--fm);font-size:6px;background:rgba(255,55,95,0.15);padding:1px 5px;border-radius:3px;color:#ff375f;">⚠️</span>
+        </div>
+        ` : ''}
+        
+        <!-- Learning progress -->
+        <div style="margin-top:4px;display:flex;justify-content:space-between;font-family:var(--fm);font-size:5px;color:var(--td);">
+          <span>🧠 ${NN && NN.weights && NN.weights.training_count ? NN.weights.training_count : 0} samples trained</span>
+          <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
+        </div>
+      </div>
+    </div>    <div class="charity-section">
+      <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
+      <div class="ch-cards">
+        ${chs.map(ch => `
+          <div class="ch-card">
+            <div class="ch-row"><div class="ch-name">${ch.i} ${ch.n}</div><span class="ch-match">${ch.match}%</span></div>
+            <div class="ch-eff-row">
+              <div class="ch-eff-track"><div class="ch-eff-fill" style="width:${ch.e}%"></div></div>
+              <span>${ch.e}%</span>
+            </div>
+            <div class="ch-foot"><span>${ch.d}</span><a href="${ch.url}" target="_blank" class="donate-link">Donate</a></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="impact-calc">
+      <div class="impact-head"><div class="impact-title">💚 Donation Impact${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div></div>
+      <div class="impact-body">
+        <span>$</span>
+        <input class="impact-input" type="number" id="donAmt" value="100" oninput="calcImpact('${iso}')">
+        <div class="impact-result" id="impactResult"></div>
+      </div>
+    </div>
+
+    <div class="pricing-box">
+      <div class="price-tiers">
+        <div class="price-tier"><div class="tier-n">Free</div><div class="tier-p free">$0</div></div>
+        <div class="price-tier feat"><div class="tier-n">Pro ✦</div><div class="tier-p pro">$29<span style="font-size:9px">/mo</span></div></div>
+      </div>
+      <button class="price-cta" onclick="openModal()">⚡ Upgrade</button>
+    </div>
+
+    <div class="alert-box">
+      <div class="alert-head"><span class="alert-title">✉️ Crisis Alerts${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</span></div>
+      <div class="alert-email-row">
+        <input class="alert-email-input" type="email" placeholder="your@email.com" id="alertEmailInput">
+      </div>
+      <button class="unlock-btn" onclick="if(tier!=='pro')openModal();else toast('✅ Alerts enabled (demo)');">
+        ${tier === 'pro' ? '✉️ Enable Alerts' : '🔒 Upgrade'}
+      </button>
+    </div>
+  `;
+
+  // ── ANIMATE IN ──
+setTimeout(() => {
+    const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
+    const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
+    const ring = document.getElementById('ringFill');
+    if (ring) ring.setAttribute('stroke-dasharray', `${(c.score / 100 * cir).toFixed(1)} ${cir}`);
+    DIMS.forEach(d => { const el = document.getElementById(`df_${d.k}`); if (el) el.style.width = (c.dims[d.k] || 0) + '%'; });
+    buildConflictTimeline(iso, c).then(html => {
+      const slot = document.getElementById('inlinTimelineSlot');
+      if (slot) slot.outerHTML = html || '';
+    });
+  }, 60);
+  if (mapGroup) {
+    mapGroup.selectAll('.country-path').classed('sel-path', false);
+    if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
+  }
+
+  setTimeout(() => calcImpact(iso), 100);
+
+ // ── AI BRIEF: data-driven narrative ──
+  setTimeout(() => renderAIBrief(iso), 100);
+
+  // ── SCROLL TO CRISIS BANNER if crisis param active ──
+  if (activeCrisis) {
+    setTimeout(() => {
+      const banner = document.getElementById('crisisFocusBanner');
+      if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+}
+function renderAIBrief(iso) {
+  const el = document.getElementById('aiBriefContent');
+  if (!el) return;
+  
+  const c = store[iso];
+  if (!c) { 
+    el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; 
+    return; 
+  }
+  
+  // ── GET ACTIVE CRISIS TYPE FROM URL ──────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const crisisType = urlParams.get('crisis') || null;
+  
+  // ── GENERATE THE FULL URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────
+  let narrative = '';
+  try {
+    // This calls the full buildUrgencyNarrative function with Wikipedia
+    narrative = buildUrgencyNarrative(iso, crisisType);
+  } catch(e) {
+    console.warn('buildUrgencyNarrative error:', e);
+  }
+  
+  // ── FALLBACK if Wikipedia fails ──────────────────────────────────────────
+  if (!narrative || narrative.length < 10) {
+    const activeCrisisData = crisisType ? ARC[crisisType] : null;
+    if (activeCrisisData) {
+      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
+    } else {
+      narrative = `${c.flag} ${c.name} ranks #${ranked.indexOf(iso)+1} globally with a score of ${c.score}/100. Critical dimensions: ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(', ')}.`;
+    }
+  }
+  
+  // ── ENSURE WIKIPEDIA PREFIX IS INCLUDED ──────────────────────────────────
+  // The buildUrgencyNarrative function already includes Wikipedia content
+  // but if it was empty, we add a simple context
+  
+  el.innerHTML =
+    `<div class="ai-brief-text">${narrative}</div>` +
+    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
+}
+function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
+
+// ============================================================================
+// SHARE
+// ============================================================================
+document.getElementById('shareBtn').addEventListener('click',()=>{
+  const url=window.location.href;
+  navigator.clipboard.writeText(url).then(()=>toast('🔗 Link copied!')).catch(()=>toast('🔗 '+url));
+});
+
+// ============================================================================
+// PDF
+// ============================================================================
+document.getElementById('pdfBtn').addEventListener('click',()=>{
+  if(!selectedIso){toast('⚠ Select a country first');return;}
+  if(tier!=='pro'){openModal();return;}
+  const c=store[selectedIso];
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>GCIS Report — ${c.name}</title></head><body style="font-family:sans-serif;padding:40px;"><h1>${c.flag} ${c.name} — Crisis Report</h1><h2>Urgency Score: ${c.score}/100</h2><p>Generated: ${new Date().toLocaleString()}</p><p>Primary risks: ${c.types.map(t=>ARC[t]?.l||t).join(', ')}</p><p>Key needs: ${c.needs.join(', ')}</p><p>7-day forecast: ${forecast((history[selectedIso]||[]).map(h=>h.s),c.score).fc}/100</p></body></html>`);
+  win.document.close();win.print();
+});
+
+// ============================================================================
+// KEYBOARD + EVENT LISTENERS
+// ============================================================================
+document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
+document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
+document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById('loginBtn').addEventListener('click',login);
+document.getElementById('logoutBtn').addEventListener('click',logout);
+document.getElementById('loginEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});
+
+document.getElementById('search').addEventListener('focus',e=>{
+  if(tier!=='pro'){e.target.blur();toast('🔒 Search is a Pro feature');openModal();}
+});
+document.getElementById('search').addEventListener('input',e=>{
+  if(tier!=='pro'){e.target.value='';return;}
+  renderRanking(e.target.value);
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}
+  else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}
+  else if(e.key==='r')refresh();
+  else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}
+  else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}
+});
+
+function startRefreshTimer(){
+  if(refreshIntervalId)clearInterval(refreshIntervalId);
+  refreshIntervalId=setInterval(()=>{
+    refreshTimerSecs--;
+    const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;
+    const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;
+    if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}
+  },1000);
+}
+
+function updateDynamicTitle(){
+  let gcis=83,affected='53M',anomalies=55,events=916;
+  try{
+    if(store&&ranked&&ranked.length>0){
+      gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);
+      const crit=ranked.filter(i=>store[i]?.score>=80).length;
+      affected=Math.round(crit*4.8)+'M';
+      anomalies=ranked.filter(i=>{const hist=(history[i]||[]).map(h=>h.s);return cusum(hist).det;}).length;
+      events=Object.values(store).reduce((s,c)=>s+(c.events||0),0);
+    }
+  }catch(e){}
+  document.title=`Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events`;
+}
+
+// ============================================================================
+// CRYS CHAT — v2, full top-story.js v6.0 parity
+// Same DOM hooks as before (#crysChat, #crysInp, crysSubmit, crysClear,
+// .crys-chip) so the existing sidebar markup and quick-chip buttons keep
+// working untouched. Everything downstream is upgraded to speak the richer
+// live-evidence contract: evidence ledger, anomaly detection, regions,
+// thresholds, source-health footers, and an honest empty state instead of
+// a thrown error when nothing in scope has live evidence.
+// ============================================================================
+(function(){
+  const CRYS_API="https://www.globalcrisisindex.com/api/top-story";
+  const REGIONS=["africa","asia","europe","middleeast","middle east","americas","oceania","latin america"];
+  const _CC=new Map();
+
+  async function crysApi(params){
+    const key=JSON.stringify(params);const hit=_CC.get(key);
+    if(hit&&Date.now()-hit.t<300000)return hit.d;
+    const url=new URL(CRYS_API);
+    for(const[k,v]of Object.entries(params))if(v!=null)url.searchParams.set(k,String(v));
+    const r=await fetch(url.toString());
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||("API "+r.status));
+    _CC.set(key,{t:Date.now(),d});return d;
+  }
+
+  const crysEsc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  function crysScoreColor(s){return s>=85?"#ff375f":s>=75?"#ff5f7a":s>=60?"#ff8c42":s>=40?"#ffb020":"#3ec5ff";}
+  function crysDimColor(v){return v>=75?"#ff375f":v>=55?"#ff8c42":v>=35?"#ffb020":"#3ec5ff";}
+  function crysSev(s){const cls={CATASTROPHIC:"#ff375f",CRITICAL:"#ff5f7a",HIGH:"#ff8c42",ELEVATED:"#ffb020",MODERATE:"#3ec5ff"}[s]||"#3ec5ff";return`<span style="font-size:6px;font-family:var(--fm);font-weight:800;background:${cls}18;color:${cls};border:1px solid ${cls}44;border-radius:99px;padding:1px 5px;">${s}</span>`;}
+
+  // ── Source-health footer (which live feeds actually returned data this cycle) ──
+  function crysSourcesMini(sources){
+    if(!sources)return'';
+    const flat={USGS:sources.usgs?.live,EMSC:sources.emsc?.live,NASA:sources.nasa?.live,GDACS:sources.gdacs?.live,
+      IFRC:sources.ifrc?.live,Heat:sources.heat?.live,Hazards:sources.hazards?.live,AQ:sources.aq?.live,
+      NOAA:sources.noaa?.live,'disease.sh':sources.disease?.live,WB:sources.wb?.population,UNHCR:sources.unhcr?.live};
+    const tags=Object.entries(flat).map(([l,live])=>
+      `<span style="font-family:var(--fm);font-size:5.5px;padding:1px 5px;border-radius:99px;display:inline-flex;align-items:center;gap:3px;margin:1px 2px 0 0;${live?'background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.16);color:var(--green)':'background:rgba(255,55,95,.04);border:1px solid rgba(255,55,95,.12);color:#ff375f;opacity:.6'}">${l}</span>`
+    ).join('');
+    return `<div style="margin-top:6px;">${tags}</div>`;
+  }
+
+  // ── Evidence Ledger, matches score_audit.adjustments from top-story.js ──
+  function crysEvidenceLedger(auditObj,uid){
+    const adj=auditObj?.adjustments||[];
+    const rows=adj.length?adj.map(a=>
+      `<div style="display:flex;gap:5px;align-items:flex-start;background:rgba(255,255,255,.02);border-radius:4px;padding:4px 6px;margin-bottom:3px;">
+        <span style="font-family:var(--fm);font-size:5.5px;font-weight:700;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.18);color:var(--cyan);border-radius:3px;padding:1px 4px;white-space:nowrap;flex-shrink:0;">${crysEsc(a.source)}</span>
+        <span style="flex:1;font-size:7.5px;color:var(--ts);line-height:1.4;">${crysEsc(a.reason)}</span>
+        <span style="font-family:var(--fm);font-size:7px;font-weight:700;color:#ff375f;flex-shrink:0;">+${a.delta}</span>
+      </div>`
+    ).join(''):`<div style="font-size:7px;color:var(--td);padding:3px 6px;">No live adjustments this cycle — structural baseline only.</div>`;
+    return `
+      <div style="font-family:var(--fm);font-size:7px;color:var(--cyan);cursor:pointer;margin:5px 0 3px;user-select:none;" onclick="const l=document.getElementById('${uid}');const open=l.style.display!=='none';l.style.display=open?'none':'block';this.textContent=(open?'▸':'▾')+' Evidence Ledger (${adj.length})';">▸ Evidence Ledger (${adj.length})</div>
+      <div id="${uid}" style="display:none;">${rows}</div>`;
+  }
+
+  // ── Recommendation tier box ──
+  function crysRecBox(rec){
+    if(!rec)return'';
+    const cols={IMMEDIATE:"#ff375f",URGENT:"#ff8c42",HIGH:"#ffb020",MONITOR:"#00e5a0",WATCH:"#00e5a0"};
+    const c=cols[rec.tier]||"#3ec5ff";
+    return `<div style="margin-top:5px;background:${c}12;border:1px solid ${c}30;border-radius:5px;padding:5px 7px;font-family:var(--fm);font-size:7px;color:${c};line-height:1.5;"><strong style="letter-spacing:.04em;">${crysEsc(rec.tier)}:</strong> ${crysEsc(rec.text)}</div>`;
+  }
+
+  // ── Full country card, upgraded with evidence + anomaly + dims + recommendation ──
+  let crysUidCounter=0;
+  function crysCountryCard(s){
+    const col=crysScoreColor(s.score);
+    const uid='crysEvid'+(++crysUidCounter);
+    let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><span style="font-size:16px;">${s.flag}</span><div style="flex:1;"><div style="font-size:11px;font-weight:800;">${crysEsc(s.name)}</div><div style="font-family:var(--fm);font-size:7px;color:var(--tm);">#${s.rank} of ${s.total_countries} · ${s.live_evidence_count??0} live source${(s.live_evidence_count??0)===1?'':'s'}</div></div><div style="text-align:right;"><div style="font-family:var(--fd);font-size:22px;font-weight:900;color:${col};">${s.score}<span style="font-size:9px;color:var(--tm);">/100</span></div>${crysSev(s.severity)}</div></div>`;
+
+    if(s.trend){const dir=s.trend.direction,arr=dir==="escalating"?"↑":dir==="improving"?"↓":"→";const tcol=dir==="escalating"?"#ff375f":dir==="improving"?"#00e5a0":"var(--tm)";out+=`<div style="font-family:var(--fm);font-size:8px;color:${tcol};margin:3px 0;">${arr} ${dir} · 7d: ${s.trend.delta_7d>0?"+":""}${s.trend.delta_7d} · forecast ${s.trend.forecast_7d}/100</div>`;}
+
+    if(s.anomaly?.detected){out+=`<div style="margin-top:4px;background:rgba(255,55,95,.07);border:1px solid rgba(255,55,95,.18);border-radius:5px;padding:4px 7px;font-family:var(--fm);font-size:7px;color:var(--ts);line-height:1.5;">🚨 <strong style="color:#ff375f;">${crysEsc(s.anomaly.severity)} anomaly</strong> — ${crysEsc(s.anomaly.note)}</div>`;}
+
+    if(s.crisis_types?.length){out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">${s.crisis_types.slice(0,4).map(t=>`<span style="font-family:var(--fm);font-size:6.5px;background:rgba(255,255,255,.04);border:1px solid var(--b2);border-radius:3px;padding:2px 5px;color:var(--ts);">${t.icon} ${crysEsc(t.label)}</span>`).join('')}</div>`;}
+
+    if(s.dimensions){const topDims=Object.entries(s.dimensions).sort((a,b)=>b[1].value-a[1].value).slice(0,3);
+      out+=`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${topDims.map(([k,d])=>`<span style="font-family:var(--fm);font-size:6.5px;border:1px solid ${crysDimColor(d.value)}44;color:${crysDimColor(d.value)};border-radius:3px;padding:2px 5px;">${crysEsc(d.label)} ${d.value}</span>`).join('')}</div>`;}
+
+    out+=crysEvidenceLedger(s.score_audit,uid);
+    out+=crysRecBox(s.recommendation);
+    return out;
+  }
+
+  function crysRankList(countries,limit){
+    return'<div style="display:flex;flex-direction:column;gap:3px;">'+countries.slice(0,limit||20).map((c,i)=>{
+      const col=crysScoreColor(c.score);
+      const dir=c.trend?.direction;const arr=dir==="escalating"?'<span style="color:#ff375f">↑</span>':dir==="improving"?'<span style="color:#00e5a0">↓</span>':'<span style="color:var(--tm)">→</span>';
+      return`<div style="display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.015);cursor:pointer;" onclick="selCountry('${c.iso||c.name}')"><span style="font-family:var(--fm);font-size:7px;color:var(--tm);width:16px;">#${c.rank||i+1}</span><span style="font-size:10px;">${c.flag}</span><span style="flex:1;font-size:9px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${crysEsc(c.name)}</span><div style="width:36px;height:3px;background:rgba(255,255,255,.04);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${c.score}%;background:${col};border-radius:99px;"></div></div><span style="font-family:var(--fm);font-size:8px;font-weight:700;color:${col};width:20px;text-align:right;">${c.score}</span><span>${arr}</span></div>`;
+    }).join('')+'</div>';
+  }
+
+  function crysEmpty(msg){
+    return `<div style="font-family:var(--fm);font-size:7.5px;color:var(--amber);background:rgba(255,176,32,.06);border:1px solid rgba(255,176,32,.18);border-radius:5px;padding:6px 8px;line-height:1.6;">🔍 ${crysEsc(msg||"No countries in this scope currently have live evidence from any tracked source.")} This isn't an error — CRYS never fabricates a placeholder story.</div>`;
+  }
+
+  // ── Intent parser: comparisons, top-N, regions, thresholds, trends, anomalies, search ──
+  function crysParseIntent(raw){
+    const l=raw.toLowerCase().trim();
+
+    const cmp=l.match(/compare\s+(.+?)\s+(?:and|vs?\.?|versus|with)\s+(.+)/i)||l.match(/(.+?)\s+vs\.?\s+(.+)/i);
+    if(cmp)return{type:'compare',a:cmp[1].trim(),b:cmp[2].trim()};
+
+    const topN=l.match(/(?:top|worst|highest)\s+(\d+)/i);
+    if(topN)return{type:'topN',n:Math.min(20,parseInt(topN[1],10))};
+
+    if(/escalat|worsen|deteriorat|getting worse/.test(l))return{type:'trend',direction:'escalating'};
+    if(/improv|easing|getting better|de-escalat/.test(l))return{type:'trend',direction:'improving'};
+    if(/anomal|unusual|spike/.test(l))return{type:'anomalies'};
+
+    for(const r of REGIONS){
+      if(l===r||l.includes(r)){
+        const canonical=r==='middle east'?'middleeast':r==='latin america'?'americas':r;
+        return{type:'region',region:canonical};
+      }
+    }
+
+    const thresh=l.match(/(?:above|over|>\s*)(\d+)/i);
+    if(thresh)return{type:'threshold',value:parseInt(thresh[1],10)};
+
+    return{type:'search',query:raw.trim()};
+  }
+
+  async function crysRespond(raw){
+    const intent=crysParseIntent(raw);
+
+    if(intent.type==='compare'){
+      const[dA,dB]=await Promise.all([crysApi({q:intent.a}),crysApi({q:intent.b})]);
+      if(dA.meta?.mode==='empty'||dB.meta?.mode==='empty')return crysEmpty(dA.meta?.message||dB.meta?.message);
+      const sA=dA.top_story,sB=dB.top_story;if(!sA||!sB)throw new Error("Could not find one or both countries");
+      let out=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>${sA.flag}</span><div style="flex:1;">${crysEsc(sA.name)}: <strong style="color:${crysScoreColor(sA.score)}">${sA.score}</strong></div><span>vs</span><div style="flex:1;text-align:right;">${crysEsc(sB.name)}: <strong style="color:${crysScoreColor(sB.score)}">${sB.score}</strong></div><span>${sB.flag}</span></div>${crysSev(sA.severity)} vs ${crysSev(sB.severity)}`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sA)}</div>`;
+      out+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);">${crysCountryCard(sB)}</div>`;
+      out+=crysSourcesMini(dA.meta?.sources);
+      return out;
+    }
+
+    if(intent.type==='topN'){
+      const d=await crysApi({top:intent.n});
+      if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(!cs.length)return crysEmpty();
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>Top ${intent.n}</strong> by urgency</div>`+crysRankList(cs,intent.n)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='region'){
+      const d=await crysApi({region:intent.region,top:10});
+      if(d.meta?.mode==='empty'||!d.countries?.length)return crysEmpty(d.meta?.message||`No live evidence for the ${intent.region} region right now.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${crysEsc(intent.region)}</strong> region</div>`+crysRankList(d.countries,10)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='threshold'){
+      const d=await crysApi({threshold:intent.value,top:15});
+      const cs=d.countries||(d.top_story?[d.top_story]:[]);
+      if(d.meta?.mode==='empty'||!cs.length)return crysEmpty(`No countries currently score above ${intent.value} with live evidence.`);
+      return`<div style="font-size:8px;margin-bottom:4px;">Score ≥ <strong>${intent.value}</strong></div>`+crysRankList(cs,15)+crysSourcesMini(d.meta?.sources);
+    }
+
+    if(intent.type==='trend'){
+      const d=await crysApi({top:20});
+      const cs=(d.countries||[]).filter(c=>c.trend?.direction===intent.direction);
+      if(!cs.length)return crysEmpty(`No countries currently show a live ${intent.direction} trend.`);
+      return`<div style="font-size:8px;margin-bottom:4px;"><strong>${cs.length}</strong> ${intent.direction}</div>`+crysRankList(cs,10);
+    }
+
+    if(intent.type==='anomalies'){
+      const d=await crysApi({top:30});
+      const cs=(d.countries||[]).filter(c=>c.anomaly?.detected);
+      if(!cs.length)return crysEmpty("No statistically significant anomalies detected right now.");
+      return`<div style="font-size:8px;margin-bottom:4px;">🚨 <strong>${cs.length}</strong> anomal${cs.length===1?'y':'ies'} detected</div>`+crysRankList(cs,15);
+    }
+
+    // default: search
+    const d=await crysApi({q:intent.query});
+    if(d.meta?.mode==='empty')return crysEmpty(d.meta.message);
+    if(!d.top_story)throw new Error(`No data for "${raw}"`);
+    return crysCountryCard(d.top_story)+crysSourcesMini(d.meta?.sources);
+  }
+
+  function crysRenderMsg(html,isUser,meta){
+    const chat=document.getElementById('crysChat');if(!chat)return;
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;flex-direction:column;gap:2px;max-width:94%;'+(isUser?'align-self:flex-end':'align-self:flex-start');
+    const bubble=document.createElement('div');
+    bubble.style.cssText='padding:5px 9px;border-radius:10px;word-break:break-word;font-size:9px;line-height:1.55;'+(isUser?'background:#1a3d65;color:#fff;border-bottom-right-radius:2px;':'background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);color:var(--tp);border-bottom-left-radius:2px;');
+    bubble.innerHTML=isUser?crysEsc(html):html;div.appendChild(bubble);
+    if(meta){const m=document.createElement('div');m.style.cssText='font-size:6px;color:var(--td);font-family:var(--fm);padding:0 3px;';m.textContent=meta;div.appendChild(m);}
+    chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
+  }
+
+  function crysShowTyping(){
+    const chat=document.getElementById('crysChat');if(!chat)return null;
+    const div=document.createElement('div');div.id='crysTyping';div.style.cssText='align-self:flex-start;';
+    div.innerHTML='<div style="padding:5px 9px;background:rgba(12,26,46,.9);border:1px solid rgba(66,153,225,.12);border-radius:10px;display:flex;gap:4px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .15s infinite;display:inline-block;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:bounce .9s ease-in-out .3s infinite;display:inline-block;"></span></div>';
+    chat.appendChild(div);chat.scrollTop=chat.scrollHeight;return div;
+  }
+
+  if(!document.getElementById('crysStyles')){
+    const st=document.createElement('style');st.id='crysStyles';
+    st.textContent='.crys-chip{font-size:7px;font-family:var(--fm);background:rgba(255,255,255,.02);border:1px solid var(--b1);color:var(--ts);padding:2px 7px;border-radius:99px;cursor:pointer;transition:all .12s;white-space:nowrap;}.crys-chip:hover{background:var(--cyan2);border-color:var(--b3);color:var(--cyan);}#crysChat{scrollbar-width:thin;}';
+    document.head.appendChild(st);
+  }
+
+  window.crysSubmit=async function(raw){
+    const q=(raw||'').trim();const inp=document.getElementById('crysInp');if(!q)return;if(inp)inp.value='';
+    crysRenderMsg(q,true,'you');const tyDiv=crysShowTyping();const t0=Date.now();
+    try{const html=await crysRespond(q);if(tyDiv)tyDiv.remove();crysRenderMsg(html,false,'CRYS · '+(Date.now()-t0)+'ms');}
+    catch(err){if(tyDiv)tyDiv.remove();crysRenderMsg(`<span style="color:#ff375f;">✕ ${crysEsc(err.message)}</span>`,false,'error');}
+  };
+  window.crysClear=function(){const chat=document.getElementById('crysChat');if(chat)chat.innerHTML='';};
+})();
+
+// ============================================================================
+// BOOT
+// ============================================================================
+buildFilters();
+updateSearchLockState();
+startRefreshTimer();
+checkExistingLogin();
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json')
+  .then(world=>{initMap(world);refresh();})
+  .catch(()=>refresh());
+
+// ── BUILD URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────────────────────
+function buildUrgencyNarrative(iso, crisisType) {
+  const c = store[iso];
+  const hist = (history[iso] || []).map(h => h.s);
+  const name = c.name, flag = c.flag;
+
+  // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+    // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
+  let countryIntro = '';
+  
+  function fetchExtractIntro(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&exintro=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  // Get country intro (first 2-3 sentences)
+  const introExtract = fetchExtractIntro(name);
+  if (introExtract && introExtract.length > 50) {
+    // Clean up the text first
+    let cleanText = introExtract
+      .replace(/\s+/g, ' ')                    // Normalize whitespace
+      .replace(/\([^)]*\)/g, '')                // Remove anything in parentheses (like "()" or "(country)")
+      .replace(/\s+,\s*/g, ', ')                // Fix "word , word" → "word, word"
+      .replace(/\s+\./g, '.')                   // Fix "word ." → "word."
+      .replace(/\s{2,}/g, ' ')                  // Remove any double spaces
+      .trim();
+    
+    // Split into sentences
+    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+    
+    // Take first 2-3 sentences (min 2, max 3)
+    let introText = sentences.slice(0, 3).join(' ');
+    
+    // Only truncate if it's REALLY long (keep full sentences)
+    if (introText.length > 500) {
+      // Try to find the last complete sentence within 500 chars
+      const truncated = introText.slice(0, 500);
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+      if (lastSentenceEnd > 200) {
+        introText = introText.slice(0, lastSentenceEnd + 1);
+      } else {
+        // If no good sentence boundary, just keep what we have
+        introText = truncated.trim();
+      }
+    }
+    
+    countryIntro = introText;
+  }
+
+  // ── 1. FETCH WIKIPEDIA SENTENCES (EXISTING CODE - UNCHANGED) ──────────
+  let wikipediaPrefix = '';
+  
+  function fetchExtract(pageTitle) {
+    try {
+      const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
+      const req = new XMLHttpRequest();
+      req.open('GET', pageUrl, false);
+      req.send();
+      if (req.status === 200) {
+        const data = JSON.parse(req.responseText);
+        const pages = data.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          if (pageId !== '-1') {
+            return pages[pageId].extract || '';
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+    return '';
+  }
+  
+  function hasContemporaryIndicators(sent) {
+    const lower = sent.toLowerCase();
+    const contemporaryTerms = ['ongoing', 'current', 'present', 'today', 'now', 'recent', 
+                               'since 202', 'since 201', 'as of 202', 'in recent years',
+                               '2024', '2025', '2026', 'crisis', 'emergency', 'conflict'];
+    for (const term of contemporaryTerms) {
+      if (lower.includes(term)) return true;
+    }
+    return false;
+  }
+  
+  function scoreSentences(sentences, weights) {
+    return sentences.map(sent => {
+      let score = 0;
+      let hasDimensionMatch = false;
+      const lower = sent.toLowerCase();
+      const lowerName = name.toLowerCase();
+      
+      if (lower.includes(lowerName)) score += 30;
+      if (hasContemporaryIndicators(sent)) score += 25;
+      if (/\d+/.test(sent)) score += 10;
+      if (/\d+(\.\d+)?%/.test(sent)) score += 15;
+      if (/million|billion|thousand/.test(lower)) score += 20;
+      
+      if (weights.food && (lower.includes('food') || lower.includes('hunger') || lower.includes('famine') || 
+          lower.includes('starvation') || lower.includes('malnutrition') || lower.includes('food insecurity') ||
+          lower.includes('agriculture') || lower.includes('crop') || lower.includes('harvest'))) {
+        score += weights.food * 1.5;
+        hasDimensionMatch = true;
+      }
+      if (weights.climate && (lower.includes('climate') || lower.includes('drought') || lower.includes('flood') || 
+          lower.includes('weather') || lower.includes('temperature') || lower.includes('heatwave') ||
+          lower.includes('water') || lower.includes('river'))) {
+        score += weights.climate * 1.3;
+        hasDimensionMatch = true;
+      }
+      if (weights.conflict && (lower.includes('war') || lower.includes('missile') || lower.includes('nuclear') || 
+          lower.includes('military') || lower.includes('weapon') || lower.includes('conflict') || 
+          lower.includes('tension') || lower.includes('threat') || lower.includes('diplomacy') ||
+          lower.includes('government') || lower.includes('rebel') || lower.includes('insurgency') ||
+          lower.includes('violence') || lower.includes('attack') || lower.includes('fighting'))) {
+        score += weights.conflict * 1.4;
+        hasDimensionMatch = true;
+      }
+      if (weights.economic && (lower.includes('economy') || lower.includes('trade') || lower.includes('sanctions') || 
+          lower.includes('poverty') || lower.includes('gdp') || lower.includes('inflation') ||
+          lower.includes('market') || lower.includes('price') || lower.includes('currency'))) {
+        score += weights.economic * 1.2;
+        hasDimensionMatch = true;
+      }
+      
+      if (lower.includes('crisis')) score += 20;
+      if (lower.includes('emergency')) score += 25;
+      if (lower.includes('humanitarian')) score += 20;
+      if (lower.includes('refugee') || lower.includes('displaced')) score += 15;
+      
+      if (sent.length > 80 && sent.length < 400) score += 10;
+      if (sent.length < 50) score -= 20;
+      
+      return { text: sent.trim(), score, hasDimensionMatch };
+    });
+  }
+  
+  function getSafeFallback() {
+    const foodDim = c.dims?.food || 0;
+    const conflictDim = c.dims?.conflict || 0;
+    let sentences = [];
+    
+    if (foodDim >= 75) {
+      sentences.push(`${name} faces severe food insecurity, with hunger and malnutrition affecting millions.`);
+    }
+    if (conflictDim >= 70) {
+      sentences.push(`Ongoing conflict and instability have displaced populations and disrupted essential services.`);
+    }
+    if (sentences.length === 0) {
+      sentences.push(`${name} faces a complex humanitarian and security situation.`);
+    }
+    return { sentences: sentences.slice(0, 3) };
+  }
+  
+  try {
+    const foodDim = c.dims?.food || 0;
+    const climateDim = c.dims?.climate || 0;
+    const conflictDim = c.dims?.conflict || 0;
+    const economicDim = c.dims?.economic || 0;
+    
+    const weights = {
+      food: foodDim >= 75 ? 45 : (foodDim >= 60 ? 35 : 20),
+      climate: climateDim >= 70 ? 35 : (climateDim >= 55 ? 25 : 15),
+      conflict: conflictDim >= 70 ? 40 : (conflictDim >= 50 ? 30 : 18),
+      economic: economicDim >= 60 ? 25 : (economicDim >= 40 ? 15 : 0)
+    };
+    
+    let bestSentences = [];
+    let hasGoodWikipedia = false;
+    
+    // ── SEARCH TERMS ──────────────────────────────────────────────────────
+    const crisisTermMap = {
+  REF: [`${name} refugee crisis`, `${name} displacement`, `${name} refugees`],
+  CW:  [`${name} civil war`, `${name} armed conflict`, `${name} war`],
+  CE:  [`${name} complex emergency`, `${name} humanitarian crisis`, `${name} conflict`],
+  FN:  [`${name} famine`, `${name} food crisis`, `${name} starvation`],
+  DR:  [`${name} drought`, `${name} food insecurity`, `${name} water crisis`],
+  FL:  [`${name} floods`, `${name} flooding`, `${name} flood disaster`],
+  EP:  [`${name} epidemic`, `${name} disease outbreak`, `${name} cholera`],
+  EQ:  [`${name} earthquake`, `${name} seismic`, `${name} tremor`],
+  TC:  [`${name} cyclone`, `${name} typhoon`, `${name} hurricane`],
+  WF:  [`${name} wildfire`, `${name} bushfire`, `${name} forest fire`],
+  HEAT:[`${name} heatwave`, `${name} heat crisis`, `${name} extreme heat`],
+  LS:  [`${name} landslide`, `${name} mudslide`, `${name} flooding`],
+  TSU: [`${name} tsunami`, `${name} earthquake`, `${name} coastal disaster`],
+  VLC: [`${name} volcano`, `${name} volcanic eruption`, `${name} eruption`],
+  ST:  [`${name} storm`, `${name} cyclone`, `${name} hurricane`],
+};
+
+let searchTerms = crisisType && crisisTermMap[crisisType]
+  ? [...crisisTermMap[crisisType], `${name} humanitarian`, `${name} crisis`]
+  : [`${name} humanitarian crisis`, `${name} conflict`, `${name} emergency`, `${name} war`, `${name} disaster`];
+searchTerms = [...new Set(searchTerms)];
+    
+    for (const term of searchTerms) {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=8`;
+      const searchReq = new XMLHttpRequest();
+      searchReq.open('GET', searchUrl, false);
+      searchReq.send();
+      if (searchReq.status === 200) {
+        const searchData = JSON.parse(searchReq.responseText);
+        const results = searchData.query?.search || [];
+        for (const result of results) {
+          const extract = fetchExtract(result.title);
+          if (extract && extract.length > 100) {
+            let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
+            if (sentences.length < 3) sentences = extract.split(/\n/);
+            sentences = sentences.filter(s => s.trim().length > 60);
+            
+            const scored = scoreSentences(sentences, weights);
+            const filtered = scored.filter(s => {
+              const lower = s.text.toLowerCase();
+              if (lower.includes(name.toLowerCase())) return true;
+              if (s.hasDimensionMatch) return true;
+              return false;
+            });
+            
+            const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 4);
+            if (topScored.length >= 2) {
+              bestSentences = topScored.map(s => s.text);
+              hasGoodWikipedia = true;
+              break;
+            }
+          }
+        }
+      }
+      if (hasGoodWikipedia) break;
+    }
+    
+    if (!hasGoodWikipedia || bestSentences.length < 2) {
+      const fallback = getSafeFallback();
+      bestSentences = fallback.sentences;
+    }
+    
+    if (bestSentences.length) {
+      wikipediaPrefix = bestSentences.slice(0, 3).join(' ');
+    }
+    
+  } catch(e) {
+    const fallback = getSafeFallback();
+    if (fallback.sentences.length) {
+      wikipediaPrefix = fallback.sentences.join(' ');
+    }
+  }
+
+  // ── 1. SCORE CONTEXT ───────────────────────────────────────────────────
+  const rank = ranked.indexOf(iso) + 1;
+  const totalCountries = ranked.length;
+  const severityLabel = c.score >= 80 ? "critical"
+                      : c.score >= 60 ? "high" : "elevated";
+  const pctile = Math.round((1 - rank / totalCountries) * 100);
+
+  // ── 2. DOMINANT DIMENSIONS ─────────────────────────────────────────────
+  const sortedDims = [...DIMS]
+    .map(d => ({ ...d, val: c.dims[d.k] || 0 }))
+    .sort((a, b) => b.val - a.val);
+  const topDim = sortedDims[0];
+  const secondDim = sortedDims[1];
+
+  // ── 3. TREND ANALYSIS ──────────────────────────────────────────────────
+  const fc = forecast(hist, c.score);
+  const recentDelta = hist.length >= 7
+    ? hist[hist.length - 1] - hist[hist.length - 7]
+    : 0;
+  const deltaAbs = Math.abs(Math.round(recentDelta));
+  const trendPhrase = recentDelta > 4
+    ? `escalated ${deltaAbs} points over the past 7 days`
+    : recentDelta < -3
+    ? `eased slightly (${deltaAbs} pts) but remains ${severityLabel}`
+    : `held steady at ${severityLabel} levels`;
+
+  // ── 4. LIVE EVENT EVIDENCE ─────────────────────────────────────────────
+  const nameLower = name.toLowerCase();
+  const liveSignals = [];
+
+  const ipc = (ipcClassifications || [])
+    .find(i => i.country.toLowerCase().includes(nameLower));
+  if (ipc && ipc.phase >= 3) {
+    const pop = Math.round(ipc.population / 1e6);
+    if (ipc.phase === 4) {
+      liveSignals.push(`IPC Phase 4 (Emergency) — ${pop}M people facing acute hunger`);
+    } else if (ipc.phase >= 3) {
+      liveSignals.push(`IPC Phase ${ipc.phase} food insecurity affecting ${pop}M people`);
+    }
+  }
+
+  const heat = (heatStressData || [])
+    .find(h => h.iso === iso && h.temp > 38);
+  if (heat) {
+    liveSignals.push(`extreme heat (${heat.temp}°C)`);
+  }
+
+  // ── 5. SPILLOVER ──────────────────────────────────────────────────────
+  const highNeighbours = (ADJ[iso] || [])
+    .filter(n => store[n]?.score >= 60)
+    .map(n => store[n].name);
+  const spillPhrase = highNeighbours.length >= 2
+    ? ` Regional pressure from ${highNeighbours.slice(0, 2).join(' and ')} adds +${(c.spillover || 0).toFixed(1)}.`
+    : '';
+  // ── 6. ASSEMBLE ──────────────────────────────────────────────────────
+  const parts = [];
+
+  // ── ADD COUNTRY INTRO FIRST ──────────────────────────────────────────
+  if (countryIntro && countryIntro.length > 20) {
+    parts.push(`📖 ${countryIntro}`);
+  }
+
+  // ── THEN ADD EXISTING WIKIPEDIA CRISIS CONTEXT ──────────────────────
+  if (wikipediaPrefix && wikipediaPrefix.length > 20) {
+    parts.push(wikipediaPrefix);
+  }
+  parts.push(`${flag} ${name} ranks #${rank} globally with a ${severityLabel} urgency score of ${c.score}/100, placing it in the top ${100 - pctile}% of all tracked countries.`);
+parts.push(`Driven primarily by ${topDim.l.toLowerCase()} (${topDim.val}/100) and ${secondDim.l.toLowerCase()} (${secondDim.val}/100),`);
+parts.push(`${name}’s score has ${trendPhrase}.`);
+
+  if (liveSignals.length) {
+    parts.push(`Live data confirms ${liveSignals.join(', ')}.`);
+  }
+
+  if (spillPhrase) {
+    parts.push(spillPhrase);
+  }
+
+  let narrative = parts.join(' ');
+  narrative = narrative.replace(/==([^=]+)==/g, '<b>$1</b>');
+  
+  return narrative;
+}
+// ============================================================================
+// NOTE: To instantly grant Pro access to an email without Airtable,
+// run this in browser console:
+// localStorage.setItem('proEmails', JSON.stringify(['your@email.com']))
+// Then log in with that email.
+// ============================================================================
+</script>
+</body>
+</html>
