@@ -3776,6 +3776,13 @@ async function buildConflictTimeline(iso, c) {
   const nameLower = name.toLowerCase();
   const events = [];
 
+  // ── Helper to safely parse dates ──
+  function safeParseDate(dateVal) {
+    if (!dateVal) return new Date();
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+
   // ── 1. USGS Earthquakes ──
   const usgsData = apiResults.usgs_weekly || {};
   if (usgsData.features) {
@@ -3787,7 +3794,7 @@ async function buildConflictTimeline(iso, c) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
           events.push({
-            date: new Date(props.time),
+            date: safeParseDate(props.time),
             label: `M${props.mag.toFixed(1)} Earthquake`,
             detail: props.place?.split(',')[0] || 'Near region',
             source: 'USGS',
@@ -3809,9 +3816,8 @@ async function buildConflictTimeline(iso, c) {
       if (props?.mag >= 4.5 && coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
-          const eventDate = props.time ? new Date(props.time) : new Date();
           events.push({
-            date: eventDate,
+            date: safeParseDate(props.time || props.orig_time),
             label: `M${props.mag.toFixed(1)} Earthquake (EMSC)`,
             detail: props.flynn_region || props.place || 'Near region',
             source: 'EMSC',
@@ -3828,18 +3834,15 @@ async function buildConflictTimeline(iso, c) {
   if (nasaData.events) {
     const coord = CENTROIDS[iso];
     nasaData.events.forEach(ev => {
-      const geom = ev.geometry?.[0];
-      const coords = geom?.coordinates;
+      const coords = ev.geometry?.[0]?.coordinates;
       if (coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
           const cat = ev.categories?.[0]?.title || 'Natural Event';
           const sevMap = { 'Wildfires':'high', 'Floods':'high', 'Severe Storms':'critical' };
           const iconMap = { 'Wildfires':'🔥', 'Floods':'🌊', 'Severe Storms':'⛈️' };
-          // Use the actual geometry date if available
-          const eventDate = geom?.date ? new Date(geom.date) : new Date();
           events.push({
-            date: eventDate,
+            date: safeParseDate(ev.geometry?.[0]?.date || ev.geometry?.[0]?.modified || ev.closed),
             label: ev.title?.substring(0, 60) || 'NASA Event',
             detail: cat,
             source: 'NASA',
@@ -3857,14 +3860,12 @@ async function buildConflictTimeline(iso, c) {
   if (nasaWildfireData.events) {
     const coord = CENTROIDS[iso];
     nasaWildfireData.events.forEach(ev => {
-      const geom = ev.geometry?.[0];
-      const coords = geom?.coordinates;
+      const coords = ev.geometry?.[0]?.coordinates;
       if (coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
-          const eventDate = geom?.date ? new Date(geom.date) : new Date();
           events.push({
-            date: eventDate,
+            date: safeParseDate(ev.geometry?.[0]?.date || ev.geometry?.[0]?.modified || ev.closed),
             label: ev.title?.substring(0, 50) || 'Wildfire',
             detail: 'Active wildfire event',
             source: 'NASA',
@@ -3889,9 +3890,8 @@ async function buildConflictTimeline(iso, c) {
         if (dist < 15) {
           const sev = props.alertlevel === 'Red' ? 'critical' : props.alertlevel === 'Orange' ? 'high' : 'moderate';
           const iconMap = { 'Earthquake':'🌍', 'Flood':'🌊', 'Tropical Cyclone':'🌀', 'Wildfire':'🔥' };
-          const eventDate = props.date ? new Date(props.date) : new Date();
           events.push({
-            date: eventDate,
+            date: safeParseDate(props.date || props.lastupdate || props.created),
             label: `${props.alertlevel} Alert: ${props.eventname?.substring(0, 40) || 'Disaster'}`,
             detail: props.eventtype || 'Natural disaster',
             source: 'GDACS',
@@ -3914,9 +3914,8 @@ async function buildConflictTimeline(iso, c) {
       if (props?.magnitude >= 5 && coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
-          const eventDate = props.date ? new Date(props.date) : new Date();
           events.push({
-            date: eventDate,
+            date: safeParseDate(props.date || props.lastupdate || props.created),
             label: `M${props.magnitude.toFixed(1)} Earthquake (GDACS)`,
             detail: props.eventname || 'Earthquake event',
             source: 'GDACS',
@@ -3937,9 +3936,8 @@ async function buildConflictTimeline(iso, c) {
       if (evIso === iso) {
         const sev = ev.dtype?.severity === 'CRITICAL' ? 'critical' : 
                    ev.dtype?.severity === 'HIGH' ? 'high' : 'moderate';
-        const eventDate = ev.disaster_start_date ? new Date(ev.disaster_start_date) : new Date();
         events.push({
-          date: eventDate,
+          date: safeParseDate(ev.disaster_start_date || ev.date || ev.created),
           label: ev.name?.substring(0, 50) || 'IFRC Response',
           detail: ev.dtype?.name || 'Humanitarian operation',
           source: 'IFRC',
@@ -3956,7 +3954,7 @@ async function buildConflictTimeline(iso, c) {
   const heat = heatData.find(h => h.iso === iso && h.temp > 38);
   if (heat) {
     events.push({
-      date: new Date(heat.timestamp || Date.now()),
+      date: safeParseDate(heat.timestamp || heat.date),
       label: `${heat.temp}°C Extreme Heat`,
       detail: 'Dangerous heat conditions',
       source: 'Open-Meteo',
@@ -3971,7 +3969,7 @@ async function buildConflictTimeline(iso, c) {
   const aq = aqData[iso];
   if (aq && aq.pm25 > 50) {
     events.push({
-      date: new Date(aq.timestamp || Date.now()),
+      date: safeParseDate(aq.timestamp || aq.date),
       label: `PM2.5 ${aq.pm25.toFixed(0)} µg/m³`,
       detail: `Unhealthy air quality in ${aq.city || 'region'}`,
       source: 'Open-Meteo AQ',
@@ -3987,9 +3985,8 @@ async function buildConflictTimeline(iso, c) {
     noaaData.features.slice(0, 5).forEach(f => {
       const props = f.properties;
       if (props?.headline) {
-        const eventDate = props.sent ? new Date(props.sent) : new Date();
         events.push({
-          date: eventDate,
+          date: safeParseDate(props.sent || props.effective || props.onset),
           label: props.headline?.substring(0, 50) || 'NOAA Alert',
           detail: props.description?.substring(0, 60) || 'Extreme weather',
           source: 'NOAA',
@@ -4007,9 +4004,8 @@ async function buildConflictTimeline(iso, c) {
   if (Array.isArray(diseaseData)) {
     diseaseData.forEach(d => {
       if (d.country.toLowerCase() === nameLower && d.active > 1000) {
-        const eventDate = d.updated ? new Date(d.updated) : new Date();
         events.push({
-          date: eventDate,
+          date: safeParseDate(d.updated),
           label: `COVID-19: ${d.active.toLocaleString()} active cases`,
           detail: `${d.cases.toLocaleString()} total cases, ${d.deaths.toLocaleString()} deaths`,
           source: 'disease.sh',
@@ -4021,13 +4017,15 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 12. World Bank Indicators (use current date since these are recent data) ──
-  const now = new Date();
-  
+  // ── 12. World Bank Indicators ──
+  // These are annual/snapshot data, so use a recent date
+  const wbDate = new Date();
+  wbDate.setDate(wbDate.getDate() - 30); // ~30 days ago
+
   const pop = evidenceIndex.population[iso];
   if (pop && pop > 50000000) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `Population ${(pop/1e6).toFixed(1)}M`,
       detail: 'Large population with crisis exposure',
       source: 'World Bank',
@@ -4040,7 +4038,7 @@ async function buildConflictTimeline(iso, c) {
   const infl = evidenceIndex.sourceCoverage[iso]?.inflation;
   if (infl && infl > 15) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `Inflation ${infl.toFixed(1)}%`,
       detail: `High inflation rate (${evidenceIndex.sourceCoverage[iso]?.inflation_year || 'latest'})`,
       source: 'World Bank',
@@ -4053,7 +4051,7 @@ async function buildConflictTimeline(iso, c) {
   const unemp = evidenceIndex.sourceCoverage[iso]?.unemployment;
   if (unemp && unemp > 15) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `Unemployment ${unemp.toFixed(1)}%`,
       detail: 'High unemployment rate',
       source: 'World Bank',
@@ -4066,7 +4064,7 @@ async function buildConflictTimeline(iso, c) {
   const gdp = evidenceIndex.sourceCoverage[iso]?.gdp_growth;
   if (gdp !== undefined && gdp < 0) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `GDP Growth ${gdp.toFixed(1)}%`,
       detail: 'Economic contraction',
       source: 'World Bank',
@@ -4080,7 +4078,7 @@ async function buildConflictTimeline(iso, c) {
   const refugees = evidenceIndex.sourceCoverage[iso]?.refugees;
   if (refugees && refugees > 10000) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `${refugees.toLocaleString()} refugees`,
       detail: 'Significant refugee population',
       source: 'UNHCR',
@@ -4093,7 +4091,7 @@ async function buildConflictTimeline(iso, c) {
   const displaced = evidenceIndex.sourceCoverage[iso]?.displaced;
   if (displaced && displaced > 10000) {
     events.push({
-      date: now,
+      date: wbDate,
       label: `${displaced.toLocaleString()} displaced persons`,
       detail: 'Internal displacement crisis',
       source: 'UNHCR',
@@ -4110,12 +4108,11 @@ async function buildConflictTimeline(iso, c) {
   if (ipcMatch && ipcMatch.phase >= 3) {
     const popAffected = Math.round(ipcMatch.population / 1e6);
     const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
-    const eventDate = ipcMatch.date ? new Date(ipcMatch.date) : new Date();
     events.push({
-      date: eventDate,
+      date: safeParseDate(ipcMatch.date),
       label: `IPC Phase ${ipcMatch.phase}: ${ipcMatch.phase_name}`,
       detail: `${popAffected}M people facing acute food insecurity`,
-      source: 'IPC',
+      source: 'IPC/FEWS NET',
       severity: sevMap[ipcMatch.phase] || 'moderate',
       icon: '🌾',
       category: 'food'
@@ -4127,9 +4124,8 @@ async function buildConflictTimeline(iso, c) {
   diseaseOutbreaksData.forEach(d => {
     if (d.country.toLowerCase().includes(nameLower.split(' ')[0])) {
       const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
-      const eventDate = d.date ? new Date(d.date) : new Date();
       events.push({
-        date: eventDate,
+        date: safeParseDate(d.date),
         label: `${d.disease} Outbreak`,
         detail: `${cases} cases confirmed`,
         source: 'WHO',
@@ -4144,9 +4140,8 @@ async function buildConflictTimeline(iso, c) {
   const acledData = evidenceIndex.conflict || [];
   acledData.forEach(e => {
     if (e.country && e.country.toLowerCase() === nameLower) {
-      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: eventDate,
+        date: safeParseDate(e.date),
         label: `${e.event_type || 'Conflict Event'}`,
         detail: e.fatalities ? `${e.fatalities}+ fatalities` : 'Conflict incident reported',
         source: 'ACLED',
@@ -4165,9 +4160,8 @@ async function buildConflictTimeline(iso, c) {
                            'Epidemic':'🦠', 'Drought':'🏜️', 'Cyclone':'🌀',
                            'Storm':'⛈️', 'Wildfire':'🔥', 'Food Insecurity':'🌾' };
       const sevMap = { 'Critical':'critical', 'High':'high', 'Moderate':'moderate' };
-      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: eventDate,
+        date: safeParseDate(e.date),
         label: e.title?.substring(0, 50) || 'Humanitarian Event',
         detail: e.type || 'ReliefWeb alert',
         source: 'ReliefWeb',
@@ -4183,9 +4177,8 @@ async function buildConflictTimeline(iso, c) {
   fewsData.forEach(e => {
     if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
       const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
-      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: eventDate,
+        date: safeParseDate(e.date),
         label: `FEWS NET Phase ${e.phase}`,
         detail: e.description?.substring(0, 60) || 'Food security alert',
         source: 'FEWS NET',
@@ -4203,8 +4196,10 @@ async function buildConflictTimeline(iso, c) {
       const delta = i > 0 ? hist[i] - hist[i-1] : 0;
       if (Math.abs(delta) >= 4) {
         const daysAgo = hist.length - 1 - i;
+        const date = new Date();
+        date.setDate(date.getDate() - daysAgo);
         events.push({
-          date: new Date(Date.now() - daysAgo * 86400000),
+          date: date,
           label: delta > 0 ? `Crisis Surge +${Math.round(delta)}pts` : `Situation Eased ${Math.abs(Math.round(delta))}pts`,
           detail: `Score moved to ${hist[i]}/100`,
           source: 'GCIS Index',
@@ -4216,10 +4211,10 @@ async function buildConflictTimeline(iso, c) {
     }
   }
 
-  // ── DEDUPLICATE (keep unique by label+source) ──
+  // ── DEDUPLICATE ──
   const seen = new Set();
   const uniqueEvents = events.filter(e => {
-    const key = e.label + e.source;
+    const key = e.label + e.source + e.date.getTime();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -4254,8 +4249,8 @@ async function buildConflictTimeline(iso, c) {
     if (h < 1) return '<span style="color:#00e5a0;font-weight:700;">Just now</span>';
     if (h < 24) return `<span style="color:#ffb020;">${h}h ago</span>`;
     if (d === 1) return '<span style="color:var(--ts);">Yesterday</span>';
-    if (d < 7) return `<span style="color:var(--ts);">${d}d ago</span>`;
-    return `<span style="color:var(--tm);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+    if (d < 7) return `<span style="color:var(--tm);">${d}d ago</span>`;
+    return `<span style="color:var(--td);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
   }
 
   const critCount = uniqueEvents.filter(e => e.severity === 'critical').length;
