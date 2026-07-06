@@ -32,7 +32,7 @@
           <span style="opacity: 0.3;">|</span>
           <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">GLOBAL CRISIS API</a>    Crisis map 100% sourced from our API
+          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>    Primary humanitarian & geopolitical news publisher
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
@@ -1583,12 +1583,6 @@ function buildTickerFromResults(){
 // ============================================================================
 // REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
 // ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
 async function refresh(){
   const loader=document.getElementById('loader');
   const fill=document.getElementById('lFill');
@@ -1644,7 +1638,8 @@ async function refresh(){
   // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
   let apiData = null;
   try {
-    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=100&force_live=false', { 
+    // 🔥 FIX: Use top=136 to get ALL countries
+    const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=136&force_live=false', { 
       headers: { 'Accept': 'application/json' } 
     });
     if (apiRes.ok) {
@@ -1792,7 +1787,6 @@ async function refresh(){
 
   updateDynamicTitle();
 }
-
 function updateUIStatsFromApi(data){
   const top = ranked.slice(0, 20);
   const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
@@ -3779,114 +3773,416 @@ async function buildConflictTimeline(iso, c) {
   if (!isHighConflict) return '';
 
   const name = c.name;
+  const nameLower = name.toLowerCase();
   const events = [];
 
-  // ── 1. ACLED conflict events ──────────────────────────────────────────
-  (conflictEvents || []).filter(e =>
-    e.country && e.country.toLowerCase() === name.toLowerCase()
-  ).forEach(e => {
-    events.push({
-      date: new Date(),
-      label: e.event_type || 'Conflict Event',
-      detail: e.fatalities ? `${e.fatalities}+ fatalities` : '',
-      source: 'ACLED',
-      severity: e.fatalities >= 50 ? 'critical' : e.fatalities >= 10 ? 'high' : 'moderate',
-      icon: '⚔️', category: 'conflict'
-    });
-  });
-
-  // ── 2. ReliefWeb events ───────────────────────────────────────────────
-  (apiResults.reliefweb_events || []).filter(e =>
-    e.country && e.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-  ).slice(0, 4).forEach(e => {
-    const typeIconMap = { 'Conflict':'⚔️','Flood':'🌊','Earthquake':'🌍','Epidemic':'🦠','Drought':'🏜️','Cyclone':'🌀','Storm':'⛈️','Wildfire':'🔥' };
-    events.push({
-      date: new Date(Date.now() - Math.random() * 12 * 86400000),
-      label: e.title || e.type || 'Humanitarian Event',
-      detail: e.type || 'ReliefWeb alert',
-      source: 'ReliefWeb', severity: 'high',
-      icon: typeIconMap[e.type] || '⚠️', category: 'humanitarian'
-    });
-  });
-
-  // ── 3. IPC food security ──────────────────────────────────────────────
-  const ipc = (ipcClassifications || []).find(i =>
-    i.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-  );
-  if (ipc) {
-    events.push({
-      date: new Date(Date.now() - 3 * 86400000),
-      label: `IPC Phase ${ipc.phase} — ${ipc.phase_name}`,
-      detail: `${Math.round(ipc.population / 1e6)}M people facing acute hunger`,
-      source: 'IPC/WFP',
-      severity: ipc.phase >= 4 ? 'critical' : 'high',
-      icon: '🌾', category: 'food'
+  // ── 1. USGS Earthquakes ──
+  const usgsData = apiResults.usgs_weekly || {};
+  if (usgsData.features) {
+    const coord = CENTROIDS[iso];
+    usgsData.features.forEach(f => {
+      const props = f.properties;
+      const coords = f.geometry?.coordinates;
+      if (props?.mag >= 4.5 && coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          events.push({
+            date: new Date(props.time),
+            label: `M${props.mag.toFixed(1)} Earthquake`,
+            detail: props.place?.split(',')[0] || 'Near region',
+            source: 'USGS',
+            severity: props.mag >= 6.5 ? 'critical' : props.mag >= 5.5 ? 'high' : 'moderate',
+            icon: '🌍', category: 'seismic'
+          });
+        }
+      }
     });
   }
 
-  // ── 4. Disease outbreaks ──────────────────────────────────────────────
-  (diseaseOutbreaks || []).filter(d =>
-    d.country.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-  ).forEach(d => {
-    const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
-    events.push({
-      date: new Date(Date.now() - Math.floor(Math.random() * 8) * 86400000),
-      label: `${d.disease} Outbreak`,
-      detail: `${cases} cases confirmed`,
-      source: 'WHO',
-      severity: d.cases >= 10000 ? 'critical' : 'high',
-      icon: '🦠', category: 'health'
+  // ── 2. EMSC Seismic ──
+  const emscData = apiResults.emsc_seismic || {};
+  if (emscData.features) {
+    const coord = CENTROIDS[iso];
+    emscData.features.forEach(f => {
+      const props = f.properties;
+      const coords = f.geometry?.coordinates;
+      if (props?.mag >= 4.5 && coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          events.push({
+            date: new Date(props.time || Date.now()),
+            label: `M${props.mag.toFixed(1)} Earthquake (EMSC)`,
+            detail: props.flynn_region || props.place || 'Near region',
+            source: 'EMSC',
+            severity: props.mag >= 6.5 ? 'critical' : props.mag >= 5.5 ? 'high' : 'moderate',
+            icon: '🌍', category: 'seismic'
+          });
+        }
+      }
     });
-  });
+  }
 
-  // ── 5. Extreme heat ───────────────────────────────────────────────────
-  const heat = (heatStressData || []).find(h => h.iso === iso && h.temp > 40);
+  // ── 3. NASA EONET ──
+  const nasaData = apiResults.nasa_eonet || {};
+  if (nasaData.events) {
+    const coord = CENTROIDS[iso];
+    nasaData.events.forEach(ev => {
+      const coords = ev.geometry?.[0]?.coordinates;
+      if (coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          const cat = ev.categories?.[0]?.title || 'Natural Event';
+          const sevMap = { 'Wildfires':'high', 'Floods':'high', 'Severe Storms':'critical' };
+          const iconMap = { 'Wildfires':'🔥', 'Floods':'🌊', 'Severe Storms':'⛈️' };
+          events.push({
+            date: new Date(ev.geometry?.[0]?.date || Date.now()),
+            label: ev.title?.substring(0, 60) || 'NASA Event',
+            detail: cat,
+            source: 'NASA',
+            severity: sevMap[cat] || 'moderate',
+            icon: iconMap[cat] || '🛰️',
+            category: 'natural'
+          });
+        }
+      }
+    });
+  }
+
+  // ── 4. NASA Wildfires ──
+  const nasaWildfireData = apiResults.nasa_wildfires || {};
+  if (nasaWildfireData.events) {
+    const coord = CENTROIDS[iso];
+    nasaWildfireData.events.forEach(ev => {
+      const coords = ev.geometry?.[0]?.coordinates;
+      if (coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          events.push({
+            date: new Date(ev.geometry?.[0]?.date || Date.now()),
+            label: ev.title?.substring(0, 50) || 'Wildfire',
+            detail: 'Active wildfire event',
+            source: 'NASA',
+            severity: 'high',
+            icon: '🔥',
+            category: 'natural'
+          });
+        }
+      }
+    });
+  }
+
+  // ── 5. GDACS Alerts ──
+  const gdacsData = apiResults.gdacs || {};
+  if (gdacsData.features) {
+    const coord = CENTROIDS[iso];
+    gdacsData.features.forEach(f => {
+      const props = f.properties;
+      const coords = f.geometry?.coordinates;
+      if (props?.alertlevel && coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          const sev = props.alertlevel === 'Red' ? 'critical' : props.alertlevel === 'Orange' ? 'high' : 'moderate';
+          const iconMap = { 'Earthquake':'🌍', 'Flood':'🌊', 'Tropical Cyclone':'🌀', 'Wildfire':'🔥' };
+          events.push({
+            date: new Date(props.date || Date.now()),
+            label: `${props.alertlevel} Alert: ${props.eventname?.substring(0, 40) || 'Disaster'}`,
+            detail: props.eventtype || 'Natural disaster',
+            source: 'GDACS',
+            severity: sev,
+            icon: iconMap[props.eventtype] || '🚨',
+            category: 'natural'
+          });
+        }
+      }
+    });
+  }
+
+  // ── 6. GDACS Earthquakes ──
+  const gdacsEqData = apiResults.gdacs_earthquakes || {};
+  if (gdacsEqData.features) {
+    const coord = CENTROIDS[iso];
+    gdacsEqData.features.forEach(f => {
+      const props = f.properties;
+      const coords = f.geometry?.coordinates;
+      if (props?.magnitude >= 5 && coords && coord) {
+        const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
+        if (dist < 15) {
+          events.push({
+            date: new Date(props.date || Date.now()),
+            label: `M${props.magnitude.toFixed(1)} Earthquake (GDACS)`,
+            detail: props.eventname || 'Earthquake event',
+            source: 'GDACS',
+            severity: props.magnitude >= 6.5 ? 'critical' : 'high',
+            icon: '🌍',
+            category: 'seismic'
+          });
+        }
+      }
+    });
+  }
+
+  // ── 7. IFRC GO ──
+  const ifrcData = apiResults.ifrc_go || {};
+  if (ifrcData.results) {
+    ifrcData.results.forEach(ev => {
+      const evIso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+      if (evIso === iso) {
+        const sev = ev.dtype?.severity === 'CRITICAL' ? 'critical' : 
+                   ev.dtype?.severity === 'HIGH' ? 'high' : 'moderate';
+        events.push({
+          date: new Date(ev.disaster_start_date || Date.now()),
+          label: ev.name?.substring(0, 50) || 'IFRC Response',
+          detail: ev.dtype?.name || 'Humanitarian operation',
+          source: 'IFRC',
+          severity: sev,
+          icon: '🔴',
+          category: 'humanitarian'
+        });
+      }
+    });
+  }
+
+  // ── 8. Heat Stress (Open-Meteo) ──
+  const heatData = heatStressData || [];
+  const heat = heatData.find(h => h.iso === iso && h.temp > 38);
   if (heat) {
     events.push({
-      date: new Date(),
-      label: 'Extreme Heat Warning',
-      detail: `${heat.temp}°C recorded — dangerous conditions`,
+      date: new Date(heat.timestamp || Date.now()),
+      label: `${heat.temp}°C Extreme Heat`,
+      detail: 'Dangerous heat conditions',
       source: 'Open-Meteo',
       severity: heat.temp >= 45 ? 'critical' : 'high',
-      icon: '🥵', category: 'climate'
+      icon: '🥵',
+      category: 'climate'
     });
   }
 
-  // ── 6. GDELT signals ──────────────────────────────────────────────────
-  const coord = CENTROIDS[iso];
-  (apiResults.gdelt_processed || []).filter(f => {
-    if (!f.properties || !coord) return false;
-    const [lng, lat] = f.geometry?.coordinates || [];
-    return lng && lat && Math.abs(lng - coord[0]) < 8 && Math.abs(lat - coord[1]) < 8;
-  }).slice(0, 2).forEach(f => {
+  // ── 9. Air Quality (Open-Meteo) ──
+  const aqData = apiResults.aq_processed || {};
+  const aq = aqData[iso];
+  if (aq && aq.pm25 > 50) {
     events.push({
-      date: new Date(Date.now() - Math.floor(Math.random() * 14) * 86400000),
-      label: f.properties?.name || 'GDELT Media Signal',
-      detail: 'Conflict media coverage spike',
-      source: 'GDELT', severity: 'moderate',
-      icon: '📡', category: 'signal'
+      date: new Date(aq.timestamp || Date.now()),
+      label: `PM2.5 ${aq.pm25.toFixed(0)} µg/m³`,
+      detail: `Unhealthy air quality in ${aq.city || 'region'}`,
+      source: 'Open-Meteo AQ',
+      severity: aq.pm25 > 150 ? 'critical' : aq.pm25 > 80 ? 'high' : 'moderate',
+      icon: '🌫️',
+      category: 'health'
     });
+  }
+
+  // ── 10. NOAA Alerts ──
+  const noaaData = apiResults.noaa_alerts || {};
+  if (noaaData.features && iso === 'USA') {
+    noaaData.features.slice(0, 5).forEach(f => {
+      const props = f.properties;
+      if (props?.headline) {
+        events.push({
+          date: new Date(props.sent || Date.now()),
+          label: props.headline?.substring(0, 50) || 'NOAA Alert',
+          detail: props.description?.substring(0, 60) || 'Extreme weather',
+          source: 'NOAA',
+          severity: props.severity === 'Extreme' ? 'critical' : 
+                   props.severity === 'Severe' ? 'high' : 'moderate',
+          icon: '⚠️',
+          category: 'weather'
+        });
+      }
+    });
+  }
+
+  // ── 11. disease.sh COVID-19 ──
+  const diseaseData = apiResults.disease_sh || [];
+  if (Array.isArray(diseaseData)) {
+    diseaseData.forEach(d => {
+      if (d.country.toLowerCase() === nameLower && d.active > 1000) {
+        events.push({
+          date: new Date(d.updated || Date.now()),
+          label: `COVID-19: ${d.active.toLocaleString()} active cases`,
+          detail: `${d.cases.toLocaleString()} total cases, ${d.deaths.toLocaleString()} deaths`,
+          source: 'disease.sh',
+          severity: d.active > 50000 ? 'critical' : d.active > 10000 ? 'high' : 'moderate',
+          icon: '🦠',
+          category: 'health'
+        });
+      }
+    });
+  }
+
+  // ── 12. World Bank Population ──
+  const pop = evidenceIndex.population[iso];
+  if (pop && pop > 50000000) {
+    events.push({
+      date: new Date(),
+      label: `Population ${(pop/1e6).toFixed(1)}M`,
+      detail: 'Large population with crisis exposure',
+      source: 'World Bank',
+      severity: 'moderate',
+      icon: '👥',
+      category: 'demographic'
+    });
+  }
+
+  // ── 13. World Bank Inflation ──
+  const infl = evidenceIndex.sourceCoverage[iso]?.inflation;
+  if (infl && infl > 15) {
+    events.push({
+      date: new Date(),
+      label: `Inflation ${infl.toFixed(1)}%`,
+      detail: `High inflation rate (${evidenceIndex.sourceCoverage[iso]?.inflation_year || 'latest'})`,
+      source: 'World Bank',
+      severity: infl > 30 ? 'critical' : infl > 20 ? 'high' : 'moderate',
+      icon: '💰',
+      category: 'economic'
+    });
+  }
+
+  // ── 14. World Bank Unemployment ──
+  const unemp = evidenceIndex.sourceCoverage[iso]?.unemployment;
+  if (unemp && unemp > 15) {
+    events.push({
+      date: new Date(),
+      label: `Unemployment ${unemp.toFixed(1)}%`,
+      detail: 'High unemployment rate',
+      source: 'World Bank',
+      severity: unemp > 25 ? 'high' : 'moderate',
+      icon: '📊',
+      category: 'economic'
+    });
+  }
+
+  // ── 15. World Bank GDP Growth ──
+  const gdp = evidenceIndex.sourceCoverage[iso]?.gdp_growth;
+  if (gdp !== undefined && gdp < 0) {
+    events.push({
+      date: new Date(),
+      label: `GDP Growth ${gdp.toFixed(1)}%`,
+      detail: 'Economic contraction',
+      source: 'World Bank',
+      severity: gdp < -3 ? 'critical' : 'high',
+      icon: '📉',
+      category: 'economic'
+    });
+  }
+
+  // ── 16. Refugees (UNHCR) ──
+  const refugees = evidenceIndex.sourceCoverage[iso]?.refugees;
+  if (refugees && refugees > 10000) {
+    events.push({
+      date: new Date(),
+      label: `${refugees.toLocaleString()} refugees`,
+      detail: 'Significant refugee population',
+      source: 'UNHCR',
+      severity: refugees > 100000 ? 'high' : 'moderate',
+      icon: '🏕️',
+      category: 'displacement'
+    });
+  }
+
+  // ── 17. Displacement (UNHCR) ──
+  const displaced = evidenceIndex.sourceCoverage[iso]?.displaced;
+  if (displaced && displaced > 10000) {
+    events.push({
+      date: new Date(),
+      label: `${displaced.toLocaleString()} displaced persons`,
+      detail: 'Internal displacement crisis',
+      source: 'UNHCR',
+      severity: displaced > 500000 ? 'critical' : displaced > 100000 ? 'high' : 'moderate',
+      icon: '🚶',
+      category: 'displacement'
+    });
+  }
+
+  // ── 18. IPC Food Security ──
+  const ipcMatch = (ipcClassifications || []).find(i => 
+    i.country.toLowerCase().includes(nameLower.split(' ')[0])
+  );
+  if (ipcMatch && ipcMatch.phase >= 3) {
+    const popAffected = Math.round(ipcMatch.population / 1e6);
+    const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
+    events.push({
+      date: new Date(ipcMatch.date || Date.now()),
+      label: `IPC Phase ${ipcMatch.phase}: ${ipcMatch.phase_name}`,
+      detail: `${popAffected}M people facing acute food insecurity`,
+      source: 'IPC/FEWS NET',
+      severity: sevMap[ipcMatch.phase] || 'moderate',
+      icon: '🌾',
+      category: 'food'
+    });
+  }
+
+  // ── 19. WHO Disease Outbreaks ──
+  const diseaseOutbreaksData = diseaseOutbreaks || [];
+  diseaseOutbreaksData.forEach(d => {
+    if (d.country.toLowerCase().includes(nameLower.split(' ')[0])) {
+      const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
+      events.push({
+        date: new Date(d.date || Date.now()),
+        label: `${d.disease} Outbreak`,
+        detail: `${cases} cases confirmed`,
+        source: 'WHO',
+        severity: d.cases >= 10000 ? 'critical' : d.cases >= 1000 ? 'high' : 'moderate',
+        icon: '🦠',
+        category: 'health'
+      });
+    }
   });
 
-  // ── 7. USGS earthquakes ───────────────────────────────────────────────
-  if (coord) {
-    (apiResults.usgs_weekly?.features || []).filter(f => {
-      const [qlng, qlat] = f.geometry?.coordinates || [];
-      return Math.abs(qlng - coord[0]) < 10 && Math.abs(qlat - coord[1]) < 10 && f.properties?.mag >= 4.5;
-    }).slice(0, 2).forEach(q => {
-      const mag = (+q.properties.mag).toFixed(1);
+  // ── 20. ACLED Conflict (from evidenceIndex) ──
+  const acledData = evidenceIndex.conflict || [];
+  acledData.forEach(e => {
+    if (e.country && e.country.toLowerCase() === nameLower) {
       events.push({
-        date: new Date(q.properties.time),
-        label: `M${mag} Earthquake`,
-        detail: q.properties.place?.split(',')[0] || 'Near region',
-        source: 'USGS',
-        severity: mag >= 6.5 ? 'critical' : mag >= 5.5 ? 'high' : 'moderate',
-        icon: '🌍', category: 'seismic'
+        date: new Date(e.date || Date.now()),
+        label: `${e.event_type || 'Conflict Event'}`,
+        detail: e.fatalities ? `${e.fatalities}+ fatalities` : 'Conflict incident reported',
+        source: 'ACLED',
+        severity: e.fatalities >= 50 ? 'critical' : e.fatalities >= 10 ? 'high' : 'moderate',
+        icon: '⚔️',
+        category: 'conflict'
       });
-    });
-  }
+    }
+  });
 
-  // ── 8. Score history surges ───────────────────────────────────────────
+  // ── 21. ReliefWeb ──
+  const reliefwebData = apiResults.reliefweb_events || [];
+  reliefwebData.forEach(e => {
+    if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
+      const typeIconMap = { 'Conflict':'⚔️', 'Flood':'🌊', 'Earthquake':'🌍', 
+                           'Epidemic':'🦠', 'Drought':'🏜️', 'Cyclone':'🌀',
+                           'Storm':'⛈️', 'Wildfire':'🔥', 'Food Insecurity':'🌾' };
+      const sevMap = { 'Critical':'critical', 'High':'high', 'Moderate':'moderate' };
+      events.push({
+        date: new Date(e.date || Date.now()),
+        label: e.title?.substring(0, 50) || 'Humanitarian Event',
+        detail: e.type || 'ReliefWeb alert',
+        source: 'ReliefWeb',
+        severity: sevMap[e.severity] || 'moderate',
+        icon: typeIconMap[e.type] || '📰',
+        category: 'humanitarian'
+      });
+    }
+  });
+
+  // ── 22. FEWS NET ──
+  const fewsData = evidenceIndex.fewsnet || [];
+  fewsData.forEach(e => {
+    if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
+      const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
+      events.push({
+        date: new Date(e.date || Date.now()),
+        label: `FEWS NET Phase ${e.phase}`,
+        detail: e.description?.substring(0, 60) || 'Food security alert',
+        source: 'FEWS NET',
+        severity: sevMap[e.phase] || 'moderate',
+        icon: '🌾',
+        category: 'food'
+      });
+    }
+  });
+
+  // ── 23. Score history surges ──
   const hist = (history[iso] || []).map(h => h.s);
   if (hist.length >= 7) {
     for (let i = hist.length - 1; i >= Math.max(0, hist.length - 14); i--) {
@@ -3895,23 +4191,33 @@ async function buildConflictTimeline(iso, c) {
         const daysAgo = hist.length - 1 - i;
         events.push({
           date: new Date(Date.now() - daysAgo * 86400000),
-          label: delta > 0 ? `Crisis Surge +${Math.round(delta)}pts` : `Situation Eased ${Math.round(delta)}pts`,
+          label: delta > 0 ? `Crisis Surge +${Math.round(delta)}pts` : `Situation Eased ${Math.abs(Math.round(delta))}pts`,
           detail: `Score moved to ${hist[i]}/100`,
           source: 'GCIS Index',
           severity: delta > 6 ? 'critical' : delta > 3 ? 'high' : 'moderate',
-          icon: delta > 0 ? '📈' : '📉', category: 'index'
+          icon: delta > 0 ? '📈' : '📉',
+          category: 'index'
         });
       }
     }
   }
 
-  if (!events.length) return '';
+  // ── DEDUPLICATE (keep unique by label+source) ──
+  const seen = new Set();
+  const uniqueEvents = events.filter(e => {
+    const key = e.label + e.source;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
-  events.sort((a, b) => b.date - a.date);
-  const displayed = events.slice(0, 12);
-  const total = events.length;
+  if (!uniqueEvents.length) return '';
 
-  // ── Severity config ───────────────────────────────────────────────────
+  uniqueEvents.sort((a, b) => b.date - a.date);
+  const displayed = uniqueEvents.slice(0, 12);
+  const total = uniqueEvents.length;
+
+  // ── Severity config ──
   const SEV = {
     critical: { color:'#ff375f', bg:'rgba(255,55,95,0.10)', border:'rgba(255,55,95,0.28)', glow:'rgba(255,55,95,0.35)', label:'CRITICAL' },
     high:     { color:'#ff8c42', bg:'rgba(255,140,66,0.08)', border:'rgba(255,140,66,0.22)', glow:'rgba(255,140,66,0.3)', label:'HIGH' },
@@ -3919,11 +4225,12 @@ async function buildConflictTimeline(iso, c) {
     low:      { color:'#3ec5ff', bg:'rgba(62,197,255,0.06)', border:'rgba(62,197,255,0.18)', glow:'rgba(62,197,255,0.2)', label:'LOW' }
   };
 
-  // ── Category accent colors ────────────────────────────────────────────
   const CAT_COLOR = {
     conflict:'#ff375f', humanitarian:'#ff8c42', food:'#ffb020',
     health:'#e879f9', climate:'#f97316', seismic:'#a78bfa',
-    signal:'#3ec5ff', index:'#00e5a0'
+    signal:'#3ec5ff', index:'#00e5a0', weather:'#3ec5ff',
+    natural:'#ff8c42', displacement:'#bf7fff', demographic:'#7dd3fc',
+    economic:'#fbbf24'
   };
 
   function relativeTime(date) {
@@ -3936,11 +4243,9 @@ async function buildConflictTimeline(iso, c) {
     return `<span style="color:var(--tm);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
   }
 
-  // ── Count by severity for the header stats ────────────────────────────
-  const critCount = events.filter(e => e.severity === 'critical').length;
-  const highCount = events.filter(e => e.severity === 'high').length;
+  const critCount = uniqueEvents.filter(e => e.severity === 'critical').length;
+  const highCount = uniqueEvents.filter(e => e.severity === 'high').length;
 
-  // ── Build rows ────────────────────────────────────────────────────────
   const rows = displayed.map((ev, idx) => {
     const sev = SEV[ev.severity] || SEV.moderate;
     const catColor = CAT_COLOR[ev.category] || sev.color;
@@ -3950,21 +4255,15 @@ async function buildConflictTimeline(iso, c) {
 
     return `
       <div style="display:flex;gap:0;position:relative;${isFirst ? '' : ''}">
-
-        <!-- Left: timeline spine + dot -->
         <div style="display:flex;flex-direction:column;align-items:center;width:32px;flex-shrink:0;padding-top:2px;">
-          <!-- Dot -->
           <div style="position:relative;width:14px;height:14px;flex-shrink:0;">
             ${isCritical ? `<div style="position:absolute;inset:-3px;border-radius:50%;background:${sev.color};opacity:0.2;animation:pulse 2s ease-in-out infinite;"></div>` : ''}
             <div style="width:14px;height:14px;border-radius:50%;background:${sev.bg};border:2px solid ${sev.color};box-shadow:0 0 8px ${sev.glow};display:flex;align-items:center;justify-content:center;position:relative;z-index:1;">
               <div style="width:5px;height:5px;border-radius:50%;background:${sev.color};${isCritical ? `box-shadow:0 0 4px ${sev.color};` : ''}"></div>
             </div>
           </div>
-          <!-- Spine line -->
           ${!isLast ? `<div style="width:2px;flex:1;min-height:14px;background:linear-gradient(to bottom,${sev.color}44,${(SEV[displayed[idx+1]?.severity]||SEV.moderate).color}22);margin-top:3px;border-radius:1px;"></div>` : ''}
         </div>
-
-        <!-- Right: event card -->
         <div style="flex:1;margin-bottom:${isLast?'0':'10px'};padding-bottom:${isLast?'0':'0'};">
           <div style="
             background:${sev.bg};
@@ -3976,32 +4275,15 @@ async function buildConflictTimeline(iso, c) {
             overflow:hidden;
             transition:all 0.15s;
           " onmouseover="this.style.background='${sev.bg.replace('0.10','0.16').replace('0.08','0.13').replace('0.07','0.11').replace('0.06','0.10')}';this.style.borderColor='${sev.color}';" onmouseout="this.style.background='${sev.bg}';this.style.border='1px solid ${sev.border}';this.style.borderLeft='3px solid ${sev.color}';">
-
-            <!-- Subtle category accent strip -->
             <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:${catColor};opacity:0.4;border-radius:0 8px 8px 0;"></div>
-
-            <!-- Top row: icon + label + severity badge -->
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
               <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
                 <span style="font-size:13px;flex-shrink:0;line-height:1;">${ev.icon}</span>
                 <span style="font-size:10px;font-weight:700;color:#e8f4ff;line-height:1.3;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev.label}</span>
               </div>
-              <span style="
-                font-family:var(--fm);font-size:6.5px;font-weight:800;
-                color:${sev.color};
-                background:${sev.bg};
-                border:1px solid ${sev.border};
-                border-radius:3px;
-                padding:2px 5px;
-                white-space:nowrap;flex-shrink:0;
-                letter-spacing:.06em;
-              ">${sev.label}</span>
+              <span style="font-family:var(--fm);font-size:6.5px;font-weight:800;color:${sev.color};background:${sev.bg};border:1px solid ${sev.border};border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;letter-spacing:.06em;">${sev.label}</span>
             </div>
-
-            <!-- Detail row -->
             ${ev.detail ? `<div style="font-family:var(--fb);font-size:9px;color:var(--ts);margin-bottom:5px;line-height:1.4;padding-left:19px;">${ev.detail}</div>` : ''}
-
-            <!-- Footer: source + time -->
             <div style="display:flex;align-items:center;justify-content:space-between;padding-left:19px;">
               <div style="display:flex;align-items:center;gap:5px;">
                 <span style="font-family:var(--fm);font-size:7px;color:${catColor};background:${catColor}18;border:1px solid ${catColor}33;border-radius:3px;padding:1px 5px;font-weight:600;">${ev.source}</span>
@@ -4013,59 +4295,42 @@ async function buildConflictTimeline(iso, c) {
       </div>`;
   }).join('');
 
-  // ── Header source pills ───────────────────────────────────────────────
   const sources = [...new Set(displayed.map(e => e.source))].slice(0, 5);
   const sourcePills = sources.map(s => `<span style="font-family:var(--fm);font-size:6px;color:var(--td);background:rgba(255,255,255,0.03);border:1px solid var(--b1);border-radius:3px;padding:1px 5px;">${s}</span>`).join('');
 
   return `
     <div class="ps">
       <div style="background:rgba(3,8,20,0.6);border:1px solid rgba(255,55,95,0.15);border-radius:12px;overflow:hidden;backdrop-filter:blur(12px);">
-
-        <!-- Header -->
-        <div style="
-          padding:10px 14px;
-          background:linear-gradient(135deg,rgba(255,55,95,0.08),rgba(255,140,66,0.04));
-          border-bottom:1px solid rgba(255,55,95,0.12);
-          display:flex;align-items:center;justify-content:space-between;gap:10px;
-        ">
-          <div style="display:flex;align-items:center;gap:9px;">
+        <div style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,55,95,0.08),rgba(255,140,66,0.04));border-bottom:1px solid rgba(255,55,95,0.12);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
             <div style="position:relative;width:8px;height:8px;flex-shrink:0;">
               <div style="position:absolute;inset:0;border-radius:50%;background:#ff375f;animation:pulse 2s ease-in-out infinite;opacity:0.4;"></div>
               <div style="position:absolute;inset:1px;border-radius:50%;background:#ff375f;"></div>
             </div>
             <span style="font-family:var(--fd);font-size:13px;font-weight:800;letter-spacing:.04em;color:#fff;">Event Timeline</span>
-            <div style="display:flex;align-items:center;gap:4px;">
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
               ${critCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,55,95,0.15);border:1px solid rgba(255,55,95,0.3);color:#ff375f;border-radius:4px;padding:1px 6px;font-weight:700;">${critCount} CRITICAL</span>` : ''}
               ${highCount > 0 ? `<span style="font-family:var(--fm);font-size:7px;background:rgba(255,140,66,0.1);border:1px solid rgba(255,140,66,0.25);color:#ff8c42;border-radius:4px;padding:1px 6px;">${highCount} HIGH</span>` : ''}
+              <span style="font-family:var(--fm);font-size:7px;background:rgba(62,197,255,0.08);border:1px solid rgba(62,197,255,0.15);color:#3ec5ff;border-radius:4px;padding:1px 6px;">${uniqueEvents.length} total</span>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
             ${sourcePills}
           </div>
         </div>
-
-        <!-- Timeline body -->
-        <div style="padding:14px 12px 6px 10px;">
+        <div style="padding:14px 12px 6px 10px;max-height:420px;overflow-y:auto;">
           ${rows}
         </div>
-
-        <!-- Footer -->
-        <div style="
-          padding:8px 14px;
-          border-top:1px solid rgba(255,255,255,0.04);
-          display:flex;align-items:center;justify-content:space-between;
-        ">
-          <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${total} events detected · last 30 days</span>
+        <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+          <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${uniqueEvents.length} events from ${sources.length}+ sources</span>
           ${total > 12 ? `
           <span style="font-family:var(--fm);font-size:7.5px;cursor:pointer;color:var(--cyan);display:flex;align-items:center;gap:3px;" onclick="openModal()">
             +${total - 12} more <span style="opacity:0.6;">· Upgrade →</span>
           </span>` : `<span style="font-family:var(--fm);font-size:7px;color:var(--td);">showing all events</span>`}
         </div>
-
       </div>
     </div>`;
-}
-function buildEvidenceLedgerHtml(c){
+}function buildEvidenceLedgerHtml(c){
   const ledger=(c.evidenceLedger||[]).slice().sort((a,b)=>b.pts-a.pts);
   const confPct=Math.round((c.evidenceConfidence||0)*100);
   const confCol=confPct>=60?'#00e5a0':confPct>=30?'#ffb020':'#ff375f';
