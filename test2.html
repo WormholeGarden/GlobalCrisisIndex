@@ -3809,8 +3809,9 @@ async function buildConflictTimeline(iso, c) {
       if (props?.mag >= 4.5 && coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
+          const eventDate = props.time ? new Date(props.time) : new Date();
           events.push({
-            date: new Date(props.time || Date.now()),
+            date: eventDate,
             label: `M${props.mag.toFixed(1)} Earthquake (EMSC)`,
             detail: props.flynn_region || props.place || 'Near region',
             source: 'EMSC',
@@ -3827,15 +3828,18 @@ async function buildConflictTimeline(iso, c) {
   if (nasaData.events) {
     const coord = CENTROIDS[iso];
     nasaData.events.forEach(ev => {
-      const coords = ev.geometry?.[0]?.coordinates;
+      const geom = ev.geometry?.[0];
+      const coords = geom?.coordinates;
       if (coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
           const cat = ev.categories?.[0]?.title || 'Natural Event';
           const sevMap = { 'Wildfires':'high', 'Floods':'high', 'Severe Storms':'critical' };
           const iconMap = { 'Wildfires':'🔥', 'Floods':'🌊', 'Severe Storms':'⛈️' };
+          // Use the actual geometry date if available
+          const eventDate = geom?.date ? new Date(geom.date) : new Date();
           events.push({
-            date: new Date(ev.geometry?.[0]?.date || Date.now()),
+            date: eventDate,
             label: ev.title?.substring(0, 60) || 'NASA Event',
             detail: cat,
             source: 'NASA',
@@ -3853,12 +3857,14 @@ async function buildConflictTimeline(iso, c) {
   if (nasaWildfireData.events) {
     const coord = CENTROIDS[iso];
     nasaWildfireData.events.forEach(ev => {
-      const coords = ev.geometry?.[0]?.coordinates;
+      const geom = ev.geometry?.[0];
+      const coords = geom?.coordinates;
       if (coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
+          const eventDate = geom?.date ? new Date(geom.date) : new Date();
           events.push({
-            date: new Date(ev.geometry?.[0]?.date || Date.now()),
+            date: eventDate,
             label: ev.title?.substring(0, 50) || 'Wildfire',
             detail: 'Active wildfire event',
             source: 'NASA',
@@ -3883,8 +3889,9 @@ async function buildConflictTimeline(iso, c) {
         if (dist < 15) {
           const sev = props.alertlevel === 'Red' ? 'critical' : props.alertlevel === 'Orange' ? 'high' : 'moderate';
           const iconMap = { 'Earthquake':'🌍', 'Flood':'🌊', 'Tropical Cyclone':'🌀', 'Wildfire':'🔥' };
+          const eventDate = props.date ? new Date(props.date) : new Date();
           events.push({
-            date: new Date(props.date || Date.now()),
+            date: eventDate,
             label: `${props.alertlevel} Alert: ${props.eventname?.substring(0, 40) || 'Disaster'}`,
             detail: props.eventtype || 'Natural disaster',
             source: 'GDACS',
@@ -3907,8 +3914,9 @@ async function buildConflictTimeline(iso, c) {
       if (props?.magnitude >= 5 && coords && coord) {
         const dist = Math.sqrt(Math.pow(coords[0] - coord[0], 2) + Math.pow(coords[1] - coord[1], 2));
         if (dist < 15) {
+          const eventDate = props.date ? new Date(props.date) : new Date();
           events.push({
-            date: new Date(props.date || Date.now()),
+            date: eventDate,
             label: `M${props.magnitude.toFixed(1)} Earthquake (GDACS)`,
             detail: props.eventname || 'Earthquake event',
             source: 'GDACS',
@@ -3929,8 +3937,9 @@ async function buildConflictTimeline(iso, c) {
       if (evIso === iso) {
         const sev = ev.dtype?.severity === 'CRITICAL' ? 'critical' : 
                    ev.dtype?.severity === 'HIGH' ? 'high' : 'moderate';
+        const eventDate = ev.disaster_start_date ? new Date(ev.disaster_start_date) : new Date();
         events.push({
-          date: new Date(ev.disaster_start_date || Date.now()),
+          date: eventDate,
           label: ev.name?.substring(0, 50) || 'IFRC Response',
           detail: ev.dtype?.name || 'Humanitarian operation',
           source: 'IFRC',
@@ -3978,8 +3987,9 @@ async function buildConflictTimeline(iso, c) {
     noaaData.features.slice(0, 5).forEach(f => {
       const props = f.properties;
       if (props?.headline) {
+        const eventDate = props.sent ? new Date(props.sent) : new Date();
         events.push({
-          date: new Date(props.sent || Date.now()),
+          date: eventDate,
           label: props.headline?.substring(0, 50) || 'NOAA Alert',
           detail: props.description?.substring(0, 60) || 'Extreme weather',
           source: 'NOAA',
@@ -3997,8 +4007,9 @@ async function buildConflictTimeline(iso, c) {
   if (Array.isArray(diseaseData)) {
     diseaseData.forEach(d => {
       if (d.country.toLowerCase() === nameLower && d.active > 1000) {
+        const eventDate = d.updated ? new Date(d.updated) : new Date();
         events.push({
-          date: new Date(d.updated || Date.now()),
+          date: eventDate,
           label: `COVID-19: ${d.active.toLocaleString()} active cases`,
           detail: `${d.cases.toLocaleString()} total cases, ${d.deaths.toLocaleString()} deaths`,
           source: 'disease.sh',
@@ -4010,11 +4021,13 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 12. World Bank Population ──
+  // ── 12. World Bank Indicators (use current date since these are recent data) ──
+  const now = new Date();
+  
   const pop = evidenceIndex.population[iso];
   if (pop && pop > 50000000) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `Population ${(pop/1e6).toFixed(1)}M`,
       detail: 'Large population with crisis exposure',
       source: 'World Bank',
@@ -4024,11 +4037,10 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 13. World Bank Inflation ──
   const infl = evidenceIndex.sourceCoverage[iso]?.inflation;
   if (infl && infl > 15) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `Inflation ${infl.toFixed(1)}%`,
       detail: `High inflation rate (${evidenceIndex.sourceCoverage[iso]?.inflation_year || 'latest'})`,
       source: 'World Bank',
@@ -4038,11 +4050,10 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 14. World Bank Unemployment ──
   const unemp = evidenceIndex.sourceCoverage[iso]?.unemployment;
   if (unemp && unemp > 15) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `Unemployment ${unemp.toFixed(1)}%`,
       detail: 'High unemployment rate',
       source: 'World Bank',
@@ -4052,11 +4063,10 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 15. World Bank GDP Growth ──
   const gdp = evidenceIndex.sourceCoverage[iso]?.gdp_growth;
   if (gdp !== undefined && gdp < 0) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `GDP Growth ${gdp.toFixed(1)}%`,
       detail: 'Economic contraction',
       source: 'World Bank',
@@ -4066,11 +4076,11 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 16. Refugees (UNHCR) ──
+  // ── 13. Refugees (UNHCR) ──
   const refugees = evidenceIndex.sourceCoverage[iso]?.refugees;
   if (refugees && refugees > 10000) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `${refugees.toLocaleString()} refugees`,
       detail: 'Significant refugee population',
       source: 'UNHCR',
@@ -4080,11 +4090,10 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 17. Displacement (UNHCR) ──
   const displaced = evidenceIndex.sourceCoverage[iso]?.displaced;
   if (displaced && displaced > 10000) {
     events.push({
-      date: new Date(),
+      date: now,
       label: `${displaced.toLocaleString()} displaced persons`,
       detail: 'Internal displacement crisis',
       source: 'UNHCR',
@@ -4094,31 +4103,33 @@ async function buildConflictTimeline(iso, c) {
     });
   }
 
-  // ── 18. IPC Food Security ──
+  // ── 14. IPC Food Security ──
   const ipcMatch = (ipcClassifications || []).find(i => 
     i.country.toLowerCase().includes(nameLower.split(' ')[0])
   );
   if (ipcMatch && ipcMatch.phase >= 3) {
     const popAffected = Math.round(ipcMatch.population / 1e6);
     const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
+    const eventDate = ipcMatch.date ? new Date(ipcMatch.date) : new Date();
     events.push({
-      date: new Date(ipcMatch.date || Date.now()),
+      date: eventDate,
       label: `IPC Phase ${ipcMatch.phase}: ${ipcMatch.phase_name}`,
       detail: `${popAffected}M people facing acute food insecurity`,
-      source: 'IPC/FEWS NET',
+      source: 'IPC',
       severity: sevMap[ipcMatch.phase] || 'moderate',
       icon: '🌾',
       category: 'food'
     });
   }
 
-  // ── 19. WHO Disease Outbreaks ──
+  // ── 15. WHO Disease Outbreaks ──
   const diseaseOutbreaksData = diseaseOutbreaks || [];
   diseaseOutbreaksData.forEach(d => {
     if (d.country.toLowerCase().includes(nameLower.split(' ')[0])) {
       const cases = d.cases >= 10000 ? Math.round(d.cases/1000)+'K' : (d.cases?.toLocaleString()||'?')+'+';
+      const eventDate = d.date ? new Date(d.date) : new Date();
       events.push({
-        date: new Date(d.date || Date.now()),
+        date: eventDate,
         label: `${d.disease} Outbreak`,
         detail: `${cases} cases confirmed`,
         source: 'WHO',
@@ -4129,12 +4140,13 @@ async function buildConflictTimeline(iso, c) {
     }
   });
 
-  // ── 20. ACLED Conflict (from evidenceIndex) ──
+  // ── 16. ACLED Conflict ──
   const acledData = evidenceIndex.conflict || [];
   acledData.forEach(e => {
     if (e.country && e.country.toLowerCase() === nameLower) {
+      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: new Date(e.date || Date.now()),
+        date: eventDate,
         label: `${e.event_type || 'Conflict Event'}`,
         detail: e.fatalities ? `${e.fatalities}+ fatalities` : 'Conflict incident reported',
         source: 'ACLED',
@@ -4145,7 +4157,7 @@ async function buildConflictTimeline(iso, c) {
     }
   });
 
-  // ── 21. ReliefWeb ──
+  // ── 17. ReliefWeb ──
   const reliefwebData = apiResults.reliefweb_events || [];
   reliefwebData.forEach(e => {
     if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
@@ -4153,8 +4165,9 @@ async function buildConflictTimeline(iso, c) {
                            'Epidemic':'🦠', 'Drought':'🏜️', 'Cyclone':'🌀',
                            'Storm':'⛈️', 'Wildfire':'🔥', 'Food Insecurity':'🌾' };
       const sevMap = { 'Critical':'critical', 'High':'high', 'Moderate':'moderate' };
+      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: new Date(e.date || Date.now()),
+        date: eventDate,
         label: e.title?.substring(0, 50) || 'Humanitarian Event',
         detail: e.type || 'ReliefWeb alert',
         source: 'ReliefWeb',
@@ -4165,13 +4178,14 @@ async function buildConflictTimeline(iso, c) {
     }
   });
 
-  // ── 22. FEWS NET ──
+  // ── 18. FEWS NET ──
   const fewsData = evidenceIndex.fewsnet || [];
   fewsData.forEach(e => {
     if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
       const sevMap = { 5: 'critical', 4: 'high', 3: 'moderate' };
+      const eventDate = e.date ? new Date(e.date) : new Date();
       events.push({
-        date: new Date(e.date || Date.now()),
+        date: eventDate,
         label: `FEWS NET Phase ${e.phase}`,
         detail: e.description?.substring(0, 60) || 'Food security alert',
         source: 'FEWS NET',
@@ -4182,7 +4196,7 @@ async function buildConflictTimeline(iso, c) {
     }
   });
 
-  // ── 23. Score history surges ──
+  // ── 19. Score history surges ──
   const hist = (history[iso] || []).map(h => h.s);
   if (hist.length >= 7) {
     for (let i = hist.length - 1; i >= Math.max(0, hist.length - 14); i--) {
@@ -4240,6 +4254,7 @@ async function buildConflictTimeline(iso, c) {
     if (h < 1) return '<span style="color:#00e5a0;font-weight:700;">Just now</span>';
     if (h < 24) return `<span style="color:#ffb020;">${h}h ago</span>`;
     if (d === 1) return '<span style="color:var(--ts);">Yesterday</span>';
+    if (d < 7) return `<span style="color:var(--ts);">${d}d ago</span>`;
     return `<span style="color:var(--tm);">${date.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
   }
 
