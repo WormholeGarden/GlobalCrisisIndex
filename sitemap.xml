@@ -1,291 +1,637 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  
-  <!-- ==================== CRISIS PAGES (Priority 0.9) ==================== -->
-  
-  <!-- MIDDLE EAST -->
-  <url><loc>https://globalcrisisindex.com/crisis/yemen-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/yemen-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/yemen-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/yemen-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/syria-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/syria-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/syria-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/syria-epidemic</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/palestine-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/palestine-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/palestine-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/lebanon-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/lebanon-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/iraq-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/iraq-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/iran-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/iran-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/iran-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- AFRICA -->
-  <url><loc>https://globalcrisisindex.com/crisis/somalia-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/somalia-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/somalia-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/somalia-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/somalia-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/south-sudan-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/south-sudan-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/south-sudan-flood</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/south-sudan-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/sudan-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/sudan-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/dr-congo-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/dr-congo-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/dr-congo-epidemic</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ethiopia-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ethiopia-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ethiopia-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ethiopia-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/nigeria-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/nigeria-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/nigeria-flood</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/mali-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/mali-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/niger-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/niger-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- ASIA -->
-  <url><loc>https://globalcrisisindex.com/crisis/afghanistan-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/afghanistan-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/afghanistan-drought</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/afghanistan-famine</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/pakistan-flood</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/pakistan-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/bangladesh-flood</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/bangladesh-cyclone</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/myanmar-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/myanmar-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- EUROPE -->
-  <url><loc>https://globalcrisisindex.com/crisis/ukraine-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ukraine-civil-war</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/ukraine-refugee-crisis</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- AMERICAS -->
-  <url><loc>https://globalcrisisindex.com/crisis/haiti-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/haiti-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/haiti-epidemic</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/venezuela-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/colombia-complex-emergency</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- NATURAL DISASTER HOTSPOTS -->
-  <url><loc>https://globalcrisisindex.com/crisis/indonesia-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/indonesia-tsunami</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/indonesia-volcano</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/japan-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/japan-tsunami</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/philippines-typhoon</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/philippines-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://globalcrisisindex.com/crisis/turkey-earthquake</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  
-  <!-- ==================== COUNTRY PAGES (Priority 0.8) ==================== -->
-  
-  <url><loc>https://globalcrisisindex.com/?country=AFG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PSE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SOM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SYR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=YEM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=UKR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SSD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SDN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=COD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=HTI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ETH</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MMR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LBN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NGA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PAK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=IRQ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=IRN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=VEN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=COL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BGD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=IDN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PHL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=JPN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CHL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PER</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MEX</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=USA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NZL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ITA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GRC</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ISL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ECU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PNG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=FJI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SLB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NPL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TUR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=IND</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CHN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=RUS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BRA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ZAF</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=EGY</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=JOR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SAU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KAZ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ARG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CAN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=AUS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=FRA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DEU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GBR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ESP</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PRT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SWE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NOR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=FIN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DNK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NLD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BEL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CHE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=AUT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=POL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CZE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=HUN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=IRL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KOR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MOZ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DZA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LBY</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MAR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TUN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BDI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=COM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DJI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ERI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KEN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MDG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MUS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MWI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=RWA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SYC</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TZA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=UGA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ZMB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ZWE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BEN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BFA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CPV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CIV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GMB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GHA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GIN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GNB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LBR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MLI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MRT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NER</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SEN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SLE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TGO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CAF</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CMR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=COG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GAB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GNQ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=STP</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=AGO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BWA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LSO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NAM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SWZ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TCD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=UZB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TJK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TKM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KGZ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MNG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PRK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TWN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=HKG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MAC</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BRN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KHM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LAO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MYS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SGP</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=THA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TLS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=VNM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BTN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LKA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MDV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ARE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ARM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=AZE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BHR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CYP</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GEO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ISR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KWT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=OMN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=QAT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BLZ</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CRI</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SLV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GTM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=HND</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NIC</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PAN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ATG</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BHS</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BRB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=CUB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DMA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=DOM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GRD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=JAM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KNA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LCA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TTO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=VCT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BOL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GUY</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PRY</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SUR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=URY</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ALB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BIH</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BGR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=BLR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=EST</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=HRV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LVA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LIE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LTU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=LUX</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MDA</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MKD</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MLT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MNE</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=ROU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SRB</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SVK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SVN</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=AND</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MCO</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=SMR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=VAT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=XKX</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=GRL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=VUT</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TON</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=WSM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=KIR</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=FSM</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=MHL</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=PLW</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=NRU</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=TUV</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://globalcrisisindex.com/?country=COK</loc><lastmod>2026-06-05</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  
+
+  <url><loc>https://www.globalcrisisindex.com/</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+
+  <!-- ==================== CRISIS STORY PAGES (Priority 0.9) ====================
+       Format: /?country=ISO3&crisis=TYPECODE — types taken verbatim from CTYPES
+       in the live site JS. Only countries at/above base score 50 included. -->
+
+  <!-- Palestine (base 96) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=PSE&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PSE&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PSE&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PSE&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Somalia (base 94) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Syria (base 93) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Yemen (base 92) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- South Sudan (base 91) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Afghanistan (base 90) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Sudan (base 88) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Haiti (base 86) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- DR Congo (base 86) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=COD&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COD&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COD&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COD&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COD&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Ukraine (base 85) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=UKR&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UKR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UKR&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UKR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Central African Republic (base 84) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Mali (base 82) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Ethiopia (base 79) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Indonesia (base 79) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Burkina Faso (base 78) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Niger (base 76) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=NER&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NER&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NER&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NER&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NER&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Lebanon (base 75) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=LBN&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBN&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBN&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Chad (base 74) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Myanmar (base 73) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Philippines (base 73) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Iraq (base 72) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=IRQ&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRQ&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRQ&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRQ&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Libya (base 72) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=LBY&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBY&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBY&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBY&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- North Korea (base 72) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=PRK&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRK&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRK&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRK&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Pakistan (base 69) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Burundi (base 67) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Nigeria (base 66) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Japan (base 66) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Venezuela (base 63) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=VEN&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VEN&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VEN&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VEN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Chile (base 63) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Cameroon (base 62) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Israel (base 62) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ISR&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ISR&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ISR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ISR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Honduras (base 62) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=HND&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HND&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HND&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HND&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HND&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Iran (base 61) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Eritrea (base 61) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ERI&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ERI&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ERI&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ERI&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Turkey (base 59) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Italy (base 59) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Mauritania (base 59) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=MRT&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MRT&amp;crisis=FN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MRT&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MRT&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Nepal (base 58) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=NPL&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NPL&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NPL&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NPL&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Zimbabwe (base 58) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ZWE&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZWE&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZWE&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZWE&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Guatemala (base 58) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Colombia (base 57) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=COL&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COL&amp;crisis=CW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COL&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COL&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COL&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Bangladesh (base 57) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Greece (base 57) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Guinea-Bissau (base 57) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=GNB&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GNB&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GNB&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GNB&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- India (base 56) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- New Zealand (base 56) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- China (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Papua New Guinea (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG&amp;crisis=VLC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Madagascar (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Côte d'Ivoire (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CIV&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CIV&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CIV&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CIV&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- El Salvador (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Belarus (base 55) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=BLR&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BLR&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BLR&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BLR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Brazil (base 53) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=WF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Malawi (base 52) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=MWI&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MWI&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MWI&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MWI&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Liberia (base 52) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=LBR&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBR&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBR&amp;crisis=CE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBR&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Timor-Leste (base 52) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=TLS&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TLS&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TLS&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TLS&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Cuba (base 52) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=CUB&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CUB&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CUB&amp;crisis=ST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CUB&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- South Africa (base 51) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=ZAF&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZAF&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZAF&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZAF&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Uganda (base 51) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=UGA&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UGA&amp;crisis=EP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UGA&amp;crisis=REF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UGA&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Tajikistan (base 51) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK&amp;crisis=FL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK&amp;crisis=LS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK&amp;crisis=DR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Solomon Islands (base 50) -->
+  <url><loc>https://www.globalcrisisindex.com/?country=SLB&amp;crisis=EQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLB&amp;crisis=TSU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLB&amp;crisis=TC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLB&amp;crisis=HEAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- ==================== COUNTRY OVERVIEW PAGES (Priority 0.8) ====================
+       Format: /?country=ISO3 — every country present in BASE_SCORES/store,
+       including RUS (data exists via store/search even though the map tile
+       is filtered out of the visual globe). -->
+
+  <url><loc>https://www.globalcrisisindex.com/?country=PSE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SOM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=YEM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SSD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AFG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SDN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HTI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UKR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ETH</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IDN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BFA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NER</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TCD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MMR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PHL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBY</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BDI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NGA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JPN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=RUS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VEN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CMR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ISR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HND</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ERI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ITA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MRT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NPL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZWE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GTM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GNB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IND</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NZL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PNG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CIV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BLR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GIN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MWI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LBR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TLS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CUB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZAF</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UGA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TJK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=EGY</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PER</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SLE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MEX</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DJI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AGO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TKM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KHM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ARM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NIC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BOL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ZMB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TZA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GEO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ECU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DOM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=XKX</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MOZ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=FJI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=RWA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TGO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KGZ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LKA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AZE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JAM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BEN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KEN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=UZB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRY</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BIH</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=JOR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=THA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GMB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SAU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DZA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SEN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LSO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LAO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BLZ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GUY</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ALB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KIR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GHA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GNQ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VNM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TTO</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SRB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TUV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ARG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SWZ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BHR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MKD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TWN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MAR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SUR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KAZ</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GAB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PAN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ROU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VUT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MHL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ESH</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KOR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AUS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CYP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=USA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ESP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MNG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KWT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BGR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MNE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=FSM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CAN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=FRA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NAM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MYS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=TON</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GBR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=OMN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=WSM</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DEU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PRT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=POL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BWA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BTN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ARE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CRI</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BHS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HRV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NRU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HUN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CZE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ISL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=URY</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LVA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SWE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=IRL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MUS</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=STP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MDV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=QAT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DMA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=VCT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=EST</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LTU</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SVK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=PLW</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=COK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=HKG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NOR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=FIN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=NLD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CPV</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LCA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=DNK</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BEL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SYC</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AUT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=ATG</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRD</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SVN</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=CHE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=BRB</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=KNA</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=MLT</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=GRL</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SGP</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LIE</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=LUX</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=AND</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.globalcrisisindex.com/?country=SMR</loc><lastmod>2026-07-07</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+
 </urlset>
