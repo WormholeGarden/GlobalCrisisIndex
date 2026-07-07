@@ -2119,7 +2119,76 @@ function runAnomalyDetection(arr) {
 }
 
 // ─── TREND FORECAST ──────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  ─── STORY HEAT ENGINE — newsworthiness, not just severity ────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// A country can sit at a high absolute score for months without being "news."
+// Heat measures how much is CHANGING right now: velocity, statistical anomaly
+// consensus, ML-predicted regime change, and freshly-arrived live evidence.
+// Every input here is a value already computed elsewhere — nothing invented.
 
+function computeStoryHeat(iso, store, hist, anom, mlForecast) {
+  const c = store[iso];
+  const s = c.signals || {};
+  let heat = 0;
+  const drivers = [];
+
+  // ── Velocity: how fast is the score moving? (up to 30 pts) ──
+  const delta7 = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
+  if (Math.abs(delta7) >= 2) {
+    const v = Math.min(30, Math.abs(delta7) * 2.2);
+    heat += v;
+    drivers.push({ driver: "velocity", points: +v.toFixed(1), detail: `${delta7 > 0 ? "+" : ""}${delta7.toFixed(0)} pts in 7 days` });
+  }
+
+  // ── Statistical anomaly consensus (up to 28 pts) ──
+  if (anom.detected) {
+    const sevPts = { WATCH: 6, MODERATE: 14, HIGH: 20, CRITICAL: 25, EXTREME: 28 };
+    const v = sevPts[anom.severity] || 8;
+    heat += v;
+    drivers.push({ driver: "anomaly", points: v, detail: `${anom.methods_fired}/4 methods — ${anom.severity}` });
+  }
+
+  // ── ML-predicted regime change (up to 18 pts) ──
+  if (mlForecast?.anomaly_probability > 0.4) {
+    const v = Math.min(18, mlForecast.anomaly_probability * 22);
+    heat += v;
+    drivers.push({ driver: "ml_forecast", points: +v.toFixed(1), detail: `${(mlForecast.anomaly_probability * 100).toFixed(0)}% anomaly probability` });
+  }
+
+  // ── Fresh corroborating evidence — many independent sources agreeing right now (up to 16 pts) ──
+  const evidenceCount = s.liveEvidenceCount || 0;
+  if (evidenceCount >= 2) {
+    const v = Math.min(16, evidenceCount * 2.5);
+    heat += v;
+    drivers.push({ driver: "evidence_breadth", points: +v.toFixed(1), detail: `${evidenceCount} independent live sources` });
+  }
+
+  // ── Threshold-crossing events — discrete, headline-worthy state changes (up to 20 pts) ──
+  if (s.ipcPhase >= 4) {
+    heat += 20;
+    drivers.push({ driver: "ipc_threshold", points: 20, detail: `IPC Phase ${s.ipcPhase}` });
+  } else if (s.quakeMag >= 6.0) {
+    heat += 18;
+    drivers.push({ driver: "major_quake", points: 18, detail: `M${s.quakeMag.toFixed(1)}` });
+  } else if (s.gdacsAlert === "red") {
+    heat += 16;
+    drivers.push({ driver: "gdacs_red", points: 16, detail: "Red alert active" });
+  } else if (s.acledFatalities > 100) {
+    heat += 14;
+    drivers.push({ driver: "conflict_spike", points: 14, detail: `${s.acledFatalities} fatalities` });
+  }
+
+  heat = Math.min(100, Math.round(heat));
+  drivers.sort((a, b) => b.points - a.points);
+
+  return {
+    score: heat,
+    is_breaking: heat >= 55,
+    tier: heat >= 75 ? "BREAKING" : heat >= 55 ? "DEVELOPING" : heat >= 30 ? "NOTABLE" : "ROUTINE",
+    top_drivers: drivers.slice(0, 3),
+  };
+}
 function trendForecast(hist, current) {
   if (hist.length < 5) return { fc:current, trend:"stable", esc:false, slope:0, confidence:0.3 };
   const w = hist.slice(-10), n = w.length;
@@ -2265,6 +2334,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
   const rank = ranked.indexOf(iso) + 1;
   const delta7 = Math.round(hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)]);
   const s = c.signals || {};
+  const heat = computeStoryHeat(iso, store, hist, anom, c.ml_forecast);
 
   const base = {
     iso,
@@ -2311,6 +2381,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       value: c.spillover,
       from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })),
     },
+    story_heat: heat,
     live_evidence: {
       earthquake: s.quakeMag >= 4.5 ? { magnitude: s.quakeMag, location: s.quakePlace, event_count: s.quakeCount, source: "USGS/EMSC" } : null,
       nasa_events: s.nasaEventCount > 0 ? { count: s.nasaEventCount, source: "NASA EONET" } : null,
@@ -2760,6 +2831,22 @@ function buildSEOArticle(iso, store, ranked) {
   <meta name="author" content="${CFG.ARTICLE_AUTHOR}">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="${url}">
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="${headline}">
+  <meta property="og:description" content="${dek}">
+  <meta property="og:url" content="${url}">
+  <meta property="og:site_name" content="${CFG.ARTICLE_SITE_NAME}">
+  <meta property="og:image" content="${CFG.ARTICLE_LOGO}">
+  <meta property="article:published_time" content="${now.toISOString()}">
+  <meta property="article:section" content="Humanitarian Crisis">
+  <meta property="article:tag" content="${keywords.slice(0, 6).join(", ")}">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="${CFG.ARTICLE_TWITTER}">
+  <meta name="twitter:title" content="${headline}">
+  <meta name="twitter:description" content="${dek}">
+  <meta name="twitter:image" content="${CFG.ARTICLE_LOGO}">
   <script type="application/ld+json">${JSON.stringify(buildJSONLD(iso, store, ranked), null, 2)}</script>
   <style>
     body { background: #030b18; color: #eef4ff; font-family: system-ui; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.7; }
@@ -2883,6 +2970,7 @@ export default async function handler(req, res) {
       sentiment: url.searchParams.get("sentiment") !== "false",
       history: url.searchParams.get("history") !== "false",
       widget: url.searchParams.get("widget") === "true",
+      breaking: url.searchParams.get("format") === "breaking",
     };
     if (Number.isNaN(params.top)) params.top = 136; // ← FALLBACK TO ALL COUNTRIES
     if (Number.isNaN(params.threshold)) params.threshold = 0;
@@ -2993,7 +3081,40 @@ export default async function handler(req, res) {
       res.end(widget);
       return;
     }
+if (params.breaking) {
+      const heatRanked = Object.keys(store)
+        .map(iso => {
+          const hist = seedHistory(iso, store[iso].score);
+          const anom = runAnomalyDetection(hist);
+          const heat = computeStoryHeat(iso, store, hist, anom, store[iso].ml_forecast);
+          return { iso, heat };
+        })
+        .filter(x => x.heat.score >= 20)
+        .sort((a, b) => b.heat.score - a.heat.score)
+        .slice(0, params.top || 20);
 
+      const feed = heatRanked.map(({ iso, heat }) => {
+        const p = buildPayload(iso, store, ranked, { summary: true });
+        return {
+          iso, name: p.name, flag: p.flag, url: p.url,
+          score: p.score, severity: p.severity,
+          story_heat: heat.score, tier: heat.tier, top_drivers: heat.top_drivers,
+          headline_hint: p.meta_description,
+        };
+      });
+
+      res.writeHead(200, CORS);
+      res.end(JSON.stringify({
+        meta: {
+          generated_at: new Date().toISOString(),
+          elapsed_ms: Date.now() - start,
+          mode: "breaking",
+          methodology: "Story Heat = velocity + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings. Ranks newsworthiness, not absolute severity.",
+        },
+        breaking: feed,
+      }, null, 2));
+      return;
+    }
     if (params.format === "sitemap") {
       const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
       const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
