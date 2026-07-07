@@ -2971,6 +2971,7 @@ export default async function handler(req, res) {
       history: url.searchParams.get("history") !== "false",
       widget: url.searchParams.get("widget") === "true",
       breaking: url.searchParams.get("format") === "breaking",
+      rss: url.searchParams.get("format") === "rss",
     };
     if (Number.isNaN(params.top)) params.top = 136; // ← FALLBACK TO ALL COUNTRIES
     if (Number.isNaN(params.threshold)) params.threshold = 0;
@@ -3081,14 +3082,30 @@ export default async function handler(req, res) {
       res.end(widget);
       return;
     }
+// Attach story heat once, reused by both /breaking and /rss modes
+    for (const iso of Object.keys(store)) {
+      const hist = seedHistory(iso, store[iso].score);
+      const anom = runAnomalyDetection(hist);
+      store[iso].__heat = computeStoryHeat(iso, store, hist, anom, store[iso].ml_forecast);
+    }
+
+    if (params.rss) {
+      // Default RSS ordering to newsworthiness (story heat), not raw severity,
+      // unless the caller explicitly asked for a specific iso/region/threshold slice.
+      let rssIsos = finalIsos;
+      if (!isoList.length && !params.region && params.threshold === 0) {
+        rssIsos = Object.keys(store)
+          .sort((a, b) => store[b].__heat.score - store[a].__heat.score)
+          .slice(0, params.top || 30);
+      }
+      const feed = buildRSSFeed(rssIsos, store, ranked);
+      res.writeHead(200, { ...CORS, "Content-Type": "application/rss+xml; charset=utf-8" });
+      res.end(feed);
+      return;
+    }
 if (params.breaking) {
       const heatRanked = Object.keys(store)
-        .map(iso => {
-          const hist = seedHistory(iso, store[iso].score);
-          const anom = runAnomalyDetection(hist);
-          const heat = computeStoryHeat(iso, store, hist, anom, store[iso].ml_forecast);
-          return { iso, heat };
-        })
+        .map(iso => ({ iso, heat: store[iso].__heat }))
         .filter(x => x.heat.score >= 20)
         .sort((a, b) => b.heat.score - a.heat.score)
         .slice(0, params.top || 20);
@@ -3275,6 +3292,9 @@ if (params.breaking) {
           export_json: "GET /api/top-story?iso=SOM&export=json",
           export_csv: "GET /api/top-story?iso=SOM&export=csv",
           widget: "GET /api/top-story?iso=SOM&widget=true",
+          rss_feed: "GET /api/top-story?format=rss",
+          rss_region: "GET /api/top-story?region=africa&format=rss",
+          breaking: "GET /api/top-story?format=breaking",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
         score_methodology: "Weighted 8-dimension composite. Live signals from 20+ data sources adjust dimensions. Regional spillover applied.",
@@ -3322,4 +3342,58 @@ function buildSitemap(payloads) {
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
 ${items}
 </urlset>`;
+}
+function escapeXml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// ─── RSS / GOOGLE NEWS FEED ──────────────────────────────────────────────
+// This is the syndication surface: any RSS reader, Apple News, Flipboard,
+// Feedly, or Google News crawler can subscribe here and get notified the
+// moment a story updates — full content included, no fetch-back required.
+function buildRSSFeed(finalIsos, store, ranked) {
+  const now = new Date();
+  const MAX_ITEMS = 30; // full-article generation is not free; cap the feed
+
+  const items = finalIsos.slice(0, MAX_ITEMS).map(iso => {
+    const article = buildSEOArticle(iso, store, ranked);
+    const c = store[iso];
+    const categories = [...new Set(c.types.map(t => ARC[t]?.l || t))];
+    const heat = c.__heat; // attached below before calling this function
+
+    return `
+  <item>
+    <title>${escapeXml(article.headline)}</title>
+    <link>${article.url}</link>
+    <guid isPermaLink="true">${article.url}</guid>
+    <pubDate>${now.toUTCString()}</pubDate>
+    <description>${escapeXml(article.dek || article.metaDescription)}</description>
+    ${categories.map(cat => `<category>${escapeXml(cat)}</category>`).join("\n    ")}
+    ${heat ? `<category>Story Heat: ${heat.tier}</category>` : ""}
+    <media:content url="${CFG.ARTICLE_LOGO}" medium="image"/>
+    <content:encoded><![CDATA[${article.body_html}]]></content:encoded>
+  </item>`;
+  }).join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:media="http://search.yahoo.com/mrss/"
+     xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>${CFG.ARTICLE_SITE_NAME}</title>
+  <link>${CFG.ARTICLE_BASE_URL}</link>
+  <atom:link href="${CFG.ARTICLE_BASE_URL}/api/top-story?format=rss" rel="self" type="application/rss+xml"/>
+  <description>Live, sensor-driven global humanitarian crisis intelligence — continuously updated from 20+ independent data sources.</description>
+  <language>en-us</language>
+  <lastBuildDate>${now.toUTCString()}</lastBuildDate>
+  <ttl>5</ttl>
+${items}
+</channel>
+</rss>`;
 }
