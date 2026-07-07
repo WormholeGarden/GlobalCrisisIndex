@@ -13,22 +13,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,446 Events | Premium Real-time API</title>
   <?php
-// Fetch RSS feed with caching
-$cacheFile = 'rss_cache.json';
-$cacheTime = 300; // 5 minutes
-
-if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTime) {
-    $data = json_decode(file_get_contents($cacheFile), true);
-    $title = $data['title'] ?? '';
+// Fetch RSS feed
+$rss = simplexml_load_file('https://globalcrisisindex.com/api/top-story?format=rss');
+$title = '';
+if ($rss && isset($rss->channel->item[0]->title)) {
+    $title = htmlspecialchars((string)$rss->channel->item[0]->title);
 } else {
-    $rss = @simplexml_load_file('https://globalcrisisindex.com/api/top-story?format=rss');
-    if ($rss && isset($rss->channel->item[0]->title)) {
-        $title = htmlspecialchars((string)$rss->channel->item[0]->title);
-        // Cache the title
-        file_put_contents($cacheFile, json_encode(['title' => $title, 'timestamp' => time()]));
-    } else {
-        $title = '⚠️ BREAKING: GCIN reports 22.3M Displaced: Inside Japan\'s Earthquake and Tsunami Emergency ⚡ AI Flags 95% Anomaly Risk';
-    }
+    $title = '⚠️ BREAKING: GCIN reports 22.3M Displaced: Inside Japan\'s Earthquake and Tsunami Emergency ⚡ AI Flags 95% Anomaly Risk';
 }
 ?>
 <meta name="description" content="⚠️ BREAKING: GCIN detects critical anomaly — <?php echo $title; ?>. Real-time intelligence cited by Google AI and used by intelligence agencies. Free live data: 40+ APIs, 5-min updates. — GCIS Fusion">
