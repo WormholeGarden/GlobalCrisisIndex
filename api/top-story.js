@@ -2574,19 +2574,99 @@ function buildSEOArticle(iso, store, ranked) {
 
   const primaryTypes = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(" and ");
   
-  let headline = s.totalDisplaced > 1_000_000
-    ? `${c.name} Displacement Crisis: ${fmtPop(s.totalDisplaced)} Flee ${primaryTypes}`
-    : s.gdacs?.alertLevel === "red"
-    ? `${c.name} Disaster Alert: ${s.gdacsAlert?.toUpperCase()} Warning — Full Crisis Briefing`
-    : s.diseaseActive > 5000
-    ? `${c.name} COVID-19 Surge: Health System Under Strain`
-    : s.quakeMag >= 6.0
-    ? `${c.name} Earthquake: M${s.quakeMag.toFixed(1)} Tremor — Emergency Response Underway`
-    : `${c.name} Humanitarian Crisis ${now.getFullYear()}: Urgency Score ${c.score}/100 — ${severity}`;
+ // ── HEADLINE ENGINE ──────────────────────────────────────────────────
+  // Priority-ordered: pick the single most newsworthy, verifiable signal.
+  // Every headline variant is built ONLY from numbers already computed above —
+  // no invented stats, ever.
+  const headlineCandidates = [];
 
-  if (c.ml_forecast?.anomaly_probability > 0.6) {
-    headline += ` ⚡ ML Anomaly Detected (${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%)`;
+  if (s.totalDisplaced > 1_000_000) {
+    headlineCandidates.push({
+      weight: 100 + Math.min(50, s.totalDisplaced / 200_000),
+      text: `${fmtPop(s.totalDisplaced)} Displaced: Inside ${c.name}'s ${primaryTypes} Emergency`,
+    });
   }
+  if (s.ipcPhase >= 4) {
+    headlineCandidates.push({
+      weight: s.ipcPhase === 5 ? 130 : 105,
+      text: `${c.name} Food Crisis Hits IPC Phase ${s.ipcPhase}${s.ipcPhase === 5 ? " — Famine Classification" : " — Emergency Level"}: ${fmtPop(s.ipcTotalPop || s.ipcPopulation)} at Risk`,
+    });
+  }
+  if (s.gdacsAlert === "red") {
+    headlineCandidates.push({
+      weight: 115,
+      text: `RED ALERT: ${c.name} Under Active GDACS Disaster Warning Right Now`,
+    });
+  } else if (s.gdacsAlert === "orange") {
+    headlineCandidates.push({
+      weight: 90,
+      text: `${c.name} Issued Orange Disaster Alert — What's Happening on the Ground`,
+    });
+  }
+  if (s.quakeMag >= 6.0) {
+    headlineCandidates.push({
+      weight: 95 + (s.quakeMag - 6) * 8,
+      text: `M${s.quakeMag.toFixed(1)} Earthquake Strikes ${c.name}${s.quakePlace ? ` Near ${s.quakePlace}` : ""} — Live Emergency Tracker`,
+    });
+  }
+  if (s.acledFatalities > 50) {
+    headlineCandidates.push({
+      weight: 100 + Math.min(30, s.acledFatalities / 20),
+      text: `${c.name} Conflict Escalates: ${s.acledFatalities.toLocaleString()} Fatalities From ${s.acledEvents} Recorded Events`,
+    });
+  }
+  if (s.whoOutbreaks?.length > 0) {
+    headlineCandidates.push({
+      weight: 85 + s.whoOutbreaks.length * 5,
+      text: `WHO Confirms ${s.whoOutbreaks.map(o => o.disease[0].toUpperCase() + o.disease.slice(1)).join(" & ")} Outbreak in ${c.name}`,
+    });
+  }
+  if (s.diseaseActive > 5000) {
+    headlineCandidates.push({
+      weight: 70,
+      text: `${c.name}'s Health System Strained by ${s.diseaseActive.toLocaleString()} Active COVID-19 Cases`,
+    });
+  }
+  if (anom.detected && anom.severity === "EXTREME") {
+    headlineCandidates.push({
+      weight: 110,
+      text: `Data Alert: ${c.name} Crisis Trajectory Just Broke Pattern — ${anom.methods_fired}/4 Statistical Models Agree`,
+    });
+  }
+  if (c.ml_forecast?.anomaly_probability > 0.7) {
+    headlineCandidates.push({
+      weight: 90,
+      text: `AI Forecast Flags ${c.name}: ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}% Anomaly Probability in Crisis Trend`,
+    });
+  }
+  if (delta > 8) {
+    headlineCandidates.push({
+      weight: 80 + delta,
+      text: `${c.name} Crisis Score Jumps ${delta.toFixed(0)} Points in a Week — Now ${severity}`,
+    });
+  }
+
+  // Fallback: always-available, still fact-based
+  headlineCandidates.push({
+    weight: 10,
+    text: `${c.name} Crisis Monitor ${now.getFullYear()}: Urgency Score ${c.score}/100 (${severity}), Ranked #${rank} Globally`,
+  });
+
+  headlineCandidates.sort((a, b) => b.weight - a.weight);
+  let headline = headlineCandidates[0].text;
+
+  if (c.ml_forecast?.anomaly_probability > 0.6 && !headline.includes("Anomaly")) {
+    headline += ` ⚡ AI Flags ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}% Anomaly Risk`;
+  }
+
+  // ── DEK (subheadline) — the second hook, shown under the H1 and used for social cards ──
+  const dekParts = [];
+  if (s.totalDisplaced > 0 && !headline.includes("Displaced")) dekParts.push(`${fmtPop(s.totalDisplaced)} displaced`);
+  if (s.ipcPhase >= 3 && !headline.includes("IPC")) dekParts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
+  if (s.acledEvents > 0 && !headline.includes("Fatalities")) dekParts.push(`${s.acledEvents} conflict events tracked`);
+  if (fc.esc) dekParts.push(`7-day forecast: ${fc.fc}/100 (${fc.trend})`);
+  dekParts.push(`Live data from 20+ sources · Updated ${dateStr}`);
+  const dek = dekParts.slice(0, 3).join(" · ");
 
   const metaDescription = buildMetaDescription(iso, store);
   
@@ -2721,7 +2801,8 @@ function buildSEOArticle(iso, store, ranked) {
         <span class="score-label">Urgency Score</span>
         <span class="score-rank">#${rank} of ${Object.keys(store).length} countries</span>
       </div>
-      <p style="font-size:1.1rem; color: #b8cce8;">${metaDescription}</p>
+      <p style="font-size:1.15rem; color: #d8e6ff; font-weight:500; margin-top:0.5rem;">${dek}</p>
+      <p style="font-size:1rem; color: #8aa8c8; margin-top:0.25rem;">${metaDescription}</p>
     </header>
     <div class="article-body">
       ${articleBody.split('\n\n').filter(p => p.trim()).map(p => {
@@ -2748,8 +2829,9 @@ function buildSEOArticle(iso, store, ranked) {
 </body>
 </html>`;
 
-  return {
+return {
     headline,
+    dek,
     slug,
     url,
     metaDescription,
