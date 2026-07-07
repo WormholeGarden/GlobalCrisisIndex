@@ -1096,20 +1096,30 @@ function buildDims(base,types){
   };
 }
 
-function seedHistory(iso,currentScore){
-  const N=28;
-  const seed=iso.split('').reduce((s,c,i)=>s+c.charCodeAt(0)*(i+1)*17,0);
-  let score=Math.min(99,Math.max(5,currentScore+Math.round((seededRand(seed)-0.5)*18)));
-  const hist=[];
-  for(let i=0;i<=N;i++){
-    hist.push({t:Date.now()-(N-i)*86400000,s:score});
-    const r=seededRand(seed+i*31+7);
-    const pull=(currentScore-score)*0.12;
-    const noise=(r-0.5)*5;
-    score=Math.min(99,Math.max(5,Math.round(score+pull+noise)));
-  }
-  hist[hist.length-1].s=currentScore;
-  return hist;
+// ── REAL PERSISTED HISTORY — replaces the old seedHistory() fabricated
+// pseudo-random walk. Instead of backfilling 28 fake days from a name-hash
+// seed, every country's history is now genuinely accumulated in this
+// browser's localStorage across real visits/refreshes. A country with only
+// one real observation shows exactly that — one point, honestly labeled —
+// rather than a chart that implies a month of invented trend data.
+const HISTORY_STORAGE_KEY = 'gcis_score_history_v1';
+const HISTORY_MAX_DAYS = 180;
+const HISTORY_DEDUPE_MS = 60000; // don't log two points for the same refresh cycle
+
+function loadAllPersistedHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function saveAllPersistedHistory(all){
+  try{
+    const cutoff = Date.now() - HISTORY_MAX_DAYS*86400000;
+    for(const iso in all){
+      all[iso] = (all[iso]||[]).filter(h => h.t >= cutoff);
+    }
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(all));
+  }catch(e){ /* storage unavailable/full — in-memory history still works this session */ }
 }
 
 function spilloverScore(newStore){
@@ -3352,19 +3362,32 @@ function buildStore() {
   store = newStore;
   ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
   
-  // ── Initialize history ──
+ // ── Initialize history from REAL persisted observations ──
+  // First-ever visit for a country starts with exactly one genuine data
+  // point (today's real computed score). Every subsequent refresh — this
+  // session or a future visit — appends another real point, so the chart
+  // grows an authentic trend line instead of displaying invented history.
+  const persisted = loadAllPersistedHistory();
   if (!historyInitialized) {
     for (let iso in store) {
-      history[iso] = seedHistory(iso, store[iso].score);
+      const existing = persisted[iso] || [];
+      const last = existing[existing.length-1];
+      const sameCycle = last && (Date.now() - last.t) < HISTORY_DEDUPE_MS;
+      history[iso] = sameCycle ? existing : [...existing, { t: Date.now(), s: store[iso].score }];
+      persisted[iso] = history[iso];
     }
     historyInitialized = true;
   } else {
     for (let iso in store) {
-      if (!history[iso]) history[iso] = seedHistory(iso, store[iso].score);
-      history[iso].push({ t: Date.now(), s: store[iso].score });
-      if (history[iso].length > 60) history[iso].shift();
+      if (!history[iso]) history[iso] = persisted[iso] || [];
+      const last = history[iso][history[iso].length-1];
+      const sameCycle = last && (Date.now() - last.t) < HISTORY_DEDUPE_MS;
+      if (!sameCycle) history[iso].push({ t: Date.now(), s: store[iso].score });
+      if (history[iso].length > 300) history[iso].shift();
+      persisted[iso] = history[iso];
     }
   }
+  saveAllPersistedHistory(persisted);
   
   console.log(`📊 Store built: ${Object.keys(store).length} countries, ${ranked.filter(i => store[i].score >= 80).length} critical`);
   console.log('📊 Countries with evidence:', Object.keys(evidenceIndex.sourceCoverage).length);
@@ -4559,8 +4582,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     </div>
 
     <div class="hist-block">
-      <div class="block-head"><span>Score History</span><span>Vol ${vol.toFixed(1)}</span></div>
-      <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : ''}</div>
+      <div class="block-head"><span>Score History <span style="color:var(--tm);font-weight:400;">· ${hist.length} real observation${hist.length===1?'':'s'}</span></span><span>Vol ${vol.toFixed(1)}</span></div>
+      <div>${hist.length > 1 ? miniLineChart(hist, 340, 46, col) : '<div style="font-family:var(--fm);font-size:9px;color:var(--td);padding:8px 0;line-height:1.6;">Building real history for this country — trend data accumulates from genuine refreshes over time rather than being backfilled with placeholder history.</div>'}</div>
     </div>
 
     <div class="ps">
@@ -4718,10 +4741,12 @@ setTimeout(() => {
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
   }
 
-  setTimeout(() => calcImpact(iso), 100);
+ setTimeout(() => calcImpact(iso), 100);
 
- // ── AI BRIEF: data-driven narrative ──
-  setTimeout(() => renderAIBrief(iso), 100);
+ // ── AI BRIEF: data-driven narrative (async — page stays responsive while
+ // Wikipedia sources load, with the existing .ai-loading dots shown until
+ // renderAIBrief replaces them) ──
+  setTimeout(() => { renderAIBrief(iso); }, 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
   if (activeCrisis) {
@@ -4731,7 +4756,7 @@ setTimeout(() => {
     }, 200);
   }
 }
-function renderAIBrief(iso) {
+async function renderAIBrief(iso) {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
   
@@ -4745,11 +4770,11 @@ function renderAIBrief(iso) {
   const urlParams = new URLSearchParams(window.location.search);
   const crisisType = urlParams.get('crisis') || null;
   
-  // ── GENERATE THE FULL URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────
+  // ── GENERATE THE FULL URGENCY NARRATIVE WITH WIKIPEDIA (now async — no
+  // more main-thread freezing while these fetches run) ──────────────────
   let narrative = '';
   try {
-    // This calls the full buildUrgencyNarrative function with Wikipedia
-    narrative = buildUrgencyNarrative(iso, crisisType);
+    narrative = await buildUrgencyNarrative(iso, crisisType);
   } catch(e) {
     console.warn('buildUrgencyNarrative error:', e);
   }
@@ -5072,7 +5097,7 @@ d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json')
   .catch(()=>refresh());
 
 // ── BUILD URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────────────────────
-function buildUrgencyNarrative(iso, crisisType) {
+async function buildUrgencyNarrative(iso, crisisType) {
   const c = store[iso];
   const hist = (history[iso] || []).map(h => h.s);
   const name = c.name, flag = c.flag;
@@ -5081,28 +5106,32 @@ function buildUrgencyNarrative(iso, crisisType) {
     // ── 0. FETCH WIKIPEDIA INTRO TEXT (COUNTRY OVERVIEW) ──────────────────
   let countryIntro = '';
   
-  function fetchExtractIntro(pageTitle) {
+ let countryIntro = '';
+  const wikiCache = (window._wikiCache = window._wikiCache || new Map());
+
+  async function fetchExtractIntro(pageTitle) {
+    const cacheKey = 'intro:' + pageTitle;
+    if (wikiCache.has(cacheKey)) return wikiCache.get(cacheKey);
     try {
       const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&exintro=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
-      const req = new XMLHttpRequest();
-      req.open('GET', pageUrl, false);
-      req.send();
-      if (req.status === 200) {
-        const data = JSON.parse(req.responseText);
-        const pages = data.query?.pages;
-        if (pages) {
-          const pageId = Object.keys(pages)[0];
-          if (pageId !== '-1') {
-            return pages[pageId].extract || '';
-          }
+      const res = await safe(fetch(pageUrl).then(r => r.ok ? r.json() : null));
+      const pages = res?.query?.pages;
+      if (pages) {
+        const pageId = Object.keys(pages)[0];
+        if (pageId !== '-1') {
+          const extract = pages[pageId].extract || '';
+          wikiCache.set(cacheKey, extract);
+          return extract;
         }
       }
     } catch(e) { /* silent */ }
+    wikiCache.set(cacheKey, '');
     return '';
   }
   
   // Get country intro (first 2-3 sentences)
-  const introExtract = fetchExtractIntro(name);
+  // Get country intro (first 2-3 sentences)
+  const introExtract = await fetchExtractIntro(name);
   if (introExtract && introExtract.length > 50) {
     // Clean up the text first
     let cleanText = introExtract
@@ -5139,26 +5168,25 @@ function buildUrgencyNarrative(iso, crisisType) {
     countryIntro = introText;
   }
 
-  // ── 1. FETCH WIKIPEDIA SENTENCES (EXISTING CODE - UNCHANGED) ──────────
-  let wikipediaPrefix = '';
-  
-  function fetchExtract(pageTitle) {
+ let wikipediaPrefix = '';
+
+  async function fetchExtract(pageTitle) {
+    const cacheKey = 'extract:' + pageTitle;
+    if (wikiCache.has(cacheKey)) return wikiCache.get(cacheKey);
     try {
       const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
-      const req = new XMLHttpRequest();
-      req.open('GET', pageUrl, false);
-      req.send();
-      if (req.status === 200) {
-        const data = JSON.parse(req.responseText);
-        const pages = data.query?.pages;
-        if (pages) {
-          const pageId = Object.keys(pages)[0];
-          if (pageId !== '-1') {
-            return pages[pageId].extract || '';
-          }
+      const res = await safe(fetch(pageUrl).then(r => r.ok ? r.json() : null));
+      const pages = res?.query?.pages;
+      if (pages) {
+        const pageId = Object.keys(pages)[0];
+        if (pageId !== '-1') {
+          const extract = pages[pageId].extract || '';
+          wikiCache.set(cacheKey, extract);
+          return extract;
         }
       }
     } catch(e) { /* silent */ }
+    wikiCache.set(cacheKey, '');
     return '';
   }
   
@@ -5283,16 +5311,19 @@ let searchTerms = crisisType && crisisTermMap[crisisType]
 searchTerms = [...new Set(searchTerms)];
     
     for (const term of searchTerms) {
-      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=8`;
-      const searchReq = new XMLHttpRequest();
-      searchReq.open('GET', searchUrl, false);
-      searchReq.send();
-      if (searchReq.status === 200) {
-        const searchData = JSON.parse(searchReq.responseText);
-        const results = searchData.query?.search || [];
-        for (const result of results) {
-          const extract = fetchExtract(result.title);
-          if (extract && extract.length > 100) {
+      const searchCacheKey = 'search:' + term;
+      let results;
+      if (wikiCache.has(searchCacheKey)) {
+        results = wikiCache.get(searchCacheKey);
+      } else {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*&srlimit=8`;
+        const searchData = await safe(fetch(searchUrl).then(r => r.ok ? r.json() : null));
+        results = searchData?.query?.search || [];
+        wikiCache.set(searchCacheKey, results);
+      }
+      for (const result of results) {
+        const extract = await fetchExtract(result.title);
+        if (extract && extract.length > 100) {
             let sentences = extract.split(/(?<=[.!?])\s+(?=[A-Z])/);
             if (sentences.length < 3) sentences = extract.split(/\n/);
             sentences = sentences.filter(s => s.trim().length > 60);
@@ -5306,11 +5337,10 @@ searchTerms = [...new Set(searchTerms)];
             });
             
             const topScored = filtered.sort((a, b) => b.score - a.score).slice(0, 4);
-            if (topScored.length >= 2) {
-              bestSentences = topScored.map(s => s.text);
-              hasGoodWikipedia = true;
-              break;
-            }
+          if (topScored.length >= 2) {
+            bestSentences = topScored.map(s => s.text);
+            hasGoodWikipedia = true;
+            break;
           }
         }
       }
