@@ -894,7 +894,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
   </div>
 </header>
+<!-- LIVE CRISIS ALERT: US-IRAN ESCALATION -->
+<div id="crisis-alert" style="
+  background: linear-gradient(135deg, #ff375f 0%, #cc0000 100%);
+  color: white;
+  padding: 12px 16px;
+  text-align: center;
+  font-family: var(--fm), monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+  animation: alertPulse 2s ease-in-out infinite;
+  cursor: pointer;
+  z-index: 999;
+  position: relative;
+" onclick="window.location.href='/?country=IRN&crisis=CW'">
+  <span style="display: inline-flex; align-items: center; gap: 10px;">
+    <span style="background: white; color: #cc0000; padding: 2px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em;">
+      ⚡ LIVE
+    </span>
+    <span>
+      🔥 GLOBAL CRISIS: Iran launches missile & drone strikes on US bases in Bahrain and Kuwait — US strikes 80+ Iranian targets. 
+      <span style="text-decoration: underline; text-underline-offset: 2px;">Track live escalation →</span>
+    </span>
+  </span>
+</div>
 
+<style>
+@keyframes alertPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+#crisis-alert:hover {
+  filter: brightness(1.1);
+}
+</style>
 <div id="breakingBar" style="background:linear-gradient(90deg,#ff375f,#ff8c42);color:white;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;">
   <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
 </div>
