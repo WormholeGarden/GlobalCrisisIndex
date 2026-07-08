@@ -30,9 +30,11 @@
           <span style="opacity: 0.3;">|</span>
           <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">PRO</a>
+          <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">UPGRADE</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>    Humanitarian emergency & geopolitical risk news publisher
+          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
+          <span style="opacity: 0.3;">|</span>
+          <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian emergency & geopolitical risk news publisher
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
@@ -46,6 +48,48 @@
   </div>
 
   <style>
+/* ─── RSS HEADLINE BOX ─── */
+.rss-headline-box {
+  background: linear-gradient(135deg, rgba(255,55,95,0.08), rgba(255,140,66,0.04));
+  border: 1px solid rgba(255,55,95,0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rss-headline-box .headline-text {
+  font-size: 12px;
+  color: var(--tp);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.rss-headline-box .read-btn {
+  background: rgba(255,55,95,0.12);
+  border: 1px solid rgba(255,55,95,0.25);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-family: var(--fm);
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--rose);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.rss-headline-box .read-btn:hover {
+  background: rgba(255,55,95,0.2);
+  border-color: rgba(255,55,95,0.4);
+}
     @keyframes pulse-red {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(0.9); }
@@ -66,18 +110,14 @@
         if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
       }
       updateDateTime();
-     async function fetchAllCountries() {
-  const url = new URL(API_BASE);
-  url.searchParams.append("top", "50");
-  url.searchParams.append("ml", "true");
-  url.searchParams.append("sentiment", "true");
-  url.searchParams.append("summary", "true");
-  const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  return data.countries || [];
-}
-
+      async function fetchAllCountries() {
+        const url = new URL(API_BASE);
+        url.searchParams.append("top", "50");
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.countries || [];
+      }
       function computeAnomalyScore(country) {
         let score = 0;
         if (country.anomaly && typeof country.anomaly.z_score === 'number') score += Math.min(5, country.anomaly.z_score);
@@ -85,111 +125,278 @@
         if (country.live_boost && country.live_boost > 8) score += 1.5;
         return Math.min(10, Math.round(score * 10) / 10);
       }
-     function generateHeadline(country) {
-  const name = country.name;
-  const flag = country.flag || "";
-  const score = country.score;
-  
-  // Check if we have a real RSS headline from the API
-  if (country.rss_headline) {
-    return `${flag} ${country.rss_headline}`;
-  }
-  
-  // Fallback: generate from data
-  let crisis = "", number = "";
-  if (country.live_evidence?.food_security?.phase >= 3) {
-    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
-    const phase = country.live_evidence.food_security.phase;
-    if (phase >= 4) crisis = "Famine"; else crisis = "Hunger";
-    number = `${pop}M`;
-  } else if (country.live_evidence?.displacement?.total > 0) {
-    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
-    crisis = "Displaced"; number = `${disp}M`;
-  } else if (country.live_evidence?.disease_outbreaks?.length) {
-    const outbreak = country.live_evidence.disease_outbreaks[0];
-    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
-    number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
-  } else if (country.live_evidence?.heat?.max_temp_c >= 42) {
-    crisis = "Heat"; number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
-  } else {
-    crisis = "Crisis"; number = `${score}/100`;
-  }
-  let action = "Worsens";
-  if (country.trend?.direction === "improving") action = "Eases";
-  else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
-  else if (country.trend?.delta_7d > 3) action = "Surges";
-  else if (country.trend?.delta_7d < 0) action = "Improves";
-  
-  const templates = [
-    `${name} ${action} as ${crisis} Hits ${number}`,
-    `${name}: ${number} in ${crisis}`,
-    `${crisis} Worsens in ${name}`,
-    `${name} Crisis Deepens: ${number} Affected`,
-    `${name} Slides to ${score}`,
-    `${number} Face ${crisis} in ${name}`
-  ];
-  const index = name.length % templates.length;
-  let headline = templates[index];
-  if (flag) headline = `${flag} ${headline}`;
-  return headline;
-}
-
-// ─── LOAD BREAKING HEADLINE ──────────────────────────────────────────
-async function loadBreakingHeadline() {
-  const headlineEl = document.getElementById("breaking-headline");
-  if (!headlineEl) {
-    console.warn("breaking-headline element not found");
-    return;
-  }
-  try {
-    const countries = await fetchAllCountries();
-    if (!countries || countries.length === 0) throw new Error("No country data");
-    
-    // Sort by heat score (newsworthiness)
-    const sorted = [...countries].sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
-    const topStory = sorted[0];
-    const currentIso = topStory.iso;
-    const previousIso = localStorage.getItem('gcin_top_iso');
-    
-    // ─── GET THE ACTUAL RSS HEADLINE FROM THE API ──────────────────
-    // The API returns the headline in the story_heat or we need to generate it
-    // But we want the actual headline from the RSS feed, not a generated one
-    
-    // First, try to get the headline from the API's meta or from the story
-    let rssHeadline = '';
-    
-    // Check if the API has a headline field
-    if (topStory.headline) {
-      rssHeadline = topStory.headline;
-    } else if (topStory.title) {
-      rssHeadline = topStory.title;
-    } else if (topStory.story_heat?.headline) {
-      rssHeadline = topStory.story_heat.headline;
-    } else {
-      // Generate a headline as fallback, but keep it real
-      rssHeadline = generateHeadline(topStory);
-    }
-    
-    // Store the actual headline with the country ISO
-    localStorage.setItem('gcin_top_headline', rssHeadline);
-    localStorage.setItem('gcin_top_iso', currentIso);
-    localStorage.setItem('gcin_top_url', topStory.url || '/GCIN.html');
-    localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-    
-    // Display in the breaking bar
-    headlineEl.innerText = rssHeadline;
-    
-  } catch (err) {
-    console.warn("GCIN headline error:", err);
-    const stored = localStorage.getItem('gcin_top_headline');
-    if (stored) {
-      headlineEl.innerText = stored;
-    } else {
-      headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
-    }
-  }
-}
- </script>
+            function generateExplosiveHeadlineForCountry(country) {
+        const name = country.name;
+        const flag = country.flag || "";
+        const score = country.score || 0;
+        const severity = country.severity || (score >= 85 ? "CATASTROPHIC" : score >= 75 ? "CRITICAL" : score >= 60 ? "HIGH" : score >= 40 ? "ELEVATED" : "MODERATE");
+        const heat = country.story_heat || {};
+        const heatScore = heat.score || 0;
+        const anomaly = country.anomaly || {};
+        const anomalyDetected = anomaly.detected || false;
+        const anomalySeverity = anomaly.severity || 'None';
+        const ml = country.ml || {};
+        const mlAnomalyProb = Math.round((ml.anomaly_probability || 0) * 100);
+        const s = country.live_evidence || {};
+        const trend = country.trend || {};
+        const delta = trend.delta_7d || 0;
+        
+        // Build candidate headlines with priorities
+        const candidates = [];
+        
+        // 1. GDACS Red Alert — highest priority
+        if (s.gdacs && (s.gdacs.alert_level === 'red' || s.gdacs.alert_level === 'orange')) {
+          const alertText = s.gdacs.alert_level === 'red' ? 'RED ALERT' : 'ORANGE ALERT';
+          const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI Flags ${mlAnomalyProb}% Anomaly Risk` : '';
+          candidates.push({
+            priority: 110,
+            text: `${alertText}: ${name} Under Active GDACS Disaster Warning Right Now${mlSuffix}`
+          });
+        }
+        
+        // 2. Massive Displacement
+        const totalDisplaced = s.displacement?.total || 0;
+        if (totalDisplaced > 1_000_000) {
+          const displacedStr = totalDisplaced >= 10_000_000 ? '10 Million+' : 
+                             totalDisplaced >= 5_000_000 ? '5 Million+' : 
+                             totalDisplaced >= 2_000_000 ? '2 Million+' : 
+                             totalDisplaced >= 1_000_000 ? '1 Million+' : '';
+          const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Forecasts Rapid Escalation` : '';
+          candidates.push({
+            priority: 105 + Math.min(20, totalDisplaced / 500_000),
+            text: `${displacedStr} Displaced: Inside ${name}'s Catastrophic Humanitarian Emergency${mlSuffix}`
+          });
+        }
+        
+        // 3. IPC Famine / Food Crisis
+        const ipcPhase = s.ipcPhase || 0;
+        if (ipcPhase >= 4) {
+          const phaseText = ipcPhase === 5 ? 'Famine Declared' : 'Emergency Level Food Crisis';
+          const popStr = s.ipcPopulation ? ` — ${(s.ipcPopulation / 1e6).toFixed(1)}M at Risk` : '';
+          candidates.push({
+            priority: 105,
+            text: `IPC Phase ${ipcPhase} ${phaseText} in ${name}${popStr}`
+          });
+        }
+        
+        // 4. Major Earthquake
+        const quakeMag = s.earthquake?.magnitude || 0;
+        if (quakeMag >= 6.0) {
+          const magStr = quakeMag >= 7.0 ? `M${quakeMag.toFixed(1)} Major Quake` : `M${quakeMag.toFixed(1)} Earthquake`;
+          const loc = s.earthquake?.location ? ` Near ${s.earthquake.location}` : '';
+          candidates.push({
+            priority: 100 + Math.min(15, (quakeMag - 5) * 5),
+            text: `${magStr} Strikes ${name}${loc} — Casualties Feared`
+          });
+        }
+        
+        // 5. Conflict Spike
+        const fatalities = s.conflict_fatalities || 0;
+        const events = s.conflict_events || 0;
+        if (fatalities > 50 || events > 20) {
+          const fatStr = fatalities > 100 ? `${fatalities.toLocaleString()} Killed` : `${fatalities} Fatalities`;
+          const mlSuffix = mlAnomalyProb > 55 ? ` ⚡ AI Predicts Further Escalation` : '';
+          candidates.push({
+            priority: 95 + Math.min(15, Math.log10(fatalities + 1) * 5),
+            text: `${name} Conflict Intensifies: ${fatStr} in ${events} Recorded Events${mlSuffix}`
+          });
+        }
+        
+        // 6. Disease Outbreak
+        const outbreaks = s.who_outbreaks?.outbreaks || [];
+        if (outbreaks.length > 0) {
+          const diseases = outbreaks.map(o => o.disease).join(' & ');
+          const diseaseStr = diseases.length > 20 ? diseases.slice(0, 20) + '...' : diseases;
+          candidates.push({
+            priority: 85,
+            text: `WHO Confirms ${diseaseStr} Outbreak in ${name} — Health Emergency Declared`
+          });
+        }
+        
+        // 7. Extreme Heat
+        const maxTemp = s.heat?.max_temp_c || 0;
+        if (maxTemp >= 40) {
+          candidates.push({
+            priority: 70 + Math.min(15, (maxTemp - 38) * 2),
+            text: `${maxTemp}°C Extreme Heat Scorches ${name} — Hundreds Hospitalized`
+          });
+        }
+        
+        // 8. Rapid Deterioration
+        if (Math.abs(delta) > 5) {
+          const dir = delta > 0 ? 'Rapidly Deteriorating' : 'Sudden Crisis Spike';
+          const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Anomaly Alert` : '';
+          candidates.push({
+            priority: 75 + Math.min(20, Math.abs(delta) * 1.5),
+            text: `${name} Crisis ${dir}: Score Jumps ${Math.abs(delta).toFixed(0)} Points in 7 Days${mlSuffix}`
+          });
+        }
+        
+        // 9. Extreme Anomaly
+        if (anomalyDetected && anomalySeverity === 'EXTREME') {
+          candidates.push({
+            priority: 90,
+            text: `DATA ALERT: ${name} Crisis Trajectory Just Broke Pattern — ${anomaly.methods_fired || 0}/4 Statistical Models Agree`
+          });
+        }
+        
+        // 10. Breaking: Multiple Signals
+        if (heatScore >= 75 && heat.top_drivers && heat.top_drivers.length >= 2) {
+          const driverText = heat.top_drivers.slice(0, 2).map(d => d.driver).join(' + ');
+          const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI ${mlAnomalyProb}% Anomaly` : '';
+          candidates.push({
+            priority: 100 + Math.min(15, heatScore / 5),
+            text: `BREAKING: ${name} Crisis Intensifies — ${driverText}${mlSuffix}`
+          });
+        }
+        
+        // Fallback
+        candidates.push({
+          priority: 10,
+          text: `${name} Humanitarian Emergency: Score ${score}/100 (${severity})`
+        });
+        
+        // Sort by priority and pick the highest
+        candidates.sort((a, b) => b.priority - a.priority);
+        let headline = candidates[0].text;
+        
+        // Add emoji prefix
+        if (headline.includes('RED ALERT') || headline.includes('BREAKING')) {
+          headline = '🔴 ' + headline;
+        } else if (headline.includes('Famine') || headline.includes('Emergency')) {
+          headline = '🚨 ' + headline;
+        } else if (headline.includes('Earthquake') || headline.includes('Disaster')) {
+          headline = '🌍 ' + headline;
+        }
+        
+        // Add flag at the start
+        if (flag) {
+          headline = flag + ' ' + headline;
+        }
+        
+        return headline;
+      }
+      
+                  async function loadBreakingHeadline() {
+        const headlineEl = document.getElementById("breaking-headline");
+        if (!headlineEl) {
+          console.warn("breaking-headline element not found");
+          return;
+        }
+        try {
+          const url = new URL(API_BASE);
+          url.searchParams.append("top", "30");
+          url.searchParams.append("ml", "true");
+          url.searchParams.append("sentiment", "true");
+          const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          const countries = data.countries || [];
+          
+          if (!countries || countries.length === 0) {
+            headlineEl.innerText = "⚠️ No crisis data available";
+            return;
+          }
+          
+          // Sort by heat score (newsworthiness)
+          const sorted = [...countries].sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
+          const topStory = sorted[0];
+          const currentIso = topStory.iso;
+          
+          // Generate the headline using the full explosive generator
+          const headline = generateExplosiveHeadlineForCountry(topStory);
+          
+          // Store in localStorage with country ISO
+          localStorage.setItem('gcin_top_headline', headline);
+          localStorage.setItem('gcin_top_iso', currentIso);
+          localStorage.setItem('gcin_top_url', topStory.url || '/GCIN.html');
+          localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+          
+          // Display in the breaking bar
+          headlineEl.innerText = headline;
+          
+          // 🔥 DYNAMICALLY UPDATE META DESCRIPTION WITH RSS HEADLINE
+          updateMetaDescription(headline, topStory);
+          
+          console.log('✅ RSS Headline stored for', currentIso, ':', headline.substring(0, 60) + '...');
+          
+        } catch (err) {
+          console.warn("GCIN headline error:", err);
+          const stored = localStorage.getItem('gcin_top_headline');
+          if (stored) {
+            headlineEl.innerText = stored;
+          } else {
+            headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
+          }
+        }
+      }
+      
+      // ─── UPDATE META DESCRIPTION ──────────────────────────────────────────
+      function updateMetaDescription(headline, story) {
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) return;
+        
+        // Get the country name and score from the story
+        const countryName = story?.name || '';
+        const score = story?.score || '';
+        const severity = story?.severity || '';
+        const heatScore = story?.story_heat?.score || '';
+        const liveEvidence = story?.live_evidence_count || 0;
+        
+        // Build the new description
+        let description = headline;
+        
+        // Add context
+        if (countryName && score) {
+          description += ` ${countryName} crisis score: ${score}/100 (${severity}).`;
+        }
+        
+        if (liveEvidence > 0) {
+          description += ` Live intelligence from ${liveEvidence} sources.`;
+        }
+        
+        // Add standard suffix
+        description += ' Real-time crisis intelligence from 40+ APIs, updated every 5 minutes. — GCIS Fusion';
+        
+        // Update the meta tag
+        metaDescription.setAttribute('content', description);
+        
+        // Also update Open Graph description
+        const ogDescription = document.querySelector('meta[property="og:description"]');
+        if (ogDescription) {
+          ogDescription.setAttribute('content', description);
+        }
+        
+        // Update Twitter card description
+        const twitterDescription = document.querySelector('meta[name="twitter:description"]');
+        if (twitterDescription) {
+          twitterDescription.setAttribute('content', description);
+        }
+        
+        console.log('📝 Meta description updated:', description.substring(0, 100) + '...');
+      }
+      
+      // ─── UPDATE TITLE WITH RSS HEADLINE ─────────────────────────────────
+      function updatePageTitle(headline) {
+        // Clean the headline - remove emojis and flags for title
+        const cleanHeadline = headline
+          .replace(/[^\w\s.,!?]/g, '')  // Remove emojis
+          .replace(/\s+/g, ' ')          // Normalize spaces
+          .trim();
+        
+        const title = document.querySelector('title');
+        if (title) {
+          title.textContent = `GCIN — ${cleanHeadline} | Global Crisis Index`;
+        }
+      }
+      
+      // ─── CALL ON PAGE LOAD ─────────────────────────────────────────────
+      // Ensure the headline loads when the page loads
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        loadBreakingHeadline();
+      } else {
+        document.addEventListener('DOMContentLoaded', loadBreakingHeadline);
+      }</script>
 
   <script type="application/ld+json">
   {
@@ -1602,12 +1809,7 @@ function buildTickerFromResults(){
   const inner=document.getElementById('tickerInner');
   if(inner){inner.innerHTML=html;inner.style.animationDuration=Math.max(80,uniq.length*3.5)+'s';}
 }
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
+
 async function refresh(){
   const loader=document.getElementById('loader');
   const fill=document.getElementById('lFill');
@@ -1635,9 +1837,6 @@ async function refresh(){
   adv(1,15);
 
 // ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
-  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
-  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
-  // not as a single pinned URL like the other entries here.)
   const fetchKeys = Object.keys(API_ENDPOINTS);
   const fetches = {};
   for (const k of fetchKeys) {
@@ -1663,7 +1862,6 @@ async function refresh(){
   // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
   let apiData = null;
   try {
-    // 🔥 FIX: Use top=136 to get ALL countries
     const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=136&force_live=false', { 
       headers: { 'Accept': 'application/json' } 
     });
@@ -1675,7 +1873,6 @@ async function refresh(){
   }
 
   // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
-  // This calls the original buildStore() which uses all the evidence data
   buildStore();
   
   // ─── IF API DATA IS AVAILABLE, USE API URGENCY SCORES ────────────────
@@ -1683,7 +1880,6 @@ async function refresh(){
     const apiCountries = apiData.countries || (apiData.top_story ? [apiData.top_story] : []);
     const apiStore = {};
     
-    // First, build a store from API data with safety checks
     apiCountries.forEach(c => {
       if (!c.iso) return;
       
@@ -1720,10 +1916,8 @@ async function refresh(){
       };
     });
     
-    // ─── MERGE: Use API scores as the primary, but keep evidence data ──
     for (const iso in store) {
       if (apiStore[iso]) {
-        // Use API score (this gives us the urgency rankings from the API)
         store[iso].score = apiStore[iso].score;
         store[iso].priorScore = apiStore[iso].priorScore;
         store[iso].events = Math.max(store[iso].events || 0, apiStore[iso].events);
@@ -1731,14 +1925,12 @@ async function refresh(){
         store[iso].liveBoost = apiStore[iso].liveBoost;
         store[iso].evidenceCount = Math.max(store[iso].evidenceCount || 0, apiStore[iso].evidenceCount);
         
-        // Merge evidence sources (deduplicate)
         if (apiStore[iso].evidenceSources) {
           const existingSources = new Set(store[iso].evidenceSources || []);
           apiStore[iso].evidenceSources.forEach(s => existingSources.add(s));
           store[iso].evidenceSources = Array.from(existingSources);
         }
         
-        // Merge evidence ledger
         if (apiStore[iso].evidenceLedger) {
           const existingLedger = store[iso].evidenceLedger || [];
           const mergedLedger = [...existingLedger];
@@ -1751,7 +1943,6 @@ async function refresh(){
           store[iso].evidenceLedger = mergedLedger;
         }
         
-        // Merge dims (take max of each dimension from both sources)
         if (apiStore[iso].dims) {
           Object.entries(apiStore[iso].dims).forEach(([k, v]) => {
             const currentVal = store[iso].dims?.[k] || 0;
@@ -1761,15 +1952,10 @@ async function refresh(){
           });
         }
         
-        // Update evidence confidence
         store[iso].evidenceConfidence = Math.min(1, (store[iso].evidenceCount || 0) / 5);
-        
-        // Keep the evidence signals from the original store
-        // (store[iso].signals already has the evidence data)
       }
     }
     
-    // ─── ADD ANY COUNTRIES FROM API THAT AREN'T IN STORE ──────────────
     for (const iso in apiStore) {
       if (!store[iso]) {
         store[iso] = apiStore[iso];
@@ -1777,13 +1963,9 @@ async function refresh(){
       }
     }
     
-    // Re-rank after merging
     ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-    
-    // Update UI with API data (this shows the API urgency rankings)
     updateUIStatsFromApi(apiData);
   } else {
-    // ─── UPDATE UI WITH REAL STATS (original behavior) ────────────────
     updateUIStats();
   }
 
@@ -1794,7 +1976,6 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,500));
   loader.style.display='none';
   
-  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
   const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
   const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
@@ -1804,11 +1985,21 @@ async function refresh(){
   
   refreshTimerSecs=300;
 
-  const urlParams=new URLSearchParams(window.location.search);
-  const urlCountry=urlParams.get('country');
-  if(urlCountry&&store[urlCountry]){selectedIso=urlCountry;renderPanel(urlCountry,urlParams.get('crisis'));zoomToCountry(selectedIso);}
-  else if(selectedIso&&store[selectedIso]){renderPanel(selectedIso);}
-  else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
+  // ─── AUTO-SELECT THE TOP COUNTRY ──────────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCountry = urlParams.get('country');
+  
+  if (urlCountry && store[urlCountry]) {
+    selectedIso = urlCountry;
+    await renderPanel(urlCountry, urlParams.get('crisis'));
+    zoomToCountry(selectedIso);
+  } else if (selectedIso && store[selectedIso]) {
+    await renderPanel(selectedIso);
+  } else if (ranked.length) {
+    selectedIso = ranked[0];
+    await renderPanel(selectedIso);
+    zoomToCountry(selectedIso);
+  }
 
   updateDynamicTitle();
 }
@@ -4448,54 +4639,58 @@ async function renderPanel(iso, focusCrisisType) {
 
   // ─── FETCH RSS HEADLINE FOR THIS COUNTRY ────────────────────────────────────
   let rssHeadline = '';
-  let rssUrl = '';
-  const savedHeadline = localStorage.getItem('gcin_top_headline');
-  const savedIso = localStorage.getItem('gcin_top_iso');
-  const savedUrl = localStorage.getItem('gcin_top_url');
+  let rssUrl = '/GCIN.html';
   
-  // Check if the stored headline matches this country
-  if (savedIso === iso && savedHeadline) {
-    rssHeadline = savedHeadline;
-    rssUrl = savedUrl || '/GCIN.html';
+  // Fetch the RSS feed directly from the API
+  try {
+    const rssResponse = await fetch('https://www.globalcrisisindex.com/api/top-story?format=rss');
+    if (rssResponse.ok) {
+      const rssText = await rssResponse.text();
+      // Parse the RSS XML
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(rssText, 'text/xml');
+      const items = xmlDoc.querySelectorAll('item');
+      
+      // Loop through each item in the RSS feed
+      for (const item of items) {
+        const title = item.querySelector('title')?.textContent || '';
+        // Check if the title contains the country name or flag
+        const countryName = c.name;
+        const countryFlag = c.flag || '';
+        
+        // Check if the title mentions this country (case insensitive)
+        if (title.toLowerCase().includes(countryName.toLowerCase()) || 
+            title.includes(countryFlag)) {
+          rssHeadline = title;
+          // Try to get the link
+          const link = item.querySelector('link')?.textContent || '';
+          if (link) rssUrl = link;
+          break;
+        }
+      }
+      
+      // If no country-specific headline found, use the first item
+      if (!rssHeadline && items.length > 0) {
+        const firstItem = items[0];
+        rssHeadline = firstItem.querySelector('title')?.textContent || '';
+        const link = firstItem.querySelector('link')?.textContent || '';
+        if (link) rssUrl = link;
+      }
+    }
+  } catch (e) {
+    console.warn('RSS fetch failed:', e);
   }
   
-  // ─── BUILD RSS HEADLINE HTML ──────────────────────────────────────────────
+  console.log('📡 RSS Headline for', c.name, ':', rssHeadline ? rssHeadline.substring(0, 50) + '...' : 'None found');
+  
+    // ─── BUILD RSS HEADLINE HTML (FULL HEADLINE, NO LABEL) ──────────────────────
   const rssHeadlineHtml = rssHeadline ? `
-    <div style="
-      background: linear-gradient(135deg, rgba(255,140,66,0.08), rgba(255,55,95,0.04));
-      border: 1px solid rgba(255,140,66,0.2);
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin: 0 0 10px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    ">
-      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-        <span style="font-size:14px;flex-shrink:0;">📡</span>
-        <span style="font-size:10px;color:var(--ts);line-height:1.4;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(rssHeadline)}</span>
-      </div>
-      <a href="${rssUrl}" target="_blank" style="
-        background: rgba(255,140,66,0.12);
-        border: 1px solid rgba(255,140,66,0.25);
-        border-radius: 99px;
-        padding: 4px 14px;
-        font-family: var(--fm);
-        font-size: 8px;
-        font-weight: 600;
-        color: var(--orange);
-        text-decoration: none;
-        white-space: nowrap;
-        flex-shrink: 0;
-        transition: all 0.15s;
-      " onmouseover="this.style.background='rgba(255,140,66,0.2)';this.style.borderColor='rgba(255,140,66,0.4)';" onmouseout="this.style.background='rgba(255,140,66,0.12)';this.style.borderColor='rgba(255,140,66,0.25)';">
-        Read full story →
-      </a>
+    <div class="rss-headline-box">
+      <span class="headline-text">${escapeHtml(rssHeadline)}</span>
+      <a href="https://globalcrisisindex.com/GCIN.html" 
+ target="_blank" class="read-btn">Read full story →</a>
     </div>
   ` : '';
-
   const restrictedMap = {
     "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
     "Afghan Red Crescent": ["afghanistan"], "Somali Red Crescent": ["somalia"],
@@ -4591,7 +4786,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
-  // ─── BUILD THE FULL PANEL HTML WITH RSS HEADLINE AT TOP ──────────────────
   document.getElementById('panelContent').innerHTML = `
     ${rssHeadlineHtml}
     ${crisisBannerHtml}
@@ -4634,6 +4828,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
       <div id="inlinTimelineSlot"></div>
     </div>
+
+    
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -4686,7 +4882,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
     </div>
 
-    <div class="ps">
+        <div class="ps">
       <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
         <div class="fc-head">
           <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
@@ -4744,9 +4940,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
         </div>
       </div>
-    </div>
-
-    <div class="charity-section">
+    </div>    <div class="charity-section">
       <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
       <div class="ch-cards">
         ${chs.map(ch => `
@@ -4791,7 +4985,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
-  setTimeout(() => {
+setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
@@ -4802,7 +4996,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       if (slot) slot.outerHTML = html || '';
     });
   }, 60);
-  
   if (mapGroup) {
     mapGroup.selectAll('.country-path').classed('sel-path', false);
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
@@ -4810,7 +5003,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 
   setTimeout(() => calcImpact(iso), 100);
 
-  // ── AI BRIEF: data-driven narrative ──
+ // ── AI BRIEF: data-driven narrative ──
   setTimeout(() => renderAIBrief(iso), 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
@@ -5190,39 +5383,41 @@ function buildUrgencyNarrative(iso, crisisType) {
     return '';
   }
   
-  // Get country intro (first 2-3 sentences)
+  // Get country intro (always 3 sentences)
+  // Get country intro (always 3 full sentences)
   const introExtract = fetchExtractIntro(name);
   if (introExtract && introExtract.length > 50) {
     // Clean up the text first
     let cleanText = introExtract
       .replace(/\s+/g, ' ')                    // Normalize whitespace
-      .replace(/\([^)]*\)/g, '')                // Remove anything in parentheses (like "()" or "(country)")
       .replace(/\s+,\s*/g, ', ')                // Fix "word , word" → "word, word"
       .replace(/\s+\./g, '.')                   // Fix "word ." → "word."
       .replace(/\s{2,}/g, ' ')                  // Remove any double spaces
       .trim();
     
-    // Split into sentences
-    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+    // Remove parenthetical content that breaks sentence boundaries
+    cleanText = cleanText.replace(/\([^)]*\)/g, '');
     
-    // Take first 2-3 sentences (min 2, max 3)
+    // Split into sentences - match anything ending with . ! or ?
+    // NEW: Splits on period + space, which is a true sentence boundary
+let sentences = cleanText.split(/\.\s+/);
+sentences = sentences.map(s => s.trim() + '.').filter(s => s.length > 3);
+
+    
+    // Always take exactly 3 sentences (or all if less than 3)
     let introText = sentences.slice(0, 3).join(' ');
     
-    // Only truncate if it's REALLY long (keep full sentences)
-    if (introText.length > 500) {
-      // Try to find the last complete sentence within 500 chars
-      const truncated = introText.slice(0, 500);
-      const lastSentenceEnd = Math.max(
-        truncated.lastIndexOf('. '),
-        truncated.lastIndexOf('! '),
-        truncated.lastIndexOf('? ')
-      );
-      if (lastSentenceEnd > 200) {
-        introText = introText.slice(0, lastSentenceEnd + 1);
-      } else {
-        // If no good sentence boundary, just keep what we have
-        introText = truncated.trim();
-      }
+    // Make sure we have complete sentences - if the last sentence is cut off, remove it
+    // Check if the last sentence ends with a period, exclamation, or question mark
+    const lastChar = introText.trim().slice(-1);
+    if (!['.', '!', '?'].includes(lastChar) && sentences.length > 3) {
+      // Remove the incomplete last sentence
+      introText = sentences.slice(0, 2).join(' ');
+    }
+    
+    // Ensure we always end with a period
+    if (introText.length > 0 && !['.', '!', '?'].includes(introText.trim().slice(-1))) {
+      introText = introText.trim() + '.';
     }
     
     countryIntro = introText;
