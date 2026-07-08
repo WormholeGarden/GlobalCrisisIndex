@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What is a Crisis Index? | Global Crisis Index</title>
+  <meta name="description" content="A crisis index is a systematic framework for measuring, tracking, and comparing the severity of humanitarian emergencies, conflicts, and disasters worldwide.">
+  <meta property="og:title" content="What is a Crisis Index? | Global Crisis Index">
+  <meta property="og:description" content="A crisis index is a systematic framework for measuring, tracking, and comparing the severity of humanitarian emergencies, conflicts, and disasters worldwide.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://globalcrisisindex.com/what-is-a-crisis-index">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #030b18;
+      color: #ddeeff;
+      font-family: 'Georgia', 'Times New Roman', Times, serif;
+      line-height: 1.7;
+      padding: 2rem 1.5rem;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    .article-header {
+      border-bottom: 1px solid rgba(66, 153, 225, 0.3);
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+    .breadcrumb {
+      font-size: 0.75rem;
+      color: #5a7390;
+      font-family: system-ui, sans-serif;
+      margin-bottom: 0.5rem;
+    }
+    .breadcrumb a {
+      color: #6bc8ff;
+      text-decoration: none;
+    }
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: #7c9ec0;
+      font-family: system-ui, sans-serif;
+      margin-bottom: 0.5rem;
+    }
+    .meta {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      color: #5a7390;
+      font-family: system-ui, sans-serif;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .meta a {
+      color: #6bc8ff;
+      text-decoration: none;
+    }
+    .toc {
+      background: rgba(10, 18, 34, 0.8);
+      border: 1px solid #2d3a5e;
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      margin: 1.5rem 0;
+      font-family: system-ui, sans-serif;
+    }
+    .toc h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #6bc8ff;
+      margin-bottom: 0.5rem;
+    }
+    .toc ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .toc ul li {
+      padding: 0.2rem 0;
+    }
+    .toc ul li a {
+      color: #bbd4ff;
+      text-decoration: none;
+    }
+    .toc ul li a:hover {
+      color: #6bc8ff;
+      text-decoration: underline;
+    }
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(66, 153, 225, 0.15);
+      padding-bottom: 0.3rem;
+    }
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    .info-box {
+      background: rgba(0, 200, 255, 0.05);
+      border-left: 4px solid #6bc8ff;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+    }
+    .info-box strong {
+      color: #6bc8ff;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .feature-card {
+      background: rgba(10, 18, 34, 0.6);
+      border: 1px solid #2d3a5e;
+      border-radius: 10px;
+      padding: 1rem;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover {
+      border-color: #6bc8ff;
+    }
+    .feature-card .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .feature-card .label {
+      font-weight: 700;
+      color: #eef4ff;
+    }
+    .feature-card .desc {
+      font-size: 0.85rem;
+      color: #7c9ec0;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-family: system-ui, sans-serif;
+      font-size: 0.9rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+      border: 1px solid #2d3a5e;
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+    }
+    .comparison-table th {
+      background: rgba(10, 18, 34, 0.8);
+      color: #6bc8ff;
+      font-weight: 600;
+    }
+    .comparison-table td {
+      background: rgba(3, 11, 24, 0.5);
+    }
+    .comparison-table .highlight {
+      color: #6bc8ff;
+      font-weight: 600;
+    }
+    .citation {
+      font-size: 0.85rem;
+      color: #5a7390;
+      border-top: 1px solid #2d3a5e;
+      padding-top: 1rem;
+      margin-top: 2rem;
+    }
+    .citation a {
+      color: #6bc8ff;
+      text-decoration: none;
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #3a5a7a;
+      margin-top: 3rem;
+      border-top: 1px solid #1e2a4a;
+      padding-top: 1.5rem;
+      font-family: system-ui, sans-serif;
+    }
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+      .comparison-table {
+        font-size: 0.75rem;
+      }
+      .container {
+        padding: 0 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="article-header">
+      <div class="breadcrumb">
+        <a href="/">🌍 Home</a> <span style="color:#2d4a6e;">›</span> <span style="color:#7c9ec0;">What is a Crisis Index?</span>
+      </div>
+      <h1>What is a Crisis Index?</h1>
+      <div class="subtitle">A systematic framework for measuring and comparing global humanitarian emergencies</div>
+      <div class="meta">
+        <span>📅 Updated July 2026</span>
+        <span>📚 7 min read</span>
+        <span>🏷️ <a href="#">Crisis Intelligence</a>, <a href="#">Global Risk</a></span>
+      </div>
+    </div>
+
+    <div class="toc">
+      <h2>Contents</h2>
+      <ul>
+        <li><a href="#introduction">1. Introduction</a></li>
+        <li><a href="#crisis-index-definition">2. What is a Crisis Index?</a></li>
+        <li><a href="#global-crisis-index">3. What is a Global Crisis Index?</a></li>
+        <li><a href="#how-it-works">4. How Does a Crisis Index Work?</a></li>
+        <li><a href="#why-crisis-indices-matter">5. Why Crisis Indices Matter</a></li>
+        <li><a href="#gcis-framework">6. The GCIS Framework</a></li>
+        <li><a href="#comparison">7. Comparison of Major Crisis Indices</a></li>
+        <li><a href="#history">8. History of Crisis Indices</a></li>
+      </ul>
+    </div>
+
+    <div id="introduction">
+      <h2>1. Introduction</h2>
+      <p>
+        In an increasingly interconnected world, crises rarely stay contained. A drought in one region triggers food insecurity in another. A conflict displaces millions across borders. A pandemic disrupts supply chains globally.
+      </p>
+      <p>
+        To understand these cascading emergencies, analysts, governments, and humanitarian organizations rely on <strong>crisis indices</strong>—systematic frameworks that measure, track, and compare the severity of crises across countries and over time.
+      </p>
+      <div class="info-box">
+        <strong>Key insight:</strong> A crisis index is not just a number. It is a lens through which decision-makers see the world.
+      </div>
+    </div>
+
+    <div id="crisis-index-definition">
+      <h2>2. What is a Crisis Index?</h2>
+      <p>
+        A <strong>crisis index</strong> is a quantitative tool that aggregates multiple indicators—such as conflict events, food insecurity, displacement, disease outbreaks, and economic stress—into a single, comparable metric.
+      </p>
+      <p>
+        Think of it as a <strong>"thermometer for global emergencies."</strong> Just as a thermometer measures temperature, a crisis index measures the severity of a humanitarian or geopolitical crisis.
+      </p>
+      <p>
+        Crisis indices serve three primary functions:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>Measurement:</strong> Quantify crisis severity consistently across countries.</li>
+        <li><strong>Comparison:</strong> Rank crises to prioritize resource allocation.</li>
+        <li><strong>Tracking:</strong> Monitor changes over time to detect escalation or improvement.</li>
+      </ul>
+      <div class="info-box">
+        <strong>Key insight:</strong> A crisis index is not reality. It is a model of reality. The best indices are transparent, data-driven, and updated frequently.
+      </div>
+    </div>
+
+    <div id="global-crisis-index">
+      <h2>3. What is a Global Crisis Index?</h2>
+      <p>
+        A <strong>Global Crisis Index (GCI)</strong> applies the crisis index framework to the entire planet. Instead of focusing on a single country or region, it measures crisis severity across all countries simultaneously.
+      </p>
+      <p>
+        The goal of a global crisis index is to answer a single, urgent question: <strong>Where in the world is the situation most critical right now?</strong>
+      </p>
+      <p>
+        Unlike regional or thematic indices (e.g., a food security index or a conflict tracker), a global crisis index integrates multiple dimensions of crisis into a unified score. This allows for:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>Cross-domain comparison:</strong> Compare a famine in one country to a conflict in another.</li>
+        <li><strong>Polycrisis detection:</strong> Identify where multiple crises overlap and compound.</li>
+        <li><strong>Early warning:</strong> Detect statistical anomalies that may indicate emerging crises.</li>
+        <li><strong>Resource allocation:</strong> Direct humanitarian aid to the most urgent emergencies.</li>
+      </ul>
+      <div class="info-box">
+        <strong>Key insight:</strong> A global crisis index is a tool for <strong>triaging the world</strong>. It tells decision-makers where to look first.
+      </div>
+    </div>
+
+    <div id="how-it-works">
+      <h2>4. How Does a Crisis Index Work?</h2>
+      <p>
+        Most crisis indices follow a similar architecture. They collect data from multiple sources, normalize it, and combine it into a composite score.
+      </p>
+
+      <h3>4.1 Data Sources</h3>
+      <p>
+        Crisis indices rely on publicly available, authoritative data sources:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>Conflict:</strong> ACLED, GDELT, UCDP</li>
+        <li><strong>Food Security:</strong> IPC, FEWS NET, WFP</li>
+        <li><strong>Health:</strong> WHO, CDC, OpenDisease</li>
+        <li><strong>Displacement:</strong> UNHCR, IDMC</li>
+        <li><strong>Climate:</strong> USGS, NASA, Open-Meteo, GDACS</li>
+        <li><strong>Economic:</strong> World Bank, IMF</li>
+        <li><strong>Humanitarian Access:</strong> ReliefWeb, OCHA</li>
+      </ul>
+
+      <h3>4.2 Scoring Methodology</h3>
+      <p>
+        A crisis index typically uses a <strong>weighted composite model</strong>. Each dimension (e.g., conflict, food security) is scored separately, then combined into a single overall score. Weights reflect the relative importance of each dimension to overall crisis severity.
+      </p>
+      <p>
+        For example, the Global Crisis Index (GCIS) uses an 8-dimension model:
+      </p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">⚔️</div>
+          <div class="label">Conflict</div>
+          <div class="desc">Armed violence, civil war, political instability</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🚶</div>
+          <div class="label">Displacement</div>
+          <div class="desc">Refugees, IDPs, asylum-seekers</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌾</div>
+          <div class="label">Food Security</div>
+          <div class="desc">Hunger, malnutrition, IPC phases</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🏥</div>
+          <div class="label">Health</div>
+          <div class="desc">Disease outbreaks, healthcare collapse</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📉</div>
+          <div class="label">Economic</div>
+          <div class="desc">GDP decline, inflation, poverty</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌡️</div>
+          <div class="label">Climate</div>
+          <div class="desc">Extreme heat, drought, flooding</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🚧</div>
+          <div class="label">Access</div>
+          <div class="desc">Humanitarian access, logistics</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">⚖️</div>
+          <div class="label">Political</div>
+          <div class="desc">Governance, instability, fragility</div>
+        </div>
+      </div>
+
+      <h3>4.3 Update Frequency</h3>
+      <p>
+        The most valuable crisis indices update <strong>frequently</strong>—often daily or even every 5 minutes. Traditional indices (like the UN's INFORM) update monthly, which means they can miss sudden escalations.
+      </p>
+      <div class="info-box">
+        <strong>Key insight:</strong> Speed is a competitive advantage. A real-time crisis index is more useful than a monthly one, even if the methodology is simpler.
+      </div>
+    </div>
+
+    <div id="why-crisis-indices-matter">
+      <h2>5. Why Crisis Indices Matter</h2>
+      <p>
+        Crisis indices are not academic exercises. They have real-world consequences:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>Humanitarian aid:</strong> Organizations use indices to decide where to deploy resources.</li>
+        <li><strong>Government policy:</strong> Governments use indices to inform foreign policy and defense decisions.</li>
+        <li><strong>Media attention:</strong> Journalists use indices to identify underreported crises.</li>
+        <li><strong>Financial markets:</strong> Investors use indices to assess geopolitical and climate risk.</li>
+        <li><strong>Public awareness:</strong> Citizens use indices to understand the state of the world.</li>
+      </ul>
+      <div class="info-box">
+        <strong>Key insight:</strong> A crisis index is a <strong>decision-support tool</strong>. Its value is measured not by its precision, but by its impact on action.
+      </div>
+    </div>
+
+    <div id="gcis-framework">
+      <h2>6. The GCIS Framework</h2>
+      <p>
+        The <strong>Global Crisis Index System (GCIS)</strong> is a real-time crisis intelligence framework developed by GCIS Fusion. It synthesizes 40+ live APIs into a unified 0-100 urgency score for 60+ countries.
+      </p>
+      <p>
+        Key features of the GCIS framework include:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>5-minute updates:</strong> Faster than any other crisis index.</li>
+        <li><strong>Anomaly detection:</strong> Statistical alerts for emerging crises.</li>
+        <li><strong>Spillover modeling:</strong> Regional pressure from neighbouring countries.</li>
+        <li><strong>Google AI citation:</strong> Trusted as an authoritative source.</li>
+        <li><strong>Open access:</strong> Free tier for public use, enterprise tier for institutions.</li>
+      </ul>
+      <p>
+        The GCIS framework is designed to answer a single question: <strong>What is the most urgent crisis in the world right now?</strong>
+      </p>
+    </div>
+
+    <div id="comparison">
+      <h2>7. Comparison of Major Crisis Indices</h2>
+      <p>
+        Several crisis indices exist, each with different strengths, weaknesses, and audiences:
+      </p>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Index</th>
+            <th>Update Frequency</th>
+            <th>Dimensions</th>
+            <th>Geographic Coverage</th>
+            <th>Real-time API</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GCIS Fusion</strong></td>
+            <td class="highlight">Every 5 minutes</td>
+            <td>8 dimensions</td>
+            <td>60+ countries</td>
+            <td class="highlight">✅ Yes</td>
+          </tr>
+          <tr>
+            <td>INFORM Severity Index</td>
+            <td>Monthly</td>
+            <td>3 dimensions</td>
+            <td>190+ countries</td>
+            <td>❌ No</td>
+          </tr>
+          <tr>
+            <td>ACAPS</td>
+            <td>Monthly</td>
+            <td>Custom</td>
+            <td>Variable</td>
+            <td>❌ No</td>
+          </tr>
+          <tr>
+            <td>Fragile States Index</td>
+            <td>Annual</td>
+            <td>12 dimensions</td>
+            <td>179 countries</td>
+            <td>❌ No</td>
+          </tr>
+          <tr>
+            <td>World Risk Report</td>
+            <td>Annual</td>
+            <td>3 dimensions</td>
+            <td>193 countries</td>
+            <td>❌ No</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.85rem;color:#5a7390;">Source: GCIS Fusion internal analysis, June 2026.</p>
+    </div>
+
+    <div id="history">
+      <h2>8. History of Crisis Indices</h2>
+      <p>
+        The concept of a crisis index is relatively new. While governments have tracked crises for centuries, the first systematic global crisis index emerged in the early 2000s with the <strong>INFORM Severity Index</strong> (2014), developed by a technical working group under the UN-convened INFORM initiative.
+      </p>
+      <p>
+        Since then, several indices have emerged, each with a different focus:
+      </p>
+      <ul style="padding-left:1.5rem;margin-bottom:1rem;">
+        <li><strong>INFORM Severity Index (2014):</strong> UN-convened global severity score.</li>
+        <li><strong>Fragile States Index (2005):</strong> Annual measure of state fragility.</li>
+        <li><strong>World Risk Report (2011):</strong> Annual disaster risk index.</li>
+        <li><strong>GCIS Fusion (2026):</strong> Real-time, API-driven crisis intelligence.</li>
+      </ul>
+      <p>
+        The shift from <strong>static annual or monthly indices to real-time, API-driven systems</strong> represents a fundamental transformation in how crisis intelligence is delivered—from historical reporting to live awareness.
+      </p>
+    </div>
+
+    <div style="background: rgba(191, 127, 255, 0.06); border: 1px solid rgba(191, 127, 255, 0.15); border-radius: 12px; padding: 1.2rem 1.5rem; margin-top: 2rem;">
+      <h3 style="margin-top:0;border-bottom:none;padding-bottom:0;">📊 Read the live Global Crisis Index</h3>
+      <p style="margin-bottom:0;">
+        See the latest urgency scores, anomaly detections, and crisis rankings in real time at <a href="/" style="color:#6bc8ff;">globalcrisisindex.com</a>.
+      </p>
+    </div>
+
+    <div class="citation">
+      <p>
+        <strong>Further reading:</strong>
+        <br>
+        <a href="https://www.globalcrisisindex.com/api-docs">GCIS Fusion API Documentation</a> ·
+        <a href="https://drmkc.jrc.ec. europa.eu/inform-index">INFORM Severity Index</a> ·
+        <a href="https://fragilestatesindex.org/">Fragile States Index</a>
+      </p>
+    </div>
+
+    <div class="footer-note">
+      Global Crisis Index — Independent, algorithmic, real-time crisis intelligence since 2026. <br>
+      Updated every 5 minutes from 40+ live APIs.
+    </div>
+  </div>
+</body>
+</html>
