@@ -1749,12 +1749,7 @@ function buildTickerFromResults(){
   const inner=document.getElementById('tickerInner');
   if(inner){inner.innerHTML=html;inner.style.animationDuration=Math.max(80,uniq.length*3.5)+'s';}
 }
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
-// ============================================================================
-// REFRESH - FULLY EVIDENCE-BASED WITH REAL API DATA
-// ============================================================================
+
 async function refresh(){
   const loader=document.getElementById('loader');
   const fill=document.getElementById('lFill');
@@ -1782,9 +1777,6 @@ async function refresh(){
   adv(1,15);
 
 // ─── FETCH ALL WORKING API DATA SOURCES ──────────────────────────────
-  // (Open-Meteo heat/precip is intentionally excluded from this generic loop —
-  // it's handled per-country inside fetchAllEvidence() via fetchHeatAndPrecipLoop(),
-  // not as a single pinned URL like the other entries here.)
   const fetchKeys = Object.keys(API_ENDPOINTS);
   const fetches = {};
   for (const k of fetchKeys) {
@@ -1810,7 +1802,6 @@ async function refresh(){
   // ─── ALSO FETCH FROM THE MAIN API FOR API URGENCY SCORES ────────────
   let apiData = null;
   try {
-    // 🔥 FIX: Use top=136 to get ALL countries
     const apiRes = await fetch('https://www.globalcrisisindex.com/api/top-story?top=136&force_live=false', { 
       headers: { 'Accept': 'application/json' } 
     });
@@ -1822,7 +1813,6 @@ async function refresh(){
   }
 
   // ─── BUILD EVIDENCE-BASED STORE ──────────────────────────────────────
-  // This calls the original buildStore() which uses all the evidence data
   buildStore();
   
   // ─── IF API DATA IS AVAILABLE, USE API URGENCY SCORES ────────────────
@@ -1830,7 +1820,6 @@ async function refresh(){
     const apiCountries = apiData.countries || (apiData.top_story ? [apiData.top_story] : []);
     const apiStore = {};
     
-    // First, build a store from API data with safety checks
     apiCountries.forEach(c => {
       if (!c.iso) return;
       
@@ -1867,10 +1856,8 @@ async function refresh(){
       };
     });
     
-    // ─── MERGE: Use API scores as the primary, but keep evidence data ──
     for (const iso in store) {
       if (apiStore[iso]) {
-        // Use API score (this gives us the urgency rankings from the API)
         store[iso].score = apiStore[iso].score;
         store[iso].priorScore = apiStore[iso].priorScore;
         store[iso].events = Math.max(store[iso].events || 0, apiStore[iso].events);
@@ -1878,14 +1865,12 @@ async function refresh(){
         store[iso].liveBoost = apiStore[iso].liveBoost;
         store[iso].evidenceCount = Math.max(store[iso].evidenceCount || 0, apiStore[iso].evidenceCount);
         
-        // Merge evidence sources (deduplicate)
         if (apiStore[iso].evidenceSources) {
           const existingSources = new Set(store[iso].evidenceSources || []);
           apiStore[iso].evidenceSources.forEach(s => existingSources.add(s));
           store[iso].evidenceSources = Array.from(existingSources);
         }
         
-        // Merge evidence ledger
         if (apiStore[iso].evidenceLedger) {
           const existingLedger = store[iso].evidenceLedger || [];
           const mergedLedger = [...existingLedger];
@@ -1898,7 +1883,6 @@ async function refresh(){
           store[iso].evidenceLedger = mergedLedger;
         }
         
-        // Merge dims (take max of each dimension from both sources)
         if (apiStore[iso].dims) {
           Object.entries(apiStore[iso].dims).forEach(([k, v]) => {
             const currentVal = store[iso].dims?.[k] || 0;
@@ -1908,15 +1892,10 @@ async function refresh(){
           });
         }
         
-        // Update evidence confidence
         store[iso].evidenceConfidence = Math.min(1, (store[iso].evidenceCount || 0) / 5);
-        
-        // Keep the evidence signals from the original store
-        // (store[iso].signals already has the evidence data)
       }
     }
     
-    // ─── ADD ANY COUNTRIES FROM API THAT AREN'T IN STORE ──────────────
     for (const iso in apiStore) {
       if (!store[iso]) {
         store[iso] = apiStore[iso];
@@ -1924,13 +1903,9 @@ async function refresh(){
       }
     }
     
-    // Re-rank after merging
     ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
-    
-    // Update UI with API data (this shows the API urgency rankings)
     updateUIStatsFromApi(apiData);
   } else {
-    // ─── UPDATE UI WITH REAL STATS (original behavior) ────────────────
     updateUIStats();
   }
 
@@ -1941,7 +1916,6 @@ async function refresh(){
   await new Promise(r=>setTimeout(r,500));
   loader.style.display='none';
   
-  // ─── SHOW REAL EVIDENCE COUNT ────────────────────────────────────────
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
   const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
   const criticalCount = ranked.filter(i => store[i]?.score >= 80).length;
@@ -1951,11 +1925,21 @@ async function refresh(){
   
   refreshTimerSecs=300;
 
-  const urlParams=new URLSearchParams(window.location.search);
-  const urlCountry=urlParams.get('country');
-  if(urlCountry&&store[urlCountry]){selectedIso=urlCountry;renderPanel(urlCountry,urlParams.get('crisis'));zoomToCountry(selectedIso);}
-  else if(selectedIso&&store[selectedIso]){renderPanel(selectedIso);}
-  else if(ranked.length){selectedIso=ranked[0];renderPanel(selectedIso);}
+  // ─── AUTO-SELECT THE TOP COUNTRY ──────────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCountry = urlParams.get('country');
+  
+  if (urlCountry && store[urlCountry]) {
+    selectedIso = urlCountry;
+    await renderPanel(urlCountry, urlParams.get('crisis'));
+    zoomToCountry(selectedIso);
+  } else if (selectedIso && store[selectedIso]) {
+    await renderPanel(selectedIso);
+  } else if (ranked.length) {
+    selectedIso = ranked[0];
+    await renderPanel(selectedIso);
+    zoomToCountry(selectedIso);
+  }
 
   updateDynamicTitle();
 }
@@ -4643,7 +4627,8 @@ async function renderPanel(iso, focusCrisisType) {
   const rssHeadlineHtml = rssHeadline ? `
     <div class="rss-headline-box">
       <span class="headline-text">${escapeHtml(rssHeadline)}</span>
-      <a href="${rssUrl}" target="_blank" class="read-btn">Read full story →</a>
+      <a href="https://globalcrisisindex.com/GCIN.html" 
+ target="_blank" class="read-btn">Read full story →</a>
     </div>
   ` : '';
   const restrictedMap = {
