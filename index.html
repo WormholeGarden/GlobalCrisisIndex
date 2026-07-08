@@ -275,14 +275,13 @@
         return headline;
       }
       
-            async function loadBreakingHeadline() {
+                  async function loadBreakingHeadline() {
         const headlineEl = document.getElementById("breaking-headline");
         if (!headlineEl) {
           console.warn("breaking-headline element not found");
           return;
         }
         try {
-          // Fetch from the API
           const url = new URL(API_BASE);
           url.searchParams.append("top", "30");
           url.searchParams.append("ml", "true");
@@ -314,7 +313,10 @@
           // Display in the breaking bar
           headlineEl.innerText = headline;
           
-          console.log(`✅ RSS Headline stored for ${currentIso}: ${headline.substring(0, 50)}...`);
+          // 🔥 DYNAMICALLY UPDATE META DESCRIPTION WITH RSS HEADLINE
+          updateMetaDescription(headline, topStory);
+          
+          console.log('✅ RSS Headline stored for', currentIso, ':', headline.substring(0, 60) + '...');
           
         } catch (err) {
           console.warn("GCIN headline error:", err);
@@ -327,15 +329,71 @@
         }
       }
       
-      // ─── CALL loadBreakingHeadline() ON PAGE LOAD ──────────────────────
-      // Make sure this runs after the page loads
-      document.addEventListener('DOMContentLoaded', function() {
-        loadBreakingHeadline();
-      });
+      // ─── UPDATE META DESCRIPTION ──────────────────────────────────────────
+      function updateMetaDescription(headline, story) {
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) return;
+        
+        // Get the country name and score from the story
+        const countryName = story?.name || '';
+        const score = story?.score || '';
+        const severity = story?.severity || '';
+        const heatScore = story?.story_heat?.score || '';
+        const liveEvidence = story?.live_evidence_count || 0;
+        
+        // Build the new description
+        let description = headline;
+        
+        // Add context
+        if (countryName && score) {
+          description += ` ${countryName} crisis score: ${score}/100 (${severity}).`;
+        }
+        
+        if (liveEvidence > 0) {
+          description += ` Live intelligence from ${liveEvidence} sources.`;
+        }
+        
+        // Add standard suffix
+        description += ' Real-time crisis intelligence from 40+ APIs, updated every 5 minutes. — GCIS Fusion';
+        
+        // Update the meta tag
+        metaDescription.setAttribute('content', description);
+        
+        // Also update Open Graph description
+        const ogDescription = document.querySelector('meta[property="og:description"]');
+        if (ogDescription) {
+          ogDescription.setAttribute('content', description);
+        }
+        
+        // Update Twitter card description
+        const twitterDescription = document.querySelector('meta[name="twitter:description"]');
+        if (twitterDescription) {
+          twitterDescription.setAttribute('content', description);
+        }
+        
+        console.log('📝 Meta description updated:', description.substring(0, 100) + '...');
+      }
       
-      // Also call it immediately if DOM is already loaded
+      // ─── UPDATE TITLE WITH RSS HEADLINE ─────────────────────────────────
+      function updatePageTitle(headline) {
+        // Clean the headline - remove emojis and flags for title
+        const cleanHeadline = headline
+          .replace(/[^\w\s.,!?]/g, '')  // Remove emojis
+          .replace(/\s+/g, ' ')          // Normalize spaces
+          .trim();
+        
+        const title = document.querySelector('title');
+        if (title) {
+          title.textContent = `GCIN — ${cleanHeadline} | Global Crisis Index`;
+        }
+      }
+      
+      // ─── CALL ON PAGE LOAD ─────────────────────────────────────────────
+      // Ensure the headline loads when the page loads
       if (document.readyState === 'complete' || document.readyState === 'interactive') {
         loadBreakingHeadline();
+      } else {
+        document.addEventListener('DOMContentLoaded', loadBreakingHeadline);
       }</script>
 
   <script type="application/ld+json">
@@ -5323,39 +5381,41 @@ function buildUrgencyNarrative(iso, crisisType) {
     return '';
   }
   
-  // Get country intro (first 2-3 sentences)
+  // Get country intro (always 3 sentences)
+  // Get country intro (always 3 full sentences)
   const introExtract = fetchExtractIntro(name);
   if (introExtract && introExtract.length > 50) {
     // Clean up the text first
     let cleanText = introExtract
       .replace(/\s+/g, ' ')                    // Normalize whitespace
-      .replace(/\([^)]*\)/g, '')                // Remove anything in parentheses (like "()" or "(country)")
       .replace(/\s+,\s*/g, ', ')                // Fix "word , word" → "word, word"
       .replace(/\s+\./g, '.')                   // Fix "word ." → "word."
       .replace(/\s{2,}/g, ' ')                  // Remove any double spaces
       .trim();
     
-    // Split into sentences
-    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+    // Remove parenthetical content that breaks sentence boundaries
+    cleanText = cleanText.replace(/\([^)]*\)/g, '');
     
-    // Take first 2-3 sentences (min 2, max 3)
+    // Split into sentences - match anything ending with . ! or ?
+    // NEW: Splits on period + space, which is a true sentence boundary
+let sentences = cleanText.split(/\.\s+/);
+sentences = sentences.map(s => s.trim() + '.').filter(s => s.length > 3);
+
+    
+    // Always take exactly 3 sentences (or all if less than 3)
     let introText = sentences.slice(0, 3).join(' ');
     
-    // Only truncate if it's REALLY long (keep full sentences)
-    if (introText.length > 500) {
-      // Try to find the last complete sentence within 500 chars
-      const truncated = introText.slice(0, 500);
-      const lastSentenceEnd = Math.max(
-        truncated.lastIndexOf('. '),
-        truncated.lastIndexOf('! '),
-        truncated.lastIndexOf('? ')
-      );
-      if (lastSentenceEnd > 200) {
-        introText = introText.slice(0, lastSentenceEnd + 1);
-      } else {
-        // If no good sentence boundary, just keep what we have
-        introText = truncated.trim();
-      }
+    // Make sure we have complete sentences - if the last sentence is cut off, remove it
+    // Check if the last sentence ends with a period, exclamation, or question mark
+    const lastChar = introText.trim().slice(-1);
+    if (!['.', '!', '?'].includes(lastChar) && sentences.length > 3) {
+      // Remove the incomplete last sentence
+      introText = sentences.slice(0, 2).join(' ');
+    }
+    
+    // Ensure we always end with a period
+    if (introText.length > 0 && !['.', '!', '?'].includes(introText.trim().slice(-1))) {
+      introText = introText.trim() + '.';
     }
     
     countryIntro = introText;
