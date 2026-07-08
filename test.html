@@ -166,108 +166,6 @@
       }
     }
   }
-
-// ─── GENERATE RSS-STYLE HEADLINE FOR A COUNTRY ──────────────────────────────
-function generateRSSHeadline(c, iso) {
-  const name = c.name;
-  const flag = c.flag || "";
-  const score = c.score;
-  const emoji = score >= 85 ? "🔴" : score >= 75 ? "🟠" : score >= 60 ? "🟡" : "";
-  
-  // Check for live evidence
-  const s = c.signals || {};
-  let crisis = "", number = "";
-  
-  // Priority 1: GDACS Red Alert
-  if (s.gdacs?.alert_level === 'red') {
-    crisis = "RED ALERT";
-    number = "GDACS Emergency";
-  } 
-  // Priority 2: IPC Famine
-  else if (s.ipcPhase >= 4) {
-    const phaseText = s.ipcPhase === 5 ? "Famine" : "Emergency";
-    const pop = s.ipcPopulation ? Math.round(s.ipcPopulation / 1e6) : '';
-    crisis = `IPC Phase ${s.ipcPhase} ${phaseText}`;
-    number = pop ? `${pop}M at Risk` : 'Critical';
-  }
-  // Priority 3: Mass Displacement
-  else if (s.totalDisplaced > 0) {
-    const disp = (s.totalDisplaced / 1e6).toFixed(1);
-    crisis = "Mass Displacement";
-    number = `${disp}M Displaced`;
-  }
-  // Priority 4: Major Earthquake
-  else if (s.quakeMag >= 6.0) {
-    crisis = `M${s.quakeMag.toFixed(1)} Earthquake`;
-    number = s.quakePlace || 'Strike';
-  }
-  // Priority 5: Disease Outbreak
-  else if (s.whoOutbreaks?.length > 0) {
-    const outbreak = s.whoOutbreaks[0];
-    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1) + " Outbreak";
-    number = outbreak.cases ? `${outbreak.cases.toLocaleString()}+ Cases` : 'Active';
-  }
-  // Priority 6: Extreme Heat
-  else if (s.maxTempC >= 42) {
-    crisis = "Extreme Heat Emergency";
-    number = `${Math.round(s.maxTempC)}°C Record`;
-  }
-  // Priority 7: Conflict Spike
-  else if (s.acledEvents > 20 || s.acledFatalities > 50) {
-    crisis = "Conflict Escalation";
-    number = `${s.acledFatalities || s.acledEvents}+ Casualties`;
-  }
-  // Priority 8: Disease (COVID)
-  else if (s.diseaseActive > 5000) {
-    crisis = "COVID-19 Surge";
-    number = `${s.diseaseActive.toLocaleString()}+ Cases`;
-  }
-  // Priority 9: Economic Crisis
-  else if (s.wbInflation?.value > 20) {
-    crisis = "Inflation Crisis";
-    number = `${s.wbInflation.value.toFixed(0)}% CPI`;
-  }
-  // Fallback
-  else {
-    const topDim = Object.values(c.dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0))[0];
-    crisis = topDim?.label ? `${topDim.label} Crisis` : "Humanitarian Emergency";
-    number = `Score ${score}/100`;
-  }
-  
-  // Trend direction
-  let action = "Worsens";
-  if (c.trend?.direction === "improving") action = "Eases";
-  else if (c.trend?.delta_7d > 0 && c.trend?.delta_7d <= 3) action = "Rises";
-  else if (c.trend?.delta_7d > 3) action = "Surges";
-  else if (c.trend?.delta_7d < 0) action = "Improves";
-  
-  // ML anomaly flag
-  const mlAnomaly = (c.ml?.anomaly_probability || 0) > 0.6 ? ` ⚡ AI Flags ${Math.round(c.ml.anomaly_probability * 100)}% Anomaly Risk` : '';
-  
-  // Build headline templates with increasing intensity
-  const templates = [
-    `${crisis} in ${name} ${action}: ${number}${mlAnomaly}`,
-    `${name} ${action} as ${crisis} Hits ${number}${mlAnomaly}`,
-    `${crisis} Alert: ${name} Score ${score}/100 — ${number}${mlAnomaly}`,
-    `${name} ${action}: ${number} in ${crisis}${mlAnomaly}`,
-    `🔴 ${name} ${action} to ${score}: ${crisis} Emergency${mlAnomaly}`
-  ];
-  
-  // Select template based on severity
-  const idx = Math.min(score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : 1, templates.length - 1);
-  let headline = templates[idx];
-  
-  // Add emoji prefix
-  if (crisis.includes('RED ALERT')) headline = `🔴 ${headline}`;
-  else if (score >= 85) headline = `🚨 ${headline}`;
-  else if (score >= 75) headline = `⚠️ ${headline}`;
-  else if (crisis.includes('Famine')) headline = `🌾 ${headline}`;
-  
-  // Add flag
-  if (flag) headline = `${flag} ${headline}`;
-  
-  return headline;
-}
   </script>
 
   <script type="application/ld+json">
@@ -4494,6 +4392,106 @@ async function buildConflictTimeline(iso, c) {
     </div>`;
 }
 
+// ─── GENERATE RSS-STYLE HEADLINE FOR A COUNTRY ──────────────────────────────
+function generateRSSHeadline(c, iso) {
+  const name = c.name;
+  const flag = c.flag || "";
+  const score = c.score;
+  
+  // Check for live evidence
+  const s = c.signals || {};
+  let crisis = "", number = "";
+  
+  // Priority 1: GDACS Red Alert
+  if (s.gdacs?.alert_level === 'red') {
+    crisis = "RED ALERT";
+    number = "GDACS Emergency";
+  } 
+  // Priority 2: IPC Famine
+  else if (s.ipcPhase >= 4) {
+    const phaseText = s.ipcPhase === 5 ? "Famine" : "Emergency";
+    const pop = s.ipcPopulation ? Math.round(s.ipcPopulation / 1e6) : '';
+    crisis = `IPC Phase ${s.ipcPhase} ${phaseText}`;
+    number = pop ? `${pop}M at Risk` : 'Critical';
+  }
+  // Priority 3: Mass Displacement
+  else if (s.totalDisplaced > 0) {
+    const disp = (s.totalDisplaced / 1e6).toFixed(1);
+    crisis = "Mass Displacement";
+    number = `${disp}M Displaced`;
+  }
+  // Priority 4: Major Earthquake
+  else if (s.quakeMag >= 6.0) {
+    crisis = `M${s.quakeMag.toFixed(1)} Earthquake`;
+    number = s.quakePlace || 'Strike';
+  }
+  // Priority 5: Disease Outbreak
+  else if (s.whoOutbreaks?.length > 0) {
+    const outbreak = s.whoOutbreaks[0];
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1) + " Outbreak";
+    number = outbreak.cases ? `${outbreak.cases.toLocaleString()}+ Cases` : 'Active';
+  }
+  // Priority 6: Extreme Heat
+  else if (s.maxTempC >= 42) {
+    crisis = "Extreme Heat Emergency";
+    number = `${Math.round(s.maxTempC)}°C Record`;
+  }
+  // Priority 7: Conflict Spike
+  else if (s.acledEvents > 20 || s.acledFatalities > 50) {
+    crisis = "Conflict Escalation";
+    number = `${s.acledFatalities || s.acledEvents}+ Casualties`;
+  }
+  // Priority 8: Disease (COVID)
+  else if (s.diseaseActive > 5000) {
+    crisis = "COVID-19 Surge";
+    number = `${s.diseaseActive.toLocaleString()}+ Cases`;
+  }
+  // Priority 9: Economic Crisis
+  else if (s.wbInflation?.value > 20) {
+    crisis = "Inflation Crisis";
+    number = `${s.wbInflation.value.toFixed(0)}% CPI`;
+  }
+  // Fallback
+  else {
+    const topDim = Object.values(c.dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0))[0];
+    crisis = topDim?.label ? `${topDim.label} Crisis` : "Humanitarian Emergency";
+    number = `Score ${score}/100`;
+  }
+  
+  // Trend direction
+  let action = "Worsens";
+  if (c.trend?.direction === "improving") action = "Eases";
+  else if (c.trend?.delta_7d > 0 && c.trend?.delta_7d <= 3) action = "Rises";
+  else if (c.trend?.delta_7d > 3) action = "Surges";
+  else if (c.trend?.delta_7d < 0) action = "Improves";
+  
+  // ML anomaly flag
+  const mlAnomaly = (c.ml?.anomaly_probability || 0) > 0.6 ? ` ⚡ AI Flags ${Math.round(c.ml.anomaly_probability * 100)}% Anomaly Risk` : '';
+  
+  // Build headline templates with increasing intensity
+  const templates = [
+    `${crisis} in ${name} ${action}: ${number}${mlAnomaly}`,
+    `${name} ${action} as ${crisis} Hits ${number}${mlAnomaly}`,
+    `${crisis} Alert: ${name} Score ${score}/100 — ${number}${mlAnomaly}`,
+    `${name} ${action}: ${number} in ${crisis}${mlAnomaly}`,
+    `🔴 ${name} ${action} to ${score}: ${crisis} Emergency${mlAnomaly}`
+  ];
+  
+  // Select template based on severity
+  const idx = Math.min(score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : 1, templates.length - 1);
+  let headline = templates[idx];
+  
+  // Add emoji prefix
+  if (crisis.includes('RED ALERT')) headline = `🔴 ${headline}`;
+  else if (score >= 85) headline = `🚨 ${headline}`;
+  else if (score >= 75) headline = `⚠️ ${headline}`;
+  else if (crisis.includes('Famine')) headline = `🌾 ${headline}`;
+  
+  // Add flag
+  if (flag) headline = `${flag} ${headline}`;
+  
+  return headline;
+}
 
 async function renderPanel(iso, focusCrisisType) {
   const c = store[iso]; if (!c) return;
@@ -4693,8 +4691,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       <div id="inlinTimelineSlot"></div>
     </div>
 
-    
-
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
         <div class="ai-brief-badge">🤖 AI SITREP${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
@@ -4746,7 +4742,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
     </div>
 
-        <div class="ps">
+    <div class="ps">
       <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
         <div class="fc-head">
           <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
@@ -4804,7 +4800,9 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
         </div>
       </div>
-    </div>    <div class="charity-section">
+    </div>
+
+    <div class="charity-section">
       <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
       <div class="ch-cards">
         ${chs.map(ch => `
@@ -4849,7 +4847,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
-setTimeout(() => {
+  setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
@@ -4860,6 +4858,7 @@ setTimeout(() => {
       if (slot) slot.outerHTML = html || '';
     });
   }, 60);
+  
   if (mapGroup) {
     mapGroup.selectAll('.country-path').classed('sel-path', false);
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
@@ -4867,7 +4866,7 @@ setTimeout(() => {
 
   setTimeout(() => calcImpact(iso), 100);
 
- // ── AI BRIEF: data-driven narrative ──
+  // ── AI BRIEF: data-driven narrative ──
   setTimeout(() => renderAIBrief(iso), 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
