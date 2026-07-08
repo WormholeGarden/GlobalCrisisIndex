@@ -124,49 +124,43 @@
         return headline;
       }
       async function loadBreakingHeadline() {
-    const headlineEl = document.getElementById("breaking-headline");
-    if (!headlineEl) {
-      console.warn("breaking-headline element not found");
-      return;
-    }
-    try {
-      const countries = await fetchAllCountries();
-      if (!countries || countries.length === 0) throw new Error("No country data");
-      const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
-      const topStory = sortedByScore[0];
-      const previousIso = localStorage.getItem('gcin_top_iso');
-      const currentIso = topStory.iso;
-      if (previousIso !== currentIso) {
-        headlineEl.innerText = generateHeadline(topStory);
-        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-        localStorage.setItem('gcin_top_iso', currentIso);
-      } else {
-        const stored = localStorage.getItem('gcin_top_anomaly');
-        if (stored) {
-          const oldStory = JSON.parse(stored);
-          if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
-            headlineEl.innerText = generateHeadline(topStory);
-            localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("GCIN headline error:", err);
-      // Show a fallback headline from localStorage if available
-      const stored = localStorage.getItem('gcin_top_anomaly');
-      if (stored) {
-        try {
-          const oldStory = JSON.parse(stored);
-          headlineEl.innerText = generateHeadline(oldStory);
-        } catch(e) {
-          headlineEl.innerText = "⚠️ Live feed unavailable. Check API.";
-        }
-      } else {
-        headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
-      }
+  const headlineEl = document.getElementById("breaking-headline");
+  if (!headlineEl) {
+    console.warn("breaking-headline element not found");
+    return;
+  }
+  try {
+    const countries = await fetchAllCountries();
+    if (!countries || countries.length === 0) throw new Error("No country data");
+    
+    // Sort by heat score (newsworthiness)
+    const sorted = [...countries].sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
+    const topStory = sorted[0];
+    const currentIso = topStory.iso;
+    const previousIso = localStorage.getItem('gcin_top_iso');
+    
+    // Generate the headline
+    const headline = generateHeadline(topStory);
+    
+    // Store in localStorage with country ISO
+    localStorage.setItem('gcin_top_headline', headline);
+    localStorage.setItem('gcin_top_iso', currentIso);
+    localStorage.setItem('gcin_top_url', topStory.url || '/GCIN.html');
+    localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+    
+    // Display in the breaking bar
+    headlineEl.innerText = headline;
+    
+  } catch (err) {
+    console.warn("GCIN headline error:", err);
+    const stored = localStorage.getItem('gcin_top_headline');
+    if (stored) {
+      headlineEl.innerText = stored;
+    } else {
+      headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
     }
   }
-  </script>
+}  </script>
 
   <script type="application/ld+json">
   {
@@ -239,6 +233,8 @@
 @keyframes filterFadeIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
+  --orange: #ff8c42;
+
   --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
   --glass:rgba(5,15,34,0.97);--glass2:rgba(8,24,41,0.93);
   --cyan:#00c8ff;--cyan2:rgba(0,200,255,0.12);--cyan3:rgba(0,200,255,0.25);
@@ -4393,104 +4389,16 @@ async function buildConflictTimeline(iso, c) {
 }
 
 // ─── GENERATE RSS-STYLE HEADLINE FOR A COUNTRY ──────────────────────────────
-function generateRSSHeadline(c, iso) {
-  const name = c.name;
-  const flag = c.flag || "";
-  const score = c.score;
-  
-  // Check for live evidence
-  const s = c.signals || {};
-  let crisis = "", number = "";
-  
-  // Priority 1: GDACS Red Alert
-  if (s.gdacs?.alert_level === 'red') {
-    crisis = "RED ALERT";
-    number = "GDACS Emergency";
-  } 
-  // Priority 2: IPC Famine
-  else if (s.ipcPhase >= 4) {
-    const phaseText = s.ipcPhase === 5 ? "Famine" : "Emergency";
-    const pop = s.ipcPopulation ? Math.round(s.ipcPopulation / 1e6) : '';
-    crisis = `IPC Phase ${s.ipcPhase} ${phaseText}`;
-    number = pop ? `${pop}M at Risk` : 'Critical';
-  }
-  // Priority 3: Mass Displacement
-  else if (s.totalDisplaced > 0) {
-    const disp = (s.totalDisplaced / 1e6).toFixed(1);
-    crisis = "Mass Displacement";
-    number = `${disp}M Displaced`;
-  }
-  // Priority 4: Major Earthquake
-  else if (s.quakeMag >= 6.0) {
-    crisis = `M${s.quakeMag.toFixed(1)} Earthquake`;
-    number = s.quakePlace || 'Strike';
-  }
-  // Priority 5: Disease Outbreak
-  else if (s.whoOutbreaks?.length > 0) {
-    const outbreak = s.whoOutbreaks[0];
-    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1) + " Outbreak";
-    number = outbreak.cases ? `${outbreak.cases.toLocaleString()}+ Cases` : 'Active';
-  }
-  // Priority 6: Extreme Heat
-  else if (s.maxTempC >= 42) {
-    crisis = "Extreme Heat Emergency";
-    number = `${Math.round(s.maxTempC)}°C Record`;
-  }
-  // Priority 7: Conflict Spike
-  else if (s.acledEvents > 20 || s.acledFatalities > 50) {
-    crisis = "Conflict Escalation";
-    number = `${s.acledFatalities || s.acledEvents}+ Casualties`;
-  }
-  // Priority 8: Disease (COVID)
-  else if (s.diseaseActive > 5000) {
-    crisis = "COVID-19 Surge";
-    number = `${s.diseaseActive.toLocaleString()}+ Cases`;
-  }
-  // Priority 9: Economic Crisis
-  else if (s.wbInflation?.value > 20) {
-    crisis = "Inflation Crisis";
-    number = `${s.wbInflation.value.toFixed(0)}% CPI`;
-  }
-  // Fallback
-  else {
-    const topDim = Object.values(c.dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0))[0];
-    crisis = topDim?.label ? `${topDim.label} Crisis` : "Humanitarian Emergency";
-    number = `Score ${score}/100`;
-  }
-  
-  // Trend direction
-  let action = "Worsens";
-  if (c.trend?.direction === "improving") action = "Eases";
-  else if (c.trend?.delta_7d > 0 && c.trend?.delta_7d <= 3) action = "Rises";
-  else if (c.trend?.delta_7d > 3) action = "Surges";
-  else if (c.trend?.delta_7d < 0) action = "Improves";
-  
-  // ML anomaly flag
-  const mlAnomaly = (c.ml?.anomaly_probability || 0) > 0.6 ? ` ⚡ AI Flags ${Math.round(c.ml.anomaly_probability * 100)}% Anomaly Risk` : '';
-  
-  // Build headline templates with increasing intensity
-  const templates = [
-    `${crisis} in ${name} ${action}: ${number}${mlAnomaly}`,
-    `${name} ${action} as ${crisis} Hits ${number}${mlAnomaly}`,
-    `${crisis} Alert: ${name} Score ${score}/100 — ${number}${mlAnomaly}`,
-    `${name} ${action}: ${number} in ${crisis}${mlAnomaly}`,
-    `🔴 ${name} ${action} to ${score}: ${crisis} Emergency${mlAnomaly}`
-  ];
-  
-  // Select template based on severity
-  const idx = Math.min(score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : 1, templates.length - 1);
-  let headline = templates[idx];
-  
-  // Add emoji prefix
-  if (crisis.includes('RED ALERT')) headline = `🔴 ${headline}`;
-  else if (score >= 85) headline = `🚨 ${headline}`;
-  else if (score >= 75) headline = `⚠️ ${headline}`;
-  else if (crisis.includes('Famine')) headline = `🌾 ${headline}`;
-  
-  // Add flag
-  if (flag) headline = `${flag} ${headline}`;
-  
-  return headline;
+// ─── ESCAPE HTML (already exists, but ensure it's defined) ──────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    if (m === '"') return '&quot;';
+    return m;
+  });
 }
 
 async function renderPanel(iso, focusCrisisType) {
@@ -4509,9 +4417,56 @@ async function renderPanel(iso, focusCrisisType) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('panelContent').style.display = 'block';
 
-  // ─── GENERATE RSS-STYLE HEADLINE FOR THIS COUNTRY ──────────────────────────
-  const rssHeadline = generateRSSHeadline(c, iso);
-  const rssLink = `/GCIN.html?country=${iso}${activeCrisis ? '&crisis=' + activeCrisis : ''}`;
+  // ─── FETCH RSS HEADLINE FOR THIS COUNTRY ────────────────────────────────────
+  let rssHeadline = '';
+  let rssUrl = '';
+  const savedHeadline = localStorage.getItem('gcin_top_headline');
+  const savedIso = localStorage.getItem('gcin_top_iso');
+  const savedUrl = localStorage.getItem('gcin_top_url');
+  
+  // Check if the stored headline matches this country
+  if (savedIso === iso && savedHeadline) {
+    rssHeadline = savedHeadline;
+    rssUrl = savedUrl || '/GCIN.html';
+  }
+  
+  // ─── BUILD RSS HEADLINE HTML ──────────────────────────────────────────────
+  const rssHeadlineHtml = rssHeadline ? `
+    <div style="
+      background: linear-gradient(135deg, rgba(255,140,66,0.08), rgba(255,55,95,0.04));
+      border: 1px solid rgba(255,140,66,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin: 0 0 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    ">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+        <span style="font-size:14px;">📡</span>
+        <span style="font-family:var(--fm);font-size:7px;color:var(--orange);background:rgba(255,140,66,0.12);border:1px solid rgba(255,140,66,0.2);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;">RSS HEADLINE</span>
+        <span style="font-size:10px;color:var(--ts);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(rssHeadline)}</span>
+      </div>
+      <a href="${rssUrl}" target="_blank" style="
+        background: rgba(255,140,66,0.12);
+        border: 1px solid rgba(255,140,66,0.25);
+        border-radius: 99px;
+        padding: 4px 12px;
+        font-family: var(--fm);
+        font-size: 8px;
+        font-weight: 600;
+        color: var(--orange);
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: all 0.15s;
+      " onmouseover="this.style.background='rgba(255,140,66,0.2)';this.style.borderColor='rgba(255,140,66,0.4)';" onmouseout="this.style.background='rgba(255,140,66,0.12)';this.style.borderColor='rgba(255,140,66,0.25)';">
+        Read full story →
+      </a>
+    </div>
+  ` : '';
 
   const restrictedMap = {
     "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
@@ -4541,46 +4496,6 @@ async function renderPanel(iso, focusCrisisType) {
   const fcHist = [...hist.slice(-8), fc.fc];
   const fcChartSvg = miniLineChart(fcHist, 320, 36, col);
   const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
-
-  // ── RSS HEADLINE BANNER (shown at top of panel) ──
-  const rssBannerHtml = `
-    <div style="
-      margin:0 0 0 0;
-      padding:10px 13px;
-      background:linear-gradient(135deg,rgba(255,55,95,0.10),rgba(255,140,66,0.06));
-      border-bottom:1px solid rgba(255,55,95,0.2);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    ">
-      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-        <span style="font-size:16px;flex-shrink:0;">📡</span>
-        <span style="font-family:var(--fm);font-size:6px;color:var(--cyan);background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.15);border-radius:3px;padding:1px 6px;flex-shrink:0;letter-spacing:.06em;">RSS HEADLINE</span>
-        <span style="font-size:10px;font-weight:700;color:var(--tp);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${rssHeadline}</span>
-      </div>
-      <a href="${rssLink}" target="_blank" style="
-        display:inline-flex;
-        align-items:center;
-        gap:4px;
-        background:rgba(255,255,255,0.08);
-        border:1px solid rgba(255,255,255,0.15);
-        border-radius:99px;
-        padding:4px 12px;
-        color:var(--cyan);
-        font-family:var(--fm);
-        font-size:7px;
-        font-weight:700;
-        text-decoration:none;
-        transition:all 0.2s;
-        flex-shrink:0;
-        white-space:nowrap;
-      " onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='var(--cyan)';"
-      onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='rgba(255,255,255,0.15)';">
-      READ FULL STORY →
-      </a>
-    </div>
-  `;
 
   // ── CRISIS FOCUS BANNER (shown only when pulse-verified) ──
   const crisisBannerHtml = activeCrisisData ? `
@@ -4649,7 +4564,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
   document.getElementById('panelContent').innerHTML = `
-    ${rssBannerHtml}
+    ${rssHeadlineHtml}
     ${crisisBannerHtml}
     <div class="p-block">
       <div class="p-score-row">
@@ -4690,6 +4605,8 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
       <div id="inlinTimelineSlot"></div>
     </div>
+
+    
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -4742,7 +4659,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
     </div>
 
-    <div class="ps">
+        <div class="ps">
       <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
         <div class="fc-head">
           <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
@@ -4800,9 +4717,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
         </div>
       </div>
-    </div>
-
-    <div class="charity-section">
+    </div>    <div class="charity-section">
       <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
       <div class="ch-cards">
         ${chs.map(ch => `
@@ -4847,7 +4762,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
-  setTimeout(() => {
+setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
@@ -4858,7 +4773,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       if (slot) slot.outerHTML = html || '';
     });
   }, 60);
-  
   if (mapGroup) {
     mapGroup.selectAll('.country-path').classed('sel-path', false);
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
@@ -4866,7 +4780,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
 
   setTimeout(() => calcImpact(iso), 100);
 
-  // ── AI BRIEF: data-driven narrative ──
+ // ── AI BRIEF: data-driven narrative ──
   setTimeout(() => renderAIBrief(iso), 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
