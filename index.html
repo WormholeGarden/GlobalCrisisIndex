@@ -46,6 +46,48 @@
   </div>
 
   <style>
+/* ─── RSS HEADLINE BOX ─── */
+.rss-headline-box {
+  background: linear-gradient(135deg, rgba(255,55,95,0.08), rgba(255,140,66,0.04));
+  border: 1px solid rgba(255,55,95,0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rss-headline-box .headline-text {
+  font-size: 12px;
+  color: var(--tp);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.rss-headline-box .read-btn {
+  background: rgba(255,55,95,0.12);
+  border: 1px solid rgba(255,55,95,0.25);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-family: var(--fm);
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--rose);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.rss-headline-box .read-btn:hover {
+  background: rgba(255,55,95,0.2);
+  border-color: rgba(255,55,95,0.4);
+}
     @keyframes pulse-red {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(0.9); }
@@ -81,92 +123,220 @@
         if (country.live_boost && country.live_boost > 8) score += 1.5;
         return Math.min(10, Math.round(score * 10) / 10);
       }
-      function generateHeadline(country) {
+            function generateExplosiveHeadlineForCountry(country) {
         const name = country.name;
         const flag = country.flag || "";
-        const score = country.score;
-        const emoji = score >= 85 ? "🔴" : "";
-        let crisis = "", number = "";
-        if (country.live_evidence?.food_security?.phase >= 3) {
-          const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
-          const phase = country.live_evidence.food_security.phase;
-          if (phase >= 4) crisis = "Famine"; else crisis = "Hunger";
-          number = `${pop}M`;
-        } else if (country.live_evidence?.displacement?.total > 0) {
-          const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
-          crisis = "Displaced"; number = `${disp}M`;
-        } else if (country.live_evidence?.disease_outbreaks?.length) {
-          const outbreak = country.live_evidence.disease_outbreaks[0];
-          crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
-          number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
-        } else if (country.live_evidence?.heat?.max_temp_c >= 42) {
-          crisis = "Heat"; number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
-        } else {
-          crisis = "Crisis"; number = `${score}/100`;
+        const score = country.score || 0;
+        const severity = country.severity || (score >= 85 ? "CATASTROPHIC" : score >= 75 ? "CRITICAL" : score >= 60 ? "HIGH" : score >= 40 ? "ELEVATED" : "MODERATE");
+        const heat = country.story_heat || {};
+        const heatScore = heat.score || 0;
+        const anomaly = country.anomaly || {};
+        const anomalyDetected = anomaly.detected || false;
+        const anomalySeverity = anomaly.severity || 'None';
+        const ml = country.ml || {};
+        const mlAnomalyProb = Math.round((ml.anomaly_probability || 0) * 100);
+        const s = country.live_evidence || {};
+        const trend = country.trend || {};
+        const delta = trend.delta_7d || 0;
+        
+        // Build candidate headlines with priorities
+        const candidates = [];
+        
+        // 1. GDACS Red Alert — highest priority
+        if (s.gdacs && (s.gdacs.alert_level === 'red' || s.gdacs.alert_level === 'orange')) {
+          const alertText = s.gdacs.alert_level === 'red' ? 'RED ALERT' : 'ORANGE ALERT';
+          const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI Flags ${mlAnomalyProb}% Anomaly Risk` : '';
+          candidates.push({
+            priority: 110,
+            text: `${alertText}: ${name} Under Active GDACS Disaster Warning Right Now${mlSuffix}`
+          });
         }
-        let action = "Worsens";
-        if (country.trend?.direction === "improving") action = "Eases";
-        else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
-        else if (country.trend?.delta_7d > 3) action = "Surges";
-        else if (country.trend?.delta_7d < 0) action = "Improves";
-        const templates = [
-          `${name} ${action} as ${crisis} Hits ${number}`,
-          `${name}: ${number} in ${crisis}`,
-          `${crisis} Worsens in ${name}`,
-          `${name} Crisis Deepens: ${number} Affected`,
-          `${name} Slides to ${score}`,
-          `${number} Face ${crisis} in ${name}`
-        ];
-        const index = name.length % templates.length;
-        let headline = templates[index];
-        if (emoji) headline = `${emoji} ${headline}`;
-        if (flag) headline = `${flag} ${headline}`;
+        
+        // 2. Massive Displacement
+        const totalDisplaced = s.displacement?.total || 0;
+        if (totalDisplaced > 1_000_000) {
+          const displacedStr = totalDisplaced >= 10_000_000 ? '10 Million+' : 
+                             totalDisplaced >= 5_000_000 ? '5 Million+' : 
+                             totalDisplaced >= 2_000_000 ? '2 Million+' : 
+                             totalDisplaced >= 1_000_000 ? '1 Million+' : '';
+          const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Forecasts Rapid Escalation` : '';
+          candidates.push({
+            priority: 105 + Math.min(20, totalDisplaced / 500_000),
+            text: `${displacedStr} Displaced: Inside ${name}'s Catastrophic Humanitarian Emergency${mlSuffix}`
+          });
+        }
+        
+        // 3. IPC Famine / Food Crisis
+        const ipcPhase = s.ipcPhase || 0;
+        if (ipcPhase >= 4) {
+          const phaseText = ipcPhase === 5 ? 'Famine Declared' : 'Emergency Level Food Crisis';
+          const popStr = s.ipcPopulation ? ` — ${(s.ipcPopulation / 1e6).toFixed(1)}M at Risk` : '';
+          candidates.push({
+            priority: 105,
+            text: `IPC Phase ${ipcPhase} ${phaseText} in ${name}${popStr}`
+          });
+        }
+        
+        // 4. Major Earthquake
+        const quakeMag = s.earthquake?.magnitude || 0;
+        if (quakeMag >= 6.0) {
+          const magStr = quakeMag >= 7.0 ? `M${quakeMag.toFixed(1)} Major Quake` : `M${quakeMag.toFixed(1)} Earthquake`;
+          const loc = s.earthquake?.location ? ` Near ${s.earthquake.location}` : '';
+          candidates.push({
+            priority: 100 + Math.min(15, (quakeMag - 5) * 5),
+            text: `${magStr} Strikes ${name}${loc} — Casualties Feared`
+          });
+        }
+        
+        // 5. Conflict Spike
+        const fatalities = s.conflict_fatalities || 0;
+        const events = s.conflict_events || 0;
+        if (fatalities > 50 || events > 20) {
+          const fatStr = fatalities > 100 ? `${fatalities.toLocaleString()} Killed` : `${fatalities} Fatalities`;
+          const mlSuffix = mlAnomalyProb > 55 ? ` ⚡ AI Predicts Further Escalation` : '';
+          candidates.push({
+            priority: 95 + Math.min(15, Math.log10(fatalities + 1) * 5),
+            text: `${name} Conflict Intensifies: ${fatStr} in ${events} Recorded Events${mlSuffix}`
+          });
+        }
+        
+        // 6. Disease Outbreak
+        const outbreaks = s.who_outbreaks?.outbreaks || [];
+        if (outbreaks.length > 0) {
+          const diseases = outbreaks.map(o => o.disease).join(' & ');
+          const diseaseStr = diseases.length > 20 ? diseases.slice(0, 20) + '...' : diseases;
+          candidates.push({
+            priority: 85,
+            text: `WHO Confirms ${diseaseStr} Outbreak in ${name} — Health Emergency Declared`
+          });
+        }
+        
+        // 7. Extreme Heat
+        const maxTemp = s.heat?.max_temp_c || 0;
+        if (maxTemp >= 40) {
+          candidates.push({
+            priority: 70 + Math.min(15, (maxTemp - 38) * 2),
+            text: `${maxTemp}°C Extreme Heat Scorches ${name} — Hundreds Hospitalized`
+          });
+        }
+        
+        // 8. Rapid Deterioration
+        if (Math.abs(delta) > 5) {
+          const dir = delta > 0 ? 'Rapidly Deteriorating' : 'Sudden Crisis Spike';
+          const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Anomaly Alert` : '';
+          candidates.push({
+            priority: 75 + Math.min(20, Math.abs(delta) * 1.5),
+            text: `${name} Crisis ${dir}: Score Jumps ${Math.abs(delta).toFixed(0)} Points in 7 Days${mlSuffix}`
+          });
+        }
+        
+        // 9. Extreme Anomaly
+        if (anomalyDetected && anomalySeverity === 'EXTREME') {
+          candidates.push({
+            priority: 90,
+            text: `DATA ALERT: ${name} Crisis Trajectory Just Broke Pattern — ${anomaly.methods_fired || 0}/4 Statistical Models Agree`
+          });
+        }
+        
+        // 10. Breaking: Multiple Signals
+        if (heatScore >= 75 && heat.top_drivers && heat.top_drivers.length >= 2) {
+          const driverText = heat.top_drivers.slice(0, 2).map(d => d.driver).join(' + ');
+          const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI ${mlAnomalyProb}% Anomaly` : '';
+          candidates.push({
+            priority: 100 + Math.min(15, heatScore / 5),
+            text: `BREAKING: ${name} Crisis Intensifies — ${driverText}${mlSuffix}`
+          });
+        }
+        
+        // Fallback
+        candidates.push({
+          priority: 10,
+          text: `${name} Humanitarian Emergency: Score ${score}/100 (${severity})`
+        });
+        
+        // Sort by priority and pick the highest
+        candidates.sort((a, b) => b.priority - a.priority);
+        let headline = candidates[0].text;
+        
+        // Add emoji prefix
+        if (headline.includes('RED ALERT') || headline.includes('BREAKING')) {
+          headline = '🔴 ' + headline;
+        } else if (headline.includes('Famine') || headline.includes('Emergency')) {
+          headline = '🚨 ' + headline;
+        } else if (headline.includes('Earthquake') || headline.includes('Disaster')) {
+          headline = '🌍 ' + headline;
+        }
+        
+        // Add flag at the start
+        if (flag) {
+          headline = flag + ' ' + headline;
+        }
+        
         return headline;
       }
-      async function loadBreakingHeadline() {
-    const headlineEl = document.getElementById("breaking-headline");
-    if (!headlineEl) {
-      console.warn("breaking-headline element not found");
-      return;
-    }
-    try {
-      const countries = await fetchAllCountries();
-      if (!countries || countries.length === 0) throw new Error("No country data");
-      const sortedByScore = [...countries].sort((a, b) => b.score - a.score);
-      const topStory = sortedByScore[0];
-      const previousIso = localStorage.getItem('gcin_top_iso');
-      const currentIso = topStory.iso;
-      if (previousIso !== currentIso) {
-        headlineEl.innerText = generateHeadline(topStory);
-        localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
-        localStorage.setItem('gcin_top_iso', currentIso);
-      } else {
-        const stored = localStorage.getItem('gcin_top_anomaly');
-        if (stored) {
-          const oldStory = JSON.parse(stored);
-          if (oldStory.score !== topStory.score || oldStory.updated_at !== topStory.updated_at) {
-            headlineEl.innerText = generateHeadline(topStory);
-            localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+      
+            async function loadBreakingHeadline() {
+        const headlineEl = document.getElementById("breaking-headline");
+        if (!headlineEl) {
+          console.warn("breaking-headline element not found");
+          return;
+        }
+        try {
+          // Fetch from the API
+          const url = new URL(API_BASE);
+          url.searchParams.append("top", "30");
+          url.searchParams.append("ml", "true");
+          url.searchParams.append("sentiment", "true");
+          const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          const countries = data.countries || [];
+          
+          if (!countries || countries.length === 0) {
+            headlineEl.innerText = "⚠️ No crisis data available";
+            return;
+          }
+          
+          // Sort by heat score (newsworthiness)
+          const sorted = [...countries].sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
+          const topStory = sorted[0];
+          const currentIso = topStory.iso;
+          
+          // Generate the headline using the full explosive generator
+          const headline = generateExplosiveHeadlineForCountry(topStory);
+          
+          // Store in localStorage with country ISO
+          localStorage.setItem('gcin_top_headline', headline);
+          localStorage.setItem('gcin_top_iso', currentIso);
+          localStorage.setItem('gcin_top_url', topStory.url || '/GCIN.html');
+          localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+          
+          // Display in the breaking bar
+          headlineEl.innerText = headline;
+          
+          console.log(`✅ RSS Headline stored for ${currentIso}: ${headline.substring(0, 50)}...`);
+          
+        } catch (err) {
+          console.warn("GCIN headline error:", err);
+          const stored = localStorage.getItem('gcin_top_headline');
+          if (stored) {
+            headlineEl.innerText = stored;
+          } else {
+            headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
           }
         }
       }
-    } catch (err) {
-      console.warn("GCIN headline error:", err);
-      // Show a fallback headline from localStorage if available
-      const stored = localStorage.getItem('gcin_top_anomaly');
-      if (stored) {
-        try {
-          const oldStory = JSON.parse(stored);
-          headlineEl.innerText = generateHeadline(oldStory);
-        } catch(e) {
-          headlineEl.innerText = "⚠️ Live feed unavailable. Check API.";
-        }
-      } else {
-        headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
-      }
-    }
-  }
-  </script>
+      
+      // ─── CALL loadBreakingHeadline() ON PAGE LOAD ──────────────────────
+      // Make sure this runs after the page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        loadBreakingHeadline();
+      });
+      
+      // Also call it immediately if DOM is already loaded
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        loadBreakingHeadline();
+      }</script>
 
   <script type="application/ld+json">
   {
@@ -239,6 +409,8 @@
 @keyframes filterFadeIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
+  --orange: #ff8c42;
+
   --void:#030b18;--deep:#050f22;--surface:#081829;--elevated:#0c2040;--card:#0d2244;
   --glass:rgba(5,15,34,0.97);--glass2:rgba(8,24,41,0.93);
   --cyan:#00c8ff;--cyan2:rgba(0,200,255,0.12);--cyan3:rgba(0,200,255,0.25);
@@ -4392,6 +4564,18 @@ async function buildConflictTimeline(iso, c) {
     </div>`;
 }
 
+// ─── GENERATE RSS-STYLE HEADLINE FOR A COUNTRY ──────────────────────────────
+// ─── ESCAPE HTML (already exists, but ensure it's defined) ──────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    if (m === '"') return '&quot;';
+    return m;
+  });
+}
 
 async function renderPanel(iso, focusCrisisType) {
   const c = store[iso]; if (!c) return;
@@ -4409,6 +4593,59 @@ async function renderPanel(iso, focusCrisisType) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('panelContent').style.display = 'block';
 
+  // ─── FETCH RSS HEADLINE FOR THIS COUNTRY ────────────────────────────────────
+  let rssHeadline = '';
+  let rssUrl = '/GCIN.html';
+  
+  // Fetch the RSS feed directly from the API
+  try {
+    const rssResponse = await fetch('https://www.globalcrisisindex.com/api/top-story?format=rss');
+    if (rssResponse.ok) {
+      const rssText = await rssResponse.text();
+      // Parse the RSS XML
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(rssText, 'text/xml');
+      const items = xmlDoc.querySelectorAll('item');
+      
+      // Loop through each item in the RSS feed
+      for (const item of items) {
+        const title = item.querySelector('title')?.textContent || '';
+        // Check if the title contains the country name or flag
+        const countryName = c.name;
+        const countryFlag = c.flag || '';
+        
+        // Check if the title mentions this country (case insensitive)
+        if (title.toLowerCase().includes(countryName.toLowerCase()) || 
+            title.includes(countryFlag)) {
+          rssHeadline = title;
+          // Try to get the link
+          const link = item.querySelector('link')?.textContent || '';
+          if (link) rssUrl = link;
+          break;
+        }
+      }
+      
+      // If no country-specific headline found, use the first item
+      if (!rssHeadline && items.length > 0) {
+        const firstItem = items[0];
+        rssHeadline = firstItem.querySelector('title')?.textContent || '';
+        const link = firstItem.querySelector('link')?.textContent || '';
+        if (link) rssUrl = link;
+      }
+    }
+  } catch (e) {
+    console.warn('RSS fetch failed:', e);
+  }
+  
+  console.log('📡 RSS Headline for', c.name, ':', rssHeadline ? rssHeadline.substring(0, 50) + '...' : 'None found');
+  
+    // ─── BUILD RSS HEADLINE HTML (FULL HEADLINE, NO LABEL) ──────────────────────
+  const rssHeadlineHtml = rssHeadline ? `
+    <div class="rss-headline-box">
+      <span class="headline-text">${escapeHtml(rssHeadline)}</span>
+      <a href="${rssUrl}" target="_blank" class="read-btn">Read full story →</a>
+    </div>
+  ` : '';
   const restrictedMap = {
     "Palestine Red Crescent": ["palestine"], "Ukrainian Red Cross": ["ukraine"],
     "Afghan Red Crescent": ["afghanistan"], "Somali Red Crescent": ["somalia"],
@@ -4505,6 +4742,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
   document.getElementById('panelContent').innerHTML = `
+    ${rssHeadlineHtml}
     ${crisisBannerHtml}
     <div class="p-block">
       <div class="p-score-row">
@@ -4730,8 +4968,7 @@ setTimeout(() => {
       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
   }
-}
-function renderAIBrief(iso) {
+}function renderAIBrief(iso) {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
   
