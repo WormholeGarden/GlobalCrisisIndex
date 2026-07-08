@@ -4474,15 +4474,14 @@ async function renderPanel(iso, focusCrisisType) {
       flex-wrap: wrap;
     ">
       <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-        <span style="font-size:14px;">📡</span>
-        <span style="font-family:var(--fm);font-size:7px;color:var(--orange);background:rgba(255,140,66,0.12);border:1px solid rgba(255,140,66,0.2);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;">RSS HEADLINE</span>
-        <span style="font-size:10px;color:var(--ts);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(rssHeadline)}</span>
+        <span style="font-size:14px;flex-shrink:0;">📡</span>
+        <span style="font-size:10px;color:var(--ts);line-height:1.4;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(rssHeadline)}</span>
       </div>
       <a href="${rssUrl}" target="_blank" style="
         background: rgba(255,140,66,0.12);
         border: 1px solid rgba(255,140,66,0.25);
         border-radius: 99px;
-        padding: 4px 12px;
+        padding: 4px 14px;
         font-family: var(--fm);
         font-size: 8px;
         font-weight: 600;
@@ -4592,6 +4591,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
+  // ─── BUILD THE FULL PANEL HTML WITH RSS HEADLINE AT TOP ──────────────────
   document.getElementById('panelContent').innerHTML = `
     ${rssHeadlineHtml}
     ${crisisBannerHtml}
@@ -4634,8 +4634,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
       <div id="inlinTimelineSlot"></div>
     </div>
-
-    
 
     <div class="ai-brief" id="aiBrief">
       <div class="ai-brief-head">
@@ -4688,7 +4686,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       </div>
     </div>
 
-        <div class="ps">
+    <div class="ps">
       <div class="fc-box" style="background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(191,127,255,0.04)); border: 1px solid rgba(0,200,255,0.12);">
         <div class="fc-head">
           <div class="fc-title" style="display:flex;align-items:center;gap:6px;">
@@ -4746,7 +4744,9 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
         </div>
       </div>
-    </div>    <div class="charity-section">
+    </div>
+
+    <div class="charity-section">
       <div class="ch-title">🤝 ${chs.length} CHARITY PARTNERS${activeCrisis ? ` · ${activeCrisisData?.l}` : ''}</div>
       <div class="ch-cards">
         ${chs.map(ch => `
@@ -4791,7 +4791,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   `;
 
   // ── ANIMATE IN ──
-setTimeout(() => {
+  setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
     const s = document.getElementById('sFill'); if (s) s.style.width = spillPct + '%';
     const ring = document.getElementById('ringFill');
@@ -4802,6 +4802,7 @@ setTimeout(() => {
       if (slot) slot.outerHTML = html || '';
     });
   }, 60);
+  
   if (mapGroup) {
     mapGroup.selectAll('.country-path').classed('sel-path', false);
     if (ISO_NUM[iso]) mapGroup.selectAll('.country-path').filter(d => String(d.id) === ISO_NUM[iso]).classed('sel-path', true);
@@ -4809,7 +4810,7 @@ setTimeout(() => {
 
   setTimeout(() => calcImpact(iso), 100);
 
- // ── AI BRIEF: data-driven narrative ──
+  // ── AI BRIEF: data-driven narrative ──
   setTimeout(() => renderAIBrief(iso), 100);
 
   // ── SCROLL TO CRISIS BANNER if crisis param active ──
