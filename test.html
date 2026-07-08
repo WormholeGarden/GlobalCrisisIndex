@@ -66,14 +66,18 @@
         if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', options);
       }
       updateDateTime();
-      async function fetchAllCountries() {
-        const url = new URL(API_BASE);
-        url.searchParams.append("top", "50");
-        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        return data.countries || [];
-      }
+     async function fetchAllCountries() {
+  const url = new URL(API_BASE);
+  url.searchParams.append("top", "50");
+  url.searchParams.append("ml", "true");
+  url.searchParams.append("sentiment", "true");
+  url.searchParams.append("summary", "true");
+  const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  return data.countries || [];
+}
+
       function computeAnomalyScore(country) {
         let score = 0;
         if (country.anomaly && typeof country.anomaly.z_score === 'number') score += Math.min(5, country.anomaly.z_score);
@@ -81,207 +85,111 @@
         if (country.live_boost && country.live_boost > 8) score += 1.5;
         return Math.min(10, Math.round(score * 10) / 10);
       }
-      function generateHeadline(country) {
-        const name = country.name;
-        const flag = country.flag || "";
-        const score = country.score;
-        const emoji = score >= 85 ? "🔴" : "";
-        let crisis = "", number = "";
-        if (country.live_evidence?.food_security?.phase >= 3) {
-          const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
-          const phase = country.live_evidence.food_security.phase;
-          if (phase >= 4) crisis = "Famine"; else crisis = "Hunger";
-          number = `${pop}M`;
-        } else if (country.live_evidence?.displacement?.total > 0) {
-          const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
-          crisis = "Displaced"; number = `${disp}M`;
-        } else if (country.live_evidence?.disease_outbreaks?.length) {
-          const outbreak = country.live_evidence.disease_outbreaks[0];
-          crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
-          number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
-        } else if (country.live_evidence?.heat?.max_temp_c >= 42) {
-          crisis = "Heat"; number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
-        } else {
-          crisis = "Crisis"; number = `${score}/100`;
-        }
-        let action = "Worsens";
-        if (country.trend?.direction === "improving") action = "Eases";
-        else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
-        else if (country.trend?.delta_7d > 3) action = "Surges";
-        else if (country.trend?.delta_7d < 0) action = "Improves";
-        const templates = [
-          `${name} ${action} as ${crisis} Hits ${number}`,
-          `${name}: ${number} in ${crisis}`,
-          `${crisis} Worsens in ${name}`,
-          `${name} Crisis Deepens: ${number} Affected`,
-          `${name} Slides to ${score}`,
-          `${number} Face ${crisis} in ${name}`
-        ];
-        const index = name.length % templates.length;
-        let headline = templates[index];
-        if (emoji) headline = `${emoji} ${headline}`;
-        if (flag) headline = `${flag} ${headline}`;
-        return headline;
-      }
-      function generateHeadline(country) {
+     function generateHeadline(country) {
   const name = country.name;
   const flag = country.flag || "";
   const score = country.score;
-  const severity = country.severity || getSeverityLabel(score);
-  const heat = country.story_heat || {};
-  const heatScore = heat.score || 0;
-  const anomaly = country.anomaly || {};
-  const anomalyDetected = anomaly.detected || false;
-  const anomalySeverity = anomaly.severity || 'None';
-  const ml = country.ml || {};
-  const mlAnomalyProb = Math.round((ml.anomaly_probability || 0) * 100);
-  const s = country.live_evidence || {};
-  const dims = country.dimensions || {};
-  const trend = country.trend || {};
-  const delta = trend.delta_7d || 0;
   
-  // Build candidate headlines with priorities - FULL, NO TRUNCATION
-  const candidates = [];
-  
-  // 1. GDACS Red Alert — highest priority
-  if (s.gdacs && (s.gdacs.alert_level === 'red' || s.gdacs.alert_level === 'orange')) {
-    const alertText = s.gdacs.alert_level === 'red' ? 'RED ALERT' : 'ORANGE ALERT';
-    const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI Flags ${mlAnomalyProb}% Anomaly Risk` : '';
-    candidates.push({
-      priority: 110,
-      text: `${alertText}: ${name} Under Active GDACS Disaster Warning Right Now${mlSuffix}`
-    });
+  // Check if we have a real RSS headline from the API
+  if (country.rss_headline) {
+    return `${flag} ${country.rss_headline}`;
   }
   
-  // 2. Massive Displacement
-  const totalDisplaced = s.displacement?.total || 0;
-  if (totalDisplaced > 1_000_000) {
-    const displacedStr = totalDisplaced >= 10_000_000 ? '10 Million+' : 
-                       totalDisplaced >= 5_000_000 ? '5 Million+' : 
-                       totalDisplaced >= 2_000_000 ? '2 Million+' : 
-                       totalDisplaced >= 1_000_000 ? '1 Million+' : '';
-    const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Forecasts Rapid Escalation` : '';
-    candidates.push({
-      priority: 105 + Math.min(20, totalDisplaced / 500_000),
-      text: `${displacedStr} Displaced: Inside ${name}'s Catastrophic Humanitarian Emergency${mlSuffix}`
-    });
+  // Fallback: generate from data
+  let crisis = "", number = "";
+  if (country.live_evidence?.food_security?.phase >= 3) {
+    const pop = (country.live_evidence.food_security.population_affected / 1e6).toFixed(0);
+    const phase = country.live_evidence.food_security.phase;
+    if (phase >= 4) crisis = "Famine"; else crisis = "Hunger";
+    number = `${pop}M`;
+  } else if (country.live_evidence?.displacement?.total > 0) {
+    const disp = (country.live_evidence.displacement.total / 1e6).toFixed(0);
+    crisis = "Displaced"; number = `${disp}M`;
+  } else if (country.live_evidence?.disease_outbreaks?.length) {
+    const outbreak = country.live_evidence.disease_outbreaks[0];
+    crisis = outbreak.disease.charAt(0).toUpperCase() + outbreak.disease.slice(1);
+    number = outbreak.cases >= 10000 ? `${Math.round(outbreak.cases / 1000)}K` : `${outbreak.cases.toLocaleString()}+`;
+  } else if (country.live_evidence?.heat?.max_temp_c >= 42) {
+    crisis = "Heat"; number = `${Math.round(country.live_evidence.heat.max_temp_c)}°C`;
+  } else {
+    crisis = "Crisis"; number = `${score}/100`;
   }
+  let action = "Worsens";
+  if (country.trend?.direction === "improving") action = "Eases";
+  else if (country.trend?.delta_7d > 0 && country.trend?.delta_7d <= 3) action = "Rises";
+  else if (country.trend?.delta_7d > 3) action = "Surges";
+  else if (country.trend?.delta_7d < 0) action = "Improves";
   
-  // 3. IPC Famine / Food Crisis
-  const ipcPhase = s.ipcPhase || 0;
-  if (ipcPhase >= 4) {
-    const phaseText = ipcPhase === 5 ? 'Famine Declared' : 'Emergency Level Food Crisis';
-    const popStr = s.ipcPopulation ? ` — ${formatPop(s.ipcPopulation)} at Risk` : '';
-    candidates.push({
-      priority: 105,
-      text: `IPC Phase ${ipcPhase} ${phaseText} in ${name}${popStr}`
-    });
-  }
-  
-  // 4. Major Earthquake
-  const quakeMag = s.earthquake?.magnitude || 0;
-  if (quakeMag >= 6.0) {
-    const magStr = quakeMag >= 7.0 ? `M${quakeMag.toFixed(1)} Major Quake` : `M${quakeMag.toFixed(1)} Earthquake`;
-    const loc = s.earthquake?.location ? ` Near ${s.earthquake.location}` : '';
-    candidates.push({
-      priority: 100 + Math.min(15, (quakeMag - 5) * 5),
-      text: `${magStr} Strikes ${name}${loc} — Casualties Feared`
-    });
-  }
-  
-  // 5. Conflict Spike
-  const fatalities = s.conflict_fatalities || 0;
-  const events = s.conflict_events || 0;
-  if (fatalities > 50 || events > 20) {
-    const fatStr = fatalities > 100 ? `${fatalities.toLocaleString()} Killed` : `${fatalities} Fatalities`;
-    const mlSuffix = mlAnomalyProb > 55 ? ` ⚡ AI Predicts Further Escalation` : '';
-    candidates.push({
-      priority: 95 + Math.min(15, Math.log10(fatalities + 1) * 5),
-      text: `${name} Conflict Intensifies: ${fatStr} in ${events} Recorded Events${mlSuffix}`
-    });
-  }
-  
-  // 6. Disease Outbreak
-  const outbreaks = s.who_outbreaks?.outbreaks || [];
-  if (outbreaks.length > 0) {
-    const diseases = outbreaks.map(o => o.disease).join(' & ');
-    const diseaseStr = diseases.length > 20 ? diseases.slice(0, 20) + '...' : diseases;
-    candidates.push({
-      priority: 85,
-      text: `WHO Confirms ${diseaseStr} Outbreak in ${name} — Health Emergency Declared`
-    });
-  }
-  
-  // 7. Extreme Heat
-  const maxTemp = s.heat?.max_temp_c || 0;
-  if (maxTemp >= 40) {
-    candidates.push({
-      priority: 70 + Math.min(15, (maxTemp - 38) * 2),
-      text: `${maxTemp}°C Extreme Heat Scorches ${name} — Hundreds Hospitalized`
-    });
-  }
-  
-  // 8. Rapid Deterioration
-  if (Math.abs(delta) > 5) {
-    const dir = delta > 0 ? 'Rapidly Deteriorating' : 'Sudden Crisis Spike';
-    const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Anomaly Alert` : '';
-    candidates.push({
-      priority: 75 + Math.min(20, Math.abs(delta) * 1.5),
-      text: `${name} Crisis ${dir}: Score Jumps ${Math.abs(delta).toFixed(0)} Points in 7 Days${mlSuffix}`
-    });
-  }
-  
-  // 9. Extreme Anomaly
-  if (anomalyDetected && anomalySeverity === 'EXTREME') {
-    candidates.push({
-      priority: 90,
-      text: `DATA ALERT: ${name} Crisis Trajectory Just Broke Pattern — ${anomaly.methods_fired || 0}/4 Statistical Models Agree`
-    });
-  }
-  
-  // 10. Breaking: Multiple Signals
-  if (heatScore >= 75 && heat.top_drivers && heat.top_drivers.length >= 2) {
-    const driverText = heat.top_drivers.slice(0, 2).map(d => d.driver).join(' + ');
-    const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI ${mlAnomalyProb}% Anomaly` : '';
-    candidates.push({
-      priority: 100 + Math.min(15, heatScore / 5),
-      text: `BREAKING: ${name} Crisis Intensifies — ${driverText}${mlSuffix}`
-    });
-  }
-  
-  // Fallback: Always-available, still compelling
-  const dimList = Object.values(dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0));
-  const topDim = dimList[0];
-  const dimLabel = topDim?.label || 'Crisis';
-  candidates.push({
-    priority: 10,
-    text: `${name} ${dimLabel} Emergency: Score ${score}/100 (${severity}) — What's Happening on the Ground`
-  });
-  
-  // Sort by priority and pick the highest
-  candidates.sort((a, b) => b.priority - a.priority);
-  let headline = candidates[0].text;
-  
-  // Add emoji prefix for visual impact
-  if (headline.includes('RED ALERT') || headline.includes('BREAKING')) {
-    headline = '🔴 ' + headline;
-  } else if (headline.includes('Famine') || headline.includes('Emergency')) {
-    headline = '🚨 ' + headline;
-  } else if (headline.includes('Earthquake') || headline.includes('Disaster')) {
-    headline = '🌍 ' + headline;
-  }
-  
-  // Add heat tier prefix if applicable (FULL, no truncation)
-  if (heatScore >= 75) {
-    headline = '🔴 BREAKING · ' + headline;
-  } else if (heatScore >= 55) {
-    headline = '🟠 DEVELOPING · ' + headline;
-  } else if (heatScore >= 30) {
-    headline = '🟡 NOTABLE · ' + headline;
-  }
-  
+  const templates = [
+    `${name} ${action} as ${crisis} Hits ${number}`,
+    `${name}: ${number} in ${crisis}`,
+    `${crisis} Worsens in ${name}`,
+    `${name} Crisis Deepens: ${number} Affected`,
+    `${name} Slides to ${score}`,
+    `${number} Face ${crisis} in ${name}`
+  ];
+  const index = name.length % templates.length;
+  let headline = templates[index];
+  if (flag) headline = `${flag} ${headline}`;
   return headline;
-} </script>
+}
+
+// ─── LOAD BREAKING HEADLINE ──────────────────────────────────────────
+async function loadBreakingHeadline() {
+  const headlineEl = document.getElementById("breaking-headline");
+  if (!headlineEl) {
+    console.warn("breaking-headline element not found");
+    return;
+  }
+  try {
+    const countries = await fetchAllCountries();
+    if (!countries || countries.length === 0) throw new Error("No country data");
+    
+    // Sort by heat score (newsworthiness)
+    const sorted = [...countries].sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
+    const topStory = sorted[0];
+    const currentIso = topStory.iso;
+    const previousIso = localStorage.getItem('gcin_top_iso');
+    
+    // ─── GET THE ACTUAL RSS HEADLINE FROM THE API ──────────────────
+    // The API returns the headline in the story_heat or we need to generate it
+    // But we want the actual headline from the RSS feed, not a generated one
+    
+    // First, try to get the headline from the API's meta or from the story
+    let rssHeadline = '';
+    
+    // Check if the API has a headline field
+    if (topStory.headline) {
+      rssHeadline = topStory.headline;
+    } else if (topStory.title) {
+      rssHeadline = topStory.title;
+    } else if (topStory.story_heat?.headline) {
+      rssHeadline = topStory.story_heat.headline;
+    } else {
+      // Generate a headline as fallback, but keep it real
+      rssHeadline = generateHeadline(topStory);
+    }
+    
+    // Store the actual headline with the country ISO
+    localStorage.setItem('gcin_top_headline', rssHeadline);
+    localStorage.setItem('gcin_top_iso', currentIso);
+    localStorage.setItem('gcin_top_url', topStory.url || '/GCIN.html');
+    localStorage.setItem('gcin_top_anomaly', JSON.stringify(topStory));
+    
+    // Display in the breaking bar
+    headlineEl.innerText = rssHeadline;
+    
+  } catch (err) {
+    console.warn("GCIN headline error:", err);
+    const stored = localStorage.getItem('gcin_top_headline');
+    if (stored) {
+      headlineEl.innerText = stored;
+    } else {
+      headlineEl.innerText = "⚠️ Live feed unavailable. Refresh to retry.";
+    }
+  }
+}
+ </script>
 
   <script type="application/ld+json">
   {
@@ -4538,7 +4446,7 @@ async function renderPanel(iso, focusCrisisType) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('panelContent').style.display = 'block';
 
-   // ─── FETCH RSS HEADLINE FOR THIS COUNTRY ────────────────────────────────────
+  // ─── FETCH RSS HEADLINE FOR THIS COUNTRY ────────────────────────────────────
   let rssHeadline = '';
   let rssUrl = '';
   const savedHeadline = localStorage.getItem('gcin_top_headline');
@@ -4557,25 +4465,26 @@ async function renderPanel(iso, focusCrisisType) {
       background: linear-gradient(135deg, rgba(255,140,66,0.08), rgba(255,55,95,0.04));
       border: 1px solid rgba(255,140,66,0.2);
       border-radius: 8px;
-      padding: 6px 12px;
+      padding: 8px 12px;
       margin: 0 0 10px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
     ">
-      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden;">
-        <span style="font-size:12px;flex-shrink:0;">📡</span>
-        <span style="font-size:10px;color:var(--ts);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-weight:500;">${escapeHtml(rssHeadline)}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+        <span style="font-size:14px;">📡</span>
+        <span style="font-family:var(--fm);font-size:7px;color:var(--orange);background:rgba(255,140,66,0.12);border:1px solid rgba(255,140,66,0.2);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;">RSS HEADLINE</span>
+        <span style="font-size:10px;color:var(--ts);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(rssHeadline)}</span>
       </div>
       <a href="${rssUrl}" target="_blank" style="
         background: rgba(255,140,66,0.12);
         border: 1px solid rgba(255,140,66,0.25);
         border-radius: 99px;
-        padding: 3px 10px;
+        padding: 4px 12px;
         font-family: var(--fm);
-        font-size: 7px;
+        font-size: 8px;
         font-weight: 600;
         color: var(--orange);
         text-decoration: none;
@@ -4583,7 +4492,7 @@ async function renderPanel(iso, focusCrisisType) {
         flex-shrink: 0;
         transition: all 0.15s;
       " onmouseover="this.style.background='rgba(255,140,66,0.2)';this.style.borderColor='rgba(255,140,66,0.4)';" onmouseout="this.style.background='rgba(255,140,66,0.12)';this.style.borderColor='rgba(255,140,66,0.25)';">
-        Read full →
+        Read full story →
       </a>
     </div>
   ` : '';
