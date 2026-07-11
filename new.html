@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Fragility Line — Fragile States Index 2024</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10151c;
+    --panel: #171e27;
+    --panel-2: #1c2530;
+    --hair: rgba(231,226,214,0.09);
+    --hair-strong: rgba(231,226,214,0.16);
+    --ink: #e7e2d6;
+    --ink-dim: #a9b0ba;
+    --ink-faint: #6d7580;
+    --gold: #c7a24a;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:28px 24px 80px; }
+
+  /* ---------- Header ---------- */
+  header{ margin-bottom:30px; }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em;
+    color:var(--gold); text-transform:uppercase; margin-bottom:14px;
+  }
+  h1{
+    font-family:'Source Serif 4',serif; font-weight:700; font-size:44px;
+    line-height:1.05; margin:0 0 12px; letter-spacing:-0.01em;
+  }
+  .dek{
+    font-size:15px; color:var(--ink-dim); max-width:640px; line-height:1.6; margin:0;
+  }
+
+  /* ---------- Spectrum strip (signature element) ---------- */
+  .spectrum-block{ margin:32px 0 8px; }
+  .spectrum-label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-faint);
+    letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px;
+  }
+  .spectrum{
+    display:flex; width:100%; height:56px; border-radius:3px; overflow:hidden;
+    border:1px solid var(--hair-strong);
+  }
+  .tick{
+    flex:1 1 0; min-width:1px; cursor:pointer; transition:opacity 0.15s;
+    position:relative;
+  }
+  .tick:hover{ opacity:0.7; outline:1px solid rgba(231,226,214,0.5); outline-offset:-1px; z-index:2; }
+  .tick.selected{ outline:2px solid var(--ink); outline-offset:-2px; z-index:3; }
+  .spectrum-ends{
+    display:flex; justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-faint); margin-top:6px;
+  }
+
+  #tooltip{
+    position:fixed; pointer-events:none; z-index:50;
+    background:#0a0d12; border:1px solid var(--hair-strong); border-radius:6px;
+    padding:8px 11px; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    color:var(--ink); display:none; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+    white-space:nowrap;
+  }
+  #tooltip .tt-name{ font-family:'Inter',sans-serif; font-weight:600; font-size:12px; margin-bottom:2px; }
+  #tooltip .tt-band{ color:var(--gold); }
+
+  /* ---------- Legend ---------- */
+  .legend{ display:flex; flex-wrap:wrap; gap:10px 18px; margin:22px 0 6px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-dim); }
+  .legend-swatch{ width:9px; height:9px; border-radius:2px; }
+
+  /* ---------- Stat row ---------- */
+  .stat-row{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:var(--hair); border:1px solid var(--hair); border-radius:8px; overflow:hidden;
+    margin:28px 0;
+  }
+  .stat{ background:var(--panel); padding:16px 18px; }
+  .stat .num{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:22px; }
+  .stat .lbl{ font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; margin-top:4px; }
+
+  /* ---------- Controls ---------- */
+  .controls{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:34px 0 18px;
+  }
+  #search{
+    background:var(--panel); border:1px solid var(--hair-strong); color:var(--ink);
+    padding:9px 13px; border-radius:6px; font-family:'Inter',sans-serif; font-size:13px;
+    width:220px; outline:none;
+  }
+  #search:focus{ border-color:var(--gold); }
+  .chip{
+    background:var(--panel); border:1px solid var(--hair-strong); color:var(--ink-dim);
+    padding:7px 12px; border-radius:20px; font-size:11.5px; cursor:pointer; user-select:none;
+    transition:all .15s;
+  }
+  .chip:hover{ color:var(--ink); border-color:var(--hair-strong); }
+  .chip.active{ background:var(--gold); border-color:var(--gold); color:#171006; font-weight:600; }
+  .chip-group{ display:flex; flex-wrap:wrap; gap:6px; }
+  .spacer{ flex:1; }
+  #resultCount{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); }
+
+  /* ---------- Main layout ---------- */
+  .main{ display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
+  @media (max-width:860px){ .main{ grid-template-columns:1fr; } }
+
+  .list{
+    background:var(--panel); border:1px solid var(--hair); border-radius:10px; overflow:hidden;
+  }
+  .row{
+    display:grid; grid-template-columns:40px 1fr 90px 140px; align-items:center;
+    gap:10px; padding:10px 16px; border-bottom:1px solid var(--hair); cursor:pointer;
+    transition:background .1s;
+  }
+  .row:last-child{ border-bottom:none; }
+  .row:hover{ background:var(--panel-2); }
+  .row.selected{ background:var(--panel-2); box-shadow:inset 2px 0 0 var(--gold); }
+  .row .rank{ font-family:'IBM Plex Mono',monospace; color:var(--ink-faint); font-size:12px; }
+  .row .name{ font-size:13.5px; }
+  .row .region-tag{ font-size:10.5px; color:var(--ink-faint); }
+  .row .score{ font-family:'IBM Plex Mono',monospace; font-size:13px; text-align:right; }
+  .row .bandtag{
+    font-size:10px; font-family:'IBM Plex Mono',monospace; padding:3px 8px; border-radius:10px;
+    text-align:center; white-space:nowrap; justify-self:end;
+  }
+
+  .list-head{
+    display:grid; grid-template-columns:40px 1fr 90px 140px; gap:10px; padding:10px 16px;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-faint);
+    text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid var(--hair-strong);
+  }
+  .list-head span:last-child, .list-head span:nth-child(3){ text-align:right; }
+  .sortable{ cursor:pointer; }
+  .sortable:hover{ color:var(--ink); }
+
+  /* ---------- Detail panel ---------- */
+  .panel{
+    background:var(--panel); border:1px solid var(--hair); border-radius:10px;
+    padding:20px; position:sticky; top:20px;
+  }
+  .panel .p-region{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.08em; }
+  .panel h2{ font-family:'Source Serif 4',serif; font-size:26px; margin:6px 0 4px; }
+  .panel .p-band{ display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 10px; border-radius:10px; margin-bottom:16px; }
+  .p-score-row{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+  .p-score{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; }
+  .p-score-max{ font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink-faint); }
+  .p-bar-track{ height:6px; background:var(--hair-strong); border-radius:3px; overflow:hidden; margin:10px 0 18px; }
+  .p-bar-fill{ height:100%; border-radius:3px; }
+  .p-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--ink-dim); padding:8px 0; border-top:1px solid var(--hair); }
+  .p-meta:last-of-type{ border-bottom:1px solid var(--hair); }
+  .p-note{ font-size:12px; color:var(--ink-faint); line-height:1.6; margin-top:16px; }
+  .empty-panel{ color:var(--ink-faint); font-size:13px; text-align:center; padding:40px 10px; }
+
+  /* ---------- About / methodology ---------- */
+  .about{
+    margin-top:56px; padding-top:28px; border-top:1px solid var(--hair-strong);
+    display:grid; grid-template-columns:1fr 1fr; gap:36px;
+  }
+  @media (max-width:760px){ .about{ grid-template-columns:1fr; } }
+  .about h3{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.1em; color:var(--gold); margin:0 0 12px;
+  }
+  .about p, .about li{ font-size:13px; line-height:1.7; color:var(--ink-dim); }
+  .about ul{ margin:0; padding-left:18px; }
+  .about a{ color:var(--ink); }
+  .caveat{
+    background:rgba(199,162,74,0.06); border:1px solid rgba(199,162,74,0.25);
+    border-radius:8px; padding:14px 16px; margin-top:14px;
+  }
+  .caveat p{ color:var(--ink); margin:0 0 8px; }
+  .caveat p:last-child{ margin-bottom:0; }
+  footer{
+    margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    color:var(--ink-faint); text-align:center; line-height:1.8;
+  }
+  footer a{ color:var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Fund for Peace · Fragile States Index · 2024 edition</div>
+    <h1>The Fragility Line</h1>
+    <p class="dek">All 179 ranked countries, sorted end to end from most fragile to most stable, using the Fund for Peace's published 2024 index. Real scores, real citation, no forecasts.</p>
+  </header>
+
+  <div class="spectrum-block">
+    <div class="spectrum-label"><span>Rank 1 — Most fragile</span><span>Rank 179 — Most stable</span></div>
+    <div class="spectrum" id="spectrum"></div>
+    <div class="spectrum-ends"><span id="endLeft"></span><span id="endRight"></span></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">179</div><div class="lbl">Countries ranked</div></div>
+    <div class="stat"><div class="num" id="statAvg">—</div><div class="lbl">Mean score (0–120)</div></div>
+    <div class="stat"><div class="num" id="statHigh">—</div><div class="lbl">In Alert or worse</div></div>
+    <div class="stat"><div class="num">12</div><div class="lbl">Indicators per country</div></div>
+  </div>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="Search a country…">
+    <div class="chip-group" id="regionChips"></div>
+    <div class="spacer"></div>
+    <span id="resultCount"></span>
+  </div>
+
+  <div class="main">
+    <div class="list">
+      <div class="list-head">
+        <span class="sortable" data-sort="rank">Rank</span>
+        <span class="sortable" data-sort="name">Country</span>
+        <span class="sortable" data-sort="score">Score</span>
+        <span>Category</span>
+      </div>
+      <div id="listBody"></div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="empty-panel">Select a country from the strip or the list to see its full 2024 standing.</div>
+    </div>
+  </div>
+
+  <div class="about">
+    <div>
+      <h3>What this index measures</h3>
+      <p>The Fragile States Index scores every UN member state (where data allows) on 12 indicators grouped into four categories, each rated 0–10, summed into a 0–120 total — higher means more fragile:</p>
+      <ul>
+        <li><strong>Cohesion</strong> — security apparatus, factionalized elites, group grievance</li>
+        <li><strong>Economic</strong> — economic decline, uneven development, human flight &amp; brain drain</li>
+        <li><strong>Political</strong> — state legitimacy, public services, human rights &amp; rule of law</li>
+        <li><strong>Social &amp; cross-cutting</strong> — demographic pressures, refugees &amp; IDPs, external intervention</li>
+      </ul>
+      <p>Scores come from the Fund for Peace's CAST content-analysis tool applied to over 100,000 sources, combined with quantitative data (UN, WHO, World Bank, Freedom House) and a qualitative review pass.</p>
+    </div>
+    <div>
+      <h3>Sourcing &amp; limits</h3>
+      <p>2024 total scores and ranks for all 179 countries are taken directly from the Fund for Peace's Fragile States Index, via its Wikipedia-hosted data table. Alert-category names (Very Sustainable → Very High Alert) match the FSI's own 11-tier legend; the numeric boundaries between tiers are this page's own even division of the 0–120 scale into 11 bands and are an approximation — see fragilestatesindex.org for FFP's exact published cutoffs. Regional groupings are a standard editorial classification, not part of the FSI dataset itself.</p>
+      <div class="caveat">
+        <p><strong>This is a snapshot, not a forecast.</strong> It shows where the FSI placed each country as of the 2024 report. It does not predict when or whether any state will collapse, and it carries no probability, confidence interval, or timeframe of any kind.</p>
+        <p>The FSI's methodology has also drawn academic criticism — for treating fragility as commensurable across very different kinds of countries, and for the risk that low rankings shape the aid and intervention decisions that then affect the countries being ranked. Read it as one index among several, not a verdict.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Data: Fund for Peace, Fragile States Index 2024 · fragilestatesindex.org &nbsp;·&nbsp;
+    Table sourced via <a href="https://en.wikipedia.org/wiki/List_of_countries_by_Fragile_States_Index" target="_blank" rel="noopener">Wikipedia: List of countries by Fragile States Index</a>
+  </footer>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+const DATA = [{"rank":1,"name":"Somalia","score":111.3,"region":"Sub-Saharan Africa","band":"Very High Alert","color":"#7a2540"},{"rank":2,"name":"Sudan","score":109.3,"region":"Sub-Saharan Africa","band":"Very High Alert","color":"#7a2540"},{"rank":3,"name":"South Sudan","score":109.0,"region":"Sub-Saharan Africa","band":"High Alert","color":"#a83a4a"},{"rank":4,"name":"Syria","score":108.1,"region":"Middle East & North Africa","band":"High Alert","color":"#a83a4a"},{"rank":5,"name":"Congo-Kinshasa","score":106.7,"region":"Sub-Saharan Africa","band":"High Alert","color":"#a83a4a"},{"rank":6,"name":"Yemen","score":106.6,"region":"Middle East & North Africa","band":"High Alert","color":"#a83a4a"},{"rank":7,"name":"Afghanistan","score":103.9,"region":"Asia & Pacific","band":"High Alert","color":"#a83a4a"},{"rank":8,"name":"Central African Republic","score":103.9,"region":"Sub-Saharan Africa","band":"High Alert","color":"#a83a4a"},{"rank":9,"name":"Haiti","score":103.5,"region":"Americas","band":"High Alert","color":"#a83a4a"},{"rank":10,"name":"Chad","score":102.7,"region":"Sub-Saharan Africa","band":"High Alert","color":"#a83a4a"},{"rank":11,"name":"Myanmar","score":100.0,"region":"Asia & Pacific","band":"High Alert","color":"#a83a4a"},{"rank":12,"name":"Ethiopia","score":98.1,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":13,"name":"Palestine","score":97.8,"region":"Middle East & North Africa","band":"Alert","color":"#c94f4f"},{"rank":14,"name":"Mali","score":97.3,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":15,"name":"Nigeria","score":96.6,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":16,"name":"Libya","score":96.5,"region":"Middle East & North Africa","band":"Alert","color":"#c94f4f"},{"rank":17,"name":"Guinea","score":96.4,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":18,"name":"Zimbabwe","score":95.7,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":19,"name":"Niger","score":95.2,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":20,"name":"Cameroon","score":94.3,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":21,"name":"Burkina Faso","score":94.2,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":22,"name":"Ukraine","score":93.1,"region":"Europe","band":"Alert","color":"#c94f4f"},{"rank":23,"name":"Lebanon","score":92.7,"region":"Middle East & North Africa","band":"Alert","color":"#c94f4f"},{"rank":24,"name":"Burundi","score":92.6,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":25,"name":"Mozambique","score":92.5,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":26,"name":"Eritrea","score":92.1,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":27,"name":"Pakistan","score":91.7,"region":"Asia & Pacific","band":"Alert","color":"#c94f4f"},{"rank":28,"name":"Uganda","score":91.1,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":29,"name":"Congo-Brazzaville","score":90.2,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":30,"name":"Venezuela","score":89.0,"region":"Americas","band":"Alert","color":"#c94f4f"},{"rank":31,"name":"Iraq","score":88.6,"region":"Middle East & North Africa","band":"Alert","color":"#c94f4f"},{"rank":32,"name":"Guinea-Bissau","score":88.4,"region":"Sub-Saharan Africa","band":"Alert","color":"#c94f4f"},{"rank":33,"name":"Sri Lanka","score":88.2,"region":"Asia & Pacific","band":"Alert","color":"#c94f4f"},{"rank":34,"name":"Mauritania","score":87.0,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":35,"name":"Liberia","score":86.9,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":36,"name":"Kenya","score":86.5,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":37,"name":"Bangladesh","score":85.9,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":38,"name":"Angola","score":85.6,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":39,"name":"Ivory Coast","score":85.3,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":40,"name":"North Korea","score":84.9,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":41,"name":"Turkey","score":84.0,"region":"Middle East & North Africa","band":"High Warning","color":"#d76a4a"},{"rank":42,"name":"Equatorial Guinea","score":83.7,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":43,"name":"Iran","score":82.9,"region":"Middle East & North Africa","band":"High Warning","color":"#d76a4a"},{"rank":44,"name":"Egypt","score":82.8,"region":"Middle East & North Africa","band":"High Warning","color":"#d76a4a"},{"rank":45,"name":"Sierra Leone","score":82.6,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":46,"name":"Rwanda","score":81.8,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":47,"name":"Comoros","score":81.7,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":48,"name":"Djibouti","score":81.6,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":48,"name":"Russia","score":81.6,"region":"Europe","band":"High Warning","color":"#d76a4a"},{"rank":50,"name":"Zambia","score":81.2,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":51,"name":"Togo","score":81.1,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":52,"name":"Malawi","score":80.5,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":53,"name":"Madagascar","score":79.8,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":54,"name":"Papua New Guinea","score":78.8,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":55,"name":"Cambodia","score":78.6,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":56,"name":"Honduras","score":78.1,"region":"Americas","band":"High Warning","color":"#d76a4a"},{"rank":57,"name":"Nepal","score":78.0,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":58,"name":"Eswatini","score":77.6,"region":"Sub-Saharan Africa","band":"High Warning","color":"#d76a4a"},{"rank":58,"name":"Solomon Islands","score":77.6,"region":"Asia & Pacific","band":"High Warning","color":"#d76a4a"},{"rank":60,"name":"Nicaragua","score":76.7,"region":"Americas","band":"High Warning","color":"#d76a4a"},{"rank":61,"name":"Gambia","score":76.1,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":62,"name":"Tanzania","score":75.7,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":63,"name":"Colombia","score":75.6,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":64,"name":"Philippines","score":75.1,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":65,"name":"Guatemala","score":74.9,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":65,"name":"Kyrgyzstan","score":74.9,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":67,"name":"East Timor","score":74.8,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":68,"name":"Lesotho","score":74.6,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":69,"name":"Jordan","score":74.3,"region":"Middle East & North Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":70,"name":"Senegal","score":74.2,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":71,"name":"Laos","score":73.8,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":72,"name":"Azerbaijan","score":72.8,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":72,"name":"Tajikistan","score":72.8,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":74,"name":"Benin","score":72.5,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":75,"name":"India","score":72.3,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":76,"name":"Peru","score":72.0,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":77,"name":"Bosnia-Herzegovina","score":71.0,"region":"Europe","band":"Elevated Warning","color":"#dd8b47"},{"rank":78,"name":"Brazil","score":70.3,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":79,"name":"Gabon","score":70.2,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":80,"name":"South Africa","score":69.6,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":81,"name":"Bolivia","score":69.4,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":82,"name":"Georgia","score":69.3,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":83,"name":"Mexico","score":69.0,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":84,"name":"Morocco","score":68.8,"region":"Middle East & North Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":85,"name":"Belarus","score":68.7,"region":"Europe","band":"Elevated Warning","color":"#dd8b47"},{"rank":85,"name":"El Salvador","score":68.7,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":87,"name":"Algeria","score":68.6,"region":"Middle East & North Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":88,"name":"Sao Tome and Principe","score":68.5,"region":"Sub-Saharan Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":89,"name":"Armenia","score":68.1,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":90,"name":"Ecuador","score":68.0,"region":"Americas","band":"Elevated Warning","color":"#dd8b47"},{"rank":91,"name":"Serbia","score":67.8,"region":"Europe","band":"Elevated Warning","color":"#dd8b47"},{"rank":92,"name":"Tunisia","score":67.2,"region":"Middle East & North Africa","band":"Elevated Warning","color":"#dd8b47"},{"rank":93,"name":"F.S. Micronesia","score":66.9,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":94,"name":"Fiji","score":66.4,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":95,"name":"Thailand","score":66.2,"region":"Asia & Pacific","band":"Elevated Warning","color":"#dd8b47"},{"rank":96,"name":"Uzbekistan","score":64.8,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":97,"name":"Moldova","score":64.7,"region":"Europe","band":"Warning","color":"#e0b04f"},{"rank":98,"name":"Bhutan","score":64.5,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":99,"name":"China","score":64.4,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":100,"name":"Bahrain","score":64.2,"region":"Middle East & North Africa","band":"Warning","color":"#e0b04f"},{"rank":101,"name":"Samoa","score":63.9,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":102,"name":"Indonesia","score":63.7,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":103,"name":"Saudi Arabia","score":63.2,"region":"Middle East & North Africa","band":"Warning","color":"#e0b04f"},{"rank":104,"name":"Turkmenistan","score":62.2,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":105,"name":"Paraguay","score":61.5,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":106,"name":"Ghana","score":60.8,"region":"Sub-Saharan Africa","band":"Warning","color":"#e0b04f"},{"rank":107,"name":"Maldives","score":60.3,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":108,"name":"Dominican Republic","score":60.2,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":109,"name":"Jamaica","score":59.3,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":109,"name":"Namibia","score":59.3,"region":"Sub-Saharan Africa","band":"Warning","color":"#e0b04f"},{"rank":111,"name":"Guyana","score":59.2,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":112,"name":"Cuba","score":59.1,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":113,"name":"Suriname","score":58.8,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":114,"name":"North Macedonia","score":58.1,"region":"Europe","band":"Warning","color":"#e0b04f"},{"rank":115,"name":"Kazakhstan","score":57.8,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":116,"name":"Cape Verde","score":57.2,"region":"Sub-Saharan Africa","band":"Warning","color":"#e0b04f"},{"rank":117,"name":"Belize","score":57.0,"region":"Americas","band":"Warning","color":"#e0b04f"},{"rank":118,"name":"Montenegro","score":56.9,"region":"Europe","band":"Warning","color":"#e0b04f"},{"rank":119,"name":"Vietnam","score":56.2,"region":"Asia & Pacific","band":"Warning","color":"#e0b04f"},{"rank":120,"name":"Albania","score":55.9,"region":"Europe","band":"Warning","color":"#e0b04f"},{"rank":121,"name":"Greece","score":54.7,"region":"Europe","band":"Warning","color":"#e0b04f"},{"rank":122,"name":"Cyprus","score":54.1,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":123,"name":"Brunei","score":53.9,"region":"Asia & Pacific","band":"Less Stable","color":"#d9c46a"},{"rank":124,"name":"Botswana","score":53.6,"region":"Sub-Saharan Africa","band":"Less Stable","color":"#d9c46a"},{"rank":125,"name":"Trinidad and Tobago","score":53.5,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":126,"name":"Malaysia","score":53.1,"region":"Asia & Pacific","band":"Less Stable","color":"#d9c46a"},{"rank":127,"name":"Antigua and Barbuda","score":51.9,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":127,"name":"Grenada","score":51.9,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":129,"name":"Israel","score":51.5,"region":"Middle East & North Africa","band":"Less Stable","color":"#d9c46a"},{"rank":130,"name":"Romania","score":51.0,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":130,"name":"Seychelles","score":51.0,"region":"Sub-Saharan Africa","band":"Less Stable","color":"#d9c46a"},{"rank":132,"name":"Mongolia","score":50.7,"region":"Asia & Pacific","band":"Less Stable","color":"#d9c46a"},{"rank":133,"name":"Bulgaria","score":49.4,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":134,"name":"Kuwait","score":49.3,"region":"Middle East & North Africa","band":"Less Stable","color":"#d9c46a"},{"rank":135,"name":"Bahamas","score":48.0,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":136,"name":"Panama","score":47.7,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":137,"name":"Oman","score":47.4,"region":"Middle East & North Africa","band":"Less Stable","color":"#d9c46a"},{"rank":138,"name":"Hungary","score":46.2,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":139,"name":"Croatia","score":45.9,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":140,"name":"Barbados","score":44.7,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":141,"name":"United States","score":44.5,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":142,"name":"Argentina","score":44.2,"region":"Americas","band":"Less Stable","color":"#d9c46a"},{"rank":143,"name":"Spain","score":44.0,"region":"Europe","band":"Less Stable","color":"#d9c46a"},{"rank":144,"name":"Poland","score":41.7,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":145,"name":"Latvia","score":41.4,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":146,"name":"Chile","score":41.1,"region":"Americas","band":"Stable","color":"#a9c97a"},{"rank":146,"name":"Italy","score":41.1,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":148,"name":"United Kingdom","score":40.8,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":149,"name":"Qatar","score":39.8,"region":"Middle East & North Africa","band":"Stable","color":"#a9c97a"},{"rank":150,"name":"Costa Rica","score":39.4,"region":"Americas","band":"Stable","color":"#a9c97a"},{"rank":151,"name":"Mauritius","score":37.8,"region":"Sub-Saharan Africa","band":"Stable","color":"#a9c97a"},{"rank":152,"name":"Czech Republic","score":37.7,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":153,"name":"Lithuania","score":37.4,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":154,"name":"Estonia","score":36.5,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":155,"name":"Slovakia","score":35.3,"region":"Europe","band":"Stable","color":"#a9c97a"},{"rank":156,"name":"United Arab Emirates","score":34.7,"region":"Middle East & North Africa","band":"Stable","color":"#a9c97a"},{"rank":157,"name":"Uruguay","score":33.7,"region":"Americas","band":"Stable","color":"#a9c97a"},{"rank":158,"name":"Malta","score":31.1,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":159,"name":"Belgium","score":30.3,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":160,"name":"Japan","score":30.2,"region":"Asia & Pacific","band":"More Stable","color":"#7fb87f"},{"rank":161,"name":"South Korea","score":29.8,"region":"Asia & Pacific","band":"More Stable","color":"#7fb87f"},{"rank":162,"name":"France","score":28.3,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":163,"name":"Slovenia","score":26.1,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":164,"name":"Portugal","score":25.9,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":165,"name":"Singapore","score":25.4,"region":"Asia & Pacific","band":"More Stable","color":"#7fb87f"},{"rank":166,"name":"Germany","score":24.0,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":167,"name":"Austria","score":23.1,"region":"Europe","band":"More Stable","color":"#7fb87f"},{"rank":168,"name":"Sweden","score":20.6,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":169,"name":"Australia","score":19.6,"region":"Asia & Pacific","band":"Sustainable","color":"#4f9d6f"},{"rank":170,"name":"Netherlands","score":19.5,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":171,"name":"Luxembourg","score":18.7,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":172,"name":"Canada","score":18.6,"region":"Americas","band":"Sustainable","color":"#4f9d6f"},{"rank":172,"name":"Ireland","score":18.6,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":174,"name":"Switzerland","score":16.2,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":175,"name":"Denmark","score":15.9,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":175,"name":"New Zealand","score":15.9,"region":"Asia & Pacific","band":"Sustainable","color":"#4f9d6f"},{"rank":177,"name":"Iceland","score":15.2,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":178,"name":"Finland","score":14.3,"region":"Europe","band":"Sustainable","color":"#4f9d6f"},{"rank":179,"name":"Norway","score":12.7,"region":"Europe","band":"Sustainable","color":"#4f9d6f"}];
+
+const REGIONS = [...new Set(DATA.map(d=>d.region))].sort();
+const BAND_ORDER = ['Very Sustainable','Sustainable','More Stable','Stable','Less Stable','Warning','Elevated Warning','High Warning','Alert','High Alert','Very High Alert'];
+
+let state = { region:'All', query:'', sort:'rank', dir:1, selected:null };
+
+// ---------- Spectrum strip ----------
+const spectrum = document.getElementById('spectrum');
+const tooltip = document.getElementById('tooltip');
+DATA.forEach(d=>{
+  const t = document.createElement('div');
+  t.className = 'tick';
+  t.style.background = d.color;
+  t.dataset.rank = d.rank;
+  t.addEventListener('mousemove', e=>{
+    tooltip.style.display='block';
+    tooltip.style.left = (e.clientX+14)+'px';
+    tooltip.style.top = (e.clientY+14)+'px';
+    tooltip.innerHTML = `<div class="tt-name">#${d.rank} ${d.name}</div><div>${d.score.toFixed(1)} / 120 — <span class="tt-band">${d.band}</span></div>`;
+  });
+  t.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
+  t.addEventListener('click', ()=>selectCountry(d));
+  spectrum.appendChild(t);
+});
+document.getElementById('endLeft').textContent = `${DATA[0].name} · ${DATA[0].score.toFixed(1)}`;
+document.getElementById('endRight').textContent = `${DATA[DATA.length-1].name} · ${DATA[DATA.length-1].score.toFixed(1)}`;
+
+// ---------- Legend ----------
+const legendBands = [...new Map(DATA.map(d=>[d.band,d.color])).entries()]
+  .sort((a,b)=>BAND_ORDER.indexOf(a[0])-BAND_ORDER.indexOf(b[0]));
+const legend = document.getElementById('legend');
+legendBands.forEach(([band,color])=>{
+  const el = document.createElement('div');
+  el.className='legend-item';
+  el.innerHTML = `<span class="legend-swatch" style="background:${color}"></span>${band}`;
+  legend.appendChild(el);
+});
+
+// ---------- Stats ----------
+const avg = DATA.reduce((s,d)=>s+d.score,0)/DATA.length;
+document.getElementById('statAvg').textContent = avg.toFixed(1);
+const highCount = DATA.filter(d=>['Alert','High Alert','Very High Alert'].includes(d.band)).length;
+document.getElementById('statHigh').textContent = highCount;
+
+// ---------- Region chips ----------
+const chipWrap = document.getElementById('regionChips');
+['All',...REGIONS].forEach(r=>{
+  const c = document.createElement('div');
+  c.className = 'chip' + (r==='All' ? ' active' : '');
+  c.textContent = r;
+  c.addEventListener('click', ()=>{
+    state.region = r;
+    [...chipWrap.children].forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    render();
+  });
+  chipWrap.appendChild(c);
+});
+
+// ---------- Search ----------
+document.getElementById('search').addEventListener('input', e=>{
+  state.query = e.target.value.trim().toLowerCase();
+  render();
+});
+
+// ---------- Sort headers ----------
+document.querySelectorAll('.sortable').forEach(h=>{
+  h.addEventListener('click', ()=>{
+    const key = h.dataset.sort;
+    if(state.sort===key){ state.dir *= -1; } else { state.sort=key; state.dir=1; }
+    render();
+  });
+});
+
+// ---------- List rendering ----------
+const listBody = document.getElementById('listBody');
+function render(){
+  let rows = DATA.filter(d=>{
+    if(state.region!=='All' && d.region!==state.region) return false;
+    if(state.query && !d.name.toLowerCase().includes(state.query)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let av=a[state.sort], bv=b[state.sort];
+    if(typeof av==='string') return av.localeCompare(bv)*state.dir;
+    return (av-bv)*state.dir;
+  });
+  document.getElementById('resultCount').textContent = `${rows.length} of 179 shown`;
+  listBody.innerHTML = '';
+  rows.forEach(d=>{
+    const r = document.createElement('div');
+    r.className = 'row' + (state.selected && state.selected.name===d.name ? ' selected' : '');
+    r.innerHTML = `
+      <span class="rank">${d.rank}</span>
+      <span><div class="name">${d.name}</div><div class="region-tag">${d.region}</div></span>
+      <span class="score">${d.score.toFixed(1)}</span>
+      <span class="bandtag" style="background:${d.color}22; color:${d.color}; border:1px solid ${d.color}55;">${d.band}</span>
+    `;
+    r.addEventListener('click', ()=>selectCountry(d));
+    listBody.appendChild(r);
+  });
+}
+
+// ---------- Detail panel ----------
+function selectCountry(d){
+  state.selected = d;
+  const percentile = Math.round((1 - (d.rank-1)/(DATA.length-1)) * 100);
+  const regionPeers = DATA.filter(x=>x.region===d.region);
+  const regionAvg = regionPeers.reduce((s,x)=>s+x.score,0)/regionPeers.length;
+  document.getElementById('panel').innerHTML = `
+    <div class="p-region">${d.region}</div>
+    <h2>${d.name}</h2>
+    <span class="p-band" style="background:${d.color}22; color:${d.color}; border:1px solid ${d.color}55;">${d.band}</span>
+    <div class="p-score-row"><span class="p-score">${d.score.toFixed(1)}</span><span class="p-score-max">/ 120</span></div>
+    <div class="p-bar-track"><div class="p-bar-fill" style="width:${(d.score/120*100).toFixed(1)}%; background:${d.color};"></div></div>
+    <div class="p-meta"><span>World rank</span><span>#${d.rank} of 179</span></div>
+    <div class="p-meta"><span>More fragile than</span><span>${percentile}% of ranked states</span></div>
+    <div class="p-meta"><span>${d.region} average</span><span>${regionAvg.toFixed(1)}</span></div>
+    <div class="p-note">Score reflects the Fund for Peace's 2024 assessment across 12 cohesion, economic, political and social indicators. It is a comparative snapshot, not a prediction.</div>
+  `;
+  document.querySelectorAll('.tick').forEach(t=>t.classList.toggle('selected', +t.dataset.rank===d.rank));
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
