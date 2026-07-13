@@ -1215,9 +1215,147 @@ fetchBreakingNews();
   </div>
 </div>
 
+<!-- MASTERPIECE SEO: WEBAPI SCHEMA (Place in <head>) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebAPI",
+      "@id": "https://www.globalcrisisindex.com/#api",
+      "name": "GCIS Fusion Real-Time API",
+      "url": "https://rapidapi.com/jmm6993/api/global-crisis-index",
+      "description": "Premium real-time crisis intelligence API. Global stability metrics and risk scores.",
+      "documentation": "https://rapidapi.com/jmm6993/api/global-crisis-index/details",
+      "provider": { "@id": "https://www.globalcrisisindex.com/#organization" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.globalcrisisindex.com/#organization",
+      "name": "Global Crisis Index",
+      "url": "https://www.globalcrisisindex.com/"
+    }
+  ]
+}
+</script>
+
+<!-- MASTERPIECE CSS: CINEMATIC UI -->
+<style>
+  :root {
+    --accent: #ff4d4d;
+    --bg-dark: #0a192f;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+
+  #loader {
+    background: radial-gradient(circle at center, #112240 0%, var(--bg-dark) 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: white; font-family: 'Outfit', 'Inter', sans-serif;
+  }
+
+  .loader-h {
+    font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(to right, #fff, #8892b0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 30px;
+  }
+
+  /* THE STUNNING AD BENTO BOX /
+  .masterpiece-bento {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 25px;
+    max-width: 450px;
+    margin-bottom: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  .bento-tag {
+    display: inline-block;
+    background: rgba(255, 77, 77, 0.15);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; margin-bottom: 15px;
+  }
+
+  .bento-headline {
+    font-size: 1.1rem; font-weight: 600; line-height: 1.4;
+    margin-bottom: 20px; height: 3.2em; overflow: hidden;
+  }
+
+  .bento-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+    border-top: 1px solid var(--glass-border); padding-top: 20px;
+  }
+
+  .bento-stat { text-align: left; }
+  .stat-val { 
+    font-size: 1.5rem; font-weight: 800; color: white; display: block;
+    text-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+  }
+  .stat-lab { font-size: 0.7rem; color: #8892b0; text-transform: uppercase; }
+
+  .bento-cta {
+    grid-column: span 2; margin-top: 10px;
+    background: var(--accent); color: white;
+    text-align: center; padding: 12px; border-radius: 10px;
+    text-decoration: none; font-weight: 700; font-size: 0.9rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .bento-cta:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(255, 77, 77, 0.4); }
+
+  / STEPS RE-STYLED */
+  .loader-steps { width: 100%; max-width: 400px; }
+  .lstep { 
+    font-size: 0.85rem; color: #495670; margin-bottom: 10px;
+    display: flex; align-items: center; transition: 0.3s;
+  }
+  .lstep.act { color: #ccd6f6; font-weight: 600; }
+  .lstep-dot { 
+    width: 6px; height: 6px; border-radius: 50%; background: #233554;
+    margin-right: 12px; transition: 0.3s;
+  }
+  .lstep.act .lstep-dot { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<!-- FULL REPLACEMENT LOADER HTML -->
 <div class="loader" id="loader">
-  <div class="loader-ring"></div>
   <div class="loader-h">GCIS Fusion</div>
+
+  <!-- THE 1000x STUNNING BENTO AD -->
+  <div class="masterpiece-bento">
+    <div class="bento-tag">Intelligence Insight</div>
+    <div class="bento-headline" id="bento-text">
+      Validated during the 2026 San Jose del Monte Crisis.
+    </div>
+    
+    <div class="bento-grid">
+      <div class="bento-stat">
+        <span class="stat-val">36m</span>
+        <span class="stat-lab">Avg Engagement</span>
+      </div>
+      <div class="bento-stat">
+        <span class="stat-val">10.6</span>
+        <span class="stat-lab">Views / Session</span>
+      </div>
+      <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" class="bento-cta">
+        GET PREMIUM API ACCESS &rarr;
+      </a>
+    </div>
+  </div>
+
   <div class="loader-steps">
     <div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div>
     <div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb + GDACS…</div>
@@ -1227,8 +1365,33 @@ fetchBreakingNews();
     <div class="lstep" id="ls5"><div class="lstep-dot"></div>Food Security: IPC + FAO + FEWS NET + WFP…</div>
     <div class="lstep" id="ls6"><div class="lstep-dot"></div>Economic: World Bank×4 + IMF×2 + UNHCR…</div>
   </div>
-  <div class="loader-bar"><div class="loader-fill" id="lFill"></div></div>
+  <div class="loader-bar" style="margin-top:40px; background:#112240; height:4px; width:400px; border-radius:10px; overflow:hidden;">
+    <div class="loader-fill" id="lFill" style="background:var(--accent); height:100%; width:0%; transition:0.3s;"></div>
+  </div>
 </div>
+
+<!-- MASTERPIECE ANIMATION SCRIPT -->
+<script>
+  const insights = [
+    "Validated during the 2026 San Jose del Monte Crisis.",
+    "Vetted by Professional Newsroom Networks in L.A.",
+    "Cited by Silicon Valley Researchers in San Jose, CA.",
+    "Trusted for High-Intensity Comparative Analysis."
+  ];
+  let insightIdx = 0;
+  setInterval(() => {
+    const el = document.getElementById('bento-text');
+    if (el) {
+      el.style.opacity = 0;
+      setTimeout(() => {
+        insightIdx = (insightIdx + 1) % insights.length;
+        el.innerText = insights[insightIdx];
+        el.style.opacity = 1;
+      }, 500);
+    }
+  }, 5000);
+</script>
+
 
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
