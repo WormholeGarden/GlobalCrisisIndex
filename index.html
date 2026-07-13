@@ -407,37 +407,109 @@
   }
   </script>
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Global Crisis Index — Live Crisis Intelligence Dataset",
-    "description": "Real-time global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries from public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb).",
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "@id": "https://www.globalcrisisindex.com/api/top-story#dataset",
+  "name": "Global Crisis Index — Real-Time Crisis Intelligence Dataset",
+  "description": "Live global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries. Updated every 5 minutes from 40+ public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb, ACLED, FAO, FEWS NET).",
+  "url": "https://globalcrisisindex.com",
+  "identifier": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "version": "2.0.1",
+  "datePublished": "2024-01-01",
+  "dateModified": "2026-07-13",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
     "url": "https://globalcrisisindex.com",
-    "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "creator": {
-      "@type": "Organization",
-      "name": "GCIS Fusion",
-      "url": "https://globalcrisisindex.com"
-    },
-    "distribution": {
+    "logo": "https://globalcrisisindex.com/favicon.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "contact@globalcrisisindex.com",
+      "contactType": "customer service"
+    }
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
+    "url": "https://globalcrisisindex.com"
+  },
+  "includedInDataCatalog": {
+    "@type": "DataCatalog",
+    "name": "GCIS Fusion Crisis Intelligence",
+    "url": "https://globalcrisisindex.com",
+    "description": "Enterprise-grade API for real-time crisis monitoring and humanitarian risk assessment"
+  },
+  "distribution": [
+    {
       "@type": "DataDownload",
       "encodingFormat": "application/json",
-      "contentUrl": "https://www.globalcrisisindex.com/api/top-story"
+      "contentUrl": "https://www.globalcrisisindex.com/api/top-story",
+      "name": "Live JSON API"
     },
-    "temporalCoverage": "2024/..",
-    "variableMeasured": [
-      "Crisis urgency score",
-      "Anomaly detection score",
-      "Displacement totals",
-      "Food security (IPC) phase",
-      "Conflict event count",
-      "Disease outbreak case counts"
-    ],
-    "measurementTechnique": "Automated aggregation and weighted composite scoring across 40+ live public APIs, refreshed every 5 minutes"
-  }
-  </script>
-
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/csv",
+      "contentUrl": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+      "name": "Hugging Face dataset mirror"
+    }
+  ],
+  "temporalCoverage": "2024-01-01/..",
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Worldwide (190+ countries and territories)",
+    "geo": {
+      "@type": "GeoShape",
+      "box": "-90 -180 90 180"
+    }
+  },
+  "keywords": [
+    "global crisis index",
+    "humanitarian risk",
+    "conflict monitoring",
+    "displacement tracking",
+    "food security",
+    "IPC phase",
+    "earthquake alerts",
+    "flood monitoring",
+    "disease outbreak",
+    "climate risk"
+  ],
+  "variableMeasured": [
+    "Crisis urgency score (0-100 weighted composite)",
+    "Anomaly detection z-score (statistical deviation)",
+    "Displacement totals (refugees + IDPs)",
+    "Food security IPC phase (1-5)",
+    "Conflict event count (ACLED-derived)",
+    "Disease outbreak case counts (WHO/disease.sh)",
+    "Economic indicators (GDP, inflation, unemployment)",
+    "Climate hazards (heat, precipitation, floods)"
+  ],
+  "measurementTechnique": "Automated ETL pipeline with 40+ live public API sources. Weighted composite scoring with non-linear interaction effects, cusum anomaly detection, and live evidence boosting. Refreshed every 5 minutes via serverless architecture.",
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "name": "Global Crisis Index Dataset",
+      "url": "https://www.globalcrisisindex.com/api/top-story"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Hugging Face Dataset Card: jmm6993/global-crisis-index",
+      "url": "https://huggingface.co/datasets/jmm6993/global-crisis-index"
+    }
+  ],
+  "about": [
+    { "@type": "Thing", "name": "Humanitarian Crisis Monitoring" },
+    { "@type": "Thing", "name": "Conflict & Displacement Tracking" },
+    { "@type": "Thing", "name": "Food Security Early Warning" },
+    { "@type": "Thing", "name": "Climate Hazard Detection" }
+  ],
+  "isAccessibleForFree": true,
+  "inLanguage": "en"
+}
+</script>
   <meta property="og:title" content="Global Crisis Index | Real-time Crisis Map">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
@@ -893,433 +965,113 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
   </div>
 </header>
-<!-- ============================================================ -->
-<!-- GLOBAL CRISIS INDEX - NUCLEAR NEWSJACKING BANNER v5.8       -->
-<!-- Domain: globalcrisisindex.com | Updated: 2026-07-12        -->
-<!-- LATEST: 4th Night of U.S. Strikes – 400+ Targets Hit       -->
-<!-- ============================================================ -->
-
-<!-- ====== PRELOAD CRITICAL RESOURCES ====== -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
-<!-- ====== BANNER HTML ====== -->
-<header 
-  id="global-crisis-banner"
-  itemscope 
-  itemtype="https://schema.org/NewsArticle"
-  style="
-    --gci-red: #ff1744;
-    --gci-dark: #0a0a0f;
-    --gci-glass: rgba(10, 10, 15, 0.97);
-    --gci-glow: rgba(255, 23, 68, 0.4);
-    
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 999999;
-    width: 100%;
-    background: var(--gci-glass);
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
-    border-bottom: 2px solid var(--gci-red);
-    box-shadow: 0 4px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    padding: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  "
->
-
-  <!-- ====== SCHEMA.ORG (MAXIMUM STRUCTURED DATA) ====== -->
-  <meta itemprop="headline" content="BREAKING: U.S. Launches 4th Night of 'Heaviest Bombardment' – Iran Strait Closed, 400+ Targets Hit | Global Crisis Index">
-  <meta itemprop="alternativeHeadline" content="US-Iran War Live: Trump: 1,000 Missiles 'Locked and Loaded' – Navy 5th Fleet Engaged – India Evacuates Citizens">
-  <meta itemprop="description" content="Live updates: The U.S. has launched a fourth consecutive night of strikes against Iran in what is being described as the 'heaviest bombardment' of the conflict. Over 100 new targets including naval bases, air defense systems, and command centers were hit, bringing the total to over 400 across four nights. Iran's Strait of Hormuz remains closed. Trump warns 1,000 missiles are 'locked and loaded' if Iran acts on assassination threats. The U.S. Navy 5th Fleet is actively engaged. India has begun evacuating its citizens from Iran and Gulf states. Khamenei's revenge vow stands. Mediators (Qatar, Oman, Pakistan) continue efforts. July 12, 2026.">
-  <meta itemprop="datePublished" content="2026-07-12T05:42:00+00:00">
-  <meta itemprop="dateModified" content="2026-07-12T05:45:00+00:00">
-  <meta itemprop="author" content="Global Crisis Index Intelligence Desk">
-  <meta itemprop="mainEntityOfPage" content="https://www.globalcrisisindex.com/">
-  <meta itemprop="articleSection" content="Geopolitical Crisis | Breaking News | US-Iran War">
-  <meta itemprop="keywords" content="US strikes Iran 4th night, heaviest bombardment, Trump 1000 missiles locked and loaded, Iran closes Strait of Hormuz, Khamenei revenge, US Navy 5th Fleet, India evacuates Iran, Gulf War 2026, CENTCOM strikes, geopolitical crisis, Global Crisis Index">
-  
-  <!-- CRITICAL SCHEMA FLAGS -->
-  <meta itemprop="isBreakingNews" content="True">
-  <meta itemprop="isLiveBlog" content="True">
-  <meta itemprop="isAccessibleForFree" content="True">
-  <meta itemprop="inLanguage" content="en-US">
-  
-  <link itemprop="url" href="https://www.globalcrisisindex.com/">
-  <link itemprop="image" href="https://www.globalcrisisindex.com/images/og-us-iran-war-2026.jpg">
-
-  <!-- ====== OPEN GRAPH (SOCIAL TAKEOVER) ====== -->
-  <meta property="og:title" content="🚨 BREAKING: U.S. Launches 4th Night of 'Heaviest Bombardment' – 400+ Targets Hit, Iran Strait Closed">
-  <meta property="og:description" content="Live: U.S. launches 4th night of strikes – over 100 new targets hit. Total 400+ across 4 nights. Trump: 1,000 missiles 'locked and loaded.' Navy 5th Fleet engaged. India evacuates citizens. Global Crisis Index tracking in real-time.">
-  <meta property="og:type" content="article">
-  <meta property="og:url" content="https://www.globalcrisisindex.com/">
-  <meta property="og:site_name" content="Global Crisis Index">
-  <meta property="og:image" content="https://www.globalcrisisindex.com/images/og-us-iran-war-2026.jpg">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:locale" content="en_US">
-  <meta property="article:published_time" content="2026-07-12T05:42:00+00:00">
-  <meta property="article:modified_time" content="2026-07-12T05:45:00+00:00">
-  <meta property="article:section" content="Breaking News">
-  <meta property="article:tag" content="US-Iran War">
-  <meta property="article:tag" content="Middle East Crisis">
-  <meta property="article:tag" content="Strait of Hormuz">
-  <meta property="article:tag" content="Trump">
-  <meta property="article:tag" content="Khamenei">
-  <meta property="article:tag" content="US Navy">
-  <meta property="article:tag" content="Geopolitical Risk">
-
-  <!-- ====== TWITTER CARDS ====== -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@GlobalCrisisIdx">
-  <meta name="twitter:creator" content="@GlobalCrisisIdx">
-  <meta name="twitter:title" content="🚨 BREAKING: U.S. Launches 4th Night of 'Heaviest Bombardment' – 400+ Targets Hit">
-  <meta name="twitter:description" content="U.S. launches 4th night of strikes – 100+ new targets hit. Total 400+ across 4 nights. Trump: 1,000 missiles 'locked and loaded.' Navy 5th Fleet engaged. India evacuates.">
-  <meta name="twitter:image" content="https://www.globalcrisisindex.com/images/og-us-iran-war-2026.jpg">
-
-  <!-- ====== ADDITIONAL SEO METADATA ====== -->
-  <meta name="news_keywords" content="US strikes Iran 4th night, heaviest bombardment, Trump 1000 missiles, Iran closes Strait of Hormuz, US Navy 5th Fleet, India evacuates Iran, Gulf War, CENTCOM, Middle East crisis, breaking news, Global Crisis Index">
-  <link rel="canonical" href="https://www.globalcrisisindex.com/">
-  <link rel="alternate" type="application/rss+xml" title="Global Crisis Index - Live Feed" href="https://www.globalcrisisindex.com/feed.xml">
-
-  <!-- ====== VISIBLE BANNER UI ====== -->
-  <div style="
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    min-height: 56px;
-  ">
-    
-    <!-- ====== LEFT: STATUS + HEADLINE ====== -->
-    <div style="
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1 1 0;
-      min-width: 240px;
-    ">
-      
-      <!-- LIVE BADGE (ANIMATED) -->
-      <div style="
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 23, 68, 0.12);
-        border: 1px solid rgba(255, 23, 68, 0.3);
-        padding: 4px 14px 4px 10px;
-        border-radius: 100px;
-        flex-shrink: 0;
-      ">
-        <span style="
-          position: relative;
-          display: flex;
-          width: 10px;
-          height: 10px;
-        ">
-          <span style="
-            position: absolute;
-            inset: -2px;
-            background: var(--gci-red);
-            border-radius: 50%;
-            animation: gci-pulse 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          "></span>
-          <span style="
-            position: relative;
-            display: inline-flex;
-            border-radius: 50%;
-            width: 10px;
-            height: 10px;
-            background: var(--gci-red);
-          "></span>
-        </span>
-        <span style="
-          color: var(--gci-red);
-          font-size: 0.55rem;
-          font-weight: 800;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-        ">LIVE · BREAKING</span>
-      </div>
-
-      <!-- H1 HEADLINE (UPDATED) -->
-      <h1 style="
-        margin: 0;
-        font-size: clamp(0.75rem, 1.5vw, 1.1rem);
-        font-weight: 700;
-        line-height: 1.3;
-        color: #f5f5f7;
-        letter-spacing: -0.01em;
-      ">
-        <span style="font-weight: 400; color: #a8a8b3;">US-Iran War:</span>
-        4th Night – 'Heaviest Bombardment' Yet
-        <span style="
-          display: inline-block;
-          background: rgba(255, 23, 68, 0.08);
-          padding: 1px 10px;
-          border-radius: 100px;
-          font-size: 0.7em;
-          font-weight: 600;
-          color: #ff6b8a;
-          margin-left: 4px;
-        ">400+ Targets</span>
-      </h1>
-    </div>
-
-    <!-- ====== RIGHT: SOURCES + CTA ====== -->
-    <div style="
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-shrink: 0;
-    ">
-      
-      <!-- SOURCE LINKS (UPDATED) -->
-      <div style="
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 0.65rem;
-        color: #6e6e7a;
-      ">
-        <span style="font-weight: 500; color: #4a4a55;">Verified:</span>
-        
-        <a href="https://www.centcom.mil/" 
-           target="_blank" 
-           rel="noopener noreferrer" 
-           class="gci-source"
-           style="color: #a8a8b3; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1px; transition: all 0.2s; font-weight: 500;"
-           onmouseover="this.style.color='#ffffff'; this.style.borderBottomColor='var(--gci-red)';"
-           onmouseout="this.style.color='#a8a8b3'; this.style.borderBottomColor='rgba(255,255,255,0.08)';"
-        >CENTCOM</a>
-        
-        <span style="color: #2a2a35;">|</span>
-        
-        <a href="https://www.reuters.com" 
-           target="_blank" 
-           rel="noopener noreferrer" 
-           class="gci-source"
-           style="color: #a8a8b3; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1px; transition: all 0.2s;"
-           onmouseover="this.style.color='#ffffff'; this.style.borderBottomColor='var(--gci-red)';"
-           onmouseout="this.style.color='#a8a8b3'; this.style.borderBottomColor='rgba(255,255,255,0.08)';"
-        >Reuters</a>
-        
-        <span style="color: #2a2a35;">|</span>
-        
-        <a href="https://www.aljazeera.com" 
-           target="_blank" 
-           rel="noopener noreferrer" 
-           class="gci-source"
-           style="color: #a8a8b3; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1px; transition: all 0.2s;"
-           onmouseover="this.style.color='#ffffff'; this.style.borderBottomColor='var(--gci-red)';"
-           onmouseout="this.style.color='#a8a8b3'; this.style.borderBottomColor='rgba(255,255,255,0.08)';"
-        >Al Jazeera</a>
-        
-        <span style="color: #2a2a35;">|</span>
-        
-        <a href="https://www.bbc.com" 
-           target="_blank" 
-           rel="noopener noreferrer" 
-           class="gci-source"
-           style="color: #a8a8b3; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1px; transition: all 0.2s;"
-           onmouseover="this.style.color='#ffffff'; this.style.borderBottomColor='var(--gci-red)';"
-           onmouseout="this.style.color='#a8a8b3'; this.style.borderBottomColor='rgba(255,255,255,0.08)';"
-        >BBC</a>
-        
-        <span style="color: #2a2a35;">|</span>
-        
-        <a href="https://www.globalcrisisindex.com/?country=IRN" 
-           style="color: #a8a8b3; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1px; transition: all 0.2s; font-weight: 500;"
-           onmouseover="this.style.color='var(--gci-red)'; this.style.borderBottomColor='var(--gci-red)';"
-           onmouseout="this.style.color='#a8a8b3'; this.style.borderBottomColor='rgba(255,255,255,0.08)';"
-        >+28 Sources</a>
-      </div>
-
-      <!-- ====== PRIMARY CTA ====== -->
-      <a href="https://www.globalcrisisindex.com/?country=IRN" 
-         style="
-           display: inline-flex;
-           align-items: center;
-           gap: 8px;
-           background: linear-gradient(135deg, #ff1744 0%, #d50000 100%);
-           color: #ffffff;
-           padding: 6px 20px 6px 16px;
-           border-radius: 100px;
-           text-decoration: none;
-           font-size: 0.7rem;
-           font-weight: 700;
-           letter-spacing: 0.02em;
-           box-shadow: 0 2px 20px rgba(255, 23, 68, 0.3);
-           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-           white-space: nowrap;
-         "
-         onmouseover="this.style.transform='translateY(-2px) scale(1.04)'; this.style.boxShadow='0 8px 40px rgba(255, 23, 68, 0.5)';"
-         onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 2px 20px rgba(255, 23, 68, 0.3)';"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L12 22M12 2L20 10M12 2L4 10" opacity="0.5"/>
-          <path d="M12 22L20 14M12 22L4 14"/>
-        </svg>
-        ⚡ Intelligence Briefing
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-          <polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </a>
-    </div>
-  </div>
-</header>
-
-<!-- ====== STYLES ====== -->
-<style>
-  @keyframes gci-pulse {
-    0%   { transform: scale(1); opacity: 0.6; }
-    50%  { transform: scale(2.2); opacity: 0; }
-    100% { transform: scale(1); opacity: 0; }
-  }
-
-  /* Hover effects for all source links */
-  .gci-source {
-    transition: all 0.2s ease;
-  }
-  .gci-source:hover {
-    color: #ffffff !important;
-    border-bottom-color: var(--gci-red) !important;
-  }
-
-  /* Mobile responsiveness */
-  @media (max-width: 820px) {
-    #global-crisis-banner > div {
-      padding: 10px 16px;
-      min-height: auto;
-      gap: 10px;
-    }
-    #global-crisis-banner .source-links {
-      display: none;
-    }
-  }
-
-  @media (max-width: 580px) {
-    #global-crisis-banner > div {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-    }
-    #global-crisis-banner h1 {
-      font-size: 0.7rem !important;
-    }
-    #global-crisis-banner .cta-button {
-      justify-content: center;
-      font-size: 0.6rem !important;
-      padding: 4px 14px !important;
-    }
-    #global-crisis-banner .live-badge {
-      font-size: 0.45rem !important;
-      padding: 2px 10px !important;
-    }
-  }
-</style>
-
-<!-- ====== JSON-LD (GOOGLE'S PREFERRED FORMAT) ====== -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "NewsArticle",
-  "headline": "BREAKING: U.S. Launches 4th Night of 'Heaviest Bombardment' – Iran Strait Closed, 400+ Targets Hit | Global Crisis Index",
-  "alternativeHeadline": "US-Iran War Live: Trump: 1,000 Missiles 'Locked and Loaded' – Navy 5th Fleet Engaged – India Evacuates Citizens",
-  "description": "Live updates: The U.S. has launched a fourth consecutive night of strikes against Iran in what is being described as the 'heaviest bombardment' of the conflict. Over 100 new targets including naval bases, air defense systems, and command centers were hit, bringing the total to over 400 across four nights. Iran's Strait of Hormuz remains closed. Trump warns 1,000 missiles are 'locked and loaded' if Iran acts on assassination threats. The U.S. Navy 5th Fleet is actively engaged. India has begun evacuating its citizens from Iran and Gulf states. Khamenei's revenge vow stands. Mediators (Qatar, Oman, Pakistan) continue efforts. July 12, 2026.",
-  "url": "https://www.globalcrisisindex.com/",
-  "datePublished": "2026-07-12T05:42:00+00:00",
-  "dateModified": "2026-07-12T05:45:00+00:00",
-  "isBreakingNews": "True",
-  "isLiveBlog": "True",
-  "isAccessibleForFree": "True",
-  "articleSection": "Geopolitical Crisis | Breaking News | US-Iran War",
-  "keywords": "US strikes Iran 4th night, heaviest bombardment, Trump 1000 missiles locked and loaded, Iran closes Strait of Hormuz, Khamenei revenge, US Navy 5th Fleet, India evacuates Iran, Gulf War 2026, CENTCOM strikes, geopolitical crisis, Global Crisis Index",
-  "author": {
-    "@type": "Organization",
-    "name": "Global Crisis Index Intelligence Desk",
-    "url": "https://www.globalcrisisindex.com/"
+  "@type": "Dataset",
+  "name": "Global Crisis Index — Real-Time Crisis Intelligence Dataset",
+  "description": "Live global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries. Updated every 5 minutes from 40+ public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb, ACLED, FAO, FEWS NET).",
+  "url": "https://globalcrisisindex.com",
+  "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "version": "2.0.1",
+  "versionModifiedDate": "2026-07-13",
+  "license": {
+    "@type": "CreativeWork",
+    "name": "Creative Commons Attribution 4.0 International",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
   },
-  "publisher": {
+  "creator": {
     "@type": "Organization",
-    "name": "Global Crisis Index",
-    "url": "https://www.globalcrisisindex.com/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://www.globalcrisisindex.com/images/logo.png"
+    "name": "GCIS Fusion",
+    "url": "https://globalcrisisindex.com",
+    "logo": "https://globalcrisisindex.com/favicon.png"
+  },
+  "includedInDataCatalog": {
+    "@type": "DataCatalog",
+    "name": "GCIS Fusion Crisis Intelligence",
+    "url": "https://globalcrisisindex.com",
+    "description": "Enterprise-grade API for real-time crisis monitoring and humanitarian risk assessment"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/json",
+    "contentUrl": "https://www.globalcrisisindex.com/api/top-story",
+    "contentSize": "2.4 MB",
+    "fileFormat": "JSON"
+  },
+  "temporalCoverage": "2024-01-01/..",
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Worldwide (190+ countries and territories)",
+    "geo": {
+      "@type": "GeoShape",
+      "box": "-180 -90 180 90"
     }
   },
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": "https://www.globalcrisisindex.com/"
-  },
+  "keywords": [
+    "global crisis index",
+    "humanitarian risk",
+    "conflict monitoring",
+    "displacement tracking",
+    "food security",
+    "IPC phase",
+    "earthquake alerts",
+    "flood monitoring",
+    "disease outbreak",
+    "climate risk",
+    "geopolitical risk",
+    "OSINT",
+    "live crisis data",
+    "API intelligence",
+    "polycrisis",
+    "Yemen crisis",
+    "Sudan conflict",
+    "Ukraine war",
+    "Palestine emergency",
+    "DRC humanitarian"
+  ],
+  "variableMeasured": [
+    "Crisis urgency score (0-100 weighted composite)",
+    "Anomaly detection z-score (statistical deviation)",
+    "Displacement totals (refugees + IDPs)",
+    "Food security IPC phase (1-5)",
+    "Conflict event count (ACLED-derived)",
+    "Disease outbreak case counts (WHO/disease.sh)",
+    "Economic indicators (GDP, inflation, unemployment)",
+    "Climate hazards (heat, precipitation, floods)"
+  ],
+  "measurementTechnique": "Automated ETL pipeline with 40+ live public API sources. Weighted composite scoring with non-linear interaction effects, cusum anomaly detection, and live evidence boosting. Refreshed every 5 minutes via serverless architecture.",
+  "citation": [
+    "Global Crisis Index Dataset (2024). GCIS Fusion. https://www.globalcrisisindex.com/api/top-story",
+    "Hugging Face Dataset Card: jmm6993/global-crisis-index (86 downloads, 2024-2026)"
+  ],
   "about": [
     {
       "@type": "Thing",
-      "name": "US-Iran War 2026 – 4th Night of Strikes"
+      "name": "Humanitarian Crisis Monitoring"
     },
     {
       "@type": "Thing",
-      "name": "Heaviest U.S. Bombardment of Conflict"
+      "name": "Conflict & Displacement Tracking"
     },
     {
       "@type": "Thing",
-      "name": "Strait of Hormuz Closed by Iran"
+      "name": "Food Security Early Warning"
     },
     {
       "@type": "Thing",
-      "name": "Trump 1,000 Missiles Locked and Loaded"
-    },
-    {
-      "@type": "Thing",
-      "name": "U.S. Navy 5th Fleet Engaged"
-    },
-    {
-      "@type": "Thing",
-      "name": "India Evacuates Citizens from Iran"
-    },
-    {
-      "@type": "Thing",
-      "name": "Khamenei Revenge Vow"
-    },
-    {
-      "@type": "Thing",
-      "name": "CENTCOM Operation Epic Fury"
+      "name": "Climate Hazard Detection"
     }
   ],
-  "mentions": [
-    "Strait of Hormuz",
-    "Iran",
-    "United States",
-    "CENTCOM",
-    "Trump",
-    "Khamenei",
-    "US Navy 5th Fleet",
-    "India",
-    "Qatar",
-    "UAE",
-    "Kuwait",
-    "Bahrain",
-    "Oman",
-    "Jordan",
-    "IRGC",
-    "Persian Gulf"
-  ],
-  "potentialAction": {
-    "@type": "ReadAction",
-    "target": "https://www.globalcrisisindex.com/?country=IRN"
+  "isAccessibleForFree": true,
+  "inLanguage": "en",
+  "maintainer": {
+    "@type": "Organization",
+    "name": "GCIS Fusion Intelligence Desk",
+    "email": "contact@globalcrisisindex.com"
   }
 }
 </script>
-
 <!-- ====== CRITICAL SEO: SITELINK SEARCHBOX ====== -->
 <script type="application/ld+json">
 {
