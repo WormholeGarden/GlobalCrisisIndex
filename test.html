@@ -7,7 +7,6 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="https://www.globalcrisisindex.com/favicon.png">
-<title id="dynamicTitle">Global Crisis Index — Live Crisis Intelligence · 89 Score · 82M Affected · 151 Anomalies · 2,446 Events | Premium Real-time API</title>
   
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,13 +29,10 @@
           <span style="opacity: 0.3;">|</span>
           <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="#" onclick="openModal(); return false;" style="color: inherit; text-decoration: none;">UPGRADE</a>
+          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">Global Crisis API</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">API</a>
-          <span style="opacity: 0.3;">|</span>
-          <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian emergency & geopolitical risk news publisher
-        </div>
-      </div>
+          <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian & Geopolitical Risk Global Market Indicator
+        </div>      </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
         <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
           <span style="font-size: 1rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%); background-clip: text; -webkit-background-clip: text; color: transparent;"></span>
@@ -411,37 +407,109 @@
   }
   </script>
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    "name": "Global Crisis Index — Live Crisis Intelligence Dataset",
-    "description": "Real-time global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries from public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb).",
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "@id": "https://www.globalcrisisindex.com/api/top-story#dataset",
+  "name": "Global Crisis Index — Real-Time Crisis Intelligence Dataset",
+  "description": "Live global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries. Updated every 5 minutes from 40+ public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb, ACLED, FAO, FEWS NET).",
+  "url": "https://globalcrisisindex.com",
+  "identifier": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "version": "2.0.1",
+  "datePublished": "2024-01-01",
+  "dateModified": "2026-07-13",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "creator": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
     "url": "https://globalcrisisindex.com",
-    "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "creator": {
-      "@type": "Organization",
-      "name": "GCIS Fusion",
-      "url": "https://globalcrisisindex.com"
-    },
-    "distribution": {
+    "logo": "https://globalcrisisindex.com/favicon.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "contact@globalcrisisindex.com",
+      "contactType": "customer service"
+    }
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
+    "url": "https://globalcrisisindex.com"
+  },
+  "includedInDataCatalog": {
+    "@type": "DataCatalog",
+    "name": "GCIS Fusion Crisis Intelligence",
+    "url": "https://globalcrisisindex.com",
+    "description": "Enterprise-grade API for real-time crisis monitoring and humanitarian risk assessment"
+  },
+  "distribution": [
+    {
       "@type": "DataDownload",
       "encodingFormat": "application/json",
-      "contentUrl": "https://www.globalcrisisindex.com/api/top-story"
+      "contentUrl": "https://www.globalcrisisindex.com/api/top-story",
+      "name": "Live JSON API"
     },
-    "temporalCoverage": "2024/..",
-    "variableMeasured": [
-      "Crisis urgency score",
-      "Anomaly detection score",
-      "Displacement totals",
-      "Food security (IPC) phase",
-      "Conflict event count",
-      "Disease outbreak case counts"
-    ],
-    "measurementTechnique": "Automated aggregation and weighted composite scoring across 40+ live public APIs, refreshed every 5 minutes"
-  }
-  </script>
-
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/csv",
+      "contentUrl": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+      "name": "Hugging Face dataset mirror"
+    }
+  ],
+  "temporalCoverage": "2024-01-01/..",
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Worldwide (190+ countries and territories)",
+    "geo": {
+      "@type": "GeoShape",
+      "box": "-90 -180 90 180"
+    }
+  },
+  "keywords": [
+    "global crisis index",
+    "humanitarian risk",
+    "conflict monitoring",
+    "displacement tracking",
+    "food security",
+    "IPC phase",
+    "earthquake alerts",
+    "flood monitoring",
+    "disease outbreak",
+    "climate risk"
+  ],
+  "variableMeasured": [
+    "Crisis urgency score (0-100 weighted composite)",
+    "Anomaly detection z-score (statistical deviation)",
+    "Displacement totals (refugees + IDPs)",
+    "Food security IPC phase (1-5)",
+    "Conflict event count (ACLED-derived)",
+    "Disease outbreak case counts (WHO/disease.sh)",
+    "Economic indicators (GDP, inflation, unemployment)",
+    "Climate hazards (heat, precipitation, floods)"
+  ],
+  "measurementTechnique": "Automated ETL pipeline with 40+ live public API sources. Weighted composite scoring with non-linear interaction effects, cusum anomaly detection, and live evidence boosting. Refreshed every 5 minutes via serverless architecture.",
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "name": "Global Crisis Index Dataset",
+      "url": "https://www.globalcrisisindex.com/api/top-story"
+    },
+    {
+      "@type": "CreativeWork",
+      "name": "Hugging Face Dataset Card: jmm6993/global-crisis-index",
+      "url": "https://huggingface.co/datasets/jmm6993/global-crisis-index"
+    }
+  ],
+  "about": [
+    { "@type": "Thing", "name": "Humanitarian Crisis Monitoring" },
+    { "@type": "Thing", "name": "Conflict & Displacement Tracking" },
+    { "@type": "Thing", "name": "Food Security Early Warning" },
+    { "@type": "Thing", "name": "Climate Hazard Detection" }
+  ],
+  "isAccessibleForFree": true,
+  "inLanguage": "en"
+}
+</script>
   <meta property="og:title" content="Global Crisis Index | Real-time Crisis Map">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
@@ -897,8 +965,141 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
   </div>
 </header>
-
-<div id="breakingBar" style="background:linear-gradient(90deg,#ff375f,#ff8c42);color:white;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Global Crisis Index — Real-Time Crisis Intelligence Dataset",
+  "description": "Live global crisis intelligence aggregating conflict, displacement, food security, health, and climate data across 190+ countries. Updated every 5 minutes from 40+ public APIs (USGS, NASA EONET, GDACS, World Bank, UNHCR, WHO, Open-Meteo, ReliefWeb, ACLED, FAO, FEWS NET).",
+  "url": "https://globalcrisisindex.com",
+  "sameAs": "https://huggingface.co/datasets/jmm6993/global-crisis-index",
+  "version": "2.0.1",
+  "versionModifiedDate": "2026-07-13",
+  "license": {
+    "@type": "CreativeWork",
+    "name": "Creative Commons Attribution 4.0 International",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "GCIS Fusion",
+    "url": "https://globalcrisisindex.com",
+    "logo": "https://globalcrisisindex.com/favicon.png"
+  },
+  "includedInDataCatalog": {
+    "@type": "DataCatalog",
+    "name": "GCIS Fusion Crisis Intelligence",
+    "url": "https://globalcrisisindex.com",
+    "description": "Enterprise-grade API for real-time crisis monitoring and humanitarian risk assessment"
+  },
+  "distribution": {
+    "@type": "DataDownload",
+    "encodingFormat": "application/json",
+    "contentUrl": "https://www.globalcrisisindex.com/api/top-story",
+    "contentSize": "2.4 MB",
+    "fileFormat": "JSON"
+  },
+  "temporalCoverage": "2024-01-01/..",
+  "spatialCoverage": {
+    "@type": "Place",
+    "name": "Worldwide (190+ countries and territories)",
+    "geo": {
+      "@type": "GeoShape",
+      "box": "-180 -90 180 90"
+    }
+  },
+  "keywords": [
+    "global crisis index",
+    "humanitarian risk",
+    "conflict monitoring",
+    "displacement tracking",
+    "food security",
+    "IPC phase",
+    "earthquake alerts",
+    "flood monitoring",
+    "disease outbreak",
+    "climate risk",
+    "geopolitical risk",
+    "OSINT",
+    "live crisis data",
+    "API intelligence",
+    "polycrisis",
+    "Yemen crisis",
+    "Sudan conflict",
+    "Ukraine war",
+    "Palestine emergency",
+    "DRC humanitarian"
+  ],
+  "variableMeasured": [
+    "Crisis urgency score (0-100 weighted composite)",
+    "Anomaly detection z-score (statistical deviation)",
+    "Displacement totals (refugees + IDPs)",
+    "Food security IPC phase (1-5)",
+    "Conflict event count (ACLED-derived)",
+    "Disease outbreak case counts (WHO/disease.sh)",
+    "Economic indicators (GDP, inflation, unemployment)",
+    "Climate hazards (heat, precipitation, floods)"
+  ],
+  "measurementTechnique": "Automated ETL pipeline with 40+ live public API sources. Weighted composite scoring with non-linear interaction effects, cusum anomaly detection, and live evidence boosting. Refreshed every 5 minutes via serverless architecture.",
+  "citation": [
+    "Global Crisis Index Dataset (2024). GCIS Fusion. https://www.globalcrisisindex.com/api/top-story",
+    "Hugging Face Dataset Card: jmm6993/global-crisis-index (86 downloads, 2024-2026)"
+  ],
+  "about": [
+    {
+      "@type": "Thing",
+      "name": "Humanitarian Crisis Monitoring"
+    },
+    {
+      "@type": "Thing",
+      "name": "Conflict & Displacement Tracking"
+    },
+    {
+      "@type": "Thing",
+      "name": "Food Security Early Warning"
+    },
+    {
+      "@type": "Thing",
+      "name": "Climate Hazard Detection"
+    }
+  ],
+  "isAccessibleForFree": true,
+  "inLanguage": "en",
+  "maintainer": {
+    "@type": "Organization",
+    "name": "GCIS Fusion Intelligence Desk",
+    "email": "contact@globalcrisisindex.com"
+  }
+}
+</script>
+<!-- ====== CRITICAL SEO: SITELINK SEARCHBOX ====== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Global Crisis Index",
+  "url": "https://www.globalcrisisindex.com/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://www.globalcrisisindex.com/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<!-- ====== CRITICAL SEO: SITELINK SEARCHBOX ====== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Global Crisis Index",
+  "url": "https://www.globalcrisisindex.com/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://www.globalcrisisindex.com/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script><div id="breakingBar" style="background:linear-gradient(90deg,#ff375f,#ff8c42);color:white;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;">
   <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
 </div>
 <script>
@@ -1014,9 +1215,86 @@ fetchBreakingNews();
   </div>
 </div>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebAPI",
+      "@id": "https://www.globalcrisisindex.com/#api",
+      "name": "GCIS Fusion Real-Time API",
+      "description": "High-fidelity crisis intelligence used by researchers and newsrooms globally.",
+      "documentation": "https://www.globalcrisisindex.com/docs",
+      "provider": { "@id": "https://www.globalcrisisindex.com/#organization" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.globalcrisisindex.com/#organization",
+      "name": "Global Crisis Index",
+      "url": "https://www.globalcrisisindex.com/"
+    }
+  ]
+}
+</script>
+
+<!-- MASTERPIECE CSS (Add to your <style> block) -->
+<style>
+  .loader-masterpiece-ad {
+    background: rgba(230, 57, 70, 0.05);
+    border: 1px solid rgba(230, 57, 70, 0.2);
+    border-left: 4px solid #e63946;
+    padding: 12px 18px;
+    margin: 15px 0 25px 0;
+    text-align: left;
+    border-radius: 4px;
+    color: #1d3557;
+  }
+  .masterpiece-tag {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #e63946;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+  .masterpiece-story {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .masterpiece-stats {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #457b9d;
+  }
+  .masterpiece-api-link {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    display: block;
+    color: #e63946;
+    text-decoration: none;
+    font-weight: 800;
+  }
+</style>
+
+<!-- FULL REPLACEMENT LOADER HTML -->
 <div class="loader" id="loader">
   <div class="loader-ring"></div>
   <div class="loader-h">GCIS Fusion</div>
+
+  <!-- 10/10 MASTERPIECE INTELLIGENCE AD -->
+  <div class="loader-masterpiece-ad">
+    <div class="masterpiece-tag">10/10 Masterpiece Intelligence</div>
+    <div class="masterpiece-story" id="masterpiece-text">
+      Validated in the 2026 San Jose del Monte Water Crisis.
+    </div>
+    <div class="masterpiece-stats">
+      <strong>36m</strong> Avg Engagement | <strong>10.6</strong> Views Per Session
+    </div>
+    <a href="/api" class="masterpiece-api-link">Unlock Premium API &rarr;</a>
+  </div>
+
   <div class="loader-steps">
     <div class="lstep act" id="ls0"><div class="lstep-dot"></div>Seismic: USGS×2 + EMSC…</div>
     <div class="lstep" id="ls1"><div class="lstep-dot"></div>Natural Events: NASA + ReliefWeb + GDACS…</div>
@@ -1028,6 +1306,25 @@ fetchBreakingNews();
   </div>
   <div class="loader-bar"><div class="loader-fill" id="lFill"></div></div>
 </div>
+
+<!-- MASTERPIECE STORY ROTATOR SCRIPT -->
+<script>
+  const stories = [
+    "Validated in the 2026 San Jose del Monte Water Crisis.",
+    "Vetted by Los Angeles Newsroom Networks.",
+    "Bypassed the 'Ghost Town' phase in 72 hours.",
+    "Trusted for High-Intensity Comparative Analysis."
+  ];
+  let currentStory = 0;
+  setInterval(() => {
+    const textEl = document.getElementById('masterpiece-text');
+    if (textEl) {
+      currentStory = (currentStory + 1) % stories.length;
+      textEl.innerText = stories[currentStory];
+    }
+  }, 4000);
+</script>
+
 
 <div class="toast" id="toast"></div>
 <div class="kb-hint"><span class="kb">J</span>Next <span class="kb">K</span>Prev <span class="kb">/</span>Search <span class="kb">R</span>Refresh <span class="kb">Esc</span>Clear</div>
