@@ -1403,10 +1403,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     "query-input": "required name=search_term_string"
   }
 }
-</script><div id="breakingBar" style="background:linear-gradient(90deg,#ff375f,#ff8c42);color:white;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;">
+</script><<div id="breakingBar" style="background:linear-gradient(90deg, #ff1744 0%, #d50000 50%, #b71c1c 100%);color:#ffffff;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;border-bottom:1px solid rgba(255,23,68,0.3);box-shadow:0 2px 12px rgba(255,23,68,0.25);text-shadow:0 1px 2px rgba(0,0,0,0.3);">
   <span id="breakingText">⚡ BREAKING: Loading latest global alerts...</span>
-</div>
-<script>
+</div><script>
 async function fetchBreakingNews(){
   try{
     const response=await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
