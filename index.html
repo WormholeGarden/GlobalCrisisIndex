@@ -44,56 +44,501 @@
   </div>
 
   <style>
-/* ─── RSS HEADLINE BOX ─── */
-.rss-headline-box {
-  background: linear-gradient(135deg, rgba(255,55,95,0.08), rgba(255,140,66,0.04));
-  border: 1px solid rgba(255,55,95,0.2);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin: 0 0 10px 0;
+/* ─── FUTURISTIC UI v3.0 — GCIS NEXUS ─── */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+:root {
+  --neon-blue: #00f0ff;
+  --neon-purple: #b44aff;
+  --neon-pink: #ff2d95;
+  --void: #05060f;
+  --surface: rgba(8, 15, 30, 0.82);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(0, 240, 255, 0.12);
+  --text-primary: #e2f0ff;
+  --text-secondary: #8ab0d4;
+  --text-dim: #3a5a7a;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; background: var(--void); color: var(--text-primary); font-family: var(--font-body); font-size: 14px; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(180, 74, 255, 0.06) 0%, transparent 50%),
+    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.01) 0px, rgba(0, 240, 255, 0.01) 2px, transparent 2px, transparent 6px);
+  pointer-events: none;
+}
+
+.app { display:flex; flex-direction:column; height:100vh; position:relative; z-index:1; }
+
+/* ─── HEADER (REPLACED BELOW) ─── */
+.futuristic-header {
+  height: 64px;
+  background: rgba(5, 6, 15, 0.95);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
+  padding: 0 24px;
+  flex-shrink: 0;
+  gap: 12px;
+  position: relative;
+  z-index: 100;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+.futuristic-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 10%;
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), var(--neon-purple), transparent);
+  opacity: 0.3;
 }
 
-.rss-headline-box .headline-text {
-  font-size: 12px;
-  color: var(--tp);
-  line-height: 1.3;
+.brand-future {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.logo-hologram {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(180, 74, 255, 0.1));
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+  position: relative;
+}
+.logo-hologram::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 10px;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+}
+.brand-name-future {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 20%, var(--neon-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.brand-sub-future {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+
+.header-center {
   flex: 1;
-  min-width: 0;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.gcis-chip-future {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.12);
+  border-radius: 12px;
+  padding: 4px 16px 4px 12px;
+  backdrop-filter: blur(4px);
+}
+.gcis-chip-future .gcis-label {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.gcis-chip-future .gcis-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+.gcis-chip-future .gcis-delta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 700;
+  background: rgba(0, 229, 160, 0.1);
+  color: #00e5a0;
 }
 
-.rss-headline-box .read-btn {
-  background: rgba(255,55,95,0.12);
-  border: 1px solid rgba(255,55,95,0.25);
+.stat-strip-future {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stat-future {
+  text-align: center;
+}
+.stat-future .stat-v {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.stat-future .stat-l {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.stat-future .stat-v.rose { color: var(--neon-pink); text-shadow: 0 0 15px rgba(255, 45, 149, 0.3); }
+.stat-future .stat-v.cyan { color: var(--neon-blue); text-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
+.stat-future .stat-v.amber { color: #ffb020; text-shadow: 0 0 15px rgba(255, 176, 32, 0.3); }
+.stat-future .stat-v.purple { color: var(--neon-purple); text-shadow: 0 0 15px rgba(180, 74, 255, 0.3); }
+
+.header-right-future {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.live-pill-future {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.15);
   border-radius: 99px;
   padding: 4px 12px;
-  font-family: var(--fm);
-  font-size: 7px;
-  font-weight: 600;
-  color: var(--rose);
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.15s;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--neon-blue);
+  letter-spacing: 0.08em;
+}
+.live-dot-future {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon-blue);
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--neon-blue);
 }
 
-.rss-headline-box .read-btn:hover {
-  background: rgba(255,55,95,0.2);
-  border-color: rgba(255,55,95,0.4);
+.hbtn-future {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
-    @keyframes pulse-red {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.9); }
-    }
-    #breaking-headline::-webkit-scrollbar { height: 2px; }
-    #breaking-headline::-webkit-scrollbar-track { background: #0f172f; border-radius: 4px; }
-    #breaking-headline::-webkit-scrollbar-thumb { background: #3174c7; border-radius: 4px; }
-  </style>
+.hbtn-future:hover {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.3);
+  color: var(--neon-blue);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.05);
+}
+.hbtn-future.primary {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.2);
+  color: var(--neon-blue);
+}
+.hbtn-future.upgrade {
+  background: rgba(180, 74, 255, 0.1);
+  border-color: rgba(180, 74, 255, 0.2);
+  color: var(--neon-purple);
+}
+.hbtn-future.upgrade:hover {
+  background: rgba(180, 74, 255, 0.2);
+  border-color: rgba(180, 74, 255, 0.4);
+  box-shadow: 0 0 25px rgba(180, 74, 255, 0.1);
+}
+
+.tier-pill-future {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.tier-pill-future.free {
+  background: rgba(100, 120, 160, 0.1);
+  color: #8090b0;
+}
+.tier-pill-future.pro {
+  background: rgba(180, 74, 255, 0.15);
+  border-color: rgba(180, 74, 255, 0.3);
+  color: var(--neon-purple);
+  box-shadow: 0 0 20px rgba(180, 74, 255, 0.1);
+}
+
+.search-wrap-future {
+  position: relative;
+}
+.search-box-future {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 12px 6px 28px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--text-secondary);
+  outline: none;
+  transition: all 0.2s ease;
+  width: 130px;
+}
+.search-box-future:focus {
+  border-color: rgba(0, 240, 255, 0.3);
+  background: rgba(0, 240, 255, 0.04);
+  color: var(--text-primary);
+  width: 170px;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.03);
+}
+.search-box-future::placeholder { color: var(--text-dim); font-size: 10px; }
+.search-ico-future {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.search-box-future.locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+/* ─── SIDEBAR STYLING ─── */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-block {
+  padding: 12px 13px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.sb-heading {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.sb-action {
+  color: var(--neon-blue);
+  cursor: pointer;
+  transition: opacity 0.14s;
+  font-size: 8px;
+}
+.sb-action:hover { opacity: 0.7; }
+
+.rank-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.rank-card:hover {
+  border-color: rgba(0, 240, 255, 0.2);
+  background: rgba(0, 240, 255, 0.03);
+}
+.rank-card.sel {
+  border-left-color: var(--neon-blue);
+  background: rgba(0, 240, 255, 0.05);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.03);
+}
+.rank-n { font-family: var(--font-mono); font-size: 8px; color: var(--text-dim); width: 18px; flex-shrink: 0; }
+.rank-flag { font-size: 13px; flex-shrink: 0; }
+.rank-name { font-size: 12px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-score { font-family: var(--font-display); font-size: 18px; font-weight: 800; flex-shrink: 0; }
+
+/* ─── RIGHT PANEL ─── */
+.right-panel {
+  width: 400px;
+  flex-shrink: 0;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--glass-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── MAP LEGEND ─── */
+.map-legend {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(5, 6, 15, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  z-index: 20;
+}
+.leg-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 8px; color: var(--text-secondary); }
+.leg-dot { width: 9px; height: 9px; border-radius: 2px; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.2); border-radius: 99px; }
+
+/* ─── TICKER ─── */
+.ticker-bar {
+  height: 28px;
+  background: rgba(5, 6, 15, 0.95);
+  border-bottom: 1px solid var(--glass-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 99;
+}
+.ticker-label {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  color: var(--neon-blue);
+  background: rgba(0, 240, 255, 0.04);
+  border-right: 1px solid var(--glass-border);
+  padding: 0 12px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tick-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 20px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-secondary);
+  border-right: 1px solid var(--glass-border);
+  height: 100%;
+}
+.tick-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+/* ─── LOADER ─── */
+.loader {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(5, 6, 15, 0.98);
+  backdrop-filter: blur(40px);
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+}
+.loader-ring {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 240, 255, 0.08);
+  border-top-color: var(--neon-blue);
+  animation: spin 0.7s linear infinite;
+}
+.loader-h {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #fff, var(--neon-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%; height: 78vh; max-height: 640px;
+    z-index: 250;
+    border-right: none; border-top: 1px solid var(--glass-border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.sheet-open { transform: translateY(0); }
+  .right-panel { width: 100%; }
+  .stat-strip-future, .vdiv, .kb-hint, .freshness { display: none; }
+}
+@media (max-width: 550px) {
+  .brand-sub-future { display: none; }
+  .brand-name-future { font-size: 14px; }
+  .hbtn-future#pdfBtn, .hbtn-future#shareBtn, .hbtn-future#refreshBtn, #emailSignIn, .live-pill-future { display: none !important; }
+  .header { gap: 6px; padding: 0 10px; height: 52px; }
+}
+</style>
 
   <script>
     (function() {
@@ -937,35 +1382,75 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <body>
 
 <div class="app">
-<header class="header">
-  <div class="brand"><div class="brand-mark">🌍</div><div><div class="brand-name">GCIS Fusion</div><div class="brand-sub">Enterprise API Suite · Live Crisis Intelligence</div></div></div>
-  <div class="header-mid">
-    <div class="gcis-chip"><div><div class="gcis-label">Global Crisis Index</div><div class="gcis-num" id="gcisNum">—</div></div><div><div class="gcis-delta" id="gcisDelta">—</div></div></div>
-    <div class="vdiv"></div>
-    <div class="stat-strip">
-      <div class="stat"><div class="stat-v rose" id="sCrit">—</div><div class="stat-l">Critical</div></div>
-      <div class="stat"><div class="stat-v cyan" id="sAff">—</div><div class="stat-l">Affected</div></div>
-      <div class="stat"><div class="stat-v amber" id="sAnom">—</div><div class="stat-l">Anomalies</div></div>
-      <div class="stat"><div class="stat-v purple" id="sEvt">—</div><div class="stat-l">Events</div></div>
+<header class="futuristic-header">
+  <div class="brand-future">
+    <div class="logo-hologram">⚡</div>
+    <div>
+      <div class="brand-name-future">GCIS NEXUS</div>
+      <div class="brand-sub-future">▸ Quantum Intelligence Engine</div>
     </div>
   </div>
-  <div class="header-right">
-    <div class="freshness" id="freshness" style="display:none">UPDATED<span id="freshTime">—</span></div>
-    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-box" id="search" placeholder="Search country…"></div>
-    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+
+  <div class="header-center">
+    <div class="gcis-chip-future">
+      <div>
+        <div class="gcis-label">Global Crisis Index</div>
+        <div class="gcis-num" id="gcisNum">—</div>
+      </div>
+      <div>
+        <div class="gcis-delta" id="gcisDelta">—</div>
+      </div>
+    </div>
+    <div class="vdiv" style="width:1px;height:28px;background:var(--glass-border);flex-shrink:0;"></div>
+    <div class="stat-strip-future">
+      <div class="stat-future">
+        <div class="stat-v rose" id="sCrit">—</div>
+        <div class="stat-l">Critical</div>
+      </div>
+      <div class="stat-future">
+        <div class="stat-v cyan" id="sAff">—</div>
+        <div class="stat-l">Affected</div>
+      </div>
+      <div class="stat-future">
+        <div class="stat-v amber" id="sAnom">—</div>
+        <div class="stat-l">Anomalies</div>
+      </div>
+      <div class="stat-future">
+        <div class="stat-v purple" id="sEvt">—</div>
+        <div class="stat-l">Events</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-right-future">
+    <div class="freshness" id="freshness" style="display:none;font-family:var(--font-mono);font-size:7px;color:var(--text-dim);text-align:right;line-height:1.4;flex-shrink:0;">
+      UPDATED<span id="freshTime" style="color:var(--neon-blue);display:block;">—</span>
+    </div>
+
+    <div class="search-wrap-future">
+      <span class="search-ico-future">⌘</span>
+      <input class="search-box-future" id="search" placeholder="Search country…">
+    </div>
+
+    <div class="live-pill-future">
+      <div class="live-dot-future"></div>
+      LIVE
+    </div>
+
     <div id="emailSignIn" style="display:flex;align-items:center;gap:6px;">
-      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,.03);border:1px solid var(--b2);border-radius:var(--r1);padding:4px 8px;font-size:8px;color:var(--ts);width:120px;">
-      <button id="loginBtn" class="hbtn" style="font-size:6px;">Login</button>
-      <button id="logoutBtn" class="hbtn" style="font-size:6px;display:none;">Logout</button>
+      <input type="email" id="loginEmail" placeholder="Enter email" style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:6px;padding:4px 8px;font-size:7px;color:var(--text-secondary);width:110px;font-family:var(--font-mono);">
+      <button id="loginBtn" class="hbtn-future" style="font-size:6px;padding:4px 8px;">Login</button>
+      <button id="logoutBtn" class="hbtn-future" style="font-size:6px;padding:4px 8px;display:none;">Logout</button>
     </div>
-    <div class="tier-pill free" id="tierPill" onclick="openModal()">FREE</div>
-    <button class="hbtn" id="shareBtn">🔗 Share</button>
-    <button class="hbtn primary" id="refreshBtn">⟳ Refresh <span id="rcd">—</span></button>
-    <button class="hbtn" id="pdfBtn">📄 PDF Report</button>
-    <button class="hbtn upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
+
+    <div class="tier-pill-future free" id="tierPill" onclick="openModal()">FREE</div>
+
+    <button class="hbtn-future" id="shareBtn">⟡ Share</button>
+    <button class="hbtn-future primary" id="refreshBtn">↻ Refresh <span id="rcd">—</span></button>
+    <button class="hbtn-future" id="pdfBtn">⊞ PDF</button>
+    <button class="hbtn-future upgrade" onclick="window.open('https://buy.stripe.com/3cI00leBl2u06N1cod5ZC01','_blank')">⚡ Upgrade</button>
   </div>
-</header>
-<!-- ============================================================ -->
+</header><!-- ============================================================ -->
 <!-- GLOBAL CRISIS INDEX - NUCLEAR NEWSJACKING BANNER v6.1       -->
 <!-- Domain: globalcrisisindex.com | Updated: 2026-07-15        -->
 <!-- LATEST: 4th Night of Strikes – Iran Hits 5th Fleet HQ      -->
