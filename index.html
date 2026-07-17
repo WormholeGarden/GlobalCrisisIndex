@@ -2972,24 +2972,69 @@ async function refresh(){
   refreshTimerSecs=300;
 
   // ─── AUTO-SELECT THE TOP COUNTRY ──────────────────────────────────────────────
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlCountry = urlParams.get('country');
-  
-  if (urlCountry && store[urlCountry]) {
-    selectedIso = urlCountry;
-    await renderPanel(urlCountry, urlParams.get('crisis'));
-    zoomToCountry(selectedIso);
-  } else if (selectedIso && store[selectedIso]) {
-    await renderPanel(selectedIso);
-  } else if (ranked.length) {
-    selectedIso = ranked[0];
-    await renderPanel(selectedIso);
-    zoomToCountry(selectedIso);
-  }
+const urlParams = new URLSearchParams(window.location.search);
+const urlCountry = urlParams.get('country');
 
-  updateDynamicTitle();
+if (urlCountry && store[urlCountry]) {
+  selectedIso = urlCountry;
+  await renderPanel(urlCountry, urlParams.get('crisis'));
+  zoomToCountry(selectedIso);
+} else if (selectedIso && store[selectedIso]) {
+  await renderPanel(selectedIso);
+} else if (ranked.length) {
+  // ── Find the top country that has a red pulse marker (score >= 60) ──
+  let topIso = null;
+  for (const iso of ranked) {
+    if (store[iso] && store[iso].score >= 60) {
+      topIso = iso;
+      break;
+    }
+  }
+  
+  // Fallback: if no country has a pulse marker, use the top ranked
+  if (!topIso && ranked.length > 0) {
+    topIso = ranked[0];
+  }
+  
+  if (topIso) {
+    selectedIso = topIso;
+    
+    // ── Determine the most severe crisis type for this country ──
+    const c = store[topIso];
+    let crisisType = null;
+    
+    if (c && c.types && c.types.length > 0) {
+      // Crisis priority order: most severe first (only types that would have red pulse)
+      const priorityOrder = ['CW', 'CE', 'FN', 'REF', 'EQ', 'FL', 'TC', 'EP', 'DR', 'WF', 'HEAT', 'LS', 'TSU', 'VLC', 'ST'];
+      
+      // Find the first crisis type from the priority list that matches the country
+      for (const priority of priorityOrder) {
+        if (c.types.includes(priority)) {
+          crisisType = priority;
+          break;
+        }
+      }
+      
+      // If none from priority list, use the first one
+      if (!crisisType && c.types.length > 0) {
+        crisisType = c.types[0];
+      }
+    }
+    
+    // ── Update URL with country and crisis type ──
+    let newUrl = `?country=${topIso}`;
+    if (crisisType) {
+      newUrl += `&crisis=${crisisType}`;
+    }
+    window.history.pushState({country: topIso, crisis: crisisType}, '', newUrl);
+    
+    // ── Render panel with the determined crisis type ──
+    await renderPanel(topIso, crisisType);
+    zoomToCountry(topIso);
+  }
 }
-function updateUIStatsFromApi(data){
+
+updateDynamicTitle();function updateUIStatsFromApi(data){
   const top = ranked.slice(0, 20);
   const gcis = top.length ? Math.round(top.reduce((s, i) => s + store[i].score, 0) / top.length) : 0;
   const delta = prevGCIS !== null ? gcis - prevGCIS : 0;
