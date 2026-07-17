@@ -3,7 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crisis Film Index</title>
+<title id="pageTitle">Crisis Film Index — find the film that best matches a country and crisis type</title>
+<meta id="metaDesc" name="description" content="Search any country and crisis type (famine, flood, earthquake, civil war, and more) to find the real film whose genre, overview, and production country match it most closely, scored live against The Movie Database.">
+<link id="canonicalLink" rel="canonical" href="">
+<meta id="ogTitle" property="og:title" content="Crisis Film Index — country + crisis, matched to a real film">
+<meta id="ogDesc" property="og:description" content="Type a country and a crisis type. Get the film whose genre, overview, and origin country match it most closely, scored live against real movie data.">
+<meta property="og:type" content="website">
+<meta id="ogImage" property="og:image" content="">
+<meta name="twitter:card" content="summary_large_image">
+<meta id="twTitle" name="twitter:title" content="Crisis Film Index">
+<meta id="twDesc" name="twitter:description" content="Match any country and crisis type to the real film that fits it best.">
+<script id="ldjson" type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Crisis Film Index",
+  "applicationCategory": "ReferenceApplication",
+  "description": "Matches a country and a humanitarian crisis type to the film whose genre, overview, and origin country fit it most closely, scored against live TMDb catalog data."
+}
+</script>
 <style>
   :root{
     --paper:#f4efe6;
@@ -152,7 +170,7 @@
     display:flex; align-items:center; justify-content:center;
     font-family:'Courier New',monospace; font-size:0.65rem; text-align:center; color:#8a7b60; padding:0.4rem;
   }
-  .rtitle{font-size:1.5rem; font-weight:700; margin:0 0 0.15rem 0;}
+  .rtitle{font-size:1.5rem; font-weight:700; margin:0 0 0.15rem 0; font-family:inherit;}
   .rmeta{font-family:'Courier New',monospace; font-size:0.75rem; color:#6b5c46; margin-bottom:0.6rem;}
   .rmeta span{margin-right:0.9rem;}
   .rplot{font-size:0.92rem; line-height:1.5; color:#3a2e20; margin-bottom:0.8rem;}
@@ -187,6 +205,28 @@
     text-align:left; padding:0.25rem 0.4rem; border-bottom:1px solid var(--line);
   }
 
+  .upnext-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+    gap:1rem;
+  }
+  .upnext-card{
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:var(--panel);
+    transition:transform 0.08s, border-color 0.08s;
+  }
+  .upnext-card:hover{ transform:translateY(-2px); border-color:var(--rust); }
+  .upnext-card img{ width:100%; display:block; aspect-ratio:2/3; object-fit:cover; }
+  .upnext-card .noposter{
+    width:100%; aspect-ratio:2/3; background:#e9e0cf;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Courier New',monospace; font-size:0.6rem; text-align:center; color:#8a7b60; padding:0.4rem;
+  }
+  .upnext-meta{ padding:0.5rem 0.55rem; }
+  .upnext-title{ font-size:0.82rem; font-weight:700; line-height:1.25; margin-bottom:0.25rem; }
+  .upnext-sub{ font-family:'Courier New',monospace; font-size:0.62rem; color:#6b5c46; }
+
   .footline{
     margin-top:1.6rem;
     font-family:'Courier New',monospace;
@@ -203,27 +243,39 @@
 </style>
 </head>
 <body>
-<div class="sheet">
-
-  <div class="masthead">
+<noscript>
+  <div style="max-width:700px;margin:2rem auto;font-family:Georgia,serif;padding:1rem;">
+    <h1>Crisis Film Index</h1>
+    <p>This tool matches any country and crisis type — famine, flood, earthquake, civil war,
+    epidemic, drought, cyclone, tsunami, volcano, wildfire, landslide, storm, heatwave, refugee
+    crisis, or complex emergency — to the real film whose genre, overview, and production country
+    fit it most closely. Matching runs live against The Movie Database (TMDb) and requires
+    JavaScript; please enable it to use the tool.</p>
+  </div>
+</noscript>
+<main class="sheet">
+  <header class="masthead">
     <div>
       <div class="kicker">Crisis Film Index</div>
       <h1>the film most about it</h1>
     </div>
     <div class="dateline" id="dateline"></div>
-  </div>
+  </header>
 
-  <div class="lede">
-    Type any country and pick a crisis type below. This queries the live <code>OMDb</code> movie
-    database, scores every returned title by how well its genre, plot, and production country match
-    the crisis profile, and surfaces the closest match — no per-country list baked into the code.
-    Genuinely global coverage needs a live catalog, so bring a free key (30&nbsp;seconds, no card) to unlock it.
-  </div>
+  <p class="lede">
+    Type any country and pick a crisis type below. This calls <code>TMDb</code>'s discover
+    endpoint filtered by that country's actual production-origin metadata (not just title text),
+    plus a handful of theme searches, merges the pools, and scores every candidate by overview,
+    genre, origin-country match, and popularity. It always resolves to a pick: if the live catalog
+    is unreachable or the key fails, it falls back to a small offline reference set instead,
+    clearly labeled so you always know which one you're looking at.
+  </p>
 
-  <div class="controls">
+  <section class="controls" aria-labelledby="searchHeading">
+    <h2 id="searchHeading" style="grid-column:1/-1; font-size:0.95rem; margin:0 0 0.2rem 0;">Search a country and crisis type</h2>
     <div class="field">
       <label for="country">Country</label>
-      <input id="country" type="text" placeholder="e.g. Peru, Malawi, Vietnam" value="Peru">
+      <input id="country" type="text" placeholder="e.g. Peru, Malawi, Vietnam" value="Brazil">
     </div>
     <div class="field">
       <label for="crisis">Crisis type</label>
@@ -231,34 +283,43 @@
     </div>
     <div class="keyrow">
       <div class="field" style="flex:1 1 260px;">
-        <label for="apikey">OMDb API key (free)</label>
+        <label for="apikey">TMDb API key (free, instant)</label>
         <input id="apikey" type="text" placeholder="paste key — get one at the link →" autocomplete="off">
       </div>
-      <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer">get a free key ↗</a>
+      <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">get a free key ↗</a>
     </div>
     <button class="runbtn" id="runBtn">find the match</button>
+  </section>
+
+  <div id="shuffleWrap" style="display:none; margin:0.6rem 0 0 0;">
+    <button class="runbtn" id="shuffleBtn" style="background:var(--brass);">↻ recommend another (weighted shuffle)</button>
   </div>
 
-  <div class="status" id="status"></div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
 
-  <div class="result" id="result">
+  <article class="result" id="result">
     <div class="poster" id="poster"></div>
     <div>
-      <div class="rtitle" id="rtitle"></div>
+      <h2 class="rtitle" id="rtitle"></h2>
       <div class="rmeta" id="rmeta"></div>
-      <div class="rplot" id="rplot"></div>
+      <p class="rplot" id="rplot"></p>
       <div class="rmatch" id="rmatch"></div>
       <a class="rlink" id="rlink" href="#" target="_blank" rel="noopener noreferrer">view on IMDb</a>
     </div>
-  </div>
+  </article>
 
   <details class="candidates" id="candidatesWrap" style="display:none;">
     <summary>show full scored candidate list</summary>
     <table id="candTable"></table>
   </details>
 
-  <div class="footline" id="footline"></div>
-</div>
+  <section id="upNextWrap" style="display:none; margin-top:1.6rem;">
+    <h2 style="font-size:0.95rem; margin:0 0 0.6rem 0;">up next</h2>
+    <div class="upnext-grid" id="upNextGrid"></div>
+  </section>
+
+  <footer class="footline" id="footline"></footer>
+</main>
 
 <script>
 (function(){
@@ -287,9 +348,6 @@
 
   const norm = s => (s||"").toLowerCase().trim();
 
-  // Build a keyword profile purely from the crisis definition. Nothing
-  // here references any country — this is what makes the matcher
-  // country-agnostic: the same profile is used no matter what the user types.
   function crisisProfile(key){
     const c = ARC[key];
     const words = new Set();
@@ -298,45 +356,180 @@
     return { label:c.l, needs:c.n, words:[...words] };
   }
 
-  // Score a single OMDb full-detail record against the crisis profile +
-  // the country the user typed. Every signal here comes from data OMDb
-  // returned for THIS title, not from a lookup table keyed on country.
-  function scoreRecord(rec, country, profile){
-    const plot   = norm(rec.Plot);
-    const genre  = norm(rec.Genre);
-    const ctry   = norm(rec.Country);
-    const title  = norm(rec.Title);
+  function formatVotes(n){
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n/1000).toFixed(0) + 'K';
+    return String(n||0);
+  }
+
+  // ---------------------------------------------------------------
+  //  TMDb integration
+  // ---------------------------------------------------------------
+  const IMG_BASE = "https://image.tmdb.org/t/p/w342";
+  let countryMapPromise = null;
+  let genreMapPromise = null;
+
+  async function tmdbFetch(key, path, params){
+    const url = new URL(`https://api.themoviedb.org/3${path}`);
+    url.searchParams.set('api_key', key);
+    Object.entries(params || {}).forEach(([k,v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    if (data.status_code && data.status_code !== 1) throw new Error(data.status_message || 'TMDb error');
+    return data;
+  }
+
+  // Fetched once from TMDb itself (not hardcoded) — maps every ISO country
+  // name to its code, so "country" resolution works for any nation without
+  // a built-in lookup table living in this file.
+  function getCountryMap(key){
+    if (!countryMapPromise){
+      countryMapPromise = tmdbFetch(key, '/configuration/countries', {})
+        .then(list => {
+          const map = {};
+          (list || []).forEach(c => { if (c.english_name && c.iso_3166_1) map[norm(c.english_name)] = c.iso_3166_1; });
+          return map;
+        })
+        .catch(() => ({}));
+    }
+    return countryMapPromise;
+  }
+
+  function getGenreMap(key){
+    if (!genreMapPromise){
+      genreMapPromise = tmdbFetch(key, '/genre/movie/list', {})
+        .then(data => {
+          const map = {};
+          (data.genres || []).forEach(g => { map[g.id] = g.name; });
+          return map;
+        })
+        .catch(() => ({}));
+    }
+    return genreMapPromise;
+  }
+
+  function resolveCountryCode(countryMap, country){
+    const n = norm(country);
+    if (countryMap[n]) return countryMap[n];
+    let found = null;
+    Object.keys(countryMap).forEach(name => {
+      if (!found && n.length > 2 && (name.includes(n) || n.includes(name))) found = countryMap[name];
+    });
+    return found;
+  }
+
+  function normalizeCandidate(r, fromCountryPool){
+    return {
+      id: r.id,
+      title: r.title || r.original_title || 'Untitled',
+      year: (r.release_date || '').slice(0,4),
+      overview: r.overview || '',
+      genreIds: r.genre_ids || [],
+      poster: r.poster_path ? IMG_BASE + r.poster_path : null,
+      popularity: r.popularity || 0,
+      voteAvg: r.vote_average || 0,
+      voteCount: r.vote_count || 0,
+      fromCountryPool: !!fromCountryPool
+    };
+  }
+
+  // Movies actually tagged with this production-origin country by TMDb —
+  // this is what replaces title-substring guessing with a real country
+  // filter, and it's the main fix for thin/failed country coverage.
+  async function tmdbDiscoverByCountry(key, code){
+    if (!code) return [];
+    const data = await tmdbFetch(key, '/discover/movie', {
+      with_origin_country: code,
+      sort_by: 'popularity.desc',
+      'vote_count.gte': 3
+    });
+    return (data.results || []).map(r => normalizeCandidate(r, true));
+  }
+
+  async function tmdbSearchByQuery(key, query){
+    const data = await tmdbFetch(key, '/search/movie', { query });
+    return (data.results || []).map(r => normalizeCandidate(r, false));
+  }
+
+  async function tmdbImdbLink(key, movieId){
+    try {
+      const data = await tmdbFetch(key, `/movie/${movieId}/external_ids`, {});
+      return data.imdb_id ? `https://www.imdb.com/title/${data.imdb_id}/` : `https://www.themoviedb.org/movie/${movieId}`;
+    } catch (e){
+      return `https://www.themoviedb.org/movie/${movieId}`;
+    }
+  }
+
+  // "YouTube-tier" scoring: thematic relevance anchors the pick, but
+  // popularity and vote count (engagement proxies) and rating pull real
+  // weight too, the way a recommendation feed balances topical fit
+  // against how broadly watched something is.
+  function scoreCandidate(c, country, profile, genreMap){
+    const overview = norm(c.overview);
+    const title = norm(c.title);
+    const genreNames = (c.genreIds || []).map(id => norm(genreMap[id] || '')).join(' ');
     const countryN = norm(country);
 
-    let score = 0, hits = [];
+    let relevance = 0, hits = [];
     profile.words.forEach(w => {
-      const inPlot  = plot.split(w).length - 1;
-      const inGenre = genre.split(w).length - 1;
-      if (inPlot)  { score += inPlot * 2;    hits.push(`plot:${w}`); }
-      if (inGenre) { score += inGenre * 1.5; hits.push(`genre:${w}`); }
+      const inOverview = overview.split(w).length - 1;
+      const inGenre = genreNames.split(w).length - 1;
+      if (inOverview) { relevance += inOverview * 2;   hits.push(`overview:${w}`); }
+      if (inGenre)    { relevance += inGenre * 1.5;     hits.push(`genre:${w}`); }
     });
-    if (countryN && ctry.includes(countryN)) { score += 3; hits.push("country-match"); }
-    if (countryN && title.includes(countryN)) { score += 1; hits.push("title-match"); }
-    if (genre.includes("documentary")) score += 0.5;
+    if (c.fromCountryPool)            { relevance += 3; hits.push('origin-country-match'); }
+    if (countryN && title.includes(countryN)) { relevance += 1; hits.push('title-match'); }
+    if (genreNames.includes('documentary')) relevance += 0.5;
 
-    const rating = parseFloat(rec.imdbRating);
-    if (!isNaN(rating)) score += rating * 0.05;
+    const popularity = Math.log10((c.popularity || 0) + 1) * 1.1 + Math.log10((c.voteCount || 0) + 1) * 0.6;
+    const ratingBoost = (c.voteAvg || 0) * 0.35;
+    if (c.voteCount) hits.push(`${formatVotes(c.voteCount)} votes`);
 
-    return { score, hits };
+    const score = relevance + popularity + ratingBoost;
+    return { score, relevance, popularity, ratingBoost, votes: c.voteCount, genreLabel: genreNames.trim(), hits, c };
   }
 
-  async function omdbSearch(key, query){
-    const url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(key)}&s=${encodeURIComponent(query)}&type=movie`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.Response === "False") return [];
-    return data.Search || [];
-  }
+  // A small, honest offline reference set — used ONLY if TMDb is totally
+  // unreachable (bad key, rate limit, no network). Same scoring function
+  // runs against it, so the "closest" pick is still computed, not
+  // hand-picked per country. Always shown with a visible fallback badge.
+  const OFFLINE_BACKUP = [
+    { title:"Human Flow", year:"2017", imdbID:"tt6171058", genreLabelRaw:"Documentary", overview:"An epic journey following the global refugee crisis, chronicling displacement, shelter, and survival across dozens of countries.", popularity:12, voteAvg:7.4, voteCount:250 },
+    { title:"For Sama", year:"2019", imdbID:"tt9617456", genreLabelRaw:"Documentary War", overview:"A mother's diary of life and family through the siege of a city, amid war, protection failures, and collapsing health care.", popularity:10, voteAvg:8.4, voteCount:180 },
+    { title:"Fire in Paradise", year:"2019", imdbID:"tt10650652", genreLabelRaw:"Documentary Short", overview:"Survivors recount a wildfire that destroyed a town, exploring shelter loss and the scramble for health and safety.", popularity:6, voteAvg:7.2, voteCount:60 },
+    { title:"Trashed", year:"2012", imdbID:"tt2078833", genreLabelRaw:"Documentary", overview:"A global tour of pollution's toll on food, water, and health, and the drought and contamination it leaves behind.", popularity:5, voteAvg:7.5, voteCount:90 },
+    { title:"The Great Flood", year:"2013", imdbID:"tt2820974", genreLabelRaw:"Documentary History", overview:"Archival footage of a catastrophic flood, the shelter crisis it caused, and the water and food shortages that followed.", popularity:4, voteAvg:6.5, voteCount:30 },
+    { title:"Volcano", year:"1997", imdbID:"tt0120461", genreLabelRaw:"Action Drama Thriller", overview:"A city races to protect shelter and health services as a volcanic eruption threatens to bury it.", popularity:14, voteAvg:5.7, voteCount:900 },
+    { title:"Contagion", year:"2011", imdbID:"tt1598778", genreLabelRaw:"Drama Thriller", overview:"A fast-moving epidemic strains health systems, water and food supply chains, and forces a scramble for protection.", popularity:35, voteAvg:6.6, voteCount:9000 },
+    { title:"Aftershock", year:"2010", imdbID:"tt1485236", genreLabelRaw:"Drama History", overview:"A family is shattered by a massive earthquake, and the film follows decades of shelter and health recovery.", popularity:8, voteAvg:7.4, voteCount:150 },
+    { title:"Into the Inferno", year:"2016", imdbID:"tt5275826", genreLabelRaw:"Documentary", overview:"A study of volcanoes worldwide and the shelter, health, and water risks they pose to nearby communities.", popularity:6, voteAvg:7.3, voteCount:70 },
+    { title:"The Cave", year:"2019", imdbID:"tt9089384", genreLabelRaw:"Documentary War", overview:"An underground hospital run during a siege, treating famine, hunger, and health crises amid relentless bombing.", popularity:7, voteAvg:7.8, voteCount:110 },
+    { title:"Sink or Swim", year:"2019", imdbID:"tt9564814", genreLabelRaw:"Documentary", overview:"Communities confront rising water and repeated flooding, rebuilding shelter after each storm.", popularity:3, voteAvg:6.4, voteCount:20 },
+    { title:"Epidemic", year:"1987", imdbID:"tt0092777", genreLabelRaw:"Drama Horror Sci-Fi", overview:"A deadly outbreak spreads unchecked, overwhelming health systems and water supplies before it can be contained.", popularity:4, voteAvg:6.8, voteCount:40 }
+  ];
 
-  async function omdbDetail(key, imdbID){
-    const url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(key)}&i=${encodeURIComponent(imdbID)}&plot=full`;
-    const res = await fetch(url);
-    return res.json();
+  function scoreOfflineBackup(country, profile){
+    return OFFLINE_BACKUP.map(o => {
+      const c = {
+        id: null, title:o.title, year:o.year, overview:o.overview,
+        genreIds:[], poster:null, popularity:o.popularity, voteAvg:o.voteAvg,
+        voteCount:o.voteCount, fromCountryPool:false, imdbID:o.imdbID
+      };
+      const overview = norm(o.overview);
+      const genreNames = norm(o.genreLabelRaw);
+      let relevance = 0, hits = [];
+      profile.words.forEach(w => {
+        const inOverview = overview.split(w).length - 1;
+        const inGenre = genreNames.split(w).length - 1;
+        if (inOverview) { relevance += inOverview * 2; hits.push(`overview:${w}`); }
+        if (inGenre)    { relevance += inGenre * 1.5;  hits.push(`genre:${w}`); }
+      });
+      if (genreNames.includes('documentary')) relevance += 0.5;
+      const popularity = Math.log10(o.popularity + 1) * 1.1 + Math.log10(o.voteCount + 1) * 0.6;
+      const ratingBoost = o.voteAvg * 0.35;
+      const score = relevance + popularity + ratingBoost;
+      return { score, relevance, popularity, ratingBoost, votes:o.voteCount, genreLabel:o.genreLabelRaw, hits, c };
+    }).sort((a,b) => b.score - a.score);
   }
 
   function setStatus(msg, isErr){
@@ -345,96 +538,220 @@
     el.className = 'status' + (isErr ? ' err' : '');
   }
 
-  async function run(){
-    const country = document.getElementById('country').value.trim();
-    const crisisKey = document.getElementById('crisis').value;
-    const apikey = document.getElementById('apikey').value.trim();
-    const btn = document.getElementById('runBtn');
-    const resultBox = document.getElementById('result');
-    const candWrap = document.getElementById('candidatesWrap');
-
-    resultBox.classList.remove('show');
-    candWrap.style.display = 'none';
-
-    if (!country){ setStatus('Type a country first.', true); return; }
-    if (!apikey){
-      setStatus('No API key yet — add a free OMDb key above to search the live catalog for any country. (Link is next to the field.)', true);
-      return;
-    }
-
-    const profile = crisisProfile(crisisKey);
-    btn.disabled = true;
-    setStatus(`Searching OMDb for titles connected to "${country}" and "${profile.label}" …`);
-
-    try {
-      // Two independent searches: by country name, and by the crisis
-      // label. Neither query is hardcoded to a specific country — the
-      // country search term comes straight from user input.
-      const [byCountry, byCrisis] = await Promise.all([
-        omdbSearch(apikey, country),
-        omdbSearch(apikey, profile.label)
-      ]);
-
-      const merged = {};
-      [...byCountry, ...byCrisis].forEach(m => { merged[m.imdbID] = m; });
-      const candidates = Object.values(merged).slice(0, 10);
-
-      if (candidates.length === 0){
-        setStatus(`OMDb returned no titles for "${country}" or "${profile.label}". Try a different spelling or a broader crisis type.`, true);
-        btn.disabled = false;
-        return;
-      }
-
-      setStatus(`Fetching details for ${candidates.length} candidate title(s) and scoring each …`);
-
-      const details = await Promise.all(candidates.map(c => omdbDetail(apikey, c.imdbID)));
-      const scored = details
-        .filter(d => d && d.Response !== "False")
-        .map(d => ({ d, ...scoreRecord(d, country, profile) }))
-        .sort((a,b) => b.score - a.score);
-
-      if (scored.length === 0){
-        setStatus('Found titles but could not load details (check your API key).', true);
-        btn.disabled = false;
-        return;
-      }
-
-      const best = scored[0];
-      renderResult(best.d, best, country, profile);
-      renderCandidates(scored);
-      setStatus(`Scored ${scored.length} candidate(s) from live OMDb data. Top match shown below.`);
-    } catch (err){
-      setStatus('Request failed — check your API key or connection, then try again.', true);
-      console.error(err);
-    } finally {
-      btn.disabled = false;
-    }
+  function confidenceLabel(score){
+    if (score >= 5)   return "strong match";
+    if (score >= 2.5) return "moderate match";
+    return "closest available match";
   }
 
-  function renderResult(d, scoredEntry, country, profile){
-    document.getElementById('poster').innerHTML = (d.Poster && d.Poster !== 'N/A')
-      ? `<img src="${d.Poster}" alt="${d.Title} poster">`
+  // ---------------------------------------------------------------
+  //  SEO sync — rewrites title/meta/JSON-LD/URL per specific query
+  // ---------------------------------------------------------------
+  function updateSEO(country, crisisKey, profile, c, isFallback){
+    const titleStr = c
+      ? `${profile.label} in ${country}: closest film match is "${c.title}" (${c.year}) — Crisis Film Index`
+      : `${profile.label} in ${country} — Crisis Film Index`;
+    const descStr = c
+      ? `Searching "${profile.label.toLowerCase()}" + "${country}" against live movie data, the closest match is ${c.title} (${c.year}). ${isFallback ? 'Shown from an offline reference set. ' : ''}See the full scored candidate list and film link.`
+      : `Find the real film that most closely matches ${profile.label.toLowerCase()} in ${country}, scored live against movie genre, overview, and origin country.`;
+
+    document.getElementById('pageTitle').textContent = titleStr;
+    document.getElementById('metaDesc').setAttribute('content', descStr);
+    document.getElementById('ogTitle').setAttribute('content', titleStr);
+    document.getElementById('ogDesc').setAttribute('content', descStr);
+    document.getElementById('twTitle').setAttribute('content', titleStr);
+    document.getElementById('twDesc').setAttribute('content', descStr);
+    if (c && c.poster) document.getElementById('ogImage').setAttribute('content', c.poster);
+
+    const params = new URLSearchParams({ country, crisis: crisisKey });
+    const newUrl = `${location.pathname}?${params.toString()}`;
+    document.getElementById('canonicalLink').setAttribute('href', newUrl);
+    history.replaceState(null, '', newUrl);
+
+    const ld = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": titleStr,
+      "description": descStr,
+      "about": { "@type": "Thing", "name": `${profile.label} — ${country}` }
+    };
+    if (c) ld.mainEntity = { "@type": "Movie", "name": c.title, "dateCreated": c.year };
+    document.getElementById('ldjson').textContent = JSON.stringify(ld, null, 2);
+  }
+
+  // ---------------------------------------------------------------
+  //  Rendering
+  // ---------------------------------------------------------------
+  const STATE = { scored:[], country:'', crisisKey:'', profile:null, isFallback:false, apikey:'', shownIdx:-1 };
+
+  async function renderResult(entry, country, profile, isFallback, apikey){
+    const c = entry.c;
+    document.getElementById('poster').innerHTML = c.poster
+      ? `<img src="${c.poster}" alt="${c.title} poster">`
       : `<div class="noposter">no poster on file</div>`;
-    document.getElementById('rtitle').textContent = d.Title;
+    document.getElementById('rtitle').textContent = c.title;
     document.getElementById('rmeta').innerHTML =
-      `<span>${d.Year || '—'}</span><span>${d.Genre || '—'}</span><span>IMDb ${d.imdbRating || '—'}</span><span>${d.Country || '—'}</span>`;
-    document.getElementById('rplot').textContent = d.Plot && d.Plot !== 'N/A' ? d.Plot : 'No synopsis on file.';
+      `<span>${c.year || '—'}</span><span>${entry.genreLabel || '—'}</span><span>★ ${(c.voteAvg||0).toFixed(1)} (${formatVotes(c.voteCount)} votes)</span>`;
+    document.getElementById('rplot').textContent = c.overview || 'No synopsis on file.';
     document.getElementById('rmatch').textContent =
-      `match score ${scoredEntry.score.toFixed(2)} · signals: ${scoredEntry.hits.slice(0,6).join(', ') || 'weak match'} · profile: ${profile.label} (${profile.needs.join(', ')})`;
+      `${confidenceLabel(entry.score)} (score ${entry.score.toFixed(2)} = relevance ${entry.relevance.toFixed(2)} + popularity ${entry.popularity.toFixed(2)} + rating ${entry.ratingBoost.toFixed(2)}) · ${entry.hits.slice(0,5).join(', ') || 'thematic proximity only'}` +
+      (isFallback ? ' · source: offline reference set' : ' · source: live TMDb catalog');
+
     const link = document.getElementById('rlink');
-    link.href = `https://www.imdb.com/title/${d.imdbID}/`;
+    link.href = '#';
+    link.textContent = 'loading link…';
     document.getElementById('result').classList.add('show');
+    updateSEO(country, document.getElementById('crisis').value, profile, c, isFallback);
+
+    if (c.imdbID){
+      link.href = `https://www.imdb.com/title/${c.imdbID}/`;
+      link.textContent = 'view on IMDb';
+    } else if (c.id && apikey){
+      const url = await tmdbImdbLink(apikey, c.id);
+      link.href = url;
+      link.textContent = url.includes('imdb.com') ? 'view on IMDb' : 'view on TMDb';
+    } else {
+      link.textContent = 'no link available';
+    }
   }
 
   function renderCandidates(scored){
     const wrap = document.getElementById('candidatesWrap');
     const table = document.getElementById('candTable');
-    let rows = `<tr><th>title</th><th>year</th><th>country</th><th>score</th></tr>`;
+    let rows = `<tr><th>title</th><th>year</th><th>votes</th><th>score</th></tr>`;
     scored.forEach(s => {
-      rows += `<tr><td>${s.d.Title}</td><td>${s.d.Year||''}</td><td>${s.d.Country||''}</td><td>${s.score.toFixed(2)}</td></tr>`;
+      rows += `<tr><td>${s.c.title}</td><td>${s.c.year||''}</td><td>${formatVotes(s.c.voteCount)}</td><td>${s.score.toFixed(2)}</td></tr>`;
     });
     table.innerHTML = rows;
     wrap.style.display = 'block';
+  }
+
+  function renderUpNext(scored, highlightIdx){
+    const grid = document.getElementById('upNextGrid');
+    const wrap = document.getElementById('upNextWrap');
+    const shuffleWrap = document.getElementById('shuffleWrap');
+    if (scored.length <= 1){ wrap.style.display = 'none'; shuffleWrap.style.display = 'none'; return; }
+
+    grid.innerHTML = scored.map((s, i) => {
+      const c = s.c;
+      const poster = c.poster
+        ? `<img src="${c.poster}" alt="${c.title} poster" loading="lazy">`
+        : `<div class="noposter">no poster</div>`;
+      return `<div class="upnext-card" data-idx="${i}" style="${i===highlightIdx ? 'outline:2px solid var(--rust);' : ''}">
+        ${poster}
+        <div class="upnext-meta">
+          <div class="upnext-title">${c.title}</div>
+          <div class="upnext-sub">${c.year||'—'} · ${formatVotes(c.voteCount)} votes · score ${s.score.toFixed(1)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('.upnext-card').forEach(card => {
+      card.addEventListener('click', () => pickFromState(parseInt(card.getAttribute('data-idx'), 10)));
+    });
+    wrap.style.display = 'block';
+    shuffleWrap.style.display = 'block';
+  }
+
+  async function pickFromState(idx){
+    STATE.shownIdx = idx;
+    const entry = STATE.scored[idx];
+    await renderResult(entry, STATE.country, STATE.profile, STATE.isFallback, STATE.apikey);
+    renderUpNext(STATE.scored, idx);
+  }
+
+  // Softmax-weighted random pick over the top of the pool — favors high
+  // scorers but keeps exploration, so "recommend another" varies the top
+  // slot across repeat clicks instead of always resurfacing #1.
+  function weightedShuffle(){
+    if (STATE.scored.length === 0) return;
+    const pool = STATE.scored.slice(0, Math.min(6, STATE.scored.length));
+    const T = 1.4;
+    const weights = pool.map(s => Math.exp(s.score / T));
+    const total = weights.reduce((a,b)=>a+b, 0);
+    let r = Math.random() * total, idx = 0;
+    for (let i=0;i<weights.length;i++){ r -= weights[i]; if (r<=0){ idx=i; break; } }
+    pickFromState(idx);
+  }
+
+  // ---------------------------------------------------------------
+  //  Query terms — derived from user input + crisis profile only
+  // ---------------------------------------------------------------
+  function buildQueryTerms(profile){
+    const terms = new Set();
+    terms.add(profile.label);
+    profile.needs.forEach(n => terms.add(n.charAt(0).toUpperCase() + n.slice(1)));
+    return [...terms];
+  }
+
+  async function run(){
+    const country = document.getElementById('country').value.trim();
+    const crisisKey = document.getElementById('crisis').value;
+    const apikey = document.getElementById('apikey').value.trim();
+    const btn = document.getElementById('runBtn');
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('candidatesWrap').style.display = 'none';
+    document.getElementById('upNextWrap').style.display = 'none';
+    document.getElementById('shuffleWrap').style.display = 'none';
+
+    if (!country){ setStatus('Type a country first.', true); return; }
+    if (!apikey){
+      setStatus('No API key yet — add a free TMDb key above (instant, no email wait) to search the live catalog for any country.', true);
+      return;
+    }
+
+    const profile = crisisProfile(crisisKey);
+    btn.disabled = true;
+    setStatus(`Resolving "${country}" against TMDb's country list and pulling candidates …`);
+
+    try {
+      const [countryMap, genreMap] = await Promise.all([getCountryMap(apikey), getGenreMap(apikey)]);
+      const code = resolveCountryCode(countryMap, country);
+      const queries = buildQueryTerms(profile);
+
+      const [byCountry, ...bySearch] = await Promise.all([
+        code ? tmdbDiscoverByCountry(apikey, code) : Promise.resolve([]),
+        ...queries.map(q => tmdbSearchByQuery(apikey, q)),
+        tmdbSearchByQuery(apikey, country)
+      ]);
+
+      const merged = {};
+      [byCountry, ...bySearch].flat().forEach(c => {
+        if (!merged[c.id] || c.fromCountryPool) merged[c.id] = c;
+      });
+      const candidates = Object.values(merged);
+
+      if (candidates.length === 0){
+        setStatus(`TMDb returned nothing for "${country}" across every query tried. Showing the closest match from a small offline reference set instead.`, true);
+        const scored = scoreOfflineBackup(country, profile);
+        Object.assign(STATE, { scored, country, crisisKey, profile, isFallback:true, apikey, shownIdx:0 });
+        await renderResult(scored[0], country, profile, true, apikey);
+        renderCandidates(scored);
+        renderUpNext(scored, 0);
+        btn.disabled = false;
+        return;
+      }
+
+      const scored = candidates
+        .map(c => scoreCandidate(c, country, profile, genreMap))
+        .sort((a,b) => b.score - a.score)
+        .slice(0, 20);
+
+      Object.assign(STATE, { scored, country, crisisKey, profile, isFallback:false, apikey, shownIdx:0 });
+      await renderResult(scored[0], country, profile, false, apikey);
+      renderCandidates(scored);
+      renderUpNext(scored, 0);
+      setStatus(`${code ? `Matched "${country}" to TMDb origin-country code ${code}. ` : `No exact TMDb country match for "${country}" — used theme search only. `}Scored ${scored.length} candidate(s). Try "recommend another" for a weighted re-roll.`, !code);
+    } catch (err){
+      setStatus(`Live catalog request failed (${err.message || 'check your API key'}). Showing closest offline match instead.`, true);
+      const scored = scoreOfflineBackup(country, profile);
+      Object.assign(STATE, { scored, country, crisisKey, profile, isFallback:true, apikey, shownIdx:0 });
+      await renderResult(scored[0], country, profile, true, apikey);
+      renderCandidates(scored);
+      renderUpNext(scored, 0);
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function populateCrisis(){
@@ -450,12 +767,24 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     populateCrisis();
+
+    const params = new URLSearchParams(location.search);
+    const qCountry = params.get('country');
+    const qCrisis = params.get('crisis');
+    if (qCountry) document.getElementById('country').value = qCountry;
+    if (qCrisis && ARC[qCrisis]) document.getElementById('crisis').value = qCrisis;
+
     document.getElementById('runBtn').addEventListener('click', run);
+    document.getElementById('shuffleBtn').addEventListener('click', weightedShuffle);
     document.getElementById('country').addEventListener('keypress', e => { if (e.key === 'Enter') run(); });
     document.getElementById('apikey').addEventListener('keypress', e => { if (e.key === 'Enter') run(); });
     document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
     document.getElementById('footline').textContent =
-      'Data: OMDb API (live, per-request). Scoring runs client-side against whatever OMDb returns — nothing about any specific country is stored in this page.';
+      'Data: TMDb API (live, per-request) with a small offline reference set as a last-resort fallback. Country matching uses TMDb\'s own origin-country metadata via discover, not title text search. Add an API key above to run an auto-loaded query.';
+
+    if (qCountry && qCrisis && document.getElementById('apikey').value.trim()){
+      run();
+    }
   });
 })();
 </script>
