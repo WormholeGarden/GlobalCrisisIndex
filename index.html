@@ -50,11 +50,6 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; overflow:hidden; background: var(--void); color: var(--text-primary); font-family: var(--font-body); font-size: 14px; }
 
-#proBanner {
-  display: block !important; /* Force visibility */
-  position: relative;
-  z-index: 98;
-}
 body::before {
   content: '';
   position: fixed;
@@ -2073,12 +2068,6 @@ const safe=(p,ms=8000)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new 
 // *** FIX 1: UNLOCK PRO FEATURES — fully wired up ***
 // ============================================================================
 function unlockProFeatures(isPro) {
-  // ALWAYS ensure the Pro banner is visible regardless of tier
-  const proBanner = document.getElementById('proBanner');
-  if (proBanner) {
-    proBanner.style.setProperty('display', 'flex', 'important');
-  }
-
   if (isPro) {
     // Remove ALL lock banners from DOM
     document.querySelectorAll('.lock-banner').forEach(el => el.remove());
@@ -2086,6 +2075,9 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
+    // Hide pro banner
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) proBanner.style.display = 'none';
     // Update tier variable FIRST
     tier = 'pro';
     // Update tier pill
@@ -2110,15 +2102,11 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) proBanner.style.display = '';
     tier = 'free';
     updateSearchLockState();
     renderRanking('');
-  }
-  
-  // FORCE the Pro banner to be visible one more time after everything else
-  const bannerAgain = document.getElementById('proBanner');
-  if (bannerAgain) {
-    bannerAgain.style.setProperty('display', 'flex', 'important');
   }
 }
 
@@ -2145,7 +2133,7 @@ function login() {
   toast(`Logging in as ${email}…`);
 }
 
-ffunction logout() {
+function logout() {
   localStorage.removeItem('userEmail');
   localStorage.removeItem('isLoggedIn');
   document.getElementById('loginEmail').value = '';
@@ -2157,15 +2145,59 @@ ffunction logout() {
   document.getElementById('tierPill').textContent = 'FREE';
   document.getElementById('tierPill').className = 'tier-pill free';
   document.getElementById('tierPill').onclick = () => openModal();
-  // Make sure pro banner is visible after logout
-  const proBanner = document.getElementById('proBanner');
-  if (proBanner) {
-    proBanner.style.setProperty('display', 'flex', 'important');
-  }
   unlockProFeatures(false);
   document.getElementById('search').value = '';
   toast('Logged out');
-}function updateUILoggedIn(email) {
+}
+
+// *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
+async function checkProStatusAndUpdateUI(email) {
+  try {
+    let isPro = false;
+    
+    // Check if email is jmm6993@gmail.com - AUTO PRO
+    if (email === 'jmm6993@gmail.com') {
+      isPro = true;
+    } else {
+      // LOCAL OVERRIDE for other emails
+      try {
+        const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
+        if (proEmails.includes(email)) isPro = true;
+      } catch(e) {}
+      
+      // If still not pro, try Airtable
+      if (!isPro) {
+        try {
+          const response = await fetch(
+            `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
+            { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
+          }
+        } catch(e) {
+          console.warn('Airtable check failed:', e);
+        }
+      }
+    }
+
+    if (isPro) {
+      unlockProFeatures(true);
+      toast(`🎉 Pro access unlocked for ${email}`);
+    } else {
+      unlockProFeatures(false);
+      toast(`Logged in as ${email} (Free tier)`);
+    }
+    return isPro;
+  } catch (err) {
+    console.error('Error checking Pro status:', err);
+    unlockProFeatures(false);
+    return false;
+  }
+}
+
+function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
   document.getElementById('loginEmail').style.display = 'none';
