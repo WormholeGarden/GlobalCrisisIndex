@@ -1,922 +1,587 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🔥 Canada Wildfire Intelligence · CWFIS Live</title>
-  <meta name="description" content="Real-time Canada wildfire data from CWFIS — active fires, perimeters, and evacuation alerts.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #0b0f1a;
-      --bg-card: #141c2b;
-      --bg-card-hover: #1a2438;
-      --border: rgba(255, 140, 0, 0.15);
-      --border-hover: rgba(255, 140, 0, 0.35);
-      --text: #f5f0e8;
-      --text-secondary: #c8c0b5;
-      --text-muted: #7a6f62;
-      --orange: #ff8c00;
-      --rose: #ff4d4d;
-      --amber: #ffb347;
-      --green: #66cc99;
-      --purple: #b07fff;
-      --radius: 12px;
-      --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
-      --font-serif: 'Playfair Display', Georgia, serif;
-      --font-sans: 'Inter', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 99px; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      background-image: radial-gradient(ellipse 60% 50% at 20% 20%, rgba(255, 140, 0, 0.04), transparent 70%);
-      font-family: var(--font-sans);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      background-image: linear-gradient(rgba(255, 140, 0, 0.02) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255, 140, 0, 0.02) 1px, transparent 1px);
-      background-size: 48px 48px;
-      opacity: 0.3;
-    }
-    .container {
-      position: relative;
-      z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 1.5rem 2rem 3rem;
-    }
-    @media (max-width: 768px) { .container { padding: 1rem; } }
-    @media (max-width: 480px) { .container { padding: 0.75rem; } }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wildfire Watch · Canada</title>
+<meta name="description" content="A field-report style dashboard of wildfire activity across Canada's provinces and territories." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,380;9..144,500;9..144,600;9..144,700;9..144,900&family=Fraunces:ital,opsz,wght@1,9..144,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+<style>
+  :root{
+    --ink:#0c0f0d;
+    --ink-2:#141b16;
+    --ink-3:#1c241d;
+    --line: rgba(244,239,228,0.09);
+    --line-strong: rgba(244,239,228,0.16);
+    --paper:#f4efe4;
+    --paper-dim:#a9a294;
+    --paper-faint:#726c60;
+    --ember:#ff6a3d;
+    --ember-deep:#c8451f;
+    --amber:#ffb020;
+    --safe:#46c98f;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', -apple-system, sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --radius: 3px;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:
+      radial-gradient(ellipse 70% 45% at 15% 0%, rgba(200,69,31,0.10), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 100% 20%, rgba(70,201,143,0.04), transparent 60%),
+      var(--ink);
+    color: var(--paper);
+    font-family: var(--font-body);
+    line-height:1.6;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  a{ color: inherit; }
+  ::selection{ background: var(--ember-deep); color: var(--paper); }
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background: var(--ink); }
+  ::-webkit-scrollbar-thumb{ background: var(--ink-3); border:1px solid var(--line); }
 
-    .masthead {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0 1rem;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .masthead-left { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-    .logo {
-      font-family: var(--font-serif);
-      font-size: 1.8rem;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #fff 20%, var(--orange), #ffaa33);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      text-decoration: none;
-    }
-    .logo span { font-weight: 400; font-size: 0.65rem; letter-spacing: 1.5px; color: var(--text-muted); background: none; -webkit-background-clip: unset; background-clip: unset; margin-left: 0.2rem; }
-    .badge {
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      background: rgba(255, 140, 0, 0.1);
-      border: 1px solid rgba(255, 140, 0, 0.2);
-      color: var(--orange);
-      padding: 0.2rem 0.7rem;
-      border-radius: 99px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .masthead-right {
-      display: flex;
-      align-items: center;
-      gap: 1.2rem;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      flex-wrap: wrap;
-    }
-    .live-dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 1.8s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(102,204,153,0.4); }
-      50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 0 6px rgba(102,204,153,0); }
-    }
-    .live-indicator { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--green); background: rgba(102,204,153,0.08); padding: 0.1rem 0.6rem; border-radius: 99px; border: 1px solid rgba(102,204,153,0.15); font-size: 0.6rem; }
+  :focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
 
-    .page-header { margin: 1.2rem 0 0.3rem; }
-    .page-header h1 {
-      font-family: var(--font-serif);
-      font-size: 3.2rem;
-      font-weight: 800;
-      line-height: 1.05;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #ffffff 20%, var(--orange), #ffaa33);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    @media (max-width: 768px) { .page-header h1 { font-size: 2.2rem; } }
-    @media (max-width: 480px) { .page-header h1 { font-size: 1.6rem; } }
-    .page-header .subtitle {
-      font-family: var(--font-serif);
-      font-style: italic;
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      border-left: 3px solid var(--orange);
-      padding-left: 1rem;
-      margin-top: 0.1rem;
-    }
+  .wrap{ max-width: 1180px; margin:0 auto; padding: 0 2rem; }
+  @media (max-width:640px){ .wrap{ padding: 0 1.1rem; } }
 
-    .meta-bar {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-      font-size: 0.7rem;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
-      padding: 0.6rem 0;
-      border-bottom: 1px solid var(--border);
-      margin: 0.8rem 0 1.8rem;
-    }
-    .meta-bar .stat { display: flex; align-items: center; gap: 0.3rem; }
-    .meta-bar .count { color: var(--orange); font-weight: 700; }
-    .meta-bar .live-count { color: var(--green); font-weight: 700; }
+  /* ---------- NAV ---------- */
+  nav{
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:50;
+    background: rgba(12,15,13,0.85);
+    backdrop-filter: blur(10px);
+  }
+  .nav-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0.95rem 0;
+  }
+  .brand{ display:flex; align-items:center; gap:0.6rem; font-family:var(--font-display); font-weight:700; font-size:1.15rem; letter-spacing:-0.2px; }
+  .brand .mark{ color: var(--ember); font-size:1.05rem; }
+  .brand small{ display:block; font-family:var(--font-mono); font-size:0.55rem; letter-spacing:1.5px; color:var(--paper-faint); text-transform:uppercase; font-weight:600; margin-top:1px; }
+  .nav-status{ display:flex; align-items:center; gap:1.1rem; font-family:var(--font-mono); font-size:0.65rem; color:var(--paper-dim); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--amber); display:inline-block; margin-right:0.4rem; }
+  @media (prefers-reduced-motion: no-preference){
+    .dot.live{ animation: blink 2.2s ease-in-out infinite; }
+  }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
 
-    .story-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.8rem 2rem 1.5rem;
-      margin-bottom: 2.2rem;
-      transition: all var(--transition);
-      position: relative;
-      overflow: hidden;
-      border-left: 5px solid var(--orange);
-    }
-    .story-card:hover {
-      border-color: var(--border-hover);
-      background: var(--bg-card-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(255,140,0,0.08);
-    }
-    .story-card.severity-critical { border-left-color: var(--rose); }
-    .story-card.severity-high { border-left-color: #ff7b24; }
-    .story-card.severity-elevated { border-left-color: var(--amber); }
-    .story-card.severity-moderate { border-left-color: #ffaa33; }
-    .story-card.story-heat-breaking { border-top: 3px solid var(--rose); }
-    .story-card.story-heat-developing { border-top: 3px solid var(--amber); }
+  /* ---------- HERO ---------- */
+  .hero{ position:relative; padding: 3.6rem 0 2.4rem; overflow:hidden; border-bottom:1px solid var(--line); }
+  #emberCanvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.55; }
+  .hero-inner{ position:relative; z-index:2; }
+  .eyebrow{ font-family:var(--font-mono); font-size:0.68rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--ember); display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; }
+  .eyebrow::before{ content:'§'; color:var(--paper-faint); }
+  h1.headline{
+    font-family:var(--font-display); font-weight:700; font-size:clamp(2.1rem, 5.4vw, 3.6rem);
+    letter-spacing:-1.2px; line-height:1.02; max-width:16ch; color:var(--paper);
+  }
+  h1.headline em{ font-style:italic; font-weight:500; color:var(--ember); }
+  .hero-sub{ font-size:1rem; color:var(--paper-dim); max-width:46ch; margin-top:1rem; }
 
-    .heat-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      font-family: var(--font-mono);
-      font-size: 0.5rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 0.1rem 0.5rem;
-      border-radius: 99px;
-      margin-bottom: 0.3rem;
-    }
-    .heat-badge.breaking { background: rgba(255,60,60,0.15); color: var(--rose); border: 1px solid rgba(255,60,60,0.2); animation: pulse-rose 1.5s infinite; }
-    .heat-badge.developing { background: rgba(255,179,71,0.12); color: var(--amber); border: 1px solid rgba(255,179,71,0.15); }
-    .heat-badge.notable { background: rgba(255,140,0,0.08); color: var(--orange); border: 1px solid rgba(255,140,0,0.1); }
-    @keyframes pulse-rose { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .stat-row{ display:grid; grid-template-columns: repeat(4, 1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:2.2rem; border-radius:4px; overflow:hidden; }
+  @media (max-width:720px){ .stat-row{ grid-template-columns: repeat(2,1fr); } }
+  .stat-cell{ background:var(--ink); padding:1.1rem 1.3rem; }
+  .stat-cell .num{ font-family:var(--font-display); font-size:1.9rem; font-weight:600; line-height:1; color:var(--paper); }
+  .stat-cell .num.ember{ color:var(--ember); }
+  .stat-cell .lbl{ font-family:var(--font-mono); font-size:0.6rem; text-transform:uppercase; letter-spacing:0.8px; color:var(--paper-faint); margin-top:0.45rem; }
 
-    .story-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.3rem;
-      position: relative;
-      z-index: 1;
-    }
-    .story-headline {
-      font-family: var(--font-serif);
-      font-size: 2rem;
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -0.3px;
-      color: var(--text);
-    }
-    @media (max-width: 768px) { .story-headline { font-size: 1.4rem; } }
-    @media (max-width: 480px) { .story-headline { font-size: 1.1rem; } }
-    .story-headline .flag { font-size: 2rem; margin-right: 0.2rem; }
-    .severity-badge {
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      font-weight: 700;
-      padding: 0.2rem 0.8rem;
-      border-radius: 99px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      border: 1px solid;
-      flex-shrink: 0;
-    }
-    .severity-badge.critical { background: rgba(255,60,60,0.15); color: var(--rose); border-color: rgba(255,60,60,0.3); }
-    .severity-badge.high { background: rgba(255,123,36,0.12); color: #ff7b24; border-color: rgba(255,123,36,0.25); }
-    .severity-badge.elevated { background: rgba(255,179,71,0.12); color: var(--amber); border-color: rgba(255,179,71,0.2); }
-    .severity-badge.moderate { background: rgba(255,170,51,0.08); color: #ffaa33; border-color: rgba(255,170,51,0.15); }
+  /* ---------- DISCLOSURE BANNER ---------- */
+  .disclosure{
+    margin: 1.6rem 0 0; padding: 0.75rem 1rem; border:1px dashed var(--line-strong); border-radius:4px;
+    font-family: var(--font-mono); font-size:0.68rem; color: var(--paper-dim); display:flex; gap:0.6rem; align-items:flex-start;
+  }
+  .disclosure .ic{ color:var(--amber); flex-shrink:0; }
+  .disclosure a{ color: var(--ember); text-decoration:underline; text-underline-offset:2px; }
 
-    .story-byline {
-      font-family: var(--font-mono);
-      font-size: 0.6rem;
-      color: var(--text-muted);
-      margin-bottom: 0.6rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.3rem 1.2rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.4rem;
-    }
-    .story-byline .source-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.05rem 0.4rem;
-      border-radius: 3px;
-      font-size: 0.5rem;
-      background: rgba(255,140,0,0.05);
-      border: 1px solid rgba(255,140,0,0.08);
-      color: var(--text-muted);
-    }
+  /* ---------- PROVINCE HEAT STRIP ---------- */
+  section.strip{ padding: 2.6rem 0 1rem; border-bottom:1px solid var(--line); }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-bottom:1.3rem; }
+  .section-head h2{ font-family:var(--font-display); font-size:1.5rem; font-weight:600; letter-spacing:-0.3px; }
+  .section-head .note{ font-family:var(--font-mono); font-size:0.65rem; color:var(--paper-faint); }
 
-    .story-body {
-      font-size: 0.95rem;
-      line-height: 1.8;
-      color: var(--text-secondary);
-      margin: 0.6rem 0;
-      position: relative;
-      z-index: 1;
-    }
-    .story-body p { margin-bottom: 0.8rem; }
-    .story-body .dropcap::first-letter {
-      font-family: var(--font-serif);
-      font-size: 3.5rem;
-      float: left;
-      line-height: 0.8;
-      margin-right: 0.4rem;
-      color: var(--text);
-      font-weight: 900;
-    }
-    .story-body strong { color: var(--text); }
-    .story-body .highlight { color: var(--orange); font-weight: 600; }
-    .story-body .data-box {
-      background: rgba(255,140,0,0.04);
-      border: 1px solid rgba(255,140,0,0.08);
-      border-radius: 8px;
-      padding: 0.7rem 1rem;
-      margin: 0.6rem 0;
-    }
-    .story-body .data-box .stat { font-size: 1.4rem; font-weight: 800; color: var(--orange); }
-    .story-body .data-box .stat-label { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px; }
-    .story-body .quote {
-      border-left: 3px solid var(--orange);
-      padding-left: 1.2rem;
-      margin: 1rem 0;
-      font-style: italic;
-      color: var(--text);
-      font-family: var(--font-serif);
-      font-size: 1rem;
-    }
-    .story-body .quote .attribution { display: block; font-style: normal; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; font-family: var(--font-mono); }
+  .prov-list{ display:flex; flex-direction:column; gap:0.5rem; }
+  .prov-row{ display:grid; grid-template-columns: 3.2rem 1fr 5.5rem; gap:0.9rem; align-items:center; }
+  .prov-code{ font-family:var(--font-mono); font-weight:600; font-size:0.78rem; color:var(--paper-dim); }
+  .prov-track{ position:relative; height:20px; background:var(--ink-2); border:1px solid var(--line); border-radius:2px; overflow:hidden; }
+  .prov-fill{ position:absolute; inset:0; width:0%; border-radius:2px; transition: width 0.9s cubic-bezier(0.2,0,0,1); background: linear-gradient(90deg, var(--amber), var(--ember)); }
+  .prov-fig{ font-family:var(--font-mono); font-size:0.68rem; color:var(--paper-dim); text-align:right; }
+  .prov-fig b{ color:var(--paper); font-weight:600; }
 
-    .story-dims {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 0.3rem 0.6rem;
-      background: rgba(0,0,0,0.2);
-      padding: 0.6rem 0.8rem;
-      border-radius: 8px;
-      margin: 0.6rem 0;
-      border: 1px solid var(--border);
-    }
-    .story-dims .dim {
-      display: flex;
-      justify-content: space-between;
-      font-family: var(--font-mono);
-      font-size: 0.6rem;
-      color: var(--text-secondary);
-    }
-    .story-dims .dim .label { color: var(--text-muted); text-transform: uppercase; font-size: 0.5rem; letter-spacing: 0.3px; }
-    .story-dims .dim .val { font-weight: 700; font-size: 0.65rem; }
+  /* ---------- CONTROLS ---------- */
+  .controls{ display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; padding: 1.8rem 0 0.2rem; }
+  .chip{
+    font-family:var(--font-mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px;
+    padding:0.4rem 0.85rem; border-radius:99px; border:1px solid var(--line-strong); color:var(--paper-dim);
+    background:transparent; cursor:pointer; transition: all 0.18s ease;
+  }
+  .chip:hover{ border-color: var(--ember); color: var(--paper); }
+  .chip.active{ background: var(--ember); border-color:var(--ember); color:#1a0d07; font-weight:600; }
+  .search-box{
+    margin-left:auto; display:flex; align-items:center; gap:0.5rem;
+    border:1px solid var(--line-strong); border-radius:99px; padding:0.4rem 0.9rem;
+  }
+  .search-box input{
+    background:transparent; border:none; outline:none; color:var(--paper); font-family:var(--font-mono); font-size:0.72rem; width:150px;
+  }
+  .search-box input::placeholder{ color: var(--paper-faint); }
 
-    .story-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-top: 0.8rem;
-      padding-top: 0.6rem;
-      border-top: 1px solid var(--border);
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      color: var(--text-muted);
-    }
-    .story-footer .read-more { color: var(--orange); text-decoration: none; font-weight: 600; font-size: 0.6rem; transition: all var(--transition); display: inline-flex; align-items: center; gap: 0.2rem; }
-    .story-footer .read-more:hover { color: #fff; gap: 0.5rem; }
+  /* ---------- CARDS ---------- */
+  .cards{ padding: 1.6rem 0 3rem; display:flex; flex-direction:column; gap:1rem; }
+  .card{
+    background: var(--ink-2); border:1px solid var(--line); border-left:3px solid var(--ash, var(--amber));
+    border-radius: 4px; padding: 1.4rem 1.6rem; transition: all 0.2s ease;
+  }
+  .card:hover{ border-color: var(--line-strong); background: var(--ink-3); }
+  .card.sev-critical{ border-left-color: var(--ember); }
+  .card.sev-high{ border-left-color: #ff9142; }
+  .card.sev-elevated{ border-left-color: var(--amber); }
+  .card.sev-contained{ border-left-color: var(--safe); }
 
-    .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1rem;
-      color: var(--text-muted);
-    }
-    .loading-state .spinner {
-      width: 40px;
-      height: 40px;
-      border: 2px solid var(--border);
-      border-top-color: var(--orange);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 1rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; }
+  .card-title{ font-family:var(--font-display); font-size:1.35rem; font-weight:600; letter-spacing:-0.2px; }
+  .card-title .region{ color:var(--paper-faint); font-weight:400; font-style:italic; font-size:1rem; }
+  .badge{
+    font-family:var(--font-mono); font-size:0.58rem; text-transform:uppercase; letter-spacing:0.6px; font-weight:600;
+    padding:0.22rem 0.6rem; border-radius:99px; border:1px solid; white-space:nowrap;
+  }
+  .badge.sev-critical{ color:var(--ember); border-color: rgba(255,106,61,0.4); background: rgba(255,106,61,0.08); }
+  .badge.sev-high{ color:#ff9142; border-color: rgba(255,145,66,0.35); background: rgba(255,145,66,0.07); }
+  .badge.sev-elevated{ color:var(--amber); border-color: rgba(255,176,32,0.35); background: rgba(255,176,32,0.07); }
+  .badge.sev-contained{ color:var(--safe); border-color: rgba(70,201,143,0.35); background: rgba(70,201,143,0.07); }
 
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
-    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .empty-state .title { font-size: 1.1rem; font-family: var(--font-serif); color: var(--text-secondary); }
+  .card-meta{ font-family:var(--font-mono); font-size:0.66rem; color:var(--paper-faint); margin-top:0.35rem; }
+  .card-body{ font-size:0.92rem; color:var(--paper-dim); margin:0.9rem 0; max-width:70ch; }
 
-    .top-section {
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border);
-    }
-    .top-section h2 { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
-    .top-section .sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.2rem; }
-    .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-    @media (max-width: 768px) { .top-grid { grid-template-columns: 1fr; } }
-    .top-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-      transition: all var(--transition);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .top-item:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
-    .top-item .rank { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-muted); width: 1.8rem; flex-shrink: 0; }
-    .top-item .flag { font-size: 1.2rem; flex-shrink: 0; }
-    .top-item .info { flex: 1; min-width: 0; }
-    .top-item .info .name { font-weight: 600; font-size: 0.75rem; line-height: 1.2; color: var(--text); }
-    .top-item .info .bar { width: 100%; height: 3px; background: rgba(255,255,255,0.04); border-radius: 99px; margin-top: 0.2rem; overflow: hidden; }
-    .top-item .info .bar .fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
-    .top-item .score { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
-    .top-item .heat-tag { font-size: 0.5rem; font-family: var(--font-mono); color: var(--amber); background: rgba(255,176,32,0.06); padding: 0.05rem 0.3rem; border-radius: 3px; border: 1px solid rgba(255,176,32,0.1); margin-left: auto; }
-    .top-item .heat-tag.breaking { color: var(--rose); border-color: rgba(255,60,60,0.15); background: rgba(255,60,60,0.08); }
+  .card-figs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.8rem; margin-top:0.9rem; padding-top:0.9rem; border-top:1px solid var(--line); }
+  .fig .v{ font-family:var(--font-mono); font-weight:600; font-size:0.95rem; color:var(--paper); }
+  .fig .l{ font-family:var(--font-mono); font-size:0.55rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--paper-faint); margin-top:0.15rem; }
 
-    .footer-note {
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 2.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-      letter-spacing: 0.3px;
-    }
-    .footer-note a { color: var(--orange); text-decoration: none; }
-    .footer-note a:hover { text-decoration: underline; }
-    .footer-note .source-badge-inline {
-      display: inline-block;
-      background: rgba(102,204,153,0.06);
-      padding: 0.05rem 0.4rem;
-      border-radius: 3px;
-      border: 1px solid rgba(102,204,153,0.08);
-      font-size: 0.5rem;
-      color: var(--green);
-    }
+  .empty{ text-align:center; padding:3.5rem 1rem; color:var(--paper-faint); }
+  .empty .glyph{ font-family:var(--font-display); font-size:2.6rem; font-style:italic; color:var(--paper-dim); }
 
-    .refresh-btn {
-      background: rgba(255,140,0,0.08);
-      border: 1px solid rgba(255,140,0,0.15);
-      color: var(--orange);
-      padding: 0.2rem 0.8rem;
-      border-radius: 99px;
-      font-family: var(--font-mono);
-      font-size: 0.55rem;
-      cursor: pointer;
-      transition: all var(--transition);
-    }
-    .refresh-btn:hover { background: rgba(255,140,0,0.15); border-color: var(--orange); }
-    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  </style>
+  footer{ border-top:1px solid var(--line); padding:2rem 0 3rem; font-family:var(--font-mono); font-size:0.65rem; color:var(--paper-faint); text-align:center; }
+  footer a{ color:var(--ember); text-decoration:none; }
+  footer a:hover{ text-decoration:underline; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
 </head>
 <body>
-<div class="container">
 
-  <header class="masthead">
-    <div class="masthead-left">
-      <a href="#" class="logo">🔥 GCIN <span>· Canada Wildfire</span></a>
-      <span class="badge">🇨🇦 CWFIS Live</span>
-    </div>
-    <div class="masthead-right">
-      <span class="live-indicator"><span class="live-dot"></span> LIVE</span>
-      <span id="datetime">Loading...</span>
-      <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
-    </div>
-  </header>
-
-  <div class="page-header">
-    <h1>Canada Wildfire Intelligence</h1>
-    <div class="subtitle">Real‑time data from the Canadian Wildland Fire Information System</div>
-  </div>
-
-  <div class="meta-bar">
-    <span class="stat">🔥 <span class="count" id="fireCount">⏳</span> active fires</span>
-    <span class="stat">📡 <span class="live-count" id="sourceCount">⏳</span> live sources</span>
-    <span class="stat">🔄 <span id="lastUpdate">updating...</span></span>
-  </div>
-
-  <div id="storiesContainer">
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <span style="color:var(--text-muted);">Fetching live Canada wildfire data from CWFIS...</span>
+<nav>
+  <div class="wrap nav-row">
+    <a href="#" class="brand">
+      <span class="mark">◆</span>
+      <span>Wildfire Watch<small>Canada · Field Report</small></span>
+    </a>
+    <div class="nav-status">
+      <span><span class="dot live" id="feedDot"></span><span id="feedStatus">Connecting…</span></span>
+      <span id="clock">—</span>
+      <button class="chip" id="refreshBtn" style="padding:0.25rem 0.7rem;">↻ Refresh</button>
     </div>
   </div>
+</nav>
 
-  <div class="top-section" id="topSection" style="display:none;">
-    <h2>🔥 Fire Hotspots</h2>
-    <div class="sub">Most active wildfire zones across Canada</div>
-    <div class="top-grid" id="topGrid"></div>
+<header class="hero">
+  <canvas id="emberCanvas"></canvas>
+  <div class="wrap hero-inner">
+    <div class="eyebrow">Situation Report</div>
+    <h1 class="headline">Where the country is <em>burning</em>, and how badly.</h1>
+    <p class="hero-sub">A ranked look at wildfire activity across Canada's provinces and territories — severity, area burned, and containment status, sorted by what needs attention first.</p>
+
+    <div class="stat-row">
+      <div class="stat-cell"><div class="num ember" id="statTotal">–</div><div class="lbl">Active fires</div></div>
+      <div class="stat-cell"><div class="num" id="statHectares">–</div><div class="lbl">Hectares burning</div></div>
+      <div class="stat-cell"><div class="num" id="statProv">–</div><div class="lbl">Regions affected</div></div>
+      <div class="stat-cell"><div class="num" id="statCritical">–</div><div class="lbl">Out of control</div></div>
+    </div>
+
+    <div class="disclosure" id="disclosure">
+      <span class="ic">▲</span>
+      <span id="disclosureText">Attempting a live fetch from CWFIS now. If this is running somewhere that can't reach <code>cwfis.cfs.nrcan.gc.ca</code> — including this preview, since document previews run in a sandboxed frame with no outbound network access — it'll fall back to a clearly-labeled sample layout instead of guessing at numbers. For actual current conditions, see the <a href="https://cwfis.cfs.nrcan.gc.ca/home" target="_blank" rel="noopener">Canadian Wildland Fire Information System</a>.</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="strip">
+    <div class="section-head">
+      <h2>By region</h2>
+      <span class="note">Share of national hectares burning</span>
+    </div>
+    <div class="prov-list" id="provList"></div>
+  </section>
+
+  <div class="controls" id="controls">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="critical">Out of control</button>
+    <button class="chip" data-filter="high">High</button>
+    <button class="chip" data-filter="elevated">Elevated</button>
+    <button class="chip" data-filter="contained">Contained</button>
+    <div class="search-box">
+      <span style="color:var(--paper-faint); font-size:0.7rem;">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search fire or region…" />
+    </div>
   </div>
 
-  <div class="footer-note">
-    <strong>🔥 Canada Wildfire</strong> — live data from <span class="source-badge-inline">CWFIS</span> <span class="source-badge-inline">Canadian Wildland Fire Information System</span><br>
-    Updates every 5 minutes · Data includes active fires, perimeters, and fire weather
-  </div>
+  <section class="cards" id="cards"></section>
 
-</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    Wildfire Watch fetches from CWFIS live and falls back to a labeled sample layout only if that request fails.<br>
+    Real conditions: <a href="https://cwfis.cfs.nrcan.gc.ca/home" target="_blank" rel="noopener">CWFIS</a> · Evacuation orders: check your provincial emergency management office.
+  </div>
+</footer>
 
 <script>
-  (function() {
-    "use strict";
+(function(){
+  "use strict";
 
-    // ─── CWFIS API ENDPOINTS ──────────────────────────────────────────────
-    const CWFIS_FIRES_URL = "https://cwfis.cfs.nrcan.gc.ca/api/fires";
-    const CWFIS_WEATHER_URL = "https://cwfis.cfs.nrcan.gc.ca/api/weather";
+  /* ============ ILLUSTRATIVE DATASET ============
+     Not live data. Structured the way a real CWFIS-backed
+     endpoint could populate it — swap loadFires() for a
+     fetch() to your own backend proxy and everything downstream
+     (sorting, filtering, rendering) keeps working unchanged. */
+  const REGIONS = {
+    BC: 'British Columbia', AB: 'Alberta', SK: 'Saskatchewan', MB: 'Manitoba',
+    ON: 'Ontario', QC: 'Quebec', NT: 'Northwest Territories', YT: 'Yukon',
+    NL: 'Newfoundland & Labrador', NS: 'Nova Scotia'
+  };
 
-    // ─── STATE ─────────────────────────────────────────────────────────────
-    let fireData = [];
-    let weatherData = [];
-    let isLoading = false;
+  const SAMPLE_FIRES = [
+    { name:'Chetwynd Complex', region:'BC', hectares:48200, status:'critical', narrative:'Burning through dense interior forest under sustained westerly winds; crews have shifted to structure protection around outlying communities rather than direct attack.' },
+    { name:'Wood Buffalo Ridge', region:'AB', hectares:31400, status:'critical', narrative:'Fire behaviour has been erratic overnight, with spotting reported up to a kilometre ahead of the main front. An evacuation alert remains in place for nearby lodges.' },
+    { name:'Pelly River', region:'YT', hectares:22750, status:'high', narrative:'Remote fire being managed under a modified response, with monitoring prioritized over suppression given its distance from populated areas.' },
+    { name:'Fox Lake', region:'MB', hectares:14100, status:'high', narrative:'Held along its southern flank overnight by a containment line, though hot, dry conditions forecast for the coming days could test that line.' },
+    { name:'Kakisa Corridor', region:'NT', hectares:12980, status:'critical', narrative:'Winds pushing the fire toward the highway corridor; a precautionary closure is in effect for a stretch of Highway 1.' },
+    { name:'Clearwater Divide', region:'AB', hectares:9600, status:'elevated', narrative:'Growth has slowed following overnight rain, and air tankers were able to work the eastern edge for the first time in four days.' },
+    { name:'Ile-Ã -la-Crosse', region:'SK', hectares:7300, status:'elevated', narrative:'Smoke is affecting air quality in nearby communities, though the fire itself is not currently threatening structures.' },
+    { name:'Missinaibi Bend', region:'ON', hectares:5400, status:'elevated', narrative:'Being managed with a mix of ground crews and bucketing helicopters; officials expect containment within the week.' },
+    { name:'Lac Saint-Jean North', region:'QC', hectares:3100, status:'contained', narrative:'Perimeter fully established; crews are now on mop-up duty, extinguishing hot spots along the interior.' },
+    { name:'Terrace Foothills', region:'BC', hectares:2200, status:'contained', narrative:'No growth reported in 72 hours. The evacuation order for the area was downgraded to an alert this morning.' },
+    { name:'Bird Cove', region:'NL', hectares:640, status:'contained', narrative:'Small fire fully surrounded by containment lines; expected to be declared out within days.' },
+    { name:'Musquodoboit Valley', region:'NS', hectares:210, status:'elevated', narrative:'New start under investigation. Crews responded within the hour and have knocked down the majority of the perimeter.' }
+  ];
 
-    // ─── DOM REFS ──────────────────────────────────────────────────────────
-    const container = document.getElementById('storiesContainer');
-    const fireCountEl = document.getElementById('fireCount');
-    const sourceCountEl = document.getElementById('sourceCount');
-    const datetimeEl = document.getElementById('datetime');
-    const lastUpdateEl = document.getElementById('lastUpdate');
-    const topSection = document.getElementById('topSection');
-    const topGrid = document.getElementById('topGrid');
-    const refreshBtn = document.getElementById('refreshBtn');
+  const SEV_ORDER = { critical:3, high:2, elevated:1, contained:0 };
+  const SEV_LABEL = { critical:'Out of control', high:'High activity', elevated:'Elevated', contained:'Contained' };
 
-    // ─── HELPERS ──────────────────────────────────────────────────────────
-    function formatDate(d) {
-      return new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  const CWFIS_FIRES_URL = 'https://cwfis.cfs.nrcan.gc.ca/api/fires';
+  const CWFIS_WEATHER_URL = 'https://cwfis.cfs.nrcan.gc.ca/api/weather';
+
+  // Map a handful of likely field-name variants and status vocabularies
+  // onto the internal schema this UI renders. CWFIS doesn't publish a
+  // single documented JSON contract for these endpoints, so this is
+  // deliberately permissive — adjust the key lists below to match
+  // whatever shape your proxy actually returns.
+  const NAME_KEYS = ['name', 'fire_name', 'firename', 'incident_name'];
+  const REGION_KEYS = ['region', 'province', 'agency', 'prov', 'jurisdiction'];
+  const SIZE_KEYS = ['hectares', 'size', 'area', 'ha', 'estimated_size'];
+  const STATUS_KEYS = ['status', 'control', 'stage_of_control', 'general_status'];
+
+  const PROV_NAME_TO_CODE = Object.fromEntries(
+    Object.entries(REGIONS).map(([code, full]) => [full.toLowerCase(), code])
+  );
+
+  function firstDefined(obj, keys){
+    for (const k of keys){
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
     }
+    return undefined;
+  }
 
-    function clamp(v, lo = 1, hi = 99) { return Math.min(hi, Math.max(lo, Math.round(v))); }
+  function normalizeRegion(raw){
+    if (!raw) return null;
+    const s = String(raw).trim();
+    if (REGIONS[s.toUpperCase()]) return s.toUpperCase();
+    const byName = PROV_NAME_TO_CODE[s.toLowerCase()];
+    return byName || null;
+  }
 
-    function getSeverity(score) {
-      if (score >= 85) return { label: 'CRITICAL', cls: 'critical' };
-      if (score >= 70) return { label: 'HIGH', cls: 'high' };
-      if (score >= 50) return { label: 'ELEVATED', cls: 'elevated' };
-      return { label: 'MODERATE', cls: 'moderate' };
-    }
+  function normalizeStatus(raw){
+    const s = String(raw || '').toLowerCase();
+    if (/out of control|uncontrolled|\boc\b/.test(s)) return 'critical';
+    if (/being held|\bbh\b/.test(s)) return 'high';
+    if (/under control|\buc\b/.test(s)) return 'elevated';
+    if (/out\b|extinguished|contained/.test(s)) return 'contained';
+    return 'elevated';
+  }
 
-    function getHeatTier(score) {
-      if (score >= 75) return { label: 'BREAKING', cls: 'breaking', emoji: '🔥' };
-      if (score >= 55) return { label: 'DEVELOPING', cls: 'developing', emoji: '🟠' };
-      if (score >= 30) return { label: 'NOTABLE', cls: 'notable', emoji: '🟡' };
-      return { label: 'ROUTINE', cls: 'routine', emoji: '📊' };
-    }
+  function normalizeSize(raw){
+    const n = parseFloat(String(raw).replace(/[,\s]/g, ''));
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"]/g, function(m) {
-        if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;'; return m;
-      });
-    }
-
-    // ─── FETCH CWFIS DATA ──────────────────────────────────────────────
-    async function fetchCWFIS() {
-      try {
-        const [firesRes, weatherRes] = await Promise.all([
-          fetch(CWFIS_FIRES_URL),
-          fetch(CWFIS_WEATHER_URL)
-        ]);
-
-        const firesText = await firesRes.text();
-        const weatherText = await weatherRes.text();
-
-        // Parse HTML responses into structured data
-        const fires = parseCWFISFires(firesText);
-        const weather = parseCWFISWeather(weatherText);
-
-        return { fires, weather };
-      } catch (err) {
-        console.error('CWFIS fetch error:', err);
-        return { fires: [], weather: [] };
+  // Parses either a JSON array/collection or an HTML table response,
+  // since we don't have a confirmed schema for these endpoints.
+  function extractRecords(rawText){
+    try {
+      const json = JSON.parse(rawText);
+      const arr = Array.isArray(json) ? json : (json.features || json.fires || json.data || json.results || []);
+      if (Array.isArray(arr) && arr.length) {
+        return arr.map(item => item.properties ? item.properties : item);
       }
-    }
+    } catch (_) { /* not JSON, fall through to HTML parsing */ }
 
-    // ─── PARSE CWFIS FIRES HTML ──────────────────────────────────────
-    function parseCWFISFires(html) {
-      const fires = [];
-      try {
-        // Look for fire data in the HTML - CWFIS returns HTML with embedded data
-        // Try to find JSON-like data in script tags or table data
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        // Try to find fire data in table rows
-        const tables = doc.querySelectorAll('table');
-        for (const table of tables) {
-          const rows = table.querySelectorAll('tr');
-          let headers = [];
-          for (let i = 0; i < rows.length; i++) {
-            const cells = rows[i].querySelectorAll('th, td');
-            if (i === 0) {
-              headers = Array.from(cells).map(c => c.textContent.trim().toLowerCase());
-              continue;
-            }
-            const rowData = {};
-            cells.forEach((cell, idx) => {
-              const key = headers[idx] || `col${idx}`;
-              rowData[key] = cell.textContent.trim();
-            });
-            if (Object.keys(rowData).length > 1) {
-              fires.push(rowData);
-            }
-          }
-        }
-
-        // If no table data, try to find fire data in script tags
-        if (fires.length === 0) {
-          const scripts = doc.querySelectorAll('script');
-          for (const script of scripts) {
-            const content = script.textContent;
-            if (content && (content.includes('fire') || content.includes('Fire'))) {
-              // Try to extract numbers that look like fire data
-              const matches = content.match(/\d{1,3}(?:,\d{3})*\s*(?:ha|hectares|fires|active)/gi);
-              if (matches) {
-                // Create synthetic entries
-                const numFires = parseInt(matches[0]) || 1;
-                for (let i = 0; i < Math.min(numFires, 20); i++) {
-                  fires.push({
-                    name: `Fire ${i + 1}`,
-                    size: (Math.random() * 5000 + 100).toFixed(0),
-                    status: ['out of control', 'contained', 'under control', 'being held'][Math.floor(Math.random() * 4)],
-                    location: ['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NT', 'YT'][Math.floor(Math.random() * 8)]
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        // If we still have no data, use sample data
-        if (fires.length === 0) {
-          console.warn('No fire data found in CWFIS response, using sample data');
-          return getSampleFires();
-        }
-
-        return fires;
-      } catch (e) {
-        console.warn('Error parsing CWFIS fires:', e);
-        return getSampleFires();
-      }
-    }
-
-    // ─── PARSE CWFIS WEATHER HTML ──────────────────────────────────────
-    function parseCWFISWeather(html) {
-      const weather = [];
-      try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const tables = doc.querySelectorAll('table');
-        for (const table of tables) {
-          const rows = table.querySelectorAll('tr');
-          let headers = [];
-          for (let i = 0; i < rows.length; i++) {
-            const cells = rows[i].querySelectorAll('th, td');
-            if (i === 0) {
-              headers = Array.from(cells).map(c => c.textContent.trim().toLowerCase());
-              continue;
-            }
-            const rowData = {};
-            cells.forEach((cell, idx) => {
-              const key = headers[idx] || `col${idx}`;
-              rowData[key] = cell.textContent.trim();
-            });
-            if (Object.keys(rowData).length > 1) {
-              weather.push(rowData);
-            }
-          }
-        }
-
-        if (weather.length === 0) {
-          return getSampleWeather();
-        }
-        return weather;
-      } catch (e) {
-        console.warn('Error parsing CWFIS weather:', e);
-        return getSampleWeather();
-      }
-    }
-
-    // ─── SAMPLE DATA FALLBACK ──────────────────────────────────────────
-    function getSampleFires() {
-      const locations = [
-        { name: 'Donnie Creek', location: 'BC', size: 5800, status: 'out of control' },
-        { name: 'Long Lake', location: 'AB', size: 4200, status: 'being held' },
-        { name: 'Pelly Lake', location: 'SK', size: 3100, status: 'out of control' },
-        { name: 'Fort Vermilion', location: 'AB', size: 2800, status: 'contained' },
-        { name: 'Mayfield', location: 'BC', size: 2200, status: 'under control' },
-        { name: 'Kakisa', location: 'NT', size: 1900, status: 'out of control' },
-        { name: 'Tumbler Ridge', location: 'BC', size: 1500, status: 'being held' },
-        { name: 'Fox Lake', location: 'MB', size: 1200, status: 'out of control' },
-        { name: 'Wekweèti', location: 'NT', size: 800, status: 'contained' },
-        { name: 'Kiwetinohk', location: 'AB', size: 600, status: 'under control' }
-      ];
-      return locations;
-    }
-
-    function getSampleWeather() {
-      const stations = [
-        { location: 'Fort Nelson', temp: 28, wind: 15, humidity: 22, fire_risk: 'Extreme' },
-        { location: 'Prince George', temp: 26, wind: 12, humidity: 28, fire_risk: 'High' },
-        { location: 'Kamloops', temp: 31, wind: 18, humidity: 18, fire_risk: 'Extreme' },
-        { location: 'Edmonton', temp: 27, wind: 10, humidity: 32, fire_risk: 'High' },
-        { location: 'Yellowknife', temp: 24, wind: 8, humidity: 35, fire_risk: 'Moderate' }
-      ];
-      return stations;
-    }
-
-    // ─── BUILD STORIES FROM DATA ──────────────────────────────────────
-    function buildStories(fires, weather) {
-      if (!fires || fires.length === 0) {
-        return { stories: [], top: [] };
-      }
-
-      const stories = [];
-      const weatherMap = {};
-      if (weather) {
-        weather.forEach(w => {
-          const key = (w.location || '').toLowerCase();
-          if (key) weatherMap[key] = w;
-        });
-      }
-
-      fires.forEach((fire, i) => {
-        const size = parseFloat(fire.size || fire.area || fire.ha || fire.hectares || 0) || 0;
-        const status = fire.status || fire.control || 'active';
-        const location = fire.location || fire.province || fire.region || 'Canada';
-        const name = fire.name || fire.fire_name || `Fire ${i + 1}`;
-
-        // Calculate score based on size and status
-        let score = 30;
-        if (size > 10000) score += 35;
-        else if (size > 5000) score += 25;
-        else if (size > 1000) score += 15;
-        else if (size > 100) score += 5;
-
-        if (status.includes('out of control') || status.includes('uncontrolled')) score += 20;
-        else if (status.includes('being held')) score += 10;
-        else if (status.includes('contained') || status.includes('under control')) score -= 10;
-
-        score = clamp(score);
-
-        const severity = getSeverity(score);
-
-        // Find matching weather
-        let weatherMatch = null;
-        for (const [key, w] of Object.entries(weatherMap)) {
-          if (location.toLowerCase().includes(key) || key.includes(location.toLowerCase())) {
-            weatherMatch = w;
-            break;
-          }
-        }
-
-        // Heat score
-        let heat = 0;
-        const drivers = [];
-        if (size > 1000) { heat += 20; drivers.push({ driver: 'size', points: 20, detail: `${size.toFixed(0)} ha` }); }
-        if (status.includes('out of control')) { heat += 25; drivers.push({ driver: 'status', points: 25, detail: 'out of control' }); }
-        if (score > 70) { heat += 15; drivers.push({ driver: 'severity', points: 15, detail: severity.label }); }
-        if (weatherMatch && weatherMatch.fire_risk === 'Extreme') { heat += 15; drivers.push({ driver: 'fire_risk', points: 15, detail: 'Extreme fire risk' }); }
-        heat = Math.min(100, heat);
-
-        const heatTier = getHeatTier(heat);
-
-        stories.push({
-          id: i,
-          name,
-          location,
-          size,
-          status,
-          score,
-          severity,
-          heat,
-          heatTier,
-          weather: weatherMatch || null,
-          flag: '🔥'
+    try {
+      const doc = new DOMParser().parseFromString(rawText, 'text/html');
+      const records = [];
+      doc.querySelectorAll('table').forEach(table => {
+        const rows = Array.from(table.querySelectorAll('tr'));
+        if (!rows.length) return;
+        const headers = Array.from(rows[0].querySelectorAll('th,td')).map(c => c.textContent.trim().toLowerCase());
+        rows.slice(1).forEach(row => {
+          const cells = Array.from(row.querySelectorAll('td,th'));
+          if (!cells.length) return;
+          const rec = {};
+          cells.forEach((cell, i) => { rec[headers[i] || `col${i}`] = cell.textContent.trim(); });
+          records.push(rec);
         });
       });
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
 
-      stories.sort((a, b) => b.score - a.score);
+  function toFireRecord(raw, idx){
+    const name = firstDefined(raw, NAME_KEYS) || `Unnamed fire ${idx + 1}`;
+    const region = normalizeRegion(firstDefined(raw, REGION_KEYS));
+    const hectares = normalizeSize(firstDefined(raw, SIZE_KEYS) || 0);
+    const status = normalizeStatus(firstDefined(raw, STATUS_KEYS));
+    if (!region) return null; // can't place it on the region strip — drop rather than guess
+    return {
+      name: String(name),
+      region,
+      hectares,
+      status,
+      narrative: 'Live record from CWFIS. Field-level detail depends on what your proxy passes through — extend toFireRecord() to surface more of it.'
+    };
+  }
 
+  async function fetchLiveFires(){
+    const res = await fetch(CWFIS_FIRES_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`CWFIS responded with ${res.status}`);
+    const text = await res.text();
+    const records = extractRecords(text);
+    const fires = records.map(toFireRecord).filter(Boolean);
+    if (!fires.length) throw new Error('Response had no records matching the expected fields');
+    return fires;
+  }
+
+  function setFeedStatus(mode){
+    const dot = document.getElementById('feedDot');
+    const label = document.getElementById('feedStatus');
+    const disclosure = document.getElementById('disclosureText');
+    if (mode === 'live'){
+      dot.style.background = 'var(--safe)';
+      label.textContent = 'Live · CWFIS';
+      disclosure.innerHTML = 'Connected to <code>cwfis.cfs.nrcan.gc.ca</code>. Figures below reflect the live response, mapped through this page\'s field-normalizing logic — if something looks off, check that mapping against the real payload shape.';
+    } else if (mode === 'error'){
+      dot.style.background = 'var(--ember)';
+      label.textContent = 'Live feed unavailable';
+      disclosure.innerHTML = 'Couldn\'t reach or parse the CWFIS endpoint from here (common in a sandboxed preview, or if the endpoint/schema differs from what this page assumes). Showing a labeled sample layout instead of guessing at real numbers — retry once this is deployed somewhere with outbound access. <a href="https://cwfis.cfs.nrcan.gc.ca/home" target="_blank" rel="noopener">Check real conditions here.</a>';
+    } else {
+      dot.style.background = 'var(--amber)';
+      label.textContent = 'Connecting…';
+    }
+  }
+
+  async function loadFires(){
+    setFeedStatus('connecting');
+    try {
+      const live = await fetchLiveFires();
+      setFeedStatus('live');
+      return live;
+    } catch (err) {
+      console.warn('Live CWFIS fetch failed, showing sample layout:', err.message);
+      setFeedStatus('error');
+      return SAMPLE_FIRES;
+    }
+  }
+
+  /* ============ STATE ============ */
+  let fires = [];
+  let activeFilter = 'all';
+  let searchTerm = '';
+
+  /* ============ RENDER HELPERS ============ */
+  function fmt(n){ return n.toLocaleString('en-CA'); }
+
+  function buildProvinceStrip(data){
+    const totals = {};
+    data.forEach(f => { totals[f.region] = (totals[f.region] || 0) + f.hectares; });
+    const maxVal = Math.max(...Object.values(totals), 1);
+    const provList = document.getElementById('provList');
+    const rows = Object.entries(totals)
+      .sort((a,b) => b[1]-a[1])
+      .map(([code, val]) => `
+        <div class="prov-row">
+          <span class="prov-code" title="${REGIONS[code]||code}">${code}</span>
+          <div class="prov-track"><div class="prov-fill" data-w="${(val/maxVal*100).toFixed(1)}"></div></div>
+          <span class="prov-fig"><b>${fmt(val)}</b> ha</span>
+        </div>
+      `).join('');
+    provList.innerHTML = rows;
+    requestAnimationFrame(() => {
+      provList.querySelectorAll('.prov-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+    });
+  }
+
+  function buildStats(data){
+    const totalHa = data.reduce((s,f) => s + f.hectares, 0);
+    const provinces = new Set(data.map(f => f.region));
+    const critical = data.filter(f => f.status === 'critical').length;
+    document.getElementById('statTotal').textContent = data.length;
+    document.getElementById('statHectares').textContent = fmt(totalHa);
+    document.getElementById('statProv').textContent = provinces.size;
+    document.getElementById('statCritical').textContent = critical;
+  }
+
+  function renderCards(){
+    const el = document.getElementById('cards');
+    const filtered = fires
+      .filter(f => activeFilter === 'all' || f.status === activeFilter)
+      .filter(f => {
+        if (!searchTerm) return true;
+        const t = searchTerm.toLowerCase();
+        return f.name.toLowerCase().includes(t) || (REGIONS[f.region]||'').toLowerCase().includes(t) || f.region.toLowerCase().includes(t);
+      })
+      .sort((a,b) => SEV_ORDER[b.status]-SEV_ORDER[a.status] || b.hectares-a.hectares);
+
+    if (filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="glyph">Nothing here</div><p style="margin-top:0.5rem;">No fires match this filter. Try widening it.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = filtered.map(f => `
+      <article class="card sev-${f.status}">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${f.name} <span class="region">· ${REGIONS[f.region] || f.region}</span></div>
+            <div class="card-meta">Region code ${f.region} · Sample record</div>
+          </div>
+          <span class="badge sev-${f.status}">${SEV_LABEL[f.status]}</span>
+        </div>
+        <p class="card-body">${f.narrative}</p>
+        <div class="card-figs">
+          <div class="fig"><div class="v">${fmt(f.hectares)} ha</div><div class="l">Area burning</div></div>
+          <div class="fig"><div class="v">${SEV_LABEL[f.status]}</div><div class="l">Status</div></div>
+          <div class="fig"><div class="v">${REGIONS[f.region] || f.region}</div><div class="l">Region</div></div>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  /* ============ CONTROLS ============ */
+  document.getElementById('controls').addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip[data-filter]');
+    if (!btn) return;
+    document.querySelectorAll('.chip[data-filter]').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderCards();
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchTerm = e.target.value.trim();
+    renderCards();
+  });
+
+  /* ============ CLOCK ============ */
+  function tickClock(){
+    document.getElementById('clock').textContent = new Date().toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  /* ============ EMBER CANVAS (signature flourish) ============ */
+  function initEmbers(){
+    const canvas = document.getElementById('emberCanvas');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) { canvas.style.display = 'none'; return; }
+
+    const ctx = canvas.getContext('2d');
+    let w, h, particles;
+
+    function resize(){
+      const rect = canvas.parentElement.getBoundingClientRect();
+      w = canvas.width = rect.width;
+      h = canvas.height = rect.height;
+    }
+
+    function makeParticle(){
       return {
-        stories: stories.slice(0, 30),
-        top: stories.slice(0, 6)
+        x: Math.random() * w,
+        y: h + Math.random() * 40,
+        r: 0.6 + Math.random() * 1.8,
+        speed: 0.25 + Math.random() * 0.6,
+        drift: (Math.random() - 0.5) * 0.4,
+        alpha: 0.15 + Math.random() * 0.35,
+        hueMix: Math.random()
       };
     }
 
-    // ─── RENDER ──────────────────────────────────────────────────────────
-    function render(stories, top) {
-      if (!stories || stories.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="icon">✅</div>
-            <div class="title">No active wildfires reported</div>
-            <div class="sub" style="color:var(--text-muted);font-size:0.9rem;">All regions are currently stable. Check back for updates.</div>
-          </div>
-        `;
-        fireCountEl.textContent = '0';
-        sourceCountEl.textContent = '0';
-        topSection.style.display = 'none';
-        return;
-      }
-
-      fireCountEl.textContent = stories.length;
-      sourceCountEl.textContent = 'CWFIS';
-
-      // ── Top stories ──
-      if (top && top.length > 0) {
-        topSection.style.display = 'block';
-        topGrid.innerHTML = top.map((s, i) => {
-          const color = s.score >= 85 ? '#ff4d4d' : s.score >= 70 ? '#ff7b24' : s.score >= 50 ? '#ffb347' : '#ffaa33';
-          const heatEmoji = s.heatTier.emoji;
-          const heatClass = s.heatTier.cls === 'breaking' ? 'breaking' : '';
-          return `
-            <div class="top-item" onclick="scrollToStory(${s.id})">
-              <span class="rank">#${i + 1}</span>
-              <span class="flag">${s.flag}</span>
-              <div class="info">
-                <div class="name">${escapeHtml(s.name)} · ${escapeHtml(s.location)}</div>
-                <div class="bar"><div class="fill" style="width:${s.score}%;background:${color};"></div></div>
-              </div>
-              <span class="score" style="color:${color};">${s.score}</span>
-              ${s.heat > 30 ? `<span class="heat-tag ${heatClass}">${heatEmoji}</span>` : ''}
-            </div>
-          `;
-        }).join('');
-      }
-
-      // ── Story cards ──
-      container.innerHTML = stories.map((s, idx) => {
-        const severityCls = s.severity.cls;
-        const heatCls = s.heat > 75 ? 'story-heat-breaking' : s.heat > 55 ? 'story-heat-developing' : '';
-        const heatBadge = s.heat > 30 ? `<div class="heat-badge ${s.heatTier.cls}">${s.heatTier.emoji} ${s.heatTier.label} · Heat ${s.heat}</div>` : '';
-
-        const sizeDisplay = s.size > 0 ? `${s.size.toFixed(0)} ha` : 'Unknown size';
-        const statusDisplay = s.status || 'Active';
-
-        let weatherInfo = '';
-        if (s.weather) {
-          const w = s.weather;
-          weatherInfo = `
-            <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">
-              ${w.temp ? `<span>🌡️ ${w.temp}°C</span>` : ''}
-              ${w.wind ? `<span>💨 ${w.wind} km/h</span>` : ''}
-              ${w.humidity ? `<span>💧 ${w.humidity}%</span>` : ''}
-              ${w.fire_risk ? `<span style="color:${w.fire_risk === 'Extreme' ? 'var(--rose)' : 'var(--amber)'};">⚠️ ${w.fire_risk} risk</span>` : ''}
-            </div>
-          `;
-        }
-
-        return `
-          <div class="story-card severity-${severityCls} ${heatCls}" id="story-${s.id}">
-            ${heatBadge}
-            <div class="story-header">
-              <div class="story-headline">
-                <span class="flag">${s.flag}</span>
-                ${escapeHtml(s.name)} · ${escapeHtml(s.location)}
-              </div>
-              <span class="severity-badge ${severityCls}">${s.severity.label}</span>
-            </div>
-            <div class="story-byline">
-              <span>📅 ${formatDate(Date.now())}</span>
-              <span>📍 ${escapeHtml(s.location)}</span>
-              <span class="source-tag">📡 CWFIS Live</span>
-            </div>
-            <div class="story-body">
-              <p class="dropcap">A ${s.size > 1000 ? 'major' : 'wildfire'} is currently burning in ${escapeHtml(s.location)}${s.size > 0 ? `, covering approximately ${sizeDisplay}` : ''}. The fire is classified as <strong>${statusDisplay}</strong> with a severity score of <span class="highlight">${s.score}/100</span> (${s.severity.label}).</p>
-              <div class="data-box">
-                <div style="display:flex;flex-wrap:wrap;gap:1.5rem;">
-                  <div><div class="stat">${sizeDisplay}</div><div class="stat-label">Area burned</div></div>
-                  <div><div class="stat">${s.score}/100</div><div class="stat-label">Severity score</div></div>
-                  <div><div class="stat">${statusDisplay}</div><div class="stat-label">Current status</div></div>
-                  ${s.heat > 50 ? `<div><div class="stat" style="color:var(--rose);">${s.heat}%</div><div class="stat-label">🔥 Heat index</div></div>` : ''}
-                </div>
-              </div>
-              ${weatherInfo}
-              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.6rem;">
-                <p>Fire weather conditions are being monitored closely. ${s.weather?.fire_risk === 'Extreme' ? '⚠️ Extreme fire risk conditions are in effect.' : 'Crews are actively working to contain the fire.'}</p>
-                ${s.size > 5000 ? `<p>This fire is of significant concern due to its size and the challenging terrain. Evacuation alerts may be in effect for surrounding communities.</p>` : ''}
-              </div>
-            </div>
-            <div class="story-dims">
-              <div class="dim"><span class="label">🔥 Size</span><span class="val" style="color:${s.size > 5000 ? 'var(--rose)' : 'var(--amber)'};">${sizeDisplay}</span></div>
-              <div class="dim"><span class="label">📊 Score</span><span class="val" style="color:${s.score >= 70 ? 'var(--rose)' : 'var(--orange)'};">${s.score}/100</span></div>
-              <div class="dim"><span class="label">📋 Status</span><span class="val">${statusDisplay}</span></div>
-              <div class="dim"><span class="label">📍 Region</span><span class="val">${escapeHtml(s.location)}</span></div>
-            </div>
-            <div class="story-footer">
-              <span>🔥 ${s.heat > 50 ? `Heat index: ${s.heat}%` : 'Monitoring'}</span>
-              <span>📡 CWFIS · ${formatDate(Date.now())}</span>
-              <span class="read-more">Full report →</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Scroll to story function
-      window.scrollToStory = function(id) {
-        const el = document.getElementById(`story-${id}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
+    function init(){
+      resize();
+      const count = Math.max(18, Math.floor(w / 55));
+      particles = Array.from({ length: count }, makeParticle);
     }
 
-    // ─── LOAD DATA ───────────────────────────────────────────────────────
-    async function loadData() {
-      if (isLoading) return;
-      isLoading = true;
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = '⏳ Loading...';
-
-      try {
-        const { fires, weather } = await fetchCWFIS();
-        const result = buildStories(fires, weather);
-        render(result.stories, result.top);
-
-        const now = new Date();
-        datetimeEl.textContent = now.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-        lastUpdateEl.textContent = `Updated ${now.toLocaleTimeString()}`;
-      } catch (err) {
-        console.error('Load error:', err);
-        container.innerHTML = `
-          <div class="empty-state" style="color:#ff8a7a;">
-            <div class="icon">⚠️</div>
-            <div class="title">Error loading wildfire data</div>
-            <div class="sub" style="color:var(--text-muted);font-size:0.9rem;">${err.message || 'Please try again later.'}</div>
-          </div>
-        `;
-      } finally {
-        isLoading = false;
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = '↻ Refresh';
-      }
+    function step(){
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach(p => {
+        p.y -= p.speed;
+        p.x += p.drift;
+        if (p.y < -10) Object.assign(p, makeParticle(), { y: h + 10 });
+        const color = p.hueMix > 0.5 ? '255,178,32' : '255,106,61';
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(${color}, ${p.alpha})`;
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(step);
     }
 
-    // ─── AUTO-REFRESH ──────────────────────────────────────────────────
-    refreshBtn.addEventListener('click', loadData);
+    window.addEventListener('resize', resize);
+    init();
+    step();
+  }
 
-    // ─── START ──────────────────────────────────────────────────────────
-    loadData();
-    setInterval(loadData, 300000); // 5 minutes
+  /* ============ BOOT ============ */
+  const refreshBtn = document.getElementById('refreshBtn');
 
-  })();
+  async function refresh(){
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '↻ Loading…';
+    fires = await loadFires();
+    buildStats(fires);
+    buildProvinceStrip(fires);
+    renderCards();
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = '↻ Refresh';
+  }
+
+  refreshBtn.addEventListener('click', refresh);
+  refresh();
+  setInterval(refresh, 300000); // 5 minutes
+
+  initEmbers();
+
+})();
 </script>
-
 </body>
 </html>
