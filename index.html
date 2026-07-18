@@ -19,16 +19,14 @@
   <style>
 
 /* ─── FORCE PRO BANNER TO ALWAYS BE VISIBLE ─── */
+/* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
 #proBanner {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
   position: relative !important;
   z-index: 2147483647 !important;
-  height: auto !important;
-  min-height: 40px !important;
-  max-height: none !important;
-  overflow: visible !important;
+}
 }
 /* ─── FUTURISTIC UI v3.0 — GCIS NEXUS ─── */
 @keyframes pulse-red {
@@ -1371,7 +1369,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative; display: flex !important;">
   <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap; width: 100%;">
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
+      <a href="https://www.globalcrisisindex.com/canadianwildfires.html" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">Track Canadian Wildfires Live</a>
       <span style="color: var(--tm);">|</span>
       <span style="color: var(--ts); font-size: 0.7rem;">Integrate real-time global intelligence API - contact@globalcrisisindex.com</span>
       <span style="color: var(--tm);">|</span>
@@ -5973,12 +5971,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
-  // ─── REMOVE ANY EXISTING BANNER BEFORE SETTING INNERHTML ──────────────
-  // We'll re-insert it after setting the panel content
-  const existingBanner = document.getElementById('proBanner');
-  if (existingBanner) {
-    existingBanner.remove();
-  }
 
   document.getElementById('panelContent').innerHTML = `
     ${rssHeadlineHtml}
