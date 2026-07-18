@@ -17,8 +17,8 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
   
   <!-- PRO BANNER + GCIN BREAKING BAR (MERGED — SAME LINE) -->
-  <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative;">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap;">
+  <div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative; display: flex;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap; width: 100%;">
       <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
         <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
         <span style="color: var(--tm);">|</span>
@@ -31,7 +31,7 @@
           <span style="opacity: 0.3;">|</span>
           <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">Global Crisis API</a>
           <span style="opacity: 0.3;">|</span>
-          <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian & Geopolitical Risk Global Market Indicator
+          <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian & Geopolitical Risk Global Market Indicator
         </div>      </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
         <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
@@ -42,6 +42,26 @@
       <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">UNLOCK</a>
     </div>
   </div>
+  <script>
+  // ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE ──────────────────────────────
+  // Some flows (e.g. unlockProFeatures() when a Pro session is detected via
+  // checkExistingLogin() on page load, including deep-link ?country=&crisis=
+  // URLs) set proBanner.style.display = 'none'. This guard watches the
+  // element's style attribute and immediately restores visibility if
+  // anything ever hides it, so the banner can never silently disappear.
+  (function keepProBannerVisible(){
+    const banner = document.getElementById('proBanner');
+    if (!banner) return;
+    function forceVisible(){
+      if (banner.style.display === 'none' || getComputedStyle(banner).display === 'none') {
+        banner.style.display = 'flex';
+      }
+    }
+    forceVisible();
+    const observer = new MutationObserver(forceVisible);
+    observer.observe(banner, { attributes: true, attributeFilter: ['style', 'class'] });
+  })();
+  </script>
 
   <style>
 /* ─── FUTURISTIC UI v3.0 — GCIS NEXUS ─── */
