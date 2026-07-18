@@ -17,6 +17,19 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large">
 
   <style>
+
+/* ─── FORCE PRO BANNER TO ALWAYS BE VISIBLE ─── */
+#proBanner {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 2147483647 !important;
+  height: auto !important;
+  min-height: 40px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
 /* ─── FUTURISTIC UI v3.0 — GCIS NEXUS ─── */
 @keyframes pulse-red {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -1382,9 +1395,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 <script>
 // ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE — SURVIVES REMOVAL, HIDING, AND Z-INDEX BURIAL ──
-// ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE — SURVIVES ALL DOM UPDATES ──
 (function keepProBannerVisible(){
-  // Save a pristine clone of the banner
+  // Save a pristine clone of the banner the instant it exists, before any
+  // other script (including the country/crisis renderer) can touch it.
+  // This is the piece the previous guard was missing: if the node is ever
+  // removed from the DOM outright (not just hidden), style-forcing alone
+  // can't bring it back — only re-inserting a saved copy can.
   let savedClone = null;
   const original = document.getElementById('proBanner');
   if (original) savedClone = original.cloneNode(true);
@@ -1392,44 +1408,35 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   function forceVisibleAndPresent(){
     let banner = document.getElementById('proBanner');
 
-    // Case 1: node is gone entirely — reinsert the saved clone
+    // Case 1: node is gone entirely — reinsert the saved clone at the very
+    // top of <body>, ahead of everything else on the page.
     if (!banner && savedClone) {
       banner = savedClone.cloneNode(true);
       document.body.insertBefore(banner, document.body.firstChild);
     }
     if (!banner) return;
 
-    // Case 2: node exists but is hidden — force it visible
+    // Case 2: node exists but is hidden — force it visible, !important.
     banner.style.setProperty('display', 'flex', 'important');
     banner.style.setProperty('visibility', 'visible', 'important');
     banner.style.setProperty('opacity', '1', 'important');
     banner.style.setProperty('position', 'relative', 'important');
+    // Case 3: node exists but got visually buried under something with a
+    // higher z-index (e.g. the sticky #global-crisis-banner at 999999) —
+    // outrank every other z-index on the page.
     banner.style.setProperty('z-index', '2147483647', 'important');
     if (banner.classList) banner.classList.remove('hidden', 'd-none');
 
-    // Always keep it as the very first child of <body>
+    // Always keep it as the very first child of <body>.
     if (document.body.firstChild !== banner) {
       document.body.insertBefore(banner, document.body.firstChild);
     }
-    
-    // Update the link to preserve country/crisis params
-    const readmoreLink = banner.querySelector('#readmore-link');
-    if (readmoreLink) {
-      const currentUrl = window.location.href;
-      const urlParams = new URLSearchParams(window.location.search);
-      const country = urlParams.get('country') || '';
-      const crisis = urlParams.get('crisis') || '';
-      let targetUrl = '/GCIN.html';
-      if (country) targetUrl += `?country=${country}`;
-      if (crisis) targetUrl += (country ? '&' : '?') + `crisis=${crisis}`;
-      readmoreLink.href = targetUrl;
-    }
   }
 
-  // Run immediately
   forceVisibleAndPresent();
+  window.addEventListener('load', forceVisibleAndPresent);
+  document.addEventListener('DOMContentLoaded', forceVisibleAndPresent);
 
-  // Run on every DOM change (catches all panel renders)
   const observer = new MutationObserver(forceVisibleAndPresent);
   observer.observe(document.documentElement, {
     attributes: true,
@@ -1438,16 +1445,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     childList: true
   });
 
-  // Also run on visibility change, load, and every 500ms as backup
   document.addEventListener('visibilitychange', function(){
     if (!document.hidden) forceVisibleAndPresent();
   });
-  window.addEventListener('load', forceVisibleAndPresent);
-  document.addEventListener('DOMContentLoaded', forceVisibleAndPresent);
-  
-  // Aggressive backup interval
-  setInterval(forceVisibleAndPresent, 500);
+
+  // Continuous rAF-driven enforcement — runs every frame, so it always has
+  // the last word even against scripts that run after this one (like the
+  // large country/crisis renderer further down the page).
+  (function loop(){
+    forceVisibleAndPresent();
+    requestAnimationFrame(loop);
+  })();
 })();
+</script>
 <div class="app">
 <header class="futuristic-header">
   <div class="brand-future">
@@ -3024,12 +3034,60 @@ async function refresh(){
     updateUIStats();
   }
 
-  adv(6,100);
+   adv(6,100);
   paintMap();
   addPulseMarkers();
   renderRanking();
   await new Promise(r=>setTimeout(r,500));
   loader.style.display='none';
+  
+  // ─── RE-INSERT THE PRO BANNER AFTER REFRESH ─────────────────────────
+  setTimeout(function() {
+    let banner = document.getElementById('proBanner');
+    if (!banner) {
+      // Try to find it in the saved state or re-create from HTML
+      const bannerHTML = `<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative; display: flex !important;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap; width: 100%;">
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
+      <span style="color: var(--tm);">|</span>
+      <span style="color: var(--ts); font-size: 0.7rem;">Integrate real-time global intelligence API - contact@globalcrisisindex.com</span>
+      <span style="color: var(--tm);">|</span>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65rem;">
+        <a href="privacy.html" style="color: inherit; text-decoration: none;">PRIVACY</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="terms.html" style="color: inherit; text-decoration: none;">TERMS</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="https://rapidapi.com/jmm6993/api/global-crisis-index" target="_blank" style="color: inherit; text-decoration: none;">Global Crisis API</a>
+        <span style="opacity: 0.3;">|</span>
+        <a href="https://globalcrisisindex.com/whatisacrisisindex.html" style="color: inherit; text-decoration: none;">FAQ</a>    Humanitarian & Geopolitical Risk Global Market Indicator
+      </div>      </div>
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; overflow-x: auto; white-space: nowrap;">
+      <div style="display: flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;">
+        <span style="font-size: 1rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #80c0ff 100%); background-clip: text; -webkit-background-clip: text; color: transparent;"></span>
+        <a href="/GCIN.html" id="readmore-link" style="background: rgba(49, 116, 199, 0.1); border: 1px solid #3174c7; color: #80c0ff; font-size: 0.7rem; font-weight: 600; padding: 0.3rem 1rem; border-radius: 40px; text-decoration: none; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; margin-left: 4px;" onmouseover="this.style.background='rgba(49,116,199,0.2)'; this.style.borderColor='#4a8fd9';" onmouseout="this.style.background='rgba(49,116,199,0.1)'; this.style.borderColor='#3174c7';"> GCIN NEWS</a>
+      </div>
+    </div>
+    <a href="#" onclick="openModal(); return false;" style="color: var(--cyan); text-decoration: none; font-weight: bold; border: 1px solid var(--cyan3); padding: 2px 10px; border-radius: 20px; background: rgba(0,200,255,0.1); transition: all 0.2s; font-size: 0.65rem; white-space: nowrap; flex-shrink: 0;" onmouseover="this.style.background='rgba(0,200,255,0.2)';" onmouseout="this.style.background='rgba(0,200,255,0.1)';">UNLOCK</a>
+  </div>
+</div>`;
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = bannerHTML;
+      const newBanner = tempDiv.firstElementChild;
+      if (newBanner) {
+        document.body.insertBefore(newBanner, document.body.firstChild);
+        console.log('✅ Pro banner re-inserted after refresh');
+      }
+    } else {
+      banner.style.setProperty('display', 'flex', 'important');
+      banner.style.setProperty('visibility', 'visible', 'important');
+      banner.style.setProperty('opacity', '1', 'important');
+      banner.style.setProperty('z-index', '2147483647', 'important');
+      if (document.body.firstChild !== banner) {
+        document.body.insertBefore(banner, document.body.firstChild);
+      }
+    }
+  }, 50);
   
   const liveCount = Object.keys(apiResults).filter(k => apiResults[k]).length;
   const evidenceCount = Object.values(store).reduce((s, c) => s + (c.evidenceCount || 0), 0);
@@ -5758,14 +5816,10 @@ function escapeHtml(str) {
 }
 
 async function renderPanel(iso, focusCrisisType) {
-  // ─── PROTECT PRO BANNER - SAVE BEFORE ANY DOM CHANGES ────────────────
-  const existingBanner = document.getElementById('proBanner');
-  let bannerHTML = '';
-  if (existingBanner) {
-    bannerHTML = existingBanner.outerHTML;
-    existingBanner.remove();
-  }
-
+  // ─── SAVE THE PRO BANNER BEFORE ANY DOM CHANGES ─────────────────────
+  const banner = document.getElementById('proBanner');
+  const bannerHTML = banner ? banner.outerHTML : '';
+  
   const c = store[iso]; if (!c) return;
   const hist = (history[iso] || []).map(h => h.s);
   const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
@@ -5790,30 +5844,24 @@ async function renderPanel(iso, focusCrisisType) {
     const rssResponse = await fetch('https://www.globalcrisisindex.com/api/top-story?format=rss');
     if (rssResponse.ok) {
       const rssText = await rssResponse.text();
-      // Parse the RSS XML
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(rssText, 'text/xml');
       const items = xmlDoc.querySelectorAll('item');
       
-      // Loop through each item in the RSS feed
       for (const item of items) {
         const title = item.querySelector('title')?.textContent || '';
-        // Check if the title contains the country name or flag
         const countryName = c.name;
         const countryFlag = c.flag || '';
         
-        // Check if the title mentions this country (case insensitive)
         if (title.toLowerCase().includes(countryName.toLowerCase()) || 
             title.includes(countryFlag)) {
           rssHeadline = title;
-          // Try to get the link
           const link = item.querySelector('link')?.textContent || '';
           if (link) rssUrl = link;
           break;
         }
       }
       
-      // If no country-specific headline found, use the first item
       if (!rssHeadline && items.length > 0) {
         const firstItem = items[0];
         rssHeadline = firstItem.querySelector('title')?.textContent || '';
@@ -5827,7 +5875,6 @@ async function renderPanel(iso, focusCrisisType) {
   
   console.log('📡 RSS Headline for', c.name, ':', rssHeadline ? rssHeadline.substring(0, 50) + '...' : 'None found');
   
-    // ─── BUILD RSS HEADLINE HTML (FULL HEADLINE, NO LABEL) ──────────────────────
   const rssHeadlineHtml = rssHeadline ? `
     <div class="rss-headline-box">
       <span class="headline-text">${escapeHtml(rssHeadline)}</span>
@@ -5841,7 +5888,6 @@ async function renderPanel(iso, focusCrisisType) {
     "Syrian American Medical Soc.": ["syria"], "Yemen Aid": ["yemen"]
   };
 
-  // If crisis focused, filter charities to that crisis type's needs
   const needsFilter = activeCrisisData ? activeCrisisData.n : c.needs;
   const chs = CHARITIES.filter(ch => {
     let regionOk = true;
@@ -5864,7 +5910,6 @@ async function renderPanel(iso, focusCrisisType) {
   const fcChartSvg = miniLineChart(fcHist, 320, 36, col);
   const ipcInfo = ipcClassifications.find(i => i.country === c.name) || null;
 
-  // ── CRISIS FOCUS BANNER (shown only when pulse-verified) ──
   const crisisBannerHtml = activeCrisisData ? `
     <div id="crisisFocusBanner" style="
       margin:0 0 0 0;
@@ -5902,7 +5947,6 @@ async function renderPanel(iso, focusCrisisType) {
     </div>
   ` : '';
 
-  // ── CRISIS TYPE PILLS (highlight active crisis if present) ──
 const typeTagsHtml = c.types.slice(0, 5).map(t => {
     const isActive = t === activeCrisis;
     return `<span class="type-tag${isActive ? ' active-crisis-tag' : ''}" data-type="${t}" onclick="window.location.href='/?country=${iso}&crisis=${t}'" style="cursor:pointer;${isActive
@@ -5910,7 +5954,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
       : ''}">${ARC[t]?.i || '⚠️'} ${ARC[t]?.l || t}${isActive ? ' ●' : ''}</span>`;
   }).join('');
 
-  // ── CRISIS DIMENSION HIGHLIGHT: which dims are most relevant to this crisis ──
   const crisisDimWeights = {
     CE: { conflict: 1.0, displacement: 0.9, access: 0.8 },
     CW: { conflict: 1.0, displacement: 0.8, political: 0.7 },
@@ -5922,15 +5965,21 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     REF: { displacement: 1.0, protection: 0.9, political: 0.7 },
     TC: { displacement: 0.9, economic: 0.8, health: 0.7 },
     WF: { displacement: 0.8, economic: 0.7, health: 0.6 },
-    HEAT: { health: 1.0, food: 0.7, economic: 0.6 },
-    LS: { displacement: 0.9, health: 0.7, economic: 0.6 },
+    HEAT:{ health: 1.0, food: 0.7, economic: 0.6 },
+    LS:  { displacement: 0.9, health: 0.7, economic: 0.6 },
     TSU: { displacement: 1.0, health: 0.8, economic: 0.8 },
     VLC: { displacement: 0.9, health: 0.7, economic: 0.7 },
-    ST: { displacement: 0.8, economic: 0.7, food: 0.6 },
+    ST:  { displacement: 0.8, economic: 0.7, food: 0.6 },
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
-  // ─── SET PANEL CONTENT ────────────────────────────────────────────────────
+  // ─── REMOVE ANY EXISTING BANNER BEFORE SETTING INNERHTML ──────────────
+  // We'll re-insert it after setting the panel content
+  const existingBanner = document.getElementById('proBanner');
+  if (existingBanner) {
+    existingBanner.remove();
+  }
+
   document.getElementById('panelContent').innerHTML = `
     ${rssHeadlineHtml}
     ${crisisBannerHtml}
@@ -6067,7 +6116,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
           </span>
         </div>
         
-        <!-- Anomaly Alert -->
         ${anom && anom.detected ? `
         <div style="margin-top:6px;padding:5px 8px;background:rgba(255,55,95,0.08);border:1px solid rgba(255,55,95,0.2);border-radius:4px;display:flex;align-items:center;gap:6px;">
           <span style="font-size:14px;">🚨</span>
@@ -6079,7 +6127,6 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
         </div>
         ` : ''}
         
-        <!-- Learning progress -->
         <div style="margin-top:4px;display:flex;justify-content:space-between;font-family:var(--fm);font-size:5px;color:var(--td);">
           <span>🧠 ${NN && NN.weights && NN.weights.training_count ? NN.weights.training_count : 0} samples trained</span>
           <span>updated ${NN && NN.weights && NN.weights.last_updated ? new Date(NN.weights.last_updated).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
@@ -6129,21 +6176,37 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     </div>
   `;
 
-  // ─── RESTORE PRO BANNER ──────────────────────────────────────────────
+  // ─── RE-INSERT THE PRO BANNER AFTER SETTING PANEL CONTENT ─────────────
   if (bannerHTML) {
-    // Insert the banner back at the very top of body
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = bannerHTML;
-    const restoredBanner = tempDiv.firstElementChild;
-    if (restoredBanner) {
-      restoredBanner.id = 'proBanner';
-      restoredBanner.style.setProperty('display', 'flex', 'important');
-      restoredBanner.style.setProperty('visibility', 'visible', 'important');
-      restoredBanner.style.setProperty('opacity', '1', 'important');
-      restoredBanner.style.setProperty('position', 'relative', 'important');
-      restoredBanner.style.setProperty('z-index', '2147483647', 'important');
-      document.body.insertBefore(restoredBanner, document.body.firstChild);
-    }
+    // Check if banner was re-created by the observer - if not, insert it
+    setTimeout(() => {
+      let currentBanner = document.getElementById('proBanner');
+      if (!currentBanner) {
+        // Insert the saved banner HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = bannerHTML;
+        const newBanner = tempDiv.firstElementChild;
+        if (newBanner) {
+          newBanner.id = 'proBanner';
+          newBanner.style.setProperty('display', 'flex', 'important');
+          newBanner.style.setProperty('visibility', 'visible', 'important');
+          newBanner.style.setProperty('opacity', '1', 'important');
+          newBanner.style.setProperty('position', 'relative', 'important');
+          newBanner.style.setProperty('z-index', '2147483647', 'important');
+          document.body.insertBefore(newBanner, document.body.firstChild);
+          console.log('✅ Pro banner re-inserted after panel render');
+        }
+      } else {
+        // Ensure existing banner is visible
+        currentBanner.style.setProperty('display', 'flex', 'important');
+        currentBanner.style.setProperty('visibility', 'visible', 'important');
+        currentBanner.style.setProperty('opacity', '1', 'important');
+        currentBanner.style.setProperty('z-index', '2147483647', 'important');
+        if (document.body.firstChild !== currentBanner) {
+          document.body.insertBefore(currentBanner, document.body.firstChild);
+        }
+      }
+    }, 10);
   }
 
   // ── ANIMATE IN ──
