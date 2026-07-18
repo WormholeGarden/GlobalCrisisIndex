@@ -2996,25 +2996,51 @@ async function refresh(){
 
 // ─── AUTO-SELECT THE TOP COUNTRY (AND ITS TOP ACTIVE-PULSE CRISIS) ────────────
   const urlParams = new URLSearchParams(window.location.search);
-  const urlCountry = urlParams.get('country');
+  const urlCountry = urlParams.get('urlCountry');
+  const urlCrisisParam = urlParams.get('crisis');
+
+  // Helper: only use URL crisis if we're actually selecting the URL country
+  const getCrisisForIso = (iso, useUrlCrisis) => {
+    let crisis = null;
+    if (useUrlCrisis) {
+      crisis = urlCrisisParam || pickDynamicCrisisType(iso);
+    } else {
+      crisis = pickDynamicCrisisType(iso);
+    }
+    // If still null, use the first crisis type from the country
+    if (!crisis && store[iso] && store[iso].types && store[iso].types.length > 0) {
+      return store[iso].types[0];
+    }
+    return crisis;
+  };
 
   if (urlCountry && store[urlCountry]) {
     selectedIso = urlCountry;
-    const urlCrisis = urlParams.get('crisis') || pickDynamicCrisisType(urlCountry);
+    const urlCrisis = getCrisisForIso(urlCountry, true);
     await renderPanel(urlCountry, urlCrisis);
     zoomToCountry(selectedIso);
-    if (urlCrisis && urlParams.get('crisis') !== urlCrisis) {
+    if (urlCrisis && urlCrisisParam !== urlCrisis) {
       window.history.replaceState({ country: selectedIso, crisis: urlCrisis }, '', `?country=${selectedIso}&crisis=${urlCrisis}`);
     }
   } else if (selectedIso && store[selectedIso]) {
-    const activeCrisis = pickDynamicCrisisType(selectedIso);
+    const activeCrisis = getCrisisForIso(selectedIso, false);
     await renderPanel(selectedIso, activeCrisis);
     if (activeCrisis) {
       window.history.replaceState({ country: selectedIso, crisis: activeCrisis }, '', `?country=${selectedIso}&crisis=${activeCrisis}`);
     }
   } else if (ranked.length) {
-    selectedIso = ranked[0];
-    const topCrisis = pickDynamicCrisisType(selectedIso);
+    // Find the top country with a pulse marker (score >= 60)
+    let topPulseIso = null;
+    for (const iso of ranked) {
+      if (store[iso] && store[iso].score >= 60) {
+        topPulseIso = iso;
+        break;
+      }
+    }
+    
+    // If no pulse marker found, use the top ranked
+    selectedIso = topPulseIso || ranked[0];
+    const topCrisis = getCrisisForIso(selectedIso, false);
     await renderPanel(selectedIso, topCrisis);
     zoomToCountry(selectedIso);
     if (topCrisis) {
@@ -3025,7 +3051,6 @@ async function refresh(){
   }
 
   updateDynamicTitle();
-}
 
 // ─── PICK THE TOP "ACTIVE PULSE" CRISIS TYPE FOR A COUNTRY ────────────────────
 // Only returns a crisis code if the country actually has a live red pulse
