@@ -3085,7 +3085,9 @@ function pickDynamicCrisisType(iso) {
     const w = crisisDimWeights[t];
     if (!w) return;
     let s = 0;
-    Object.entries(w).forEach(([dim, weight]) => { s += (c.dims[dim] || 0) * weight; });
+    // ✅ Added null safety for c.dims
+    const dims = c.dims || {};
+    Object.entries(w).forEach(([dim, weight]) => { s += (dims[dim] || 0) * weight; });
     if (s > bestScore) { bestScore = s; best = t; }
   });
 
