@@ -1387,7 +1387,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 <script>
 // ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE, ON ANY URL/PARAM COMBO ──────
-function keepProBannerVisible(){
+(function keepProBannerVisible(){
   function forceVisible(){
     let banner = document.getElementById('proBanner');
     if (!banner) return; // nothing to restore yet
@@ -2165,9 +2165,7 @@ ffunction logout() {
   unlockProFeatures(false);
   document.getElementById('search').value = '';
   toast('Logged out');
-}
-
-function updateUILoggedIn(email) {
+}function updateUILoggedIn(email) {
   document.getElementById('loginBtn').style.display = 'none';
   document.getElementById('logoutBtn').style.display = '';
   document.getElementById('loginEmail').style.display = 'none';
