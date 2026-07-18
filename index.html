@@ -2075,9 +2075,10 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // Hide pro banner
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) proBanner.style.display = 'none';
+    // ✅ REMOVED: const proBanner = document.getElementById('proBanner');
+    // ✅ REMOVED: if (proBanner) proBanner.style.display = 'none';
+    // ✅ KEEP PRO BANNER VISIBLE - DO NOT HIDE IT
+    
     // Update tier variable FIRST
     tier = 'pro';
     // Update tier pill
@@ -2102,8 +2103,9 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) proBanner.style.display = '';
+    // ✅ REMOVED: const proBanner = document.getElementById('proBanner');
+    // ✅ REMOVED: if (proBanner) proBanner.style.display = '';
+    // ✅ PRO BANNER STAYS VISIBLE REGARDLESS OF TIER
     tier = 'free';
     updateSearchLockState();
     renderRanking('');
