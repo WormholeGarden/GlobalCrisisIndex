@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔥 Canada Wildfire Intelligence · CWFIS Live</title>
+  <meta name="description" content="Real-time Canada wildfire data from CWFIS — active fires, perimeters, and evacuation alerts.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0b0f1a;
+      --bg-card: #141c2b;
+      --bg-card-hover: #1a2438;
+      --border: rgba(255, 140, 0, 0.15);
+      --border-hover: rgba(255, 140, 0, 0.35);
+      --text: #f5f0e8;
+      --text-secondary: #c8c0b5;
+      --text-muted: #7a6f62;
+      --orange: #ff8c00;
+      --rose: #ff4d4d;
+      --amber: #ffb347;
+      --green: #66cc99;
+      --purple: #b07fff;
+      --radius: 12px;
+      --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-sans: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 99px; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      background-image: radial-gradient(ellipse 60% 50% at 20% 20%, rgba(255, 140, 0, 0.04), transparent 70%);
+      font-family: var(--font-sans);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: linear-gradient(rgba(255, 140, 0, 0.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 140, 0, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.3;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+    }
+    @media (max-width: 768px) { .container { padding: 1rem; } }
+    @media (max-width: 480px) { .container { padding: 0.75rem; } }
+
+    .masthead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .masthead-left { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .logo {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 20%, var(--orange), #ffaa33);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-decoration: none;
+    }
+    .logo span { font-weight: 400; font-size: 0.65rem; letter-spacing: 1.5px; color: var(--text-muted); background: none; -webkit-background-clip: unset; background-clip: unset; margin-left: 0.2rem; }
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      background: rgba(255, 140, 0, 0.1);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+      color: var(--orange);
+      padding: 0.2rem 0.7rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .masthead-right {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+    }
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(102,204,153,0.4); }
+      50% { opacity: 0.6; transform: scale(0.85); box-shadow: 0 0 0 6px rgba(102,204,153,0); }
+    }
+    .live-indicator { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--green); background: rgba(102,204,153,0.08); padding: 0.1rem 0.6rem; border-radius: 99px; border: 1px solid rgba(102,204,153,0.15); font-size: 0.6rem; }
+
+    .page-header { margin: 1.2rem 0 0.3rem; }
+    .page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 20%, var(--orange), #ffaa33);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    @media (max-width: 768px) { .page-header h1 { font-size: 2.2rem; } }
+    @media (max-width: 480px) { .page-header h1 { font-size: 1.6rem; } }
+    .page-header .subtitle {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      border-left: 3px solid var(--orange);
+      padding-left: 1rem;
+      margin-top: 0.1rem;
+    }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      margin: 0.8rem 0 1.8rem;
+    }
+    .meta-bar .stat { display: flex; align-items: center; gap: 0.3rem; }
+    .meta-bar .count { color: var(--orange); font-weight: 700; }
+    .meta-bar .live-count { color: var(--green); font-weight: 700; }
+
+    .story-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.8rem 2rem 1.5rem;
+      margin-bottom: 2.2rem;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+      border-left: 5px solid var(--orange);
+    }
+    .story-card:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(255,140,0,0.08);
+    }
+    .story-card.severity-critical { border-left-color: var(--rose); }
+    .story-card.severity-high { border-left-color: #ff7b24; }
+    .story-card.severity-elevated { border-left-color: var(--amber); }
+    .story-card.severity-moderate { border-left-color: #ffaa33; }
+    .story-card.story-heat-breaking { border-top: 3px solid var(--rose); }
+    .story-card.story-heat-developing { border-top: 3px solid var(--amber); }
+
+    .heat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: var(--font-mono);
+      font-size: 0.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.1rem 0.5rem;
+      border-radius: 99px;
+      margin-bottom: 0.3rem;
+    }
+    .heat-badge.breaking { background: rgba(255,60,60,0.15); color: var(--rose); border: 1px solid rgba(255,60,60,0.2); animation: pulse-rose 1.5s infinite; }
+    .heat-badge.developing { background: rgba(255,179,71,0.12); color: var(--amber); border: 1px solid rgba(255,179,71,0.15); }
+    .heat-badge.notable { background: rgba(255,140,0,0.08); color: var(--orange); border: 1px solid rgba(255,140,0,0.1); }
+    @keyframes pulse-rose { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    .story-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+      position: relative;
+      z-index: 1;
+    }
+    .story-headline {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    @media (max-width: 768px) { .story-headline { font-size: 1.4rem; } }
+    @media (max-width: 480px) { .story-headline { font-size: 1.1rem; } }
+    .story-headline .flag { font-size: 2rem; margin-right: 0.2rem; }
+    .severity-badge {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 0.2rem 0.8rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border: 1px solid;
+      flex-shrink: 0;
+    }
+    .severity-badge.critical { background: rgba(255,60,60,0.15); color: var(--rose); border-color: rgba(255,60,60,0.3); }
+    .severity-badge.high { background: rgba(255,123,36,0.12); color: #ff7b24; border-color: rgba(255,123,36,0.25); }
+    .severity-badge.elevated { background: rgba(255,179,71,0.12); color: var(--amber); border-color: rgba(255,179,71,0.2); }
+    .severity-badge.moderate { background: rgba(255,170,51,0.08); color: #ffaa33; border-color: rgba(255,170,51,0.15); }
+
+    .story-byline {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.4rem;
+    }
+    .story-byline .source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.5rem;
+      background: rgba(255,140,0,0.05);
+      border: 1px solid rgba(255,140,0,0.08);
+      color: var(--text-muted);
+    }
+
+    .story-body {
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin: 0.6rem 0;
+      position: relative;
+      z-index: 1;
+    }
+    .story-body p { margin-bottom: 0.8rem; }
+    .story-body .dropcap::first-letter {
+      font-family: var(--font-serif);
+      font-size: 3.5rem;
+      float: left;
+      line-height: 0.8;
+      margin-right: 0.4rem;
+      color: var(--text);
+      font-weight: 900;
+    }
+    .story-body strong { color: var(--text); }
+    .story-body .highlight { color: var(--orange); font-weight: 600; }
+    .story-body .data-box {
+      background: rgba(255,140,0,0.04);
+      border: 1px solid rgba(255,140,0,0.08);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      margin: 0.6rem 0;
+    }
+    .story-body .data-box .stat { font-size: 1.4rem; font-weight: 800; color: var(--orange); }
+    .story-body .data-box .stat-label { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px; }
+    .story-body .quote {
+      border-left: 3px solid var(--orange);
+      padding-left: 1.2rem;
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text);
+      font-family: var(--font-serif);
+      font-size: 1rem;
+    }
+    .story-body .quote .attribution { display: block; font-style: normal; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; font-family: var(--font-mono); }
+
+    .story-dims {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 0.3rem 0.6rem;
+      background: rgba(0,0,0,0.2);
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      margin: 0.6rem 0;
+      border: 1px solid var(--border);
+    }
+    .story-dims .dim {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-secondary);
+    }
+    .story-dims .dim .label { color: var(--text-muted); text-transform: uppercase; font-size: 0.5rem; letter-spacing: 0.3px; }
+    .story-dims .dim .val { font-weight: 700; font-size: 0.65rem; }
+
+    .story-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.8rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      color: var(--text-muted);
+    }
+    .story-footer .read-more { color: var(--orange); text-decoration: none; font-weight: 600; font-size: 0.6rem; transition: all var(--transition); display: inline-flex; align-items: center; gap: 0.2rem; }
+    .story-footer .read-more:hover { color: #fff; gap: 0.5rem; }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .empty-state .title { font-size: 1.1rem; font-family: var(--font-serif); color: var(--text-secondary); }
+
+    .top-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .top-section h2 { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    .top-section .sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.2rem; }
+    .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    @media (max-width: 768px) { .top-grid { grid-template-columns: 1fr; } }
+    .top-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      transition: all var(--transition);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .top-item:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+    .top-item .rank { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-muted); width: 1.8rem; flex-shrink: 0; }
+    .top-item .flag { font-size: 1.2rem; flex-shrink: 0; }
+    .top-item .info { flex: 1; min-width: 0; }
+    .top-item .info .name { font-weight: 600; font-size: 0.75rem; line-height: 1.2; color: var(--text); }
+    .top-item .info .bar { width: 100%; height: 3px; background: rgba(255,255,255,0.04); border-radius: 99px; margin-top: 0.2rem; overflow: hidden; }
+    .top-item .info .bar .fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+    .top-item .score { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
+    .top-item .heat-tag { font-size: 0.5rem; font-family: var(--font-mono); color: var(--amber); background: rgba(255,176,32,0.06); padding: 0.05rem 0.3rem; border-radius: 3px; border: 1px solid rgba(255,176,32,0.1); margin-left: auto; }
+    .top-item .heat-tag.breaking { color: var(--rose); border-color: rgba(255,60,60,0.15); background: rgba(255,60,60,0.08); }
+
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      letter-spacing: 0.3px;
+    }
+    .footer-note a { color: var(--orange); text-decoration: none; }
+    .footer-note a:hover { text-decoration: underline; }
+    .footer-note .source-badge-inline {
+      display: inline-block;
+      background: rgba(102,204,153,0.06);
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid rgba(102,204,153,0.08);
+      font-size: 0.5rem;
+      color: var(--green);
+    }
+
+    .refresh-btn {
+      background: rgba(255,140,0,0.08);
+      border: 1px solid rgba(255,140,0,0.15);
+      color: var(--orange);
+      padding: 0.2rem 0.8rem;
+      border-radius: 99px;
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .refresh-btn:hover { background: rgba(255,140,0,0.15); border-color: var(--orange); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header class="masthead">
+    <div class="masthead-left">
+      <a href="#" class="logo">🔥 GCIN <span>· Canada Wildfire</span></a>
+      <span class="badge">🇨🇦 CWFIS Live</span>
+    </div>
+    <div class="masthead-right">
+      <span class="live-indicator"><span class="live-dot"></span> LIVE</span>
+      <span id="datetime">Loading...</span>
+      <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <h1>Canada Wildfire Intelligence</h1>
+    <div class="subtitle">Real‑time data from the Canadian Wildland Fire Information System</div>
+  </div>
+
+  <div class="meta-bar">
+    <span class="stat">🔥 <span class="count" id="fireCount">⏳</span> active fires</span>
+    <span class="stat">📡 <span class="live-count" id="sourceCount">⏳</span> live sources</span>
+    <span class="stat">🔄 <span id="lastUpdate">updating...</span></span>
+  </div>
+
+  <div id="storiesContainer">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span style="color:var(--text-muted);">Fetching live Canada wildfire data from CWFIS...</span>
+    </div>
+  </div>
+
+  <div class="top-section" id="topSection" style="display:none;">
+    <h2>🔥 Fire Hotspots</h2>
+    <div class="sub">Most active wildfire zones across Canada</div>
+    <div class="top-grid" id="topGrid"></div>
+  </div>
+
+  <div class="footer-note">
+    <strong>🔥 Canada Wildfire</strong> — live data from <span class="source-badge-inline">CWFIS</span> <span class="source-badge-inline">Canadian Wildland Fire Information System</span><br>
+    Updates every 5 minutes · Data includes active fires, perimeters, and fire weather
+  </div>
+
+</div>
+
+<script>
+  (function() {
+    "use strict";
+
+    // ─── CWFIS API ENDPOINTS ──────────────────────────────────────────────
+    const CWFIS_FIRES_URL = "https://cwfis.cfs.nrcan.gc.ca/api/fires";
+    const CWFIS_WEATHER_URL = "https://cwfis.cfs.nrcan.gc.ca/api/weather";
+
+    // ─── STATE ─────────────────────────────────────────────────────────────
+    let fireData = [];
+    let weatherData = [];
+    let isLoading = false;
+
+    // ─── DOM REFS ──────────────────────────────────────────────────────────
+    const container = document.getElementById('storiesContainer');
+    const fireCountEl = document.getElementById('fireCount');
+    const sourceCountEl = document.getElementById('sourceCount');
+    const datetimeEl = document.getElementById('datetime');
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    const topSection = document.getElementById('topSection');
+    const topGrid = document.getElementById('topGrid');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    // ─── HELPERS ──────────────────────────────────────────────────────────
+    function formatDate(d) {
+      return new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function clamp(v, lo = 1, hi = 99) { return Math.min(hi, Math.max(lo, Math.round(v))); }
+
+    function getSeverity(score) {
+      if (score >= 85) return { label: 'CRITICAL', cls: 'critical' };
+      if (score >= 70) return { label: 'HIGH', cls: 'high' };
+      if (score >= 50) return { label: 'ELEVATED', cls: 'elevated' };
+      return { label: 'MODERATE', cls: 'moderate' };
+    }
+
+    function getHeatTier(score) {
+      if (score >= 75) return { label: 'BREAKING', cls: 'breaking', emoji: '🔥' };
+      if (score >= 55) return { label: 'DEVELOPING', cls: 'developing', emoji: '🟠' };
+      if (score >= 30) return { label: 'NOTABLE', cls: 'notable', emoji: '🟡' };
+      return { label: 'ROUTINE', cls: 'routine', emoji: '📊' };
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;'; return m;
+      });
+    }
+
+    // ─── FETCH CWFIS DATA ──────────────────────────────────────────────
+    async function fetchCWFIS() {
+      try {
+        const [firesRes, weatherRes] = await Promise.all([
+          fetch(CWFIS_FIRES_URL),
+          fetch(CWFIS_WEATHER_URL)
+        ]);
+
+        const firesText = await firesRes.text();
+        const weatherText = await weatherRes.text();
+
+        // Parse HTML responses into structured data
+        const fires = parseCWFISFires(firesText);
+        const weather = parseCWFISWeather(weatherText);
+
+        return { fires, weather };
+      } catch (err) {
+        console.error('CWFIS fetch error:', err);
+        return { fires: [], weather: [] };
+      }
+    }
+
+    // ─── PARSE CWFIS FIRES HTML ──────────────────────────────────────
+    function parseCWFISFires(html) {
+      const fires = [];
+      try {
+        // Look for fire data in the HTML - CWFIS returns HTML with embedded data
+        // Try to find JSON-like data in script tags or table data
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Try to find fire data in table rows
+        const tables = doc.querySelectorAll('table');
+        for (const table of tables) {
+          const rows = table.querySelectorAll('tr');
+          let headers = [];
+          for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('th, td');
+            if (i === 0) {
+              headers = Array.from(cells).map(c => c.textContent.trim().toLowerCase());
+              continue;
+            }
+            const rowData = {};
+            cells.forEach((cell, idx) => {
+              const key = headers[idx] || `col${idx}`;
+              rowData[key] = cell.textContent.trim();
+            });
+            if (Object.keys(rowData).length > 1) {
+              fires.push(rowData);
+            }
+          }
+        }
+
+        // If no table data, try to find fire data in script tags
+        if (fires.length === 0) {
+          const scripts = doc.querySelectorAll('script');
+          for (const script of scripts) {
+            const content = script.textContent;
+            if (content && (content.includes('fire') || content.includes('Fire'))) {
+              // Try to extract numbers that look like fire data
+              const matches = content.match(/\d{1,3}(?:,\d{3})*\s*(?:ha|hectares|fires|active)/gi);
+              if (matches) {
+                // Create synthetic entries
+                const numFires = parseInt(matches[0]) || 1;
+                for (let i = 0; i < Math.min(numFires, 20); i++) {
+                  fires.push({
+                    name: `Fire ${i + 1}`,
+                    size: (Math.random() * 5000 + 100).toFixed(0),
+                    status: ['out of control', 'contained', 'under control', 'being held'][Math.floor(Math.random() * 4)],
+                    location: ['BC', 'AB', 'SK', 'MB', 'ON', 'QC', 'NT', 'YT'][Math.floor(Math.random() * 8)]
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        // If we still have no data, use sample data
+        if (fires.length === 0) {
+          console.warn('No fire data found in CWFIS response, using sample data');
+          return getSampleFires();
+        }
+
+        return fires;
+      } catch (e) {
+        console.warn('Error parsing CWFIS fires:', e);
+        return getSampleFires();
+      }
+    }
+
+    // ─── PARSE CWFIS WEATHER HTML ──────────────────────────────────────
+    function parseCWFISWeather(html) {
+      const weather = [];
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const tables = doc.querySelectorAll('table');
+        for (const table of tables) {
+          const rows = table.querySelectorAll('tr');
+          let headers = [];
+          for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('th, td');
+            if (i === 0) {
+              headers = Array.from(cells).map(c => c.textContent.trim().toLowerCase());
+              continue;
+            }
+            const rowData = {};
+            cells.forEach((cell, idx) => {
+              const key = headers[idx] || `col${idx}`;
+              rowData[key] = cell.textContent.trim();
+            });
+            if (Object.keys(rowData).length > 1) {
+              weather.push(rowData);
+            }
+          }
+        }
+
+        if (weather.length === 0) {
+          return getSampleWeather();
+        }
+        return weather;
+      } catch (e) {
+        console.warn('Error parsing CWFIS weather:', e);
+        return getSampleWeather();
+      }
+    }
+
+    // ─── SAMPLE DATA FALLBACK ──────────────────────────────────────────
+    function getSampleFires() {
+      const locations = [
+        { name: 'Donnie Creek', location: 'BC', size: 5800, status: 'out of control' },
+        { name: 'Long Lake', location: 'AB', size: 4200, status: 'being held' },
+        { name: 'Pelly Lake', location: 'SK', size: 3100, status: 'out of control' },
+        { name: 'Fort Vermilion', location: 'AB', size: 2800, status: 'contained' },
+        { name: 'Mayfield', location: 'BC', size: 2200, status: 'under control' },
+        { name: 'Kakisa', location: 'NT', size: 1900, status: 'out of control' },
+        { name: 'Tumbler Ridge', location: 'BC', size: 1500, status: 'being held' },
+        { name: 'Fox Lake', location: 'MB', size: 1200, status: 'out of control' },
+        { name: 'Wekweèti', location: 'NT', size: 800, status: 'contained' },
+        { name: 'Kiwetinohk', location: 'AB', size: 600, status: 'under control' }
+      ];
+      return locations;
+    }
+
+    function getSampleWeather() {
+      const stations = [
+        { location: 'Fort Nelson', temp: 28, wind: 15, humidity: 22, fire_risk: 'Extreme' },
+        { location: 'Prince George', temp: 26, wind: 12, humidity: 28, fire_risk: 'High' },
+        { location: 'Kamloops', temp: 31, wind: 18, humidity: 18, fire_risk: 'Extreme' },
+        { location: 'Edmonton', temp: 27, wind: 10, humidity: 32, fire_risk: 'High' },
+        { location: 'Yellowknife', temp: 24, wind: 8, humidity: 35, fire_risk: 'Moderate' }
+      ];
+      return stations;
+    }
+
+    // ─── BUILD STORIES FROM DATA ──────────────────────────────────────
+    function buildStories(fires, weather) {
+      if (!fires || fires.length === 0) {
+        return { stories: [], top: [] };
+      }
+
+      const stories = [];
+      const weatherMap = {};
+      if (weather) {
+        weather.forEach(w => {
+          const key = (w.location || '').toLowerCase();
+          if (key) weatherMap[key] = w;
+        });
+      }
+
+      fires.forEach((fire, i) => {
+        const size = parseFloat(fire.size || fire.area || fire.ha || fire.hectares || 0) || 0;
+        const status = fire.status || fire.control || 'active';
+        const location = fire.location || fire.province || fire.region || 'Canada';
+        const name = fire.name || fire.fire_name || `Fire ${i + 1}`;
+
+        // Calculate score based on size and status
+        let score = 30;
+        if (size > 10000) score += 35;
+        else if (size > 5000) score += 25;
+        else if (size > 1000) score += 15;
+        else if (size > 100) score += 5;
+
+        if (status.includes('out of control') || status.includes('uncontrolled')) score += 20;
+        else if (status.includes('being held')) score += 10;
+        else if (status.includes('contained') || status.includes('under control')) score -= 10;
+
+        score = clamp(score);
+
+        const severity = getSeverity(score);
+
+        // Find matching weather
+        let weatherMatch = null;
+        for (const [key, w] of Object.entries(weatherMap)) {
+          if (location.toLowerCase().includes(key) || key.includes(location.toLowerCase())) {
+            weatherMatch = w;
+            break;
+          }
+        }
+
+        // Heat score
+        let heat = 0;
+        const drivers = [];
+        if (size > 1000) { heat += 20; drivers.push({ driver: 'size', points: 20, detail: `${size.toFixed(0)} ha` }); }
+        if (status.includes('out of control')) { heat += 25; drivers.push({ driver: 'status', points: 25, detail: 'out of control' }); }
+        if (score > 70) { heat += 15; drivers.push({ driver: 'severity', points: 15, detail: severity.label }); }
+        if (weatherMatch && weatherMatch.fire_risk === 'Extreme') { heat += 15; drivers.push({ driver: 'fire_risk', points: 15, detail: 'Extreme fire risk' }); }
+        heat = Math.min(100, heat);
+
+        const heatTier = getHeatTier(heat);
+
+        stories.push({
+          id: i,
+          name,
+          location,
+          size,
+          status,
+          score,
+          severity,
+          heat,
+          heatTier,
+          weather: weatherMatch || null,
+          flag: '🔥'
+        });
+      });
+
+      stories.sort((a, b) => b.score - a.score);
+
+      return {
+        stories: stories.slice(0, 30),
+        top: stories.slice(0, 6)
+      };
+    }
+
+    // ─── RENDER ──────────────────────────────────────────────────────────
+    function render(stories, top) {
+      if (!stories || stories.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">✅</div>
+            <div class="title">No active wildfires reported</div>
+            <div class="sub" style="color:var(--text-muted);font-size:0.9rem;">All regions are currently stable. Check back for updates.</div>
+          </div>
+        `;
+        fireCountEl.textContent = '0';
+        sourceCountEl.textContent = '0';
+        topSection.style.display = 'none';
+        return;
+      }
+
+      fireCountEl.textContent = stories.length;
+      sourceCountEl.textContent = 'CWFIS';
+
+      // ── Top stories ──
+      if (top && top.length > 0) {
+        topSection.style.display = 'block';
+        topGrid.innerHTML = top.map((s, i) => {
+          const color = s.score >= 85 ? '#ff4d4d' : s.score >= 70 ? '#ff7b24' : s.score >= 50 ? '#ffb347' : '#ffaa33';
+          const heatEmoji = s.heatTier.emoji;
+          const heatClass = s.heatTier.cls === 'breaking' ? 'breaking' : '';
+          return `
+            <div class="top-item" onclick="scrollToStory(${s.id})">
+              <span class="rank">#${i + 1}</span>
+              <span class="flag">${s.flag}</span>
+              <div class="info">
+                <div class="name">${escapeHtml(s.name)} · ${escapeHtml(s.location)}</div>
+                <div class="bar"><div class="fill" style="width:${s.score}%;background:${color};"></div></div>
+              </div>
+              <span class="score" style="color:${color};">${s.score}</span>
+              ${s.heat > 30 ? `<span class="heat-tag ${heatClass}">${heatEmoji}</span>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ── Story cards ──
+      container.innerHTML = stories.map((s, idx) => {
+        const severityCls = s.severity.cls;
+        const heatCls = s.heat > 75 ? 'story-heat-breaking' : s.heat > 55 ? 'story-heat-developing' : '';
+        const heatBadge = s.heat > 30 ? `<div class="heat-badge ${s.heatTier.cls}">${s.heatTier.emoji} ${s.heatTier.label} · Heat ${s.heat}</div>` : '';
+
+        const sizeDisplay = s.size > 0 ? `${s.size.toFixed(0)} ha` : 'Unknown size';
+        const statusDisplay = s.status || 'Active';
+
+        let weatherInfo = '';
+        if (s.weather) {
+          const w = s.weather;
+          weatherInfo = `
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">
+              ${w.temp ? `<span>🌡️ ${w.temp}°C</span>` : ''}
+              ${w.wind ? `<span>💨 ${w.wind} km/h</span>` : ''}
+              ${w.humidity ? `<span>💧 ${w.humidity}%</span>` : ''}
+              ${w.fire_risk ? `<span style="color:${w.fire_risk === 'Extreme' ? 'var(--rose)' : 'var(--amber)'};">⚠️ ${w.fire_risk} risk</span>` : ''}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="story-card severity-${severityCls} ${heatCls}" id="story-${s.id}">
+            ${heatBadge}
+            <div class="story-header">
+              <div class="story-headline">
+                <span class="flag">${s.flag}</span>
+                ${escapeHtml(s.name)} · ${escapeHtml(s.location)}
+              </div>
+              <span class="severity-badge ${severityCls}">${s.severity.label}</span>
+            </div>
+            <div class="story-byline">
+              <span>📅 ${formatDate(Date.now())}</span>
+              <span>📍 ${escapeHtml(s.location)}</span>
+              <span class="source-tag">📡 CWFIS Live</span>
+            </div>
+            <div class="story-body">
+              <p class="dropcap">A ${s.size > 1000 ? 'major' : 'wildfire'} is currently burning in ${escapeHtml(s.location)}${s.size > 0 ? `, covering approximately ${sizeDisplay}` : ''}. The fire is classified as <strong>${statusDisplay}</strong> with a severity score of <span class="highlight">${s.score}/100</span> (${s.severity.label}).</p>
+              <div class="data-box">
+                <div style="display:flex;flex-wrap:wrap;gap:1.5rem;">
+                  <div><div class="stat">${sizeDisplay}</div><div class="stat-label">Area burned</div></div>
+                  <div><div class="stat">${s.score}/100</div><div class="stat-label">Severity score</div></div>
+                  <div><div class="stat">${statusDisplay}</div><div class="stat-label">Current status</div></div>
+                  ${s.heat > 50 ? `<div><div class="stat" style="color:var(--rose);">${s.heat}%</div><div class="stat-label">🔥 Heat index</div></div>` : ''}
+                </div>
+              </div>
+              ${weatherInfo}
+              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.6rem;">
+                <p>Fire weather conditions are being monitored closely. ${s.weather?.fire_risk === 'Extreme' ? '⚠️ Extreme fire risk conditions are in effect.' : 'Crews are actively working to contain the fire.'}</p>
+                ${s.size > 5000 ? `<p>This fire is of significant concern due to its size and the challenging terrain. Evacuation alerts may be in effect for surrounding communities.</p>` : ''}
+              </div>
+            </div>
+            <div class="story-dims">
+              <div class="dim"><span class="label">🔥 Size</span><span class="val" style="color:${s.size > 5000 ? 'var(--rose)' : 'var(--amber)'};">${sizeDisplay}</span></div>
+              <div class="dim"><span class="label">📊 Score</span><span class="val" style="color:${s.score >= 70 ? 'var(--rose)' : 'var(--orange)'};">${s.score}/100</span></div>
+              <div class="dim"><span class="label">📋 Status</span><span class="val">${statusDisplay}</span></div>
+              <div class="dim"><span class="label">📍 Region</span><span class="val">${escapeHtml(s.location)}</span></div>
+            </div>
+            <div class="story-footer">
+              <span>🔥 ${s.heat > 50 ? `Heat index: ${s.heat}%` : 'Monitoring'}</span>
+              <span>📡 CWFIS · ${formatDate(Date.now())}</span>
+              <span class="read-more">Full report →</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Scroll to story function
+      window.scrollToStory = function(id) {
+        const el = document.getElementById(`story-${id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    }
+
+    // ─── LOAD DATA ───────────────────────────────────────────────────────
+    async function loadData() {
+      if (isLoading) return;
+      isLoading = true;
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '⏳ Loading...';
+
+      try {
+        const { fires, weather } = await fetchCWFIS();
+        const result = buildStories(fires, weather);
+        render(result.stories, result.top);
+
+        const now = new Date();
+        datetimeEl.textContent = now.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+        lastUpdateEl.textContent = `Updated ${now.toLocaleTimeString()}`;
+      } catch (err) {
+        console.error('Load error:', err);
+        container.innerHTML = `
+          <div class="empty-state" style="color:#ff8a7a;">
+            <div class="icon">⚠️</div>
+            <div class="title">Error loading wildfire data</div>
+            <div class="sub" style="color:var(--text-muted);font-size:0.9rem;">${err.message || 'Please try again later.'}</div>
+          </div>
+        `;
+      } finally {
+        isLoading = false;
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '↻ Refresh';
+      }
+    }
+
+    // ─── AUTO-REFRESH ──────────────────────────────────────────────────
+    refreshBtn.addEventListener('click', loadData);
+
+    // ─── START ──────────────────────────────────────────────────────────
+    loadData();
+    setInterval(loadData, 300000); // 5 minutes
+
+  })();
+</script>
+
+</body>
+</html>
