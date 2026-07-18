@@ -1355,7 +1355,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <body>
 
 <!-- PRO BANNER + GCIN BREAKING BAR (MERGED — SAME LINE) -->
-<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative; display: flex;">
+<div id="proBanner" style="background: linear-gradient(135deg, rgba(191,127,255,0.15), rgba(0,200,255,0.1)); border-bottom: 1px solid var(--cyan); padding: 6px 16px; font-family: var(--fm); backdrop-filter: blur(8px); z-index: 98; position: relative; display: flex !important;">
   <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 12px; overflow-x: auto; white-space: nowrap; width: 100%;">
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <a href="https://huggingface.co/datasets/jmm6993/global-crisis-index" target="_blank" rel="noopener noreferrer" style="color: var(--cyan); font-size: 0.7rem; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8';" onmouseout="this.style.opacity='1';">global-crisis-index: 86 downloads on Hugging Face</a>
@@ -1385,25 +1385,48 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 (function keepProBannerVisible(){
   function forceVisible(){
     let banner = document.getElementById('proBanner');
-    if (!banner) return; // nothing to restore yet
-    if (banner.style.display === 'none' || getComputedStyle(banner).display === 'none') {
-      banner.style.setProperty('display', 'flex', 'important');
+    if (!banner) return;
+    // Always force display:flex with !important
+    banner.style.setProperty('display', 'flex', 'important');
+    // Also check if it's been hidden by class or other means
+    if (banner.classList) {
+      banner.classList.remove('hidden', 'd-none');
     }
   }
+  
+  // Run immediately
   forceVisible();
-  // Re-check on every DOM mutation anywhere in the document, not just on the
-  // banner itself — this covers cases where a whole ancestor is swapped out,
-  // or where the element is hidden indirectly rather than via its own
-  // style attribute (which matters especially on ?country=&crisis= deep
-  // links, since those trigger extra render passes on load).
-  const observer = new MutationObserver(forceVisible);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style','class'], subtree: true, childList: true });
+  
+  // Also run on load and DOM ready
   window.addEventListener('load', forceVisible);
   document.addEventListener('DOMContentLoaded', forceVisible);
-  setInterval(forceVisible, 1000);
+  
+  // Run on every mutation
+  const observer = new MutationObserver(function(mutations) {
+    // Check if any mutation affected the banner or its ancestors
+    for (let mutation of mutations) {
+      if (mutation.type === 'attributes' || mutation.type === 'childList') {
+        forceVisible();
+        break;
+      }
+    }
+  });
+  observer.observe(document.documentElement, { 
+    attributes: true, 
+    attributeFilter: ['style', 'class'], 
+    subtree: true, 
+    childList: true 
+  });
+  
+  // Also run every 500ms as a nuclear fallback
+  setInterval(forceVisible, 500);
+  
+  // Also check when the page becomes visible again
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) forceVisible();
+  });
 })();
 </script>
-
 <div class="app">
 <header class="futuristic-header">
   <div class="brand-future">
