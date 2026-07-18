@@ -22,6 +22,14 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.9); }
 }
+
+#proBanner {
+  display: flex !important;
+  position: relative;
+  z-index: 98;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 @keyframes scanline {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100%); }
@@ -1387,25 +1395,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 <script>
 // ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE, ON ANY URL/PARAM COMBO ──────
+function keepProBannerVisible(){
+ <script>
+// ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE, ON ANY URL/PARAM COMBO ──────
 (function keepProBannerVisible(){
   function forceVisible(){
     let banner = document.getElementById('proBanner');
-    if (!banner) return; // nothing to restore yet
-    if (banner.style.display === 'none' || getComputedStyle(banner).display === 'none') {
-      banner.style.setProperty('display', 'flex', 'important');
-    }
+    if (!banner) return;
+    // Use setProperty with !important to override any other styles
+    banner.style.setProperty('display', 'flex', 'important');
+    // Also ensure it's not hidden by any class
+    banner.classList.remove('hidden');
+    banner.classList.add('show');
   }
   forceVisible();
-  // Re-check on every DOM mutation anywhere in the document, not just on the
-  // banner itself — this covers cases where a whole ancestor is swapped out,
-  // or where the element is hidden indirectly rather than via its own
-  // style attribute (which matters especially on ?country=&crisis= deep
-  // links, since those trigger extra render passes on load).
+  // Re-check on every DOM mutation anywhere in the document
   const observer = new MutationObserver(forceVisible);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style','class'], subtree: true, childList: true });
+  observer.observe(document.documentElement, { 
+    attributes: true, 
+    attributeFilter: ['style','class'], 
+    subtree: true, 
+    childList: true 
+  });
   window.addEventListener('load', forceVisible);
   document.addEventListener('DOMContentLoaded', forceVisible);
-  setInterval(forceVisible, 1000);
+  // Aggressive check every 500ms to catch any late changes
+  setInterval(forceVisible, 500);
 })();
 </script>
 
@@ -2073,6 +2088,12 @@ const safe=(p,ms=8000)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new 
 // *** FIX 1: UNLOCK PRO FEATURES — fully wired up ***
 // ============================================================================
 function unlockProFeatures(isPro) {
+  // ALWAYS ensure the Pro banner is visible regardless of tier
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) {
+    proBanner.style.setProperty('display', 'flex', 'important');
+  }
+
   if (isPro) {
     // Remove ALL lock banners from DOM
     document.querySelectorAll('.lock-banner').forEach(el => el.remove());
@@ -2080,9 +2101,6 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // DO NOT hide the Pro banner - keep it visible
-    // const proBanner = document.getElementById('proBanner');
-    // if (proBanner) proBanner.style.display = 'none'; // REMOVE THIS LINE
     // Update tier variable FIRST
     tier = 'pro';
     // Update tier pill
@@ -2107,12 +2125,15 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
-    // Show the Pro banner for free users (it should always be visible)
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) proBanner.style.display = '';
     tier = 'free';
     updateSearchLockState();
     renderRanking('');
+  }
+  
+  // FORCE the Pro banner to be visible one more time after everything else
+  const bannerAgain = document.getElementById('proBanner');
+  if (bannerAgain) {
+    bannerAgain.style.setProperty('display', 'flex', 'important');
   }
 }
 
@@ -2139,7 +2160,7 @@ function login() {
   toast(`Logging in as ${email}…`);
 }
 
-function logout() {
+ffunction logout() {
   localStorage.removeItem('userEmail');
   localStorage.removeItem('isLoggedIn');
   document.getElementById('loginEmail').value = '';
@@ -2153,65 +2174,12 @@ function logout() {
   document.getElementById('tierPill').onclick = () => openModal();
   // Make sure pro banner is visible after logout
   const proBanner = document.getElementById('proBanner');
-  if (proBanner) proBanner.style.display = '';
+  if (proBanner) {
+    proBanner.style.setProperty('display', 'flex', 'important');
+  }
   unlockProFeatures(false);
   document.getElementById('search').value = '';
   toast('Logged out');
-}
-// *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
-async function checkProStatusAndUpdateUI(email) {
-  try {
-    let isPro = false;
-    
-    // Check if email is jmm6993@gmail.com - AUTO PRO
-    if (email === 'jmm6993@gmail.com') {
-      isPro = true;
-    } else {
-      // LOCAL OVERRIDE for other emails
-      try {
-        const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
-        if (proEmails.includes(email)) isPro = true;
-      } catch(e) {}
-      
-      // If still not pro, try Airtable
-      if (!isPro) {
-        try {
-          const response = await fetch(
-            `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
-            { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
-          }
-        } catch(e) {
-          console.warn('Airtable check failed:', e);
-        }
-      }
-    }
-
-    // CRITICAL FIX: Make sure pro banner is always visible regardless of tier
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) {
-      proBanner.style.display = ''; // Always show the banner
-    }
-
-    if (isPro) {
-      unlockProFeatures(true);
-      toast(`🎉 Pro access unlocked for ${email}`);
-    } else {
-      unlockProFeatures(false);
-      toast(`Logged in as ${email} (Free tier)`);
-    }
-    return isPro;
-  } catch (err) {
-    console.error('Error checking Pro status:', err);
-    // Make sure pro banner is visible even on error
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) proBanner.style.display = '';
-    unlockProFeatures(false);
-    return false;
-  }
 }
 
 function updateUILoggedIn(email) {
