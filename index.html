@@ -5758,15 +5758,14 @@ function escapeHtml(str) {
 }
 
 async function renderPanel(iso, focusCrisisType) {
-  // ─── PROTECT PRO BANNER ──────────────────────────────────────────────────
-  // Save the banner before any DOM manipulation
-  const bannerElement = document.getElementById('proBanner');
-  let bannerClone = null;
-  if (bannerElement) {
-    bannerClone = bannerElement.cloneNode(true);
-    // Don't remove it yet - we'll restore it if it gets removed
+  // ─── PROTECT PRO BANNER - SAVE BEFORE ANY DOM CHANGES ────────────────
+  const existingBanner = document.getElementById('proBanner');
+  let bannerHTML = '';
+  if (existingBanner) {
+    bannerHTML = existingBanner.outerHTML;
+    existingBanner.remove();
   }
-  
+
   const c = store[iso]; if (!c) return;
   const hist = (history[iso] || []).map(h => h.s);
   const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
@@ -5931,6 +5930,7 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
   };
   const activeDimHighlights = activeCrisis ? (crisisDimWeights[activeCrisis] || {}) : {};
 
+  // ─── SET PANEL CONTENT ────────────────────────────────────────────────────
   document.getElementById('panelContent').innerHTML = `
     ${rssHeadlineHtml}
     ${crisisBannerHtml}
@@ -6129,6 +6129,23 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     </div>
   `;
 
+  // ─── RESTORE PRO BANNER ──────────────────────────────────────────────
+  if (bannerHTML) {
+    // Insert the banner back at the very top of body
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = bannerHTML;
+    const restoredBanner = tempDiv.firstElementChild;
+    if (restoredBanner) {
+      restoredBanner.id = 'proBanner';
+      restoredBanner.style.setProperty('display', 'flex', 'important');
+      restoredBanner.style.setProperty('visibility', 'visible', 'important');
+      restoredBanner.style.setProperty('opacity', '1', 'important');
+      restoredBanner.style.setProperty('position', 'relative', 'important');
+      restoredBanner.style.setProperty('z-index', '2147483647', 'important');
+      document.body.insertBefore(restoredBanner, document.body.firstChild);
+    }
+  }
+
   // ── ANIMATE IN ──
 setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
@@ -6158,27 +6175,6 @@ setTimeout(() => {
       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
   }
-
-  // ─── RESTORE PRO BANNER IF IT WAS REMOVED ──────────────────────────────
-  setTimeout(() => {
-    const currentBanner = document.getElementById('proBanner');
-    if (!currentBanner && bannerClone) {
-      const restored = bannerClone.cloneNode(true);
-      restored.id = 'proBanner';
-      restored.style.setProperty('display', 'flex', 'important');
-      restored.style.setProperty('visibility', 'visible', 'important');
-      restored.style.setProperty('opacity', '1', 'important');
-      restored.style.setProperty('position', 'relative', 'important');
-      restored.style.setProperty('z-index', '2147483647', 'important');
-      document.body.insertBefore(restored, document.body.firstChild);
-      console.log('✅ Pro banner restored after renderPanel');
-    } else if (currentBanner) {
-      // Ensure the existing banner is visible
-      currentBanner.style.setProperty('display', 'flex', 'important');
-      currentBanner.style.setProperty('visibility', 'visible', 'important');
-      currentBanner.style.setProperty('opacity', '1', 'important');
-    }
-  }, 0);
 }function renderAIBrief(iso) {
   const el = document.getElementById('aiBriefContent');
   if (!el) return;
