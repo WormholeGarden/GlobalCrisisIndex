@@ -5758,6 +5758,15 @@ function escapeHtml(str) {
 }
 
 async function renderPanel(iso, focusCrisisType) {
+  // ─── PROTECT PRO BANNER ──────────────────────────────────────────────────
+  // Save the banner before any DOM manipulation
+  const existingBanner = document.getElementById('proBanner');
+  let bannerHTML = '';
+  if (existingBanner) {
+    bannerHTML = existingBanner.outerHTML;
+    existingBanner.remove();
+  }
+  
   const c = store[iso]; if (!c) return;
   const hist = (history[iso] || []).map(h => h.s);
   const fc = forecast(hist, c.score), anom = cusum(hist), vol = volatility(hist), ent = entropy(hist);
@@ -6120,6 +6129,26 @@ const typeTagsHtml = c.types.slice(0, 5).map(t => {
     </div>
   `;
 
+  // ─── RESTORE THE PRO BANNER ──────────────────────────────────────────
+  // Re-insert the banner at the top of body after panel content is set
+  if (bannerHTML) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = bannerHTML;
+    const bannerNode = tempDiv.firstElementChild;
+    if (bannerNode) {
+      // Make sure it has the right ID
+      bannerNode.id = 'proBanner';
+      // Force it to be visible
+      bannerNode.style.setProperty('display', 'flex', 'important');
+      bannerNode.style.setProperty('visibility', 'visible', 'important');
+      bannerNode.style.setProperty('opacity', '1', 'important');
+      bannerNode.style.setProperty('position', 'relative', 'important');
+      bannerNode.style.setProperty('z-index', '2147483647', 'important');
+      // Insert at the very top of body
+      document.body.insertBefore(bannerNode, document.body.firstChild);
+    }
+  }
+
   // ── ANIMATE IN ──
 setTimeout(() => {
     const u = document.getElementById('uFill'); if (u) u.style.width = c.score + '%';
@@ -6149,121 +6178,7 @@ setTimeout(() => {
       if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
   }
-}function renderAIBrief(iso) {
-  const el = document.getElementById('aiBriefContent');
-  if (!el) return;
-  
-  const c = store[iso];
-  if (!c) { 
-    el.innerHTML = '<div class="ai-brief-text">No data available.</div>'; 
-    return; 
-  }
-  
-  // ── GET ACTIVE CRISIS TYPE FROM URL ──────────────────────────────────
-  const urlParams = new URLSearchParams(window.location.search);
-  const crisisType = urlParams.get('crisis') || null;
-  
-  // ── GENERATE THE FULL URGENCY NARRATIVE WITH WIKIPEDIA ──────────────────
-  let narrative = '';
-  try {
-    // This calls the full buildUrgencyNarrative function with Wikipedia
-    narrative = buildUrgencyNarrative(iso, crisisType);
-  } catch(e) {
-    console.warn('buildUrgencyNarrative error:', e);
-  }
-  
-  // ── FALLBACK if Wikipedia fails ──────────────────────────────────────────
-  if (!narrative || narrative.length < 10) {
-    const activeCrisisData = crisisType ? ARC[crisisType] : null;
-    if (activeCrisisData) {
-      narrative = `${c.flag} ${c.name} is experiencing an active ${activeCrisisData.l}. Key needs: ${activeCrisisData.n.join(', ')}.`;
-    } else {
-      narrative = `${c.flag} ${c.name} ranks #${ranked.indexOf(iso)+1} globally with a score of ${c.score}/100. Critical dimensions: ${c.types.slice(0,2).map(t=>ARC[t]?.l||t).join(', ')}.`;
-    }
-  }
-  
-  // ── ENSURE WIKIPEDIA PREFIX IS INCLUDED ──────────────────────────────────
-  // The buildUrgencyNarrative function already includes Wikipedia content
-  // but if it was empty, we add a simple context
-  
-  el.innerHTML =
-    `<div class="ai-brief-text">${narrative}</div>` +
-    `<button class="ai-brief-btn" onclick="selCountry('${iso}')">↺ Regenerate</button>`;
 }
-function calcImpact(iso){const inp=document.getElementById('donAmt'),res=document.getElementById('impactResult');if(!inp||!res)return;const amt=Math.max(1,parseInt(inp.value)||100);res.innerHTML=`$${amt} → <strong>${Math.round(amt*4.3).toLocaleString()} meals</strong>`;}
-
-// ============================================================================
-// SHARE
-// ============================================================================
-document.getElementById('shareBtn').addEventListener('click',()=>{
-  const url=window.location.href;
-  navigator.clipboard.writeText(url).then(()=>toast('🔗 Link copied!')).catch(()=>toast('🔗 '+url));
-});
-
-// ============================================================================
-// PDF
-// ============================================================================
-document.getElementById('pdfBtn').addEventListener('click',()=>{
-  if(!selectedIso){toast('⚠ Select a country first');return;}
-  if(tier!=='pro'){openModal();return;}
-  const c=store[selectedIso];
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>GCIS Report — ${c.name}</title></head><body style="font-family:sans-serif;padding:40px;"><h1>${c.flag} ${c.name} — Crisis Report</h1><h2>Urgency Score: ${c.score}/100</h2><p>Generated: ${new Date().toLocaleString()}</p><p>Primary risks: ${c.types.map(t=>ARC[t]?.l||t).join(', ')}</p><p>Key needs: ${c.needs.join(', ')}</p><p>7-day forecast: ${forecast((history[selectedIso]||[]).map(h=>h.s),c.score).fc}/100</p></body></html>`);
-  win.document.close();win.print();
-});
-
-// ============================================================================
-// KEYBOARD + EVENT LISTENERS
-// ============================================================================
-document.getElementById('resetBtn').addEventListener('click',()=>{prefs.filters=Object.keys(ARC);buildFilters();renderRanking();toast('✓ All filters active');});
-document.getElementById('analyticsBtn').addEventListener('click',()=>{if(tier==='free')openModal();else toast('📊 Analytics dashboard');});
-document.getElementById('refreshBtn').addEventListener('click',()=>{refresh();startRefreshTimer();});
-document.getElementById('modalBg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
-document.getElementById('loginBtn').addEventListener('click',login);
-document.getElementById('logoutBtn').addEventListener('click',logout);
-document.getElementById('loginEmail').addEventListener('keypress',e=>{if(e.key==='Enter')login();});
-
-document.getElementById('search').addEventListener('focus',e=>{
-  if(tier!=='pro'){e.target.blur();toast('🔒 Search is a Pro feature');openModal();}
-});
-document.getElementById('search').addEventListener('input',e=>{
-  if(tier!=='pro'){e.target.value='';return;}
-  renderRanking(e.target.value);
-});
-
-document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT')return;
-  if(e.key==='j'){rankIdx=Math.min(rankIdx+1,ranked.length-1);selCountry(ranked[rankIdx]);}
-  else if(e.key==='k'){rankIdx=Math.max(rankIdx-1,0);selCountry(ranked[rankIdx]);}
-  else if(e.key==='r')refresh();
-  else if(e.key==='/'){e.preventDefault();document.getElementById('search').focus();}
-  else if(e.key==='Escape'){document.getElementById('search').value='';renderRanking();document.getElementById('search').blur();closeModal();}
-});
-
-function startRefreshTimer(){
-  if(refreshIntervalId)clearInterval(refreshIntervalId);
-  refreshIntervalId=setInterval(()=>{
-    refreshTimerSecs--;
-    const min=Math.floor(refreshTimerSecs/60);const sec=refreshTimerSecs%60;
-    const el=document.getElementById('rcd');if(el)el.textContent=`${min}:${sec.toString().padStart(2,'0')}`;
-    if(refreshTimerSecs<=0){refreshTimerSecs=300;refresh();}
-  },1000);
-}
-
-function updateDynamicTitle(){
-  let gcis=83,affected='53M',anomalies=55,events=916;
-  try{
-    if(store&&ranked&&ranked.length>0){
-      gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);
-      const crit=ranked.filter(i=>store[i]?.score>=80).length;
-      affected=Math.round(crit*4.8)+'M';
-      anomalies=ranked.filter(i=>{const hist=(history[i]||[]).map(h=>h.s);return cusum(hist).det;}).length;
-      events=Object.values(store).reduce((s,c)=>s+(c.events||0),0);
-    }
-  }catch(e){}
-  document.title=`Global Crisis Index — Live Crisis Intelligence · ${gcis} Score · ${affected} Affected · ${anomalies} Anomalies · ${events} Events`;
-}
-
 // ============================================================================
 // CRYS CHAT — v2, full top-story.js v6.0 parity
 // Same DOM hooks as before (#crysChat, #crysInp, crysSubmit, crysClear,
