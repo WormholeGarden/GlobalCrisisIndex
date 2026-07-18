@@ -2996,17 +2996,11 @@ async function refresh(){
 
 // ─── AUTO-SELECT THE TOP COUNTRY (AND ITS TOP ACTIVE-PULSE CRISIS) ────────────
   const urlParams = new URLSearchParams(window.location.search);
-  const urlCountry = urlParams.get('urlCountry');
-  const urlCrisisParam = urlParams.get('crisis');
+  const urlCountry = urlParams.get('country');
 
-  // Helper: only use URL crisis if we're actually selecting the URL country
-  const getCrisisForIso = (iso, useUrlCrisis) => {
-    let crisis = null;
-    if (useUrlCrisis) {
-      crisis = urlCrisisParam || pickDynamicCrisisType(iso);
-    } else {
-      crisis = pickDynamicCrisisType(iso);
-    }
+  // Helper to ensure we always have a crisis type
+  const getCrisisWithFallback = (iso) => {
+    const crisis = urlParams.get('crisis') || pickDynamicCrisisType(iso);
     // If still null, use the first crisis type from the country
     if (!crisis && store[iso] && store[iso].types && store[iso].types.length > 0) {
       return store[iso].types[0];
@@ -3016,14 +3010,14 @@ async function refresh(){
 
   if (urlCountry && store[urlCountry]) {
     selectedIso = urlCountry;
-    const urlCrisis = getCrisisForIso(urlCountry, true);
+    const urlCrisis = getCrisisWithFallback(urlCountry);
     await renderPanel(urlCountry, urlCrisis);
     zoomToCountry(selectedIso);
-    if (urlCrisis && urlCrisisParam !== urlCrisis) {
+    if (urlCrisis && urlParams.get('crisis') !== urlCrisis) {
       window.history.replaceState({ country: selectedIso, crisis: urlCrisis }, '', `?country=${selectedIso}&crisis=${urlCrisis}`);
     }
   } else if (selectedIso && store[selectedIso]) {
-    const activeCrisis = getCrisisForIso(selectedIso, false);
+    const activeCrisis = getCrisisWithFallback(selectedIso);
     await renderPanel(selectedIso, activeCrisis);
     if (activeCrisis) {
       window.history.replaceState({ country: selectedIso, crisis: activeCrisis }, '', `?country=${selectedIso}&crisis=${activeCrisis}`);
@@ -3040,7 +3034,7 @@ async function refresh(){
     
     // If no pulse marker found, use the top ranked
     selectedIso = topPulseIso || ranked[0];
-    const topCrisis = getCrisisForIso(selectedIso, false);
+    const topCrisis = getCrisisWithFallback(selectedIso);
     await renderPanel(selectedIso, topCrisis);
     zoomToCountry(selectedIso);
     if (topCrisis) {
@@ -3051,6 +3045,7 @@ async function refresh(){
   }
 
   updateDynamicTitle();
+}
 
 // ─── PICK THE TOP "ACTIVE PULSE" CRISIS TYPE FOR A COUNTRY ────────────────────
 // Only returns a crisis code if the country actually has a live red pulse
