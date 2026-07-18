@@ -1381,50 +1381,68 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
 </div>
 <script>
-// ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE, ON ANY URL/PARAM COMBO ──────
+// ─── FORCE PRO BANNER TO ALWAYS STAY VISIBLE — SURVIVES REMOVAL, HIDING, AND Z-INDEX BURIAL ──
 (function keepProBannerVisible(){
-  function forceVisible(){
+  // Save a pristine clone of the banner the instant it exists, before any
+  // other script (including the country/crisis renderer) can touch it.
+  // This is the piece the previous guard was missing: if the node is ever
+  // removed from the DOM outright (not just hidden), style-forcing alone
+  // can't bring it back — only re-inserting a saved copy can.
+  let savedClone = null;
+  const original = document.getElementById('proBanner');
+  if (original) savedClone = original.cloneNode(true);
+
+  function forceVisibleAndPresent(){
     let banner = document.getElementById('proBanner');
+
+    // Case 1: node is gone entirely — reinsert the saved clone at the very
+    // top of <body>, ahead of everything else on the page.
+    if (!banner && savedClone) {
+      banner = savedClone.cloneNode(true);
+      document.body.insertBefore(banner, document.body.firstChild);
+    }
     if (!banner) return;
-    // Always force display:flex with !important
+
+    // Case 2: node exists but is hidden — force it visible, !important.
     banner.style.setProperty('display', 'flex', 'important');
-    // Also check if it's been hidden by class or other means
-    if (banner.classList) {
-      banner.classList.remove('hidden', 'd-none');
+    banner.style.setProperty('visibility', 'visible', 'important');
+    banner.style.setProperty('opacity', '1', 'important');
+    banner.style.setProperty('position', 'relative', 'important');
+    // Case 3: node exists but got visually buried under something with a
+    // higher z-index (e.g. the sticky #global-crisis-banner at 999999) —
+    // outrank every other z-index on the page.
+    banner.style.setProperty('z-index', '2147483647', 'important');
+    if (banner.classList) banner.classList.remove('hidden', 'd-none');
+
+    // Always keep it as the very first child of <body>.
+    if (document.body.firstChild !== banner) {
+      document.body.insertBefore(banner, document.body.firstChild);
     }
   }
-  
-  // Run immediately
-  forceVisible();
-  
-  // Also run on load and DOM ready
-  window.addEventListener('load', forceVisible);
-  document.addEventListener('DOMContentLoaded', forceVisible);
-  
-  // Run on every mutation
-  const observer = new MutationObserver(function(mutations) {
-    // Check if any mutation affected the banner or its ancestors
-    for (let mutation of mutations) {
-      if (mutation.type === 'attributes' || mutation.type === 'childList') {
-        forceVisible();
-        break;
-      }
-    }
+
+  forceVisibleAndPresent();
+  window.addEventListener('load', forceVisibleAndPresent);
+  document.addEventListener('DOMContentLoaded', forceVisibleAndPresent);
+
+  const observer = new MutationObserver(forceVisibleAndPresent);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['style', 'class'],
+    subtree: true,
+    childList: true
   });
-  observer.observe(document.documentElement, { 
-    attributes: true, 
-    attributeFilter: ['style', 'class'], 
-    subtree: true, 
-    childList: true 
+
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) forceVisibleAndPresent();
   });
-  
-  // Also run every 500ms as a nuclear fallback
-  setInterval(forceVisible, 500);
-  
-  // Also check when the page becomes visible again
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) forceVisible();
-  });
+
+  // Continuous rAF-driven enforcement — runs every frame, so it always has
+  // the last word even against scripts that run after this one (like the
+  // large country/crisis renderer further down the page).
+  (function loop(){
+    forceVisibleAndPresent();
+    requestAnimationFrame(loop);
+  })();
 })();
 </script>
 <div class="app">
