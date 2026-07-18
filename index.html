@@ -50,6 +50,11 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; overflow:hidden; background: var(--void); color: var(--text-primary); font-family: var(--font-body); font-size: 14px; }
 
+#proBanner {
+  display: block !important; /* Force visibility */
+  position: relative;
+  z-index: 98;
+}
 body::before {
   content: '';
   position: fixed;
@@ -2075,9 +2080,9 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = 'none');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = 'none';
-    // Hide pro banner
-    const proBanner = document.getElementById('proBanner');
-    if (proBanner) proBanner.style.display = 'none';
+    // DO NOT hide the Pro banner - keep it visible
+    // const proBanner = document.getElementById('proBanner');
+    // if (proBanner) proBanner.style.display = 'none'; // REMOVE THIS LINE
     // Update tier variable FIRST
     tier = 'pro';
     // Update tier pill
@@ -2102,6 +2107,7 @@ function unlockProFeatures(isPro) {
     document.querySelectorAll('header .hbtn.upgrade').forEach(btn => btn.style.display = '');
     const modalCta = document.querySelector('.modal-cta');
     if (modalCta) modalCta.style.display = '';
+    // Show the Pro banner for free users (it should always be visible)
     const proBanner = document.getElementById('proBanner');
     if (proBanner) proBanner.style.display = '';
     tier = 'free';
@@ -2145,11 +2151,13 @@ function logout() {
   document.getElementById('tierPill').textContent = 'FREE';
   document.getElementById('tierPill').className = 'tier-pill free';
   document.getElementById('tierPill').onclick = () => openModal();
+  // Make sure pro banner is visible after logout
+  const proBanner = document.getElementById('proBanner');
+  if (proBanner) proBanner.style.display = '';
   unlockProFeatures(false);
   document.getElementById('search').value = '';
   toast('Logged out');
 }
-
 // *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
 async function checkProStatusAndUpdateUI(email) {
   try {
@@ -2182,6 +2190,12 @@ async function checkProStatusAndUpdateUI(email) {
       }
     }
 
+    // CRITICAL FIX: Make sure pro banner is always visible regardless of tier
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) {
+      proBanner.style.display = ''; // Always show the banner
+    }
+
     if (isPro) {
       unlockProFeatures(true);
       toast(`🎉 Pro access unlocked for ${email}`);
@@ -2192,6 +2206,9 @@ async function checkProStatusAndUpdateUI(email) {
     return isPro;
   } catch (err) {
     console.error('Error checking Pro status:', err);
+    // Make sure pro banner is visible even on error
+    const proBanner = document.getElementById('proBanner');
+    if (proBanner) proBanner.style.display = '';
     unlockProFeatures(false);
     return false;
   }
