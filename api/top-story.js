@@ -3854,23 +3854,36 @@ function buildRSSFeed(finalIsos, store, ranked) {
     const heat = c.__heat;
     const wst = WST_CLASS[iso];
 
-    // Extract just the article body content without outer HTML structure
-    let contentHTML = article.body_html;
-    // Remove DOCTYPE, html, head, body tags but keep the content
-    contentHTML = contentHTML.replace(/<!DOCTYPE[^>]*>/i, '');
-    contentHTML = contentHTML.replace(/<html[^>]*>/i, '');
-    contentHTML = contentHTML.replace(/<\/html>/i, '');
-    contentHTML = contentHTML.replace(/<head[^>]*>[\s\S]*?<\/head>/i, '');
-    contentHTML = contentHTML.replace(/<body[^>]*>/i, '');
-    contentHTML = contentHTML.replace(/<\/body>/i, '');
-    // Also remove the article tag wrapper if it exists
-    contentHTML = contentHTML.replace(/<article[^>]*>/i, '');
-    contentHTML = contentHTML.replace(/<\/article>/i, '');
-    // Remove the header and footer from the article content to avoid duplication
-    contentHTML = contentHTML.replace(/<header>[\s\S]*?<\/header>/, '');
-    contentHTML = contentHTML.replace(/<footer>[\s\S]*?<\/footer>/, '');
-    // Clean up extra whitespace
+    // ─── EXTRACT CLEAN CONTENT FROM THE HTML ──────────────────────────
+    let contentHTML = article.body_html || '';
+    
+    // Remove DOCTYPE and outer HTML structure
+    contentHTML = contentHTML.replace(/<!DOCTYPE[^>]*>/gi, '');
+    contentHTML = contentHTML.replace(/<html[^>]*>/gi, '');
+    contentHTML = contentHTML.replace(/<\/html>/gi, '');
+    contentHTML = contentHTML.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+    contentHTML = contentHTML.replace(/<body[^>]*>/gi, '');
+    contentHTML = contentHTML.replace(/<\/body>/gi, '');
+    contentHTML = contentHTML.replace(/<article[^>]*>/gi, '');
+    contentHTML = contentHTML.replace(/<\/article>/gi, '');
+    
+    // Remove header and footer sections (they contain meta info, not article content)
+    contentHTML = contentHTML.replace(/<header>[\s\S]*?<\/header>/gi, '');
+    contentHTML = contentHTML.replace(/<footer>[\s\S]*?<\/footer>/gi, '');
+    
+    // Remove any remaining style tags (they were in head but just in case)
+    contentHTML = contentHTML.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    contentHTML = contentHTML.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    
+    // Remove empty lines and extra whitespace
+    contentHTML = contentHTML.replace(/^\s*[\r\n]/gm, '');
+    contentHTML = contentHTML.replace(/\s{2,}/g, ' ');
     contentHTML = contentHTML.trim();
+
+    // If we somehow ended up with empty content, use a fallback
+    if (!contentHTML || contentHTML.length < 50) {
+      contentHTML = `<p><strong>${c.name}</strong> crisis score: ${c.score}/100 (${severityLabel(c.score)}). ${c.types.map(t => ARC[t]?.l || t).join(', ')}.</p>`;
+    }
 
     return `
   <item>
