@@ -3854,6 +3854,24 @@ function buildRSSFeed(finalIsos, store, ranked) {
     const heat = c.__heat;
     const wst = WST_CLASS[iso];
 
+    // Extract just the article body content without outer HTML structure
+    let contentHTML = article.body_html;
+    // Remove DOCTYPE, html, head, body tags but keep the content
+    contentHTML = contentHTML.replace(/<!DOCTYPE[^>]*>/i, '');
+    contentHTML = contentHTML.replace(/<html[^>]*>/i, '');
+    contentHTML = contentHTML.replace(/<\/html>/i, '');
+    contentHTML = contentHTML.replace(/<head[^>]*>[\s\S]*?<\/head>/i, '');
+    contentHTML = contentHTML.replace(/<body[^>]*>/i, '');
+    contentHTML = contentHTML.replace(/<\/body>/i, '');
+    // Also remove the article tag wrapper if it exists
+    contentHTML = contentHTML.replace(/<article[^>]*>/i, '');
+    contentHTML = contentHTML.replace(/<\/article>/i, '');
+    // Remove the header and footer from the article content to avoid duplication
+    contentHTML = contentHTML.replace(/<header>[\s\S]*?<\/header>/, '');
+    contentHTML = contentHTML.replace(/<footer>[\s\S]*?<\/footer>/, '');
+    // Clean up extra whitespace
+    contentHTML = contentHTML.trim();
+
     return `
   <item>
     <title>${escapeXml(article.headline)}</title>
@@ -3867,7 +3885,7 @@ function buildRSSFeed(finalIsos, store, ranked) {
     ${wst ? `<category>WST: ${wst.class}</category>` : ""}
     ${wst ? `<category>Debt-to-GDP: ${wst.debt_to_gdp}%</category>` : ""}
     <media:content url="${CFG.ARTICLE_LOGO}" medium="image"/>
-    <content:encoded><![CDATA[${article.body_html}]]></content:encoded>
+    <content:encoded><![CDATA[${contentHTML}]]></content:encoded>
   </item>`;
   }).join("");
 
