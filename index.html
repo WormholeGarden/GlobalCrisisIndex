@@ -18,23 +18,27 @@
 
   <style>
 
-/* ─── ZOOM-STABLE MARKERS (COUNTER-SCALED GROUP + FOREIGNOBJECT) ─── */
-/* Prevent SVG elements from scaling strokes during zoom */
+/* ─── ZOOM-STABLE MARKERS ──────────────────────────────────────── */
+/* Each marker's outer .marker-anchor group is counter-scaled by 1/k
+   in JS (see applyMarkerZoomScale), so these markers stay a fixed
+   screen size at every zoom level instead of scaling with the map. */
+.marker-anchor {
+  will-change: transform;
+}
+
 .pulse-marker circle,
 .crisis-glow circle {
   vector-effect: non-scaling-stroke;
 }
 
-/* ForeignObject containers - keep them stable */
-.crisis-icon-group,
-.crisis-label-group {
+.crisis-icon-group foreignObject,
+.crisis-label-group foreignObject {
   overflow: visible !important;
   pointer-events: none !important;
 }
 
-/* Ensure foreignObject content renders cleanly */
-.crisis-icon-group div,
-.crisis-label-group div {
+.crisis-icon-group foreignObject div,
+.crisis-label-group foreignObject div {
   font-family: 'JetBrains Mono', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,6 +56,7 @@
   0% { transform: scale(1); opacity: 0.8; }
   100% { transform: scale(2); opacity: 0; }
 }
+
 .pulse-marker circle {
   animation-timing-function: ease-out;
 }
@@ -60,6 +65,7 @@
 .map-legend-dynamic {
   animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -68,7 +74,7 @@
 /* ─── RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .map-legend-dynamic { display: none; }
-}* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
+}/* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
 #proBanner {
   display: flex !important;
   visibility: visible !important;
@@ -5071,9 +5077,10 @@ function initMap(world){
     .on('mouseleave',()=>document.getElementById('mapTT').classList.remove('vis'))
     .on('click',(ev,d)=>{const iso=getIsoFromFeature(d);if(iso&&store[iso])selCountry(iso);});
   zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>{
-  mapGroup.attr('transform',ev.transform);
-  rescaleCrisisMarkers(ev.transform.k);
-});
+    mapGroup.attr('transform',ev.transform);
+    lastZoomTransform=ev.transform;
+    applyMarkerZoomScale(ev.transform);
+  });
   svgEl.call(zoom);
   document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);
   document.getElementById('zOut').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,.67);
@@ -5087,7 +5094,6 @@ function initMap(world){
     addPulseMarkers();
   });
   setTimeout(paintMap,100);
-}
 
 function paintMap(){
   if(!mapGroup)return;
@@ -5167,30 +5173,17 @@ function paintMap(){
     if(!iso||!store[iso])return'#1a2e45';
     return sc(store[iso].score)+'bb';
   });
-}// ─── GLOBAL: current zoom scale tracker ──────────────────────────────
-let currentZoomK = 1;
-
-function rescaleCrisisMarkers(k) {
-  if (!mapGroup) return;
-  currentZoomK = k;
-  const invK = 1 / k;
-  mapGroup.selectAll('.crisis-marker')
-    .attr('transform', function(d) {
-      return `translate(${d.px},${d.py}) scale(${invK})`;
-    });
-}
-
-function addPulseMarkers() {
+}function addPulseMarkers() {
   if (!mapGroup || !proj) return;
 
   // ─── CLEANUP ──────────────────────────────────────────────────────
+  mapGroup.selectAll('.marker-anchor').remove();
   mapGroup.selectAll('.pulse-marker').remove();
   mapGroup.selectAll('.crisis-icon-group').remove();
   mapGroup.selectAll('.crisis-glow').remove();
   mapGroup.selectAll('.crisis-label-group').remove();
   mapGroup.selectAll('.crisis-badge-group').remove();
   mapGroup.selectAll('.marker-overlay').remove();
-  mapGroup.selectAll('.crisis-marker').remove();
 
   if (!ranked || !store) return;
 
@@ -5229,10 +5222,7 @@ function addPulseMarkers() {
 
   hotspots.sort((a, b) => b.score - a.score);
 
-  // ─── CURRENT ZOOM LEVEL (so markers spawn at correct size immediately) ───
-  const k0 = (svgEl && svgEl.node()) ? d3.zoomTransform(svgEl.node()).k : 1;
-  const invK0 = 1 / k0;
-  currentZoomK = k0;
+  const currentK = (lastZoomTransform && lastZoomTransform.k) ? lastZoomTransform.k : 1;
 
   hotspots.forEach((c, idx) => {
     const coords = CENTROIDS[c.iso];
@@ -5260,27 +5250,26 @@ function addPulseMarkers() {
 
     const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', label: 'Crisis', color: '#ffb020' };
 
-    // ─── FIXED SIZES (now these are true, constant SCREEN sizes) ───
+    // ─── FIXED SIZES (stay constant on screen at any zoom level) ────
     const iconSize = isCritical ? 16 : isHigh ? 13 : 10;
     const dotR = isCritical ? 5 : isHigh ? 3.5 : 2.5;
 
-    // ─── ONE GROUP PER MARKER, POSITIONED + COUNTER-SCALED ─────────
-    // Everything below is drawn relative to (0,0) — the group's own
-    // translate(px,py) handles position, and scale(invK) cancels out
-    // the parent mapGroup's zoom scale so this marker never grows or
-    // shrinks (and never glitches) no matter how far you zoom.
-    const markerG = mapGroup.append('g')
-      .attr('class', 'crisis-marker pulse-marker')
-      .datum({ px, py })
-      .attr('transform', `translate(${px},${py}) scale(${invK0})`);
+    // ─── ANCHOR GROUP: counter-scales by 1/k so the marker never
+    // grows or breaks apart when the map is zoomed in or out ────────
+    const anchor = mapGroup.append('g')
+      .attr('class', 'marker-anchor')
+      .attr('data-px', px)
+      .attr('data-py', py)
+      .attr('transform', `translate(${px},${py}) scale(${1 / currentK})`);
 
-    // ─── 1. PULSE RINGS ────────────────────────────────────────────
+    // ─── 1. PULSE RINGS (local coords, centered at anchor origin) ──
+    const pulseGroup = anchor.append('g').attr('class', 'pulse-marker');
     const dur = 2.4 + (idx % 6) * 0.3;
+
     for (let ring = 0; ring < (isCritical ? 3 : 2); ring++) {
       const r = 6 + ring * 4 + (isCritical ? 2 : 0);
-      markerG.append('circle')
-        .attr('cx', 0)
-        .attr('cy', 0)
+      pulseGroup.append('circle')
+        .attr('cx', 0).attr('cy', 0)
         .attr('r', r)
         .attr('fill', 'none')
         .attr('stroke', col)
@@ -5295,10 +5284,8 @@ function addPulseMarkers() {
         .attr('repeatCount', 'indefinite');
     }
 
-    // Core dot
-    markerG.append('circle')
-      .attr('cx', 0)
-      .attr('cy', 0)
+    pulseGroup.append('circle')
+      .attr('cx', 0).attr('cy', 0)
       .attr('r', dotR)
       .attr('fill', col)
       .attr('opacity', 0.95)
@@ -5311,9 +5298,9 @@ function addPulseMarkers() {
 
     // ─── 2. GLOW FOR CRITICAL ──────────────────────────────────────
     if (isCritical) {
-      markerG.append('circle')
-        .attr('cx', 0)
-        .attr('cy', 0)
+      const glowGroup = anchor.append('g').attr('class', 'crisis-glow');
+      glowGroup.append('circle')
+        .attr('cx', 0).attr('cy', 0)
         .attr('r', 10)
         .attr('fill', 'none')
         .attr('stroke', col)
@@ -5327,13 +5314,14 @@ function addPulseMarkers() {
         .attr('repeatCount', 'indefinite');
     }
 
-    // ─── 3. CRISIS ICON (foreignObject, relative to group origin) ──
-    const fo = markerG.append('foreignObject')
+    // ─── 3. CRISIS ICON (foreignObject, local coords) ──────────────
+    const iconGroup = anchor.append('g')
       .attr('class', 'crisis-icon-group')
-      .attr('x', -12)
-      .attr('y', -12)
-      .attr('width', 24)
-      .attr('height', 24)
+      .style('pointer-events', 'none');
+
+    const fo = iconGroup.append('foreignObject')
+      .attr('x', -12).attr('y', -12)
+      .attr('width', 24).attr('height', 24)
       .style('overflow', 'visible')
       .style('pointer-events', 'none');
 
@@ -5356,14 +5344,16 @@ function addPulseMarkers() {
       </div>
     `);
 
-    // ─── 4. ISO LABEL ────────────────────────────────────────────
-    const labelYOffset = 16;
-    const labelFo = markerG.append('foreignObject')
+    // ─── 4. ISO LABEL (foreignObject, local coords) ─────────────────
+    const labelGroup = anchor.append('g')
       .attr('class', 'crisis-label-group')
-      .attr('x', -20)
-      .attr('y', labelYOffset - 6)
-      .attr('width', 40)
-      .attr('height', 14)
+      .style('pointer-events', 'none');
+
+    const labelYOffset = 16;
+
+    const labelFo = labelGroup.append('foreignObject')
+      .attr('x', -20).attr('y', labelYOffset - 6)
+      .attr('width', 40).attr('height', 14)
       .style('overflow', 'visible')
       .style('pointer-events', 'none');
 
@@ -5404,6 +5394,21 @@ function addPulseMarkers() {
 
   // ─── DYNAMIC LEGEND ──────────────────────────────────────────────
   updateMapLegend(hotspots);
+}
+
+// ─── COUNTER-SCALES ALL MARKERS SO THEY STAY A FIXED SCREEN SIZE ────
+// Called on every zoom tick — cheap (just updates a transform attr on
+// up to 25 existing groups), so it doesn't re-render icons/text and
+// doesn't cause the foreignObject glitching that scaling with the map
+// transform used to cause at high zoom levels.
+function applyMarkerZoomScale(transform) {
+  if (!mapGroup) return;
+  const k = transform && transform.k ? transform.k : 1;
+  mapGroup.selectAll('.marker-anchor').attr('transform', function () {
+    const px = +this.getAttribute('data-px');
+    const py = +this.getAttribute('data-py');
+    return `translate(${px},${py}) scale(${1 / k})`;
+  });
 }function zoomToCountry(iso){
   if(!svgEl||!proj||!zoom)return;
   const stage=document.getElementById('mapStage');if(!stage)return;
