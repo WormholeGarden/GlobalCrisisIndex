@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World-Systems Theory · Comprehensive Encyclopedia</title>
+    
+    <!-- Google Fonts (matching your existing page) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ─── YOUR EXISTING FUTURISTIC CSS ────────────────────────────── */
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-purple: #b44aff;
+            --neon-pink: #ff2d95;
+            --void: #05060f;
+            --surface: rgba(8, 15, 30, 0.92);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(0, 240, 255, 0.12);
+            --text-primary: #e2f0ff;
+            --text-secondary: #8ab0d4;
+            --text-dim: #3a5a7a;
+            --font-display: 'Barlow Condensed', sans-serif;
+            --font-body: 'Barlow', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--void);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 15px;
+            line-height: 1.7;
+            overflow-y: auto;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.04) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(180, 74, 255, 0.06) 0%, transparent 50%),
+                repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.01) 0px, rgba(0, 240, 255, 0.01) 2px, transparent 2px, transparent 6px);
+            pointer-events: none;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 2rem 4rem;
+        }
+
+        /* ─── HEADER ─────────────────────────────────────────────────────── */
+        .futuristic-header {
+            height: 64px;
+            background: rgba(5, 6, 15, 0.95);
+            backdrop-filter: blur(20px) saturate(1.8);
+            -webkit-backdrop-filter: blur(20px) saturate(1.8);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            flex-shrink: 0;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+            margin-bottom: 2rem;
+        }
+        .futuristic-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), var(--neon-purple), transparent);
+            opacity: 0.3;
+        }
+
+        .brand-future {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .logo-hologram {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(180, 74, 255, 0.1));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+        .brand-name-future {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 20%, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .brand-sub-future {
+            font-family: var(--font-mono);
+            font-size: 7px;
+            color: var(--text-dim);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-top: -2px;
+        }
+
+        .header-right-future {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hbtn-future {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: var(--font-mono);
+            font-size: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .hbtn-future:hover {
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.3);
+            color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.05);
+        }
+        .hbtn-future.primary {
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.2);
+            color: var(--neon-blue);
+        }
+
+        /* ─── CONTENT STYLES ───────────────────────────────────────────── */
+        .encyclopedia-content {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2.5rem 3rem;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .encyclopedia-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            opacity: 0.4;
+        }
+
+        .encyclopedia-content h1 {
+            font-family: var(--font-display);
+            font-size: 3.2rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 30%, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.8rem;
+        }
+
+        .encyclopedia-content h2 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-left: 0.8rem;
+            border-left: 4px solid var(--neon-purple);
+            letter-spacing: -0.01em;
+        }
+
+        .encyclopedia-content h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.8rem;
+            margin-bottom: 0.8rem;
+            letter-spacing: -0.01em;
+        }
+
+        .encyclopedia-content h4 {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 1.2rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .encyclopedia-content p {
+            margin-bottom: 1.2rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .encyclopedia-content p strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .encyclopedia-content ul,
+        .encyclopedia-content ol {
+            margin: 0.8rem 0 1.5rem 1.8rem;
+            color: var(--text-secondary);
+        }
+
+        .encyclopedia-content li {
+            margin-bottom: 0.4rem;
+            line-height: 1.6;
+        }
+
+        .encyclopedia-content li strong {
+            color: var(--text-primary);
+        }
+
+        .encyclopedia-content .blockquote {
+            background: rgba(0, 240, 255, 0.04);
+            border-left: 4px solid var(--neon-purple);
+            padding: 1.2rem 1.8rem;
+            margin: 1.8rem 0;
+            border-radius: 0 8px 8px 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .encyclopedia-content .blockquote strong {
+            color: var(--neon-blue);
+            font-style: normal;
+        }
+
+        .encyclopedia-content .source-tag {
+            display: inline-block;
+            background: rgba(0, 240, 255, 0.06);
+            color: var(--neon-blue);
+            font-family: var(--font-mono);
+            font-size: 0.55rem;
+            font-weight: 600;
+            padding: 0.1rem 0.7rem;
+            border-radius: 30px;
+            letter-spacing: 0.3px;
+            margin-right: 0.4rem;
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            text-transform: uppercase;
+        }
+
+        .encyclopedia-content .card-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.3rem 2rem;
+            margin: 0.8rem 0 1.5rem 1rem;
+        }
+        .encyclopedia-content .card-list li {
+            list-style-type: none;
+            margin-bottom: 0.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .encyclopedia-content .card-list li::before {
+            content: "▹ ";
+            color: var(--neon-purple);
+            font-weight: bold;
+        }
+
+        .encyclopedia-content hr {
+            border: none;
+            border-top: 1px solid var(--glass-border);
+            margin: 2.5rem 0 1.5rem;
+            opacity: 0.3;
+        }
+
+        .encyclopedia-content .footer-note {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--glass-border);
+        }
+        .encyclopedia-content .footer-note a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .encyclopedia-content .footer-note a:hover {
+            opacity: 0.7;
+        }
+
+        /* ─── LOADING ────────────────────────────────────────────────────── */
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            gap: 1.5rem;
+        }
+        .loader-ring {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 3px solid rgba(0, 240, 255, 0.08);
+            border-top-color: var(--neon-blue);
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader-h {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, #fff, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .loader-sub {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+        }
+
+        /* ─── RESPONSIVE ────────────────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .app { padding: 1rem; }
+            .encyclopedia-content { padding: 1.5rem; }
+            .encyclopedia-content h1 { font-size: 2.2rem; }
+            .encyclopedia-content h2 { font-size: 1.6rem; }
+            .encyclopedia-content .card-list { grid-template-columns: 1fr; }
+            .brand-sub-future { display: none; }
+            .futuristic-header { padding: 0 12px; height: 56px; }
+        }
+        @media (max-width: 480px) {
+            .encyclopedia-content h1 { font-size: 1.8rem; }
+            .encyclopedia-content h2 { font-size: 1.3rem; }
+            .encyclopedia-content { padding: 1rem; }
+        }
+
+        /* ─── SCROLLBAR ────────────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.2); border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+    <!-- ─── HEADER ─────────────────────────────────────────────────────── -->
+    <header class="futuristic-header">
+        <div class="brand-future">
+            <div class="logo-hologram">🌐</div>
+            <div>
+                <div class="brand-name-future">GCIS ENCYCLOPEDIA</div>
+                <div class="brand-sub-future">▸ World-Systems Theory · Dynamic Synthesis</div>
+            </div>
+        </div>
+        <div class="header-right-future">
+            <a href="#" class="hbtn-future" onclick="window.location.reload();">↻ Refresh</a>
+            <a href="https://en.wikipedia.org/wiki/World-systems_theory" target="_blank" class="hbtn-future primary">📖 Source</a>
+        </div>
+    </header>
+
+    <!-- ─── MAIN CONTENT ───────────────────────────────────────────────── -->
+    <div class="app">
+        <div class="encyclopedia-content" id="content">
+            <div class="loader-container">
+                <div class="loader-ring"></div>
+                <div class="loader-h">Assembling Encyclopedia</div>
+                <div class="loader-sub">Fetching &amp; synthesizing from 5 Wikipedia sources …</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ─── CONFIG ──────────────────────────────────────────────────
+            const WIKI_API_BASE = 'https://en.wikipedia.org/w/api.php';
+            const PAGES = [
+                'World-systems theory',
+                'Periphery countries',
+                'Core countries',
+                'Semi-periphery countries',
+                'Capitalism'
+            ];
+
+            // ─── FETCH EXTRACT (plain text) ────────────────────────────
+            async function fetchExtract(title) {
+                const url = new URL(WIKI_API_BASE);
+                url.searchParams.set('action', 'query');
+                url.searchParams.set('format', 'json');
+                url.searchParams.set('origin', '*');
+                url.searchParams.set('prop', 'extracts');
+                url.searchParams.set('explaintext', '1');
+                url.searchParams.set('exintro', '0');
+                url.searchParams.set('exlimit', '1');
+                url.searchParams.set('titles', title);
+
+                const response = await fetch(url.toString());
+                if (!response.ok) throw new Error(`HTTP ${response.status} for ${title}`);
+                const data = await response.json();
+                const pages = data.query?.pages;
+                if (!pages) throw new Error(`No pages returned for ${title}`);
+                const pageId = Object.keys(pages)[0];
+                if (pageId === '-1') throw new Error(`Page "${title}" not found.`);
+                return pages[pageId]?.extract || '';
+            }
+
+            // ─── HELPERS ─────────────────────────────────────────────────
+            function extractSection(text, startHeading, endHeading) {
+                if (!text || !startHeading) return null;
+                const lines = text.split(/\n+/);
+                let startIdx = -1;
+                let endIdx = lines.length;
+                const startLower = startHeading.toLowerCase();
+                const endLower = endHeading ? endHeading.toLowerCase() : null;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (startIdx === -1) {
+                        if (line.toLowerCase().includes(startLower) || line.toLowerCase() === startLower) {
+                            startIdx = i + 1;
+                        }
+                    } else if (endLower && line.toLowerCase().includes(endLower)) {
+                        endIdx = i;
+                        break;
+                    }
+                }
+
+                if (startIdx === -1 || startIdx >= endIdx) return null;
+                let section = lines.slice(startIdx, endIdx).join(' ').trim();
+                section = section.replace(/^[=#]+\s*.*?\s*[=#]+/g, '').trim();
+                return section || null;
+            }
+
+            function extractIntro(text) {
+                if (!text) return null;
+                const lines = text.split(/\n+/);
+                let intro = '';
+                let count = 0;
+                for (const line of lines) {
+                    if (line.trim().length === 0) continue;
+                    if (count >= 2) break;
+                    if (/^=+/.test(line.trim())) continue;
+                    intro += line.trim() + ' ';
+                    count++;
+                }
+                return intro.trim() || null;
+            }
+
+            function extractListItems(text, sectionTitle) {
+                if (!text) return [];
+                const section = extractSection(text, sectionTitle, '');
+                if (!section) return [];
+                const items = [];
+                const lines = section.split(/\n+/);
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (/^[\*\-•]/.test(trimmed)) {
+                        items.push(trimmed.replace(/^[\*\-•]\s*/, '').trim());
+                    } else if (/^\d+\./.test(trimmed)) {
+                        items.push(trimmed.replace(/^\d+\.\s*/, '').trim());
+                    }
+                }
+                return items.slice(0, 20);
+            }
+
+            // ─── BUILD ENCYCLOPEDIA ─────────────────────────────────────
+            function buildEncyclopedia(extracts) {
+                const wst = extracts['World-systems theory'] || '';
+                const core = extracts['Core countries'] || '';
+                const periphery = extracts['Periphery countries'] || '';
+                const semi = extracts['Semi-periphery countries'] || '';
+                const capitalism = extracts['Capitalism'] || '';
+
+                let html = '';
+
+                // ── Title ──
+                html += `<h1>World-Systems Theory</h1>`;
+
+                // ── Intro from WST ──
+                const wstLines = wst.split(/\n+/);
+                let introText = '';
+                let paragraphCount = 0;
+                for (const line of wstLines) {
+                    if (line.trim().length === 0) continue;
+                    if (paragraphCount >= 3) break;
+                    introText += `<p>${line.trim()}</p>`;
+                    paragraphCount++;
+                }
+                html += introText;
+
+                // ── Background ──
+                const bg = extractSection(wst, 'Background', 'Origins');
+                if (bg) {
+                    html += `<h2>Background</h2><p>${bg}</p>`;
+                }
+
+                // ── Origins ──
+                const origins = extractSection(wst, 'Origins', 'Characteristics');
+                if (origins) {
+                    html += `<h2>Origins and Intellectual Influences</h2><p>${origins}</p>`;
+                }
+
+                // ── Dependency Theory ──
+                const dep = extractSection(wst, 'Dependency theory', 'Importance');
+                if (dep) {
+                    html += `<h2>Dependency Theory and Its Influence</h2><p>${dep}</p>`;
+                }
+
+                // ── Tripartite Structure ──
+                html += `<h2>The Tripartite Structure: Core, Periphery, and Semi-Periphery</h2>`;
+                html += `<p>World-systems theory divides the global economy into three broad zones: <strong>core</strong>, <strong>periphery</strong>, and <strong>semi-periphery</strong>. These categories reflect a country's position in the international division of labour and its relative power, wealth, and level of industrialisation.</p>`;
+
+                // ── Core ──
+                const coreIntro = extractIntro(core);
+                html += `<h3>Core Countries</h3>`;
+                html += `<p>${coreIntro || 'Core countries are the industrialised, wealthy, and powerful states that dominate the world economy. They have strong institutions, advanced technology, and command the most profitable activities.'}</p>`;
+                const coreChar = extractSection(core, 'Definition', 'Throughout history');
+                if (coreChar) html += `<p>${coreChar}</p>`;
+                const coreList = extractListItems(core, 'Examples');
+                if (coreList.length > 0) {
+                    html += `<h4>Examples of Core Countries</h4><ul>`;
+                    coreList.forEach(item => html += `<li>${item}</li>`);
+                    html += `</ul>`;
+                }
+
+                // ── Periphery ──
+                const periIntro = extractIntro(periphery);
+                html += `<h3>Periphery Countries</h3>`;
+                html += `<p>${periIntro || 'Periphery countries are less developed, have weak state institutions, and are dependent on—and often exploited by—core countries. They typically export raw materials and agricultural goods.'}</p>`;
+                const periChar = extractSection(periphery, 'Background', 'Formation');
+                if (periChar) html += `<p>${periChar}</p>`;
+                const periWays = extractSection(periphery, 'Ways to improve', 'Adaptation');
+                if (periWays) {
+                    html += `<h4>Paths to Advancement</h4><p>${periWays}</p>`;
+                }
+
+                // ── Semi-periphery ──
+                const semiIntro = extractIntro(semi);
+                html += `<h3>Semi-Periphery Countries</h3>`;
+                html += `<p>${semiIntro || 'Semi-periphery countries are industrialising, middle-income states that share characteristics of both core and periphery. They mediate between the core and the periphery.'}</p>`;
+                const semiChar = extractSection(semi, 'Sociological theory', 'History and development');
+                if (semiChar) html += `<p>${semiChar}</p>`;
+                const semiList = extractListItems(semi, 'Semi-periphery countries');
+                if (semiList.length > 0) {
+                    html += `<h4>Examples of Semi-Periphery Countries</h4><ul>`;
+                    semiList.forEach(item => html += `<li>${item}</li>`);
+                    html += `</ul>`;
+                }
+
+                // ── Capitalism ──
+                html += `<h2>Capitalism: The Economic Foundation</h2>`;
+                const capIntro = extractIntro(capitalism);
+                html += `<p>${capIntro || 'Capitalism is an economic system based on private ownership of the means of production and their operation for profit. It is characterised by capital accumulation, competitive markets, wage labour, and innovation.'}</p>`;
+                const capHist = extractSection(capitalism, 'History', 'Characteristics');
+                if (capHist) {
+                    html += `<h3>Historical Development</h3><p>${capHist}</p>`;
+                }
+                const capFeatures = extractSection(capitalism, 'Characteristics', 'Supply and demand');
+                if (capFeatures) {
+                    html += `<h3>Core Features</h3><p>${capFeatures}</p>`;
+                }
+                const capSupply = extractSection(capitalism, 'Supply and demand', '');
+                if (capSupply) {
+                    html += `<h3>Supply and Demand</h3><p>${capSupply}</p>`;
+                }
+
+                // ── Modern World-System ──
+                html += `<h2>The Modern World-System in Perspective</h2>`;
+                const interpret = extractSection(wst, 'The interpretation of world history', '');
+                if (interpret) {
+                    html += `<p>${interpret}</p>`;
+                } else {
+                    html += `<p>World-systems analysis views the capitalist world-economy as a historically specific system that emerged in the "long" 16th century. It has since expanded to encompass the entire globe, creating an inter-regional division of labour that perpetuates inequality. The system is dynamic, with cyclical rhythms and secular trends, and it is currently in a period of transition whose outcome is uncertain. Understanding the interlocking roles of core, periphery, and semi-periphery—alongside the logic of capital accumulation—is essential for grasping the trajectory of modern global history.</p>`;
+                }
+
+                // ── Footer ──
+                html += `<hr />`;
+                html += `<div class="footer-note">`;
+                html += `This article is a dynamic synthesis of content from: `;
+                html += PAGES.map(p =>
+                    `<a href="https://en.wikipedia.org/wiki/${p.replace(/ /g, '_')}" target="_blank">${p}</a>`
+                ).join(', ');
+                html += `. Data fetched via Wikipedia API and combined in real-time.`;
+                html += `</div>`;
+
+                return html;
+            }
+
+            // ─── MAIN ────────────────────────────────────────────────────
+            async function main() {
+                const container = document.getElementById('content');
+
+                try {
+                    const fetchPromises = PAGES.map(async (title) => {
+                        try {
+                            const extract = await fetchExtract(title);
+                            return { title, extract };
+                        } catch (err) {
+                            console.warn(`Failed to fetch "${title}":`, err);
+                            return { title, extract: '' };
+                        }
+                    });
+
+                    const results = await Promise.all(fetchPromises);
+                    const extracts = {};
+                    for (const r of results) extracts[r.title] = r.extract;
+
+                    const totalChars = Object.values(extracts).reduce((sum, e) => sum + e.length, 0);
+                    if (totalChars < 200) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding:3rem 1rem; color:#ff375f;">
+                                <h2 style="color:#ff375f;">⚠️ Unable to retrieve article content</h2>
+                                <p style="color:var(--text-secondary);">Wikipedia may be rate-limiting or the pages are temporarily unavailable.</p>
+                                <p style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-dim);">Please try again later.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const htmlContent = buildEncyclopedia(extracts);
+                    container.innerHTML = htmlContent;
+
+                } catch (err) {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:3rem 1rem; color:#ff375f;">
+                            <h2 style="color:#ff375f;">⚠️ Error Loading Content</h2>
+                            <p style="color:var(--text-secondary);">${err.message || 'An unknown error occurred.'}</p>
+                        </div>
+                    `;
+                    console.error(err);
+                }
+            }
+
+            // ─── BOOT ─────────────────────────────────────────────────────
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', main);
+            } else {
+                main();
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
