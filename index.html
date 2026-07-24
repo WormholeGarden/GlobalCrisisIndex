@@ -5415,52 +5415,8 @@ function paintMap(){
 
 // ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
 function updateMapLegend(hotspots) {
+  // Legend removed - intentionally left empty
   document.querySelector('.map-legend-dynamic')?.remove();
-  
-  const legend = document.createElement('div');
-  legend.className = 'map-legend-dynamic';
-  legend.style.cssText = `
-    position: absolute;
-    bottom: 60px;
-    right: 10px;
-    background: rgba(3,11,24,0.92);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(0,200,255,0.12);
-    border-radius: 8px;
-    padding: 8px 10px;
-    z-index: 25;
-    font-family: var(--fm);
-    font-size: 7px;
-    color: var(--ts);
-    max-width: 150px;
-    pointer-events: none;
-  `;
-  
-  const severityCounts = {
-    critical: hotspots.filter(c => c.score >= 80).length,
-    high: hotspots.filter(c => c.score >= 65 && c.score < 80).length,
-    moderate: hotspots.filter(c => c.score >= 55 && c.score < 65).length
-  };
-  
-  legend.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:3px;">
-      <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--tp);margin-bottom:2px;">
-        <span>📊 LIVE HOTSPOTS</span>
-        <span style="font-size:9px;color:var(--cyan);">${hotspots.length}</span>
-      </div>
-      ${severityCounts.critical > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff375f;box-shadow:0 0 8px #ff375f;"></span> CRITICAL ${severityCounts.critical}</div>` : ''}
-      ${severityCounts.high > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff8c42;"></span> HIGH ${severityCounts.high}</div>` : ''}
-      ${severityCounts.moderate > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ffb020;"></span> MODERATE ${severityCounts.moderate}</div>` : ''}
-      <div style="border-top:1px solid rgba(255,255,255,0.05);margin-top:3px;padding-top:3px;font-size:6px;color:var(--td);display:flex;gap:4px;flex-wrap:wrap;">
-        ${Object.entries({ '⚔️':'Conflict', '🌾':'Famine', '🌊':'Flood', '🦠':'Epidemic', '🏕️':'Refugees', '🔥':'Fire', '🌍':'Quake' }).slice(0,6).map(([icon,label]) => 
-          `<span>${icon} ${label}</span>`
-        ).join(' · ')}
-      </div>
-    </div>
-  `;
-  
-  const stage = document.getElementById('mapStage');
-  if (stage) stage.appendChild(legend);
 }
 function zoomToCountry(iso){
   if(!svgEl||!proj||!zoom)return;
