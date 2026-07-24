@@ -5171,6 +5171,7 @@ function paintMap(){
   mapGroup.selectAll('.crisis-connector').remove();
   mapGroup.selectAll('.crisis-label-group').remove();
   mapGroup.selectAll('.crisis-badge-group').remove();
+  mapGroup.selectAll('.crisis-type-label').remove();
   
   if (!ranked || !store) return;
   
@@ -5209,7 +5210,7 @@ function paintMap(){
   
   hotspots.sort((a, b) => b.score - a.score);
   
-  // ─── CREATE A CONTAINER FOR ALL MARKERS (fixes zoom glitch) ────
+  // ─── CREATE A CONTAINER FOR ALL MARKERS ─────────────────────────
   const markerContainer = mapGroup.append('g')
     .attr('class', 'marker-container')
     .style('pointer-events', 'none');
@@ -5240,12 +5241,12 @@ function paintMap(){
     
     const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', label: 'Crisis', color: '#ffb020' };
     
-    // ─── FIXED: Use fixed pixel sizes that don't scale with zoom ──
+    // ─── FIXED SIZES ───────────────────────────────────────────────
     const iconSize = isCritical ? 16 : isHigh ? 13 : 10;
     const yOffset = isCritical ? -14 : -11;
     const dotR = isCritical ? 4 : isHigh ? 3 : 2.5;
     
-    // ─── 1. PULSE RINGS (behind everything) ────────────────────────
+    // ─── 1. PULSE RINGS ────────────────────────────────────────────
     const pulseGroup = markerContainer.append('g').attr('class', 'pulse-marker');
     const dur = 2.4 + (idx % 6) * 0.3;
     
@@ -5267,7 +5268,7 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // Core dot (fixed size, doesn't scale with zoom)
+    // Core dot
     pulseGroup.append('circle')
       .attr('cx', px)
       .attr('cy', py)
@@ -5299,7 +5300,7 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // ─── 3. CRISIS ICON (FIXED: no scaling with zoom) ─────────────
+    // ─── 3. CRISIS ICON (ONLY THE ICON - NO TEXT LABEL) ──────────
     const iconGroup = markerContainer.append('g')
       .attr('class', 'crisis-icon-group')
       .style('pointer-events', 'none');
@@ -5316,7 +5317,7 @@ function paintMap(){
       .style('user-select', 'none')
       .text(crisisInfo.icon);
     
-    // Main icon (fixed size, doesn't scale with zoom)
+    // Main icon
     const mainIcon = iconGroup.append('text')
       .attr('x', px + 10)
       .attr('y', py + yOffset)
@@ -5329,7 +5330,7 @@ function paintMap(){
       .style('cursor', 'default')
       .text(crisisInfo.icon);
     
-    // Bounce animation for critical (fixed: uses transform, safe with zoom)
+    // Bounce animation for critical
     if (isCritical) {
       mainIcon.append('animateTransform')
         .attr('attributeName', 'transform')
@@ -5341,7 +5342,7 @@ function paintMap(){
         .attr('keySplines', '0.4 0 0.2 1; 0.4 0 0.2 1');
     }
     
-    // ─── 4. ISO LABEL (FIXED: doesn't scale with zoom) ────────────
+    // ─── 4. ISO LABEL (3-letter code, NO crisis type text) ───────
     const labelGroup = markerContainer.append('g')
       .attr('class', 'crisis-label-group')
       .style('pointer-events', 'none');
@@ -5359,7 +5360,7 @@ function paintMap(){
       .style('font-weight', '800')
       .text(c.iso);
     
-    // Main label (fixed size)
+    // Main label (ISO code only)
     labelGroup.append('text')
       .attr('x', px + 10)
       .attr('y', py + yOffset + iconSize/2 + 8)
@@ -5374,13 +5375,12 @@ function paintMap(){
       .style('letter-spacing', '0.06em')
       .text(c.iso);
     
-    // ─── 5. SCORE BADGE (FIXED: doesn't scale with zoom) ───────────
+    // ─── 5. SCORE BADGE ─────────────────────────────────────────────
     if (isCritical) {
       const badgeGroup = markerContainer.append('g')
         .attr('class', 'crisis-badge-group')
         .style('pointer-events', 'none');
       
-      // Badge background
       badgeGroup.append('rect')
         .attr('x', px + 10 - 12)
         .attr('y', py + yOffset + iconSize/2 + 16)
@@ -5391,7 +5391,6 @@ function paintMap(){
         .attr('stroke', col)
         .attr('stroke-width', 0.5);
       
-      // Badge text
       badgeGroup.append('text')
         .attr('x', px + 10)
         .attr('y', py + yOffset + iconSize/2 + 21)
@@ -5405,27 +5404,11 @@ function paintMap(){
         .text(c.score);
     }
     
-    // ─── 6. CRISIS TYPE LABEL (FIXED: doesn't scale with zoom) ────
-    if (isCritical || isHigh) {
-      markerContainer.append('text')
-        .attr('x', px + 10)
-        .attr('y', py + yOffset - iconSize/2 - 3)
-        .attr('text-anchor', 'middle')
-        .style('font-size', isCritical ? '6px' : '5px')
-        .style('font-family', 'var(--fm)')
-        .style('fill', col)
-        .style('opacity', 0.8)
-        .style('pointer-events', 'none')
-        .style('user-select', 'none')
-        .style('font-weight', '600')
-        .style('text-shadow', `0 0 10px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.7)`)
-        .style('letter-spacing', '0.08em')
-        .style('text-transform', 'uppercase')
-        .text(crisisInfo.label);
-    }
+    // ─── NO CRISIS TYPE TEXT LABEL (REMOVED) ──────────────────────
+    // The line that said "Complex Emergency" has been removed
   });
   
-  // ─── 7. DYNAMIC LEGEND ───────────────────────────────────────────
+  // ─── 6. DYNAMIC LEGEND ───────────────────────────────────────────
   updateMapLegend(hotspots);
 }
 
