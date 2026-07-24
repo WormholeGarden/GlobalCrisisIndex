@@ -18,35 +18,45 @@
 
   <style>
 
-/* ─── ZOOM-STABLE MARKERS (translate-only overlay, never scaled) ────── */
-.marker-overlay {
-  pointer-events: none;
-}
+/* ─── ZOOM-STABLE MARKERS (COUNTER-SCALED GROUP + FOREIGNOBJECT) ─── */
+/* Prevent SVG elements from scaling strokes during zoom */
 .pulse-marker circle,
 .crisis-glow circle {
   vector-effect: non-scaling-stroke;
 }
-.crisis-icon-group foreignObject,
-.crisis-label-group foreignObject {
+
+/* ForeignObject containers - keep them stable */
+.crisis-icon-group,
+.crisis-label-group {
   overflow: visible !important;
   pointer-events: none !important;
 }
-.crisis-icon-group foreignObject div,
-.crisis-label-group foreignObject div {
+
+/* Ensure foreignObject content renders cleanly */
+.crisis-icon-group div,
+.crisis-label-group div {
   font-family: 'JetBrains Mono', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
+/* ─── FLOAT ANIMATION FOR CRITICAL ICONS ──────────────────────── */
 @keyframes float-icon {
   0%, 100% { transform: translateY(-2px); }
   50% { transform: translateY(-6px); }
+}
+
+/* ─── PULSE RING ANIMATIONS ────────────────────────────────────── */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
 }
 .pulse-marker circle {
   animation-timing-function: ease-out;
 }
 
+/* ─── DYNAMIC LEGEND ───────────────────────────────────────────── */
 .map-legend-dynamic {
   animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -55,9 +65,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .map-legend-dynamic { display: none; }
-}/* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
+}* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
 #proBanner {
   display: flex !important;
   visibility: visible !important;
@@ -2177,8 +2188,6 @@ fetchBreakingNews();
 // ============================================================================
 // GLOBALS
 // ============================================================================
-let markerOverlay = null;
-let currentZoomTransform = d3.zoomIdentity;
 let tier = 'free'; const NN = { weights: { training_count: 0, last_updated: Date.now() } };
 let store={},selectedIso=null,history={},prevGCIS=null,ranked=[],svgEl,mapGroup,proj,pathGen,zoom,prefs={filters:[]};
 let apiResults={},heatStressData=[],foodSecurityAlerts=[],ipcClassifications=[],conflictEvents=[],weatherAlerts=[],diseaseOutbreaks=[];
@@ -5063,7 +5072,7 @@ function initMap(world){
     .on('click',(ev,d)=>{const iso=getIsoFromFeature(d);if(iso&&store[iso])selCountry(iso);});
   zoom=d3.zoom().scaleExtent([.7,16]).on('zoom',ev=>{
   mapGroup.attr('transform',ev.transform);
-  updateMarkerPositions(ev.transform);
+  rescaleCrisisMarkers(ev.transform.k);
 });
   svgEl.call(zoom);
   document.getElementById('zIn').onclick=()=>svgEl.transition().duration(260).call(zoom.scaleBy,1.5);
@@ -5158,33 +5167,50 @@ function paintMap(){
     if(!iso||!store[iso])return'#1a2e45';
     return sc(store[iso].score)+'bb';
   });
-}function addPulseMarkers() {
-  if (!mapGroup || !proj || !svgEl) return;
+}// ─── GLOBAL: current zoom scale tracker ──────────────────────────────
+let currentZoomK = 1;
 
-  // ─── OVERLAY GROUP: sibling of mapGroup, NEVER receives the zoom scale ───
-  if (!markerOverlay) {
-    markerOverlay = svgEl.append('g').attr('class', 'marker-overlay');
-  }
-  markerOverlay.selectAll('*').remove();
+function rescaleCrisisMarkers(k) {
+  if (!mapGroup) return;
+  currentZoomK = k;
+  const invK = 1 / k;
+  mapGroup.selectAll('.crisis-marker')
+    .attr('transform', function(d) {
+      return `translate(${d.px},${d.py}) scale(${invK})`;
+    });
+}
+
+function addPulseMarkers() {
+  if (!mapGroup || !proj) return;
+
+  // ─── CLEANUP ──────────────────────────────────────────────────────
+  mapGroup.selectAll('.pulse-marker').remove();
+  mapGroup.selectAll('.crisis-icon-group').remove();
+  mapGroup.selectAll('.crisis-glow').remove();
+  mapGroup.selectAll('.crisis-label-group').remove();
+  mapGroup.selectAll('.crisis-badge-group').remove();
+  mapGroup.selectAll('.marker-overlay').remove();
+  mapGroup.selectAll('.crisis-marker').remove();
 
   if (!ranked || !store) return;
 
+  // ─── CRISIS ICON MASTER MAP ─────────────────────────────────────
   const CRISIS_ICONS = {
-    CW: { icon: '⚔️', color: '#ff375f', priority: 10 },
-    CE: { icon: '⚔️', color: '#ff375f', priority: 10 },
-    REF: { icon: '🏕️', color: '#ff8c42', priority: 9 },
-    FN: { icon: '🌾', color: '#ffb020', priority: 10 },
-    DR: { icon: '🏜️', color: '#ff8c42', priority: 8 },
-    FL: { icon: '🌊', color: '#3ec5ff', priority: 8 },
-    EQ: { icon: '🌍', color: '#ff8c42', priority: 9 },
-    TC: { icon: '🌀', color: '#3ec5ff', priority: 9 },
-    WF: { icon: '🔥', color: '#ff375f', priority: 8 },
-    EP: { icon: '🦠', color: '#e879f9', priority: 9 },
-    HEAT: { icon: '🥵', color: '#ff8c42', priority: 7 },
-    ST: { icon: '⛈️', color: '#3ec5ff', priority: 8 },
-    LS: { icon: '⛰️', color: '#ffb020', priority: 7 },
-    TSU: { icon: '🌊', color: '#ff375f', priority: 9 },
-    VLC: { icon: '🌋', color: '#ff8c42', priority: 8 }
+    CW: { icon: '⚔️', label: 'Civil War', color: '#ff375f', priority: 10 },
+    CE: { icon: '⚔️', label: 'Complex Emergency', color: '#ff375f', priority: 10 },
+    REF: { icon: '🏕️', label: 'Refugee Crisis', color: '#ff8c42', priority: 9 },
+    FN: { icon: '🌾', label: 'Famine', color: '#ffb020', priority: 10 },
+    DR: { icon: '🏜️', label: 'Drought', color: '#ff8c42', priority: 8 },
+    FL: { icon: '🌊', label: 'Flooding', color: '#3ec5ff', priority: 8 },
+    EQ: { icon: '🌍', label: 'Earthquake', color: '#ff8c42', priority: 9 },
+    TC: { icon: '🌀', label: 'Cyclone', color: '#3ec5ff', priority: 9 },
+    WF: { icon: '🔥', label: 'Wildfire', color: '#ff375f', priority: 8 },
+    EP: { icon: '🦠', label: 'Epidemic', color: '#e879f9', priority: 9 },
+    HEAT: { icon: '🥵', label: 'Heatwave', color: '#ff8c42', priority: 7 },
+    ST: { icon: '⛈️', label: 'Severe Storm', color: '#3ec5ff', priority: 8 },
+    LS: { icon: '⛰️', label: 'Landslide', color: '#ffb020', priority: 7 },
+    TSU: { icon: '🌊', label: 'Tsunami', color: '#ff375f', priority: 9 },
+    VLC: { icon: '🌋', label: 'Volcano', color: '#ff8c42', priority: 8 }
   };
 
   const DIM_MAP = {
@@ -5195,6 +5221,7 @@ function paintMap(){
     LS: 'displacement', TSU: 'displacement', VLC: 'displacement'
   };
 
+  // ─── GET HOTSPOTS ─────────────────────────────────────────────────
   const hotspots = ranked
     .filter(iso => store[iso]?.score >= 55)
     .slice(0, 25)
@@ -5202,16 +5229,22 @@ function paintMap(){
 
   hotspots.sort((a, b) => b.score - a.score);
 
+  // ─── CURRENT ZOOM LEVEL (so markers spawn at correct size immediately) ───
+  const k0 = (svgEl && svgEl.node()) ? d3.zoomTransform(svgEl.node()).k : 1;
+  const invK0 = 1 / k0;
+  currentZoomK = k0;
+
   hotspots.forEach((c, idx) => {
     const coords = CENTROIDS[c.iso];
     if (!coords) return;
-    const [baseX, baseY] = proj(coords);
-    if (!isFinite(baseX) || !isFinite(baseY)) return;
+    const [px, py] = proj(coords);
+    if (!isFinite(px) || !isFinite(py)) return;
 
     const col = sc(c.score);
     const isCritical = c.score >= 80;
     const isHigh = c.score >= 65;
 
+    // ─── DETERMINE PRIMARY CRISIS TYPE ────────────────────────────
     let primaryType = c.types[0];
     let bestScore = -1;
     c.types.forEach(t => {
@@ -5219,30 +5252,41 @@ function paintMap(){
       const dimVal = c.dims?.[dimKey] || 0;
       const priority = CRISIS_ICONS[t]?.priority || 5;
       const weighted = dimVal * 0.7 + priority * 3;
-      if (weighted > bestScore) { bestScore = weighted; primaryType = t; }
+      if (weighted > bestScore) {
+        bestScore = weighted;
+        primaryType = t;
+      }
     });
 
-    const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', color: '#ffb020' };
+    const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', label: 'Crisis', color: '#ffb020' };
+
+    // ─── FIXED SIZES (now these are true, constant SCREEN sizes) ───
     const iconSize = isCritical ? 16 : isHigh ? 13 : 10;
     const dotR = isCritical ? 5 : isHigh ? 3.5 : 2.5;
+
+    // ─── ONE GROUP PER MARKER, POSITIONED + COUNTER-SCALED ─────────
+    // Everything below is drawn relative to (0,0) — the group's own
+    // translate(px,py) handles position, and scale(invK) cancels out
+    // the parent mapGroup's zoom scale so this marker never grows or
+    // shrinks (and never glitches) no matter how far you zoom.
+    const markerG = mapGroup.append('g')
+      .attr('class', 'crisis-marker pulse-marker')
+      .datum({ px, py })
+      .attr('transform', `translate(${px},${py}) scale(${invK0})`);
+
+    // ─── 1. PULSE RINGS ────────────────────────────────────────────
     const dur = 2.4 + (idx % 6) * 0.3;
-
-    // ─── Each marker is one group, translated as a whole — never scaled ───
-    const item = markerOverlay.append('g')
-      .attr('class', 'marker-item')
-      .attr('data-base-x', baseX)
-      .attr('data-base-y', baseY)
-      .attr('transform', `translate(${baseX},${baseY})`);
-
-    // Pulse rings (relative to 0,0)
-    const pulseGroup = item.append('g').attr('class', 'pulse-marker');
     for (let ring = 0; ring < (isCritical ? 3 : 2); ring++) {
       const r = 6 + ring * 4 + (isCritical ? 2 : 0);
-      pulseGroup.append('circle')
-        .attr('cx', 0).attr('cy', 0).attr('r', r)
-        .attr('fill', 'none').attr('stroke', col)
+      markerG.append('circle')
+        .attr('cx', 0)
+        .attr('cy', 0)
+        .attr('r', r)
+        .attr('fill', 'none')
+        .attr('stroke', col)
         .attr('stroke-width', isCritical ? 1.5 : 1)
         .attr('opacity', 0)
+        .style('vector-effect', 'non-scaling-stroke')
         .append('animate')
         .attr('attributeName', 'opacity')
         .attr('values', '0;0.6;0')
@@ -5251,21 +5295,31 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
 
-    pulseGroup.append('circle')
-      .attr('cx', 0).attr('cy', 0).attr('r', dotR)
-      .attr('fill', col).attr('opacity', 0.95)
+    // Core dot
+    markerG.append('circle')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', dotR)
+      .attr('fill', col)
+      .attr('opacity', 0.95)
+      .style('vector-effect', 'non-scaling-stroke')
       .append('animate')
       .attr('attributeName', 'opacity')
       .attr('values', '0.7;1;0.7')
       .attr('dur', '1.8s')
       .attr('repeatCount', 'indefinite');
 
+    // ─── 2. GLOW FOR CRITICAL ──────────────────────────────────────
     if (isCritical) {
-      const glowGroup = item.append('g').attr('class', 'crisis-glow');
-      glowGroup.append('circle')
-        .attr('cx', 0).attr('cy', 0).attr('r', 10)
-        .attr('fill', 'none').attr('stroke', col)
-        .attr('stroke-width', 2).attr('opacity', 0.15)
+      markerG.append('circle')
+        .attr('cx', 0)
+        .attr('cy', 0)
+        .attr('r', 10)
+        .attr('fill', 'none')
+        .attr('stroke', col)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.15)
+        .style('vector-effect', 'non-scaling-stroke')
         .append('animate')
         .attr('attributeName', 'r')
         .attr('values', '8;16;8')
@@ -5273,44 +5327,83 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
 
-    // Icon
-    const iconGroup = item.append('g').attr('class', 'crisis-icon-group').style('pointer-events', 'none');
-    iconGroup.append('foreignObject')
-      .attr('x', -12).attr('y', -12).attr('width', 24).attr('height', 24)
-      .style('overflow', 'visible').style('pointer-events', 'none')
-      .html(`<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:${iconSize}px;text-shadow:0 0 8px rgba(0,0,0,0.9),0 0 16px rgba(0,0,0,0.7);line-height:1;transform:translateY(-2px);${isCritical ? 'animation:float-icon 2.5s ease-in-out infinite;' : ''}user-select:none;pointer-events:none;">${crisisInfo.icon}</div>`);
+    // ─── 3. CRISIS ICON (foreignObject, relative to group origin) ──
+    const fo = markerG.append('foreignObject')
+      .attr('class', 'crisis-icon-group')
+      .attr('x', -12)
+      .attr('y', -12)
+      .attr('width', 24)
+      .attr('height', 24)
+      .style('overflow', 'visible')
+      .style('pointer-events', 'none');
 
-    // ISO label
-    const labelGroup = item.append('g').attr('class', 'crisis-label-group').style('pointer-events', 'none');
-    labelGroup.append('foreignObject')
-      .attr('x', -20).attr('y', 10).attr('width', 40).attr('height', 14)
-      .style('overflow', 'visible').style('pointer-events', 'none')
-      .html(`<div style="display:flex;align-items:center;justify-content:center;width:40px;height:14px;font-family:'JetBrains Mono',monospace;font-size:${isCritical ? '8px' : '7px'};font-weight:${isCritical ? '800' : '600'};color:${isCritical ? '#ffffff' : 'rgba(255,255,255,0.8)'};text-shadow:0 0 12px rgba(0,0,0,0.95),0 0 4px rgba(0,0,0,0.8);letter-spacing:0.06em;line-height:1.2;user-select:none;pointer-events:none;">${c.iso}</div>`);
+    fo.html(`
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        font-size: ${iconSize}px;
+        text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7);
+        line-height: 1;
+        transform: translateY(-2px);
+        ${isCritical ? 'animation: float-icon 2.5s ease-in-out infinite;' : ''}
+        user-select: none;
+        pointer-events: none;
+      ">
+        ${crisisInfo.icon}
+      </div>
+    `);
+
+    // ─── 4. ISO LABEL ────────────────────────────────────────────
+    const labelYOffset = 16;
+    const labelFo = markerG.append('foreignObject')
+      .attr('class', 'crisis-label-group')
+      .attr('x', -20)
+      .attr('y', labelYOffset - 6)
+      .attr('width', 40)
+      .attr('height', 14)
+      .style('overflow', 'visible')
+      .style('pointer-events', 'none');
+
+    labelFo.html(`
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: ${isCritical ? '8px' : '7px'};
+        font-weight: ${isCritical ? '800' : '600'};
+        color: ${isCritical ? '#ffffff' : 'rgba(255,255,255,0.8)'};
+        text-shadow: 0 0 12px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.8);
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        user-select: none;
+        pointer-events: none;
+      ">
+        ${c.iso}
+      </div>
+    `);
   });
 
+  // ─── ADD FLOAT ANIMATION KEYFRAMES ──────────────────────────────
   if (!document.getElementById('floatIconStyle')) {
     const style = document.createElement('style');
     style.id = 'floatIconStyle';
-    style.textContent = `@keyframes float-icon {0%,100%{transform:translateY(-2px);}50%{transform:translateY(-6px);}}`;
+    style.textContent = `
+      @keyframes float-icon {
+        0%, 100% { transform: translateY(-2px); }
+        50% { transform: translateY(-6px); }
+      }
+    `;
     document.head.appendChild(style);
   }
 
-  // Apply whatever zoom/pan is currently active so markers align immediately
-  updateMarkerPositions(currentZoomTransform);
-
+  // ─── DYNAMIC LEGEND ──────────────────────────────────────────────
   updateMapLegend(hotspots);
-}
-
-// ─── Called on every zoom/pan tick — repositions markers WITHOUT scaling them ───
-function updateMarkerPositions(transform) {
-  currentZoomTransform = transform || d3.zoomIdentity;
-  if (!markerOverlay) return;
-  markerOverlay.selectAll('.marker-item').attr('transform', function () {
-    const baseX = +this.getAttribute('data-base-x');
-    const baseY = +this.getAttribute('data-base-y');
-    const [x, y] = currentZoomTransform.apply([baseX, baseY]);
-    return `translate(${x},${y})`;
-  });
 }function zoomToCountry(iso){
   if(!svgEl||!proj||!zoom)return;
   const stage=document.getElementById('mapStage');if(!stage)return;
