@@ -21,18 +21,24 @@
 /* ─── ZOOM-SAFE MARKERS ─────────────────────────────────────────── */
 .marker-container {
   pointer-events: none;
+}
+
+/* CRITICAL: Prevents text from scaling with zoom */
+.crisis-icon-group text,
+.crisis-label-group text,
+.crisis-badge-group text,
+.crisis-glow circle,
+.pulse-marker circle {
   vector-effect: non-scaling-stroke;
 }
 
-.marker-container text {
-  vector-effect: non-scaling-stroke;
+/* CRITICAL: Keeps text size fixed during zoom */
+.crisis-icon-group text {
+  font-size-adjust: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-.marker-container circle {
-  vector-effect: non-scaling-stroke;
-}
-
-/* ─── CRISIS ICON ANIMATIONS ────────────────────────────────────── */
+/* ─── ANIMATIONS ────────────────────────────────────────────────── */
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 0.8; }
   100% { transform: scale(2); opacity: 0; }
@@ -42,7 +48,6 @@
   animation-timing-function: ease-out;
 }
 
-/* ─── BADGE PULSE ──────────────────────────────────────────────── */
 @keyframes badge-pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.6; }
@@ -52,7 +57,6 @@
   animation: badge-pulse 2s ease-in-out infinite;
 }
 
-/* ─── DYNAMIC LEGEND ───────────────────────────────────────────── */
 .map-legend-dynamic {
   animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -62,7 +66,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .map-legend-dynamic { display: none; }
 }/* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
@@ -5168,10 +5171,8 @@ function paintMap(){
   mapGroup.selectAll('.pulse-marker').remove();
   mapGroup.selectAll('.crisis-icon-group').remove();
   mapGroup.selectAll('.crisis-glow').remove();
-  mapGroup.selectAll('.crisis-connector').remove();
   mapGroup.selectAll('.crisis-label-group').remove();
   mapGroup.selectAll('.crisis-badge-group').remove();
-  mapGroup.selectAll('.crisis-type-label').remove();
   
   if (!ranked || !store) return;
   
@@ -5202,7 +5203,7 @@ function paintMap(){
     LS: 'displacement', TSU: 'displacement', VLC: 'displacement'
   };
   
-  // ─── GET HOTSPOTS (TOP 25 BY SCORE) ─────────────────────────────
+  // ─── GET HOTSPOTS ─────────────────────────────────────────────────
   const hotspots = ranked
     .filter(iso => store[iso]?.score >= 55)
     .slice(0, 25)
@@ -5210,10 +5211,9 @@ function paintMap(){
   
   hotspots.sort((a, b) => b.score - a.score);
   
-  // ─── CREATE A CONTAINER FOR ALL MARKERS ─────────────────────────
-  const markerContainer = mapGroup.append('g')
-    .attr('class', 'marker-container')
-    .style('pointer-events', 'none');
+  // ─── IMPORTANT: Create a SEPARATE container that won't be affected by zoom ───
+  // We use the existing mapGroup which is already transformed by zoom
+  // All elements are added directly to mapGroup so they zoom properly with the map
   
   hotspots.forEach((c, idx) => {
     const coords = CENTROIDS[c.iso];
@@ -5241,13 +5241,12 @@ function paintMap(){
     
     const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', label: 'Crisis', color: '#ffb020' };
     
-    // ─── SIZES (adjusted for centroid placement) ──────────────────
-    // Icons are smaller and centered directly on the pulse
+    // ─── SIZES ──────────────────────────────────────────────────────
     const iconSize = isCritical ? 14 : isHigh ? 11 : 9;
     const dotR = isCritical ? 4 : isHigh ? 3 : 2.5;
     
-    // ─── 1. PULSE RINGS (centered at centroid) ────────────────────
-    const pulseGroup = markerContainer.append('g').attr('class', 'pulse-marker');
+    // ─── 1. PULSE RINGS ────────────────────────────────────────────
+    const pulseGroup = mapGroup.append('g').attr('class', 'pulse-marker');
     const dur = 2.4 + (idx % 6) * 0.3;
     
     for (let ring = 0; ring < (isCritical ? 3 : 2); ring++) {
@@ -5268,7 +5267,7 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // Core dot (at centroid)
+    // Core dot
     pulseGroup.append('circle')
       .attr('cx', px)
       .attr('cy', py)
@@ -5281,9 +5280,9 @@ function paintMap(){
       .attr('dur', '1.8s')
       .attr('repeatCount', 'indefinite');
     
-    // ─── 2. GLOW FOR CRITICAL EVENTS (at centroid) ────────────────
+    // ─── 2. GLOW FOR CRITICAL ──────────────────────────────────────
     if (isCritical) {
-      const glowGroup = markerContainer.append('g').attr('class', 'crisis-glow');
+      const glowGroup = mapGroup.append('g').attr('class', 'crisis-glow');
       
       glowGroup.append('circle')
         .attr('cx', px)
@@ -5300,13 +5299,13 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // ─── 3. CRISIS ICON (EXACTLY AT CENTROID) ─────────────────────
-    // Icon is placed directly on top of the pulse dot
-    const iconGroup = markerContainer.append('g')
+    // ─── 3. CRISIS ICON AT CENTROID ──────────────────────────────
+    // CRITICAL FIX: Each icon gets its own group with fixed positioning
+    const iconGroup = mapGroup.append('g')
       .attr('class', 'crisis-icon-group')
       .style('pointer-events', 'none');
     
-    // Shadow (slightly offset)
+    // Shadow
     iconGroup.append('text')
       .attr('x', px + 0.5)
       .attr('y', py + 0.5)
@@ -5318,7 +5317,7 @@ function paintMap(){
       .style('user-select', 'none')
       .text(crisisInfo.icon);
     
-    // Main icon (centered exactly at centroid)
+    // Main icon - exactly at centroid
     const mainIcon = iconGroup.append('text')
       .attr('x', px)
       .attr('y', py)
@@ -5329,10 +5328,9 @@ function paintMap(){
       .style('pointer-events', 'none')
       .style('user-select', 'none')
       .style('cursor', 'default')
-      .style('z-index', '10')
       .text(crisisInfo.icon);
     
-    // Bounce animation for critical (centered, no displacement)
+    // Bounce animation (safe with zoom)
     if (isCritical) {
       mainIcon.append('animateTransform')
         .attr('attributeName', 'transform')
@@ -5344,14 +5342,14 @@ function paintMap(){
         .attr('keySplines', '0.4 0 0.2 1; 0.4 0 0.2 1');
     }
     
-    // ─── 4. ISO LABEL (positioned below centroid) ──────────────────
-    const labelGroup = markerContainer.append('g')
+    // ─── 4. ISO LABEL ──────────────────────────────────────────────
+    const labelGroup = mapGroup.append('g')
       .attr('class', 'crisis-label-group')
       .style('pointer-events', 'none');
     
     const labelYOffset = iconSize/2 + 6;
     
-    // Label shadow
+    // Shadow
     labelGroup.append('text')
       .attr('x', px + 0.5)
       .attr('y', py + labelYOffset + 0.5)
@@ -5379,9 +5377,9 @@ function paintMap(){
       .style('letter-spacing', '0.06em')
       .text(c.iso);
     
-    // ─── 5. SCORE BADGE (positioned below label) ────────────────────
+    // ─── 5. SCORE BADGE ─────────────────────────────────────────────
     if (isCritical) {
-      const badgeGroup = markerContainer.append('g')
+      const badgeGroup = mapGroup.append('g')
         .attr('class', 'crisis-badge-group')
         .style('pointer-events', 'none');
       
@@ -5417,7 +5415,6 @@ function paintMap(){
 
 // ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
 function updateMapLegend(hotspots) {
-  // Remove old legend
   document.querySelector('.map-legend-dynamic')?.remove();
   
   const legend = document.createElement('div');
