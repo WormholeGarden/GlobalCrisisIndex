@@ -5219,13 +5219,14 @@ function paintMap(){
   mapGroup.selectAll('.crisis-label-group').remove();
   mapGroup.selectAll('.crisis-badge-group').remove();
   mapGroup.selectAll('.marker-overlay').remove();
+  mapGroup.selectAll('.map-markers-group').remove();
   
   if (!ranked || !store) return;
   
   // ─── CRISIS ICON MASTER MAP ─────────────────────────────────────
   const CRISIS_ICONS = {
     CW: { icon: '⚔️', label: 'Civil War', color: '#ff375f', priority: 10 },
-    CE: { icon: '🚨', label: 'Complex Emergency', color: '#ff375f', priority: 10 },
+    CE: { icon: '⚔️', label: 'Complex Emergency', color: '#ff375f', priority: 10 },
     REF: { icon: '🏕️', label: 'Refugee Crisis', color: '#ff8c42', priority: 9 },
     FN: { icon: '🌾', label: 'Famine', color: '#ffb020', priority: 10 },
     DR: { icon: '🏜️', label: 'Drought', color: '#ff8c42', priority: 8 },
@@ -5257,7 +5258,7 @@ function paintMap(){
   
   hotspots.sort((a, b) => b.score - a.score);
   
-  // ─── CREATE A GROUP THAT WILL BE SHOWN/HIDDEN BASED ON ZOOM ────
+  // ─── CREATE A GROUP FOR ALL MARKERS ────────────────────────────
   const markerGroup = mapGroup.append('g')
     .attr('class', 'map-markers-group')
     .style('transition', 'opacity 0.3s ease');
@@ -5292,7 +5293,7 @@ function paintMap(){
     const iconSize = isCritical ? 16 : isHigh ? 13 : 10;
     const dotR = isCritical ? 5 : isHigh ? 3.5 : 2.5;
     
-    // ─── 1. PULSE RINGS ────────────────────────────────────────────
+    // ─── 1. PULSE RINGS (stationary) ──────────────────────────────
     const pulseGroup = markerGroup.append('g').attr('class', 'pulse-marker');
     const dur = 2.4 + (idx % 6) * 0.3;
     
@@ -5315,7 +5316,7 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // Core dot
+    // Core dot (stationary)
     pulseGroup.append('circle')
       .attr('cx', px)
       .attr('cy', py)
@@ -5329,7 +5330,7 @@ function paintMap(){
       .attr('dur', '1.8s')
       .attr('repeatCount', 'indefinite');
     
-    // ─── 2. GLOW FOR CRITICAL ──────────────────────────────────────
+    // ─── 2. GLOW FOR CRITICAL (stationary) ────────────────────────
     if (isCritical) {
       const glowGroup = markerGroup.append('g').attr('class', 'crisis-glow');
       
@@ -5349,7 +5350,7 @@ function paintMap(){
         .attr('repeatCount', 'indefinite');
     }
     
-    // ─── 3. CRISIS ICON ────────────────────────────────────────────
+    // ─── 3. CRISIS ICON (STATIONARY - NO BOUNCE) ──────────────────
     const iconGroup = markerGroup.append('g')
       .attr('class', 'crisis-icon-group')
       .style('pointer-events', 'none');
@@ -5362,6 +5363,7 @@ function paintMap(){
       .style('overflow', 'visible')
       .style('pointer-events', 'none');
     
+    // ⭐ CRITICAL: No animation, just static positioning
     fo.html(`
       <div style="
         display: flex;
@@ -5372,8 +5374,6 @@ function paintMap(){
         font-size: ${iconSize}px;
         text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7);
         line-height: 1;
-        transform: translateY(-2px);
-        ${isCritical ? 'animation: float-icon 2.5s ease-in-out infinite;' : ''}
         user-select: none;
         pointer-events: none;
       ">
@@ -5381,7 +5381,7 @@ function paintMap(){
       </div>
     `);
     
-    // ─── 4. ISO LABEL ──────────────────────────────────────────────
+    // ─── 4. ISO LABEL (STATIONARY) ─────────────────────────────────
     const labelGroup = markerGroup.append('g')
       .attr('class', 'crisis-label-group')
       .style('pointer-events', 'none');
@@ -5418,19 +5418,6 @@ function paintMap(){
     `);
   });
   
-  // ─── ADD FLOAT ANIMATION KEYFRAMES ──────────────────────────────
-  if (!document.getElementById('floatIconStyle')) {
-    const style = document.createElement('style');
-    style.id = 'floatIconStyle';
-    style.textContent = `
-      @keyframes float-icon {
-        0%, 100% { transform: translateY(-2px); }
-        50% { transform: translateY(-6px); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
   // ─── SET UP ZOOM-DEPENDENT VISIBILITY ───────────────────────────
   setupZoomVisibility();
   
@@ -5438,6 +5425,100 @@ function paintMap(){
   updateMapLegend(hotspots);
 }
 
+// ─── ZOOM VISIBILITY CONTROLLER ──────────────────────────────────────
+function setupZoomVisibility() {
+  const markerGroup = mapGroup.select('.map-markers-group');
+  if (markerGroup.empty()) return;
+  
+  const svg = document.getElementById('map-svg');
+  if (!svg) return;
+  
+  // Remove any existing listener to avoid duplicates
+  if (window._zoomVisibilityListener) {
+    svg.removeEventListener('wheel', window._zoomVisibilityListener);
+  }
+  
+  // Create the listener
+  window._zoomVisibilityListener = function() {
+    const transform = d3.zoomTransform(svg);
+    const zoomLevel = transform.k;
+    
+    // Show only when zoom is near 1 (fully zoomed out)
+    const showMarkers = zoomLevel <= 1.2;
+    
+    const group = mapGroup.select('.map-markers-group');
+    if (!group.empty()) {
+      if (showMarkers) {
+        group.style('display', 'block');
+        group.style('opacity', '1');
+      } else {
+        group.style('display', 'none');
+        group.style('opacity', '0');
+      }
+    }
+  };
+  
+  // Attach to wheel events (zoom)
+  svg.addEventListener('wheel', window._zoomVisibilityListener);
+  
+  // Also attach to zoom buttons
+  document.getElementById('zIn')?.addEventListener('click', () => {
+    setTimeout(window._zoomVisibilityListener, 100);
+  });
+  document.getElementById('zOut')?.addEventListener('click', () => {
+    setTimeout(window._zoomVisibilityListener, 100);
+  });
+  document.getElementById('zReset')?.addEventListener('click', () => {
+    setTimeout(window._zoomVisibilityListener, 200);
+  });
+  
+  // Run once to set initial state
+  setTimeout(window._zoomVisibilityListener, 100);
+}
+
+// ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
+function updateMapLegend(hotspots) {
+  document.querySelector('.map-legend-dynamic')?.remove();
+  
+  const legend = document.createElement('div');
+  legend.className = 'map-legend-dynamic';
+  legend.style.cssText = `
+    position: absolute;
+    bottom: 60px;
+    right: 10px;
+    background: rgba(3,11,24,0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0,200,255,0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    z-index: 25;
+    font-family: var(--fm);
+    font-size: 7px;
+    color: var(--ts);
+    pointer-events: none;
+  `;
+  
+  const severityCounts = {
+    critical: hotspots.filter(c => c.score >= 80).length,
+    high: hotspots.filter(c => c.score >= 65 && c.score < 80).length,
+    moderate: hotspots.filter(c => c.score >= 55 && c.score < 65).length
+  };
+  
+  legend.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--tp);font-size:8px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:4px;margin-bottom:2px;">
+        <span>📍 HOTSPOTS</span>
+        <span style="font-size:9px;color:var(--cyan);">${hotspots.length}</span>
+      </div>
+      ${severityCounts.critical > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff375f;box-shadow:0 0 8px #ff375f;"></span> CRITICAL ${severityCounts.critical}</div>` : ''}
+      ${severityCounts.high > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff8c42;"></span> HIGH ${severityCounts.high}</div>` : ''}
+      ${severityCounts.moderate > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ffb020;"></span> MODERATE ${severityCounts.moderate}</div>` : ''}
+    </div>
+  `;
+  
+  const stage = document.getElementById('mapStage');
+  if (stage) stage.appendChild(legend);
+}
 // ─── ZOOM VISIBILITY CONTROLLER ──────────────────────────────────────
 function setupZoomVisibility() {
   // Get the current zoom transform
