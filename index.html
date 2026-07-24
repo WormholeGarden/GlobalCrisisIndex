@@ -5422,7 +5422,6 @@ function paintMap(){
   setupZoomVisibility();
   
   // ─── DYNAMIC LEGEND ──────────────────────────────────────────────
-  updateMapLegend(hotspots);
 }
 
 // ─── ZOOM VISIBILITY CONTROLLER ──────────────────────────────────────
@@ -5478,48 +5477,6 @@ function setupZoomVisibility() {
 
 // ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
 // ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
-function updateMapLegend(hotspots) {
-  document.querySelector('.map-legend-dynamic')?.remove();
-  
-  const legend = document.createElement('div');
-  legend.className = 'map-legend-dynamic';
-  legend.style.cssText = `
-    position: absolute;
-    bottom: 60px;
-    right: 120px;
-    background: rgba(3,11,24,0.92);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(0,200,255,0.12);
-    border-radius: 8px;
-    padding: 8px 12px;
-    z-index: 25;
-    font-family: var(--fm);
-    font-size: 7px;
-    color: var(--ts);
-    pointer-events: none;
-  `;
-  
-  const severityCounts = {
-    critical: hotspots.filter(c => c.score >= 80).length,
-    high: hotspots.filter(c => c.score >= 65 && c.score < 80).length,
-    moderate: hotspots.filter(c => c.score >= 55 && c.score < 65).length
-  };
-  
-  legend.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:2px;">
-      <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--tp);font-size:8px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:4px;margin-bottom:2px;">
-        <span>📍 HOTSPOTS</span>
-        <span style="font-size:9px;color:var(--cyan);">${hotspots.length}</span>
-      </div>
-      ${severityCounts.critical > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff375f;box-shadow:0 0 8px #ff375f;"></span> CRITICAL ${severityCounts.critical}</div>` : ''}
-      ${severityCounts.high > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff8c42;"></span> HIGH ${severityCounts.high}</div>` : ''}
-      ${severityCounts.moderate > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ffb020;"></span> MODERATE ${severityCounts.moderate}</div>` : ''}
-    </div>
-  `;
-  
-  const stage = document.getElementById('mapStage');
-  if (stage) stage.appendChild(legend);
-}
 // ─── ZOOM VISIBILITY CONTROLLER ──────────────────────────────────────
 function setupZoomVisibility() {
   // Get the current zoom transform
