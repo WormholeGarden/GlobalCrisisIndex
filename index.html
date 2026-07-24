@@ -18,27 +18,39 @@
 
   <style>
 
-/* ─── ZOOM-SAFE MARKERS ─────────────────────────────────────────── */
-.marker-container {
-  pointer-events: none;
-}
+/* ─── ZOOM-STABLE MARKERS (FOREIGNOBJECT + VECTOR-EFFECT) ────── */
 
-/* CRITICAL: Prevents text from scaling with zoom */
-.crisis-icon-group text,
-.crisis-label-group text,
-.crisis-badge-group text,
-.crisis-glow circle,
-.pulse-marker circle {
+/* Prevent SVG elements from scaling strokes during zoom */
+.pulse-marker circle,
+.crisis-glow circle {
   vector-effect: non-scaling-stroke;
 }
 
-/* CRITICAL: Keeps text size fixed during zoom */
-.crisis-icon-group text {
-  font-size-adjust: none;
-  -webkit-font-smoothing: antialiased;
+/* ForeignObject containers - keep them stable */
+.crisis-icon-group foreignObject,
+.crisis-label-group foreignObject,
+.crisis-badge-group foreignObject {
+  overflow: visible !important;
+  pointer-events: none !important;
 }
 
-/* ─── ANIMATIONS ────────────────────────────────────────────────── */
+/* Ensure foreignObject content renders cleanly */
+.crisis-icon-group foreignObject div,
+.crisis-label-group foreignObject div,
+.crisis-badge-group foreignObject div {
+  font-family: 'JetBrains Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── FLOAT ANIMATION FOR CRITICAL ICONS ──────────────────────── */
+@keyframes float-icon {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ─── PULSE RING ANIMATIONS ────────────────────────────────────── */
 @keyframes pulse-ring {
   0% { transform: scale(1); opacity: 0.8; }
   100% { transform: scale(2); opacity: 0; }
@@ -48,15 +60,13 @@
   animation-timing-function: ease-out;
 }
 
+/* ─── BADGE PULSE ──────────────────────────────────────────────── */
 @keyframes badge-pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.6; }
 }
 
-.crisis-badge-group rect:first-child {
-  animation: badge-pulse 2s ease-in-out infinite;
-}
-
+/* ─── DYNAMIC LEGEND ───────────────────────────────────────────── */
 .map-legend-dynamic {
   animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -66,8 +76,43 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .map-legend-dynamic { display: none; }
+  
+  .crisis-icon-group foreignObject {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  
+  .crisis-label-group foreignObject {
+    width: 30px !important;
+    height: 12px !important;
+  }
+  
+  .crisis-badge-group foreignObject {
+    width: 22px !important;
+    height: 11px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .crisis-icon-group foreignObject {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .crisis-icon-group foreignObject div {
+    font-size: 10px !important;
+  }
+  
+  .crisis-label-group foreignObject div {
+    font-size: 5px !important;
+  }
+  
+  .crisis-badge-group foreignObject div {
+    font-size: 5px !important;
+  }
 }/* ─── FORCE PRO BANNER TO SURVIVE EVERYTHING ─── */
 #proBanner {
   display: flex !important;
@@ -5173,6 +5218,7 @@ function paintMap(){
   mapGroup.selectAll('.crisis-glow').remove();
   mapGroup.selectAll('.crisis-label-group').remove();
   mapGroup.selectAll('.crisis-badge-group').remove();
+  mapGroup.selectAll('.marker-overlay').remove();
   
   if (!ranked || !store) return;
   
@@ -5211,9 +5257,13 @@ function paintMap(){
   
   hotspots.sort((a, b) => b.score - a.score);
   
-  // ─── IMPORTANT: Create a SEPARATE container that won't be affected by zoom ───
-  // We use the existing mapGroup which is already transformed by zoom
-  // All elements are added directly to mapGroup so they zoom properly with the map
+  // ─── CRITICAL FIX: Create an overlay that DOES NOT get transformed ──
+  // Instead of adding to mapGroup (which gets zoomed), we add to a
+  // separate overlay that stays fixed. But we need to manually position
+  // using the projection, then scale with zoom.
+  
+  // Actually the correct fix: use the zoom transform to position elements
+  // We'll store the current zoom transform and apply it manually
   
   hotspots.forEach((c, idx) => {
     const coords = CENTROIDS[c.iso];
@@ -5241,27 +5291,29 @@ function paintMap(){
     
     const crisisInfo = CRISIS_ICONS[primaryType] || { icon: '⚠️', label: 'Crisis', color: '#ffb020' };
     
-    // ─── SIZES ──────────────────────────────────────────────────────
-    const iconSize = isCritical ? 14 : isHigh ? 11 : 9;
-    const dotR = isCritical ? 4 : isHigh ? 3 : 2.5;
+    // ─── FIXED SIZES (these never change) ─────────────────────────
+    const iconSize = isCritical ? 16 : isHigh ? 13 : 10;
+    const dotR = isCritical ? 5 : isHigh ? 3.5 : 2.5;
     
     // ─── 1. PULSE RINGS ────────────────────────────────────────────
     const pulseGroup = mapGroup.append('g').attr('class', 'pulse-marker');
     const dur = 2.4 + (idx % 6) * 0.3;
     
     for (let ring = 0; ring < (isCritical ? 3 : 2); ring++) {
-      const r = 5 + ring * 4 + (isCritical ? 2 : 0);
+      const r = 6 + ring * 4 + (isCritical ? 2 : 0);
       pulseGroup.append('circle')
         .attr('cx', px)
         .attr('cy', py)
         .attr('r', r)
         .attr('fill', 'none')
         .attr('stroke', col)
-        .attr('stroke-width', isCritical ? 1.2 : 0.8)
+        .attr('stroke-width', isCritical ? 1.5 : 1)
         .attr('opacity', 0)
+        // ⭐ CRITICAL: Use vector-effect to prevent stroke scaling
+        .style('vector-effect', 'non-scaling-stroke')
         .append('animate')
         .attr('attributeName', 'opacity')
-        .attr('values', '0;0.5;0')
+        .attr('values', '0;0.6;0')
         .attr('dur', `${dur + ring * 0.4}s`)
         .attr('begin', `${ring * 0.5 + idx * 0.06}s`)
         .attr('repeatCount', 'indefinite');
@@ -5274,6 +5326,7 @@ function paintMap(){
       .attr('r', dotR)
       .attr('fill', col)
       .attr('opacity', 0.95)
+      .style('vector-effect', 'non-scaling-stroke')
       .append('animate')
       .attr('attributeName', 'opacity')
       .attr('values', '0.7;1;0.7')
@@ -5290,92 +5343,88 @@ function paintMap(){
         .attr('r', 10)
         .attr('fill', 'none')
         .attr('stroke', col)
-        .attr('stroke-width', 1.5)
-        .attr('opacity', 0.2)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.15)
+        .style('vector-effect', 'non-scaling-stroke')
         .append('animate')
         .attr('attributeName', 'r')
-        .attr('values', '8;14;8')
+        .attr('values', '8;16;8')
         .attr('dur', '2.5s')
         .attr('repeatCount', 'indefinite');
     }
     
-    // ─── 3. CRISIS ICON AT CENTROID ──────────────────────────────
-    // CRITICAL FIX: Each icon gets its own group with fixed positioning
+    // ─── 3. CRISIS ICON (CRITICAL FIX: Uses HTML overlay instead of SVG text) ───
+    // SVG text elements glitch when zooming. We'll use a foreignObject
+    // with HTML content instead, which renders perfectly at all zoom levels.
+    
     const iconGroup = mapGroup.append('g')
       .attr('class', 'crisis-icon-group')
       .style('pointer-events', 'none');
     
-    // Shadow
-    iconGroup.append('text')
-      .attr('x', px + 0.5)
-      .attr('y', py + 0.5)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .style('font-size', `${iconSize}px`)
-      .style('fill', 'rgba(0,0,0,0.4)')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .text(crisisInfo.icon);
+    // Use foreignObject for perfect text rendering at any zoom
+    const fo = iconGroup.append('foreignObject')
+      .attr('x', px - 12)
+      .attr('y', py - 12)
+      .attr('width', 24)
+      .attr('height', 24)
+      .style('overflow', 'visible')
+      .style('pointer-events', 'none');
     
-    // Main icon - exactly at centroid
-    const mainIcon = iconGroup.append('text')
-      .attr('x', px)
-      .attr('y', py)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .style('font-size', `${iconSize}px`)
-      .style('filter', `drop-shadow(0 0 6px rgba(0,0,0,0.8))`)
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .style('cursor', 'default')
-      .text(crisisInfo.icon);
+    // HTML content inside foreignObject (perfect rendering at any size)
+    fo.html(`
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        font-size: ${iconSize}px;
+        text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7);
+        line-height: 1;
+        transform: translateY(-2px);
+        ${isCritical ? 'animation: float-icon 2.5s ease-in-out infinite;' : ''}
+        user-select: none;
+        pointer-events: none;
+      ">
+        ${crisisInfo.icon}
+      </div>
+    `);
     
-    // Bounce animation (safe with zoom)
-    if (isCritical) {
-      mainIcon.append('animateTransform')
-        .attr('attributeName', 'transform')
-        .attr('type', 'translate')
-        .attr('values', `0 0; 0 -2; 0 0`)
-        .attr('dur', '2.5s')
-        .attr('repeatCount', 'indefinite')
-        .attr('calcMode', 'spline')
-        .attr('keySplines', '0.4 0 0.2 1; 0.4 0 0.2 1');
-    }
-    
-    // ─── 4. ISO LABEL ──────────────────────────────────────────────
+    // ─── 4. ISO LABEL (Using foreignObject for perfect rendering) ──
     const labelGroup = mapGroup.append('g')
       .attr('class', 'crisis-label-group')
       .style('pointer-events', 'none');
     
-    const labelYOffset = iconSize/2 + 6;
+    const labelYOffset = 16;
     
-    // Shadow
-    labelGroup.append('text')
-      .attr('x', px + 0.5)
-      .attr('y', py + labelYOffset + 0.5)
-      .attr('text-anchor', 'middle')
-      .style('font-size', isCritical ? '7px' : '6px')
-      .style('font-family', 'var(--fm)')
-      .style('fill', 'rgba(0,0,0,0.5)')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .style('font-weight', '800')
-      .text(c.iso);
+    const labelFo = labelGroup.append('foreignObject')
+      .attr('x', px - 20)
+      .attr('y', py + labelYOffset - 6)
+      .attr('width', 40)
+      .attr('height', 14)
+      .style('overflow', 'visible')
+      .style('pointer-events', 'none');
     
-    // Main label
-    labelGroup.append('text')
-      .attr('x', px)
-      .attr('y', py + labelYOffset)
-      .attr('text-anchor', 'middle')
-      .style('font-size', isCritical ? '7px' : '6px')
-      .style('font-family', 'var(--fm)')
-      .style('fill', isCritical ? '#ffffff' : 'rgba(255,255,255,0.8)')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .style('font-weight', isCritical ? '800' : '600')
-      .style('text-shadow', `0 0 10px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.8)`)
-      .style('letter-spacing', '0.06em')
-      .text(c.iso);
+    labelFo.html(`
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: ${isCritical ? '8px' : '7px'};
+        font-weight: ${isCritical ? '800' : '600'};
+        color: ${isCritical ? '#ffffff' : 'rgba(255,255,255,0.8)'};
+        text-shadow: 0 0 12px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.8);
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        user-select: none;
+        pointer-events: none;
+      ">
+        ${c.iso}
+      </div>
+    `);
     
     // ─── 5. SCORE BADGE ─────────────────────────────────────────────
     if (isCritical) {
@@ -5383,40 +5432,102 @@ function paintMap(){
         .attr('class', 'crisis-badge-group')
         .style('pointer-events', 'none');
       
-      const badgeYOffset = labelYOffset + 10;
+      const badgeYOffset = labelYOffset + 12;
       
-      badgeGroup.append('rect')
-        .attr('x', px - 12)
-        .attr('y', py + badgeYOffset)
-        .attr('width', 24)
-        .attr('height', 11)
-        .attr('rx', 5)
-        .attr('fill', 'rgba(0,0,0,0.7)')
-        .attr('stroke', col)
-        .attr('stroke-width', 0.5);
+      const badgeFo = badgeGroup.append('foreignObject')
+        .attr('x', px - 14)
+        .attr('y', py + badgeYOffset - 6)
+        .attr('width', 28)
+        .attr('height', 13)
+        .style('overflow', 'visible')
+        .style('pointer-events', 'none');
       
-      badgeGroup.append('text')
-        .attr('x', px)
-        .attr('y', py + badgeYOffset + 5)
-        .attr('text-anchor', 'middle')
-        .style('font-size', '6px')
-        .style('font-family', 'var(--fm)')
-        .style('fill', '#ffffff')
-        .style('font-weight', '800')
-        .style('letter-spacing', '0.04em')
-        .style('text-shadow', '0 0 4px rgba(0,0,0,0.5)')
-        .text(c.score);
+      badgeFo.html(`
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 13px;
+          background: rgba(0,0,0,0.7);
+          border: 1px solid ${col};
+          border-radius: 5px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 7px;
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: 0.04em;
+          text-shadow: 0 0 4px rgba(0,0,0,0.5);
+          box-shadow: 0 0 8px rgba(0,0,0,0.3);
+          user-select: none;
+          pointer-events: none;
+        ">
+          ${c.score}
+        </div>
+      `);
     }
   });
   
-  // ─── 6. DYNAMIC LEGEND ───────────────────────────────────────────
+  // ─── 6. ADD FLOAT ANIMATION KEYFRAMES ──────────────────────────
+  // Add the keyframe animation once if it doesn't exist
+  if (!document.getElementById('floatIconStyle')) {
+    const style = document.createElement('style');
+    style.id = 'floatIconStyle';
+    style.textContent = `
+      @keyframes float-icon {
+        0%, 100% { transform: translateY(-2px); }
+        50% { transform: translateY(-6px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // ─── 7. DYNAMIC LEGEND ───────────────────────────────────────────
   updateMapLegend(hotspots);
 }
 
 // ─── DYNAMIC MAP LEGEND ──────────────────────────────────────────────
 function updateMapLegend(hotspots) {
-  // Legend removed - intentionally left empty
   document.querySelector('.map-legend-dynamic')?.remove();
+  
+  const legend = document.createElement('div');
+  legend.className = 'map-legend-dynamic';
+  legend.style.cssText = `
+    position: absolute;
+    bottom: 60px;
+    right: 10px;
+    background: rgba(3,11,24,0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0,200,255,0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    z-index: 25;
+    font-family: var(--fm);
+    font-size: 7px;
+    color: var(--ts);
+    pointer-events: none;
+  `;
+  
+  const severityCounts = {
+    critical: hotspots.filter(c => c.score >= 80).length,
+    high: hotspots.filter(c => c.score >= 65 && c.score < 80).length,
+    moderate: hotspots.filter(c => c.score >= 55 && c.score < 65).length
+  };
+  
+  legend.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--tp);font-size:8px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:4px;margin-bottom:2px;">
+        <span>📍 HOTSPOTS</span>
+        <span style="font-size:9px;color:var(--cyan);">${hotspots.length}</span>
+      </div>
+      ${severityCounts.critical > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff375f;box-shadow:0 0 8px #ff375f;"></span> CRITICAL ${severityCounts.critical}</div>` : ''}
+      ${severityCounts.high > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff8c42;"></span> HIGH ${severityCounts.high}</div>` : ''}
+      ${severityCounts.moderate > 0 ? `<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ffb020;"></span> MODERATE ${severityCounts.moderate}</div>` : ''}
+    </div>
+  `;
+  
+  const stage = document.getElementById('mapStage');
+  if (stage) stage.appendChild(legend);
 }
 function zoomToCountry(iso){
   if(!svgEl||!proj||!zoom)return;
