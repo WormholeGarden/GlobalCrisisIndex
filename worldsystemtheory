@@ -3,8 +3,93 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>World-Systems Theory · Comprehensive Encyclopedia</title>
-    
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SEO: PRIMARY META TAGS
+         ═══════════════════════════════════════════════════════════════ -->
+    <title>World-Systems Theory: Core, Periphery &amp; Semi-Periphery Explained | GCIS Encyclopedia</title>
+    <meta name="description" content="A complete guide to world-systems theory: how core, periphery, and semi-periphery countries structure the global capitalist economy. Origins, dependency theory, and the modern world-system explained." />
+    <meta name="keywords" content="world-systems theory, world systems analysis, core periphery semi-periphery, Immanuel Wallerstein, dependency theory, global capitalism, international division of labor, core countries, periphery countries, semi-periphery countries" />
+    <meta name="author" content="GCIS Encyclopedia" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="https://www.gcis-encyclopedia.example/world-systems-theory" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SEO: OPEN GRAPH (Facebook, LinkedIn, Discord, etc.)
+         ═══════════════════════════════════════════════════════════════ -->
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="GCIS Encyclopedia" />
+    <meta property="og:title" content="World-Systems Theory: Core, Periphery &amp; Semi-Periphery Explained" />
+    <meta property="og:description" content="How core, periphery, and semi-periphery countries structure the global capitalist economy — origins, dependency theory, and the modern world-system." />
+    <meta property="og:url" content="https://www.gcis-encyclopedia.example/world-systems-theory" />
+    <meta property="og:image" content="https://www.gcis-encyclopedia.example/assets/world-systems-theory-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Diagram illustrating core, periphery, and semi-periphery zones in world-systems theory" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="article:section" content="Sociology" />
+    <meta property="article:tag" content="World-Systems Theory" />
+    <meta property="article:tag" content="Political Economy" />
+    <meta property="article:tag" content="Dependency Theory" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SEO: TWITTER / X CARD
+         ═══════════════════════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="World-Systems Theory: Core, Periphery &amp; Semi-Periphery Explained" />
+    <meta name="twitter:description" content="A complete guide to how core, periphery, and semi-periphery countries structure the global capitalist economy." />
+    <meta name="twitter:image" content="https://www.gcis-encyclopedia.example/assets/world-systems-theory-og.png" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SEO: STRUCTURED DATA (JSON-LD) — helps Google build rich results
+         and knowledge-panel-style entries for this topic.
+         ═══════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "World-Systems Theory: Core, Periphery & Semi-Periphery Explained",
+      "description": "A complete guide to world-systems theory: how core, periphery, and semi-periphery countries structure the global capitalist economy.",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://www.gcis-encyclopedia.example/world-systems-theory"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "GCIS Encyclopedia"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "GCIS Encyclopedia",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.gcis-encyclopedia.example/assets/logo.png"
+        }
+      },
+      "about": {
+        "@type": "Thing",
+        "name": "World-systems theory",
+        "sameAs": "https://en.wikipedia.org/wiki/World-systems_theory"
+      },
+      "isAccessibleForFree": true,
+      "inLanguage": "en"
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.gcis-encyclopedia.example/" },
+        { "@type": "ListItem", "position": 2, "name": "Sociology", "item": "https://www.gcis-encyclopedia.example/sociology" },
+        { "@type": "ListItem", "position": 3, "name": "World-Systems Theory", "item": "https://www.gcis-encyclopedia.example/world-systems-theory" }
+      ]
+    }
+    </script>
+
     <!-- Google Fonts (matching your existing page) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -331,6 +416,33 @@
             opacity: 0.7;
         }
 
+        /* ─── VISUALLY-HIDDEN (SEO/A11y helper text, e.g. skip link) ──── */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .skip-link:focus {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            width: auto;
+            height: auto;
+            padding: 0.6rem 1rem;
+            background: var(--void);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            border-radius: 6px;
+            z-index: 999;
+            clip: auto;
+        }
+
         /* ─── LOADING ────────────────────────────────────────────────────── */
         .loader-container {
             display: flex;
@@ -391,31 +503,34 @@
 </head>
 <body>
 
+    <!-- SEO/A11y: skip link so crawlers & keyboard users reach content fast -->
+    <a href="#main-content" class="skip-link visually-hidden">Skip to main content</a>
+
     <!-- ─── HEADER ─────────────────────────────────────────────────────── -->
     <header class="futuristic-header">
         <div class="brand-future">
-            <div class="logo-hologram">🌐</div>
+            <div class="logo-hologram" role="img" aria-label="GCIS Encyclopedia logo">🌐</div>
             <div>
                 <div class="brand-name-future">GCIS ENCYCLOPEDIA</div>
                 <div class="brand-sub-future">▸ World-Systems Theory · Dynamic Synthesis</div>
             </div>
         </div>
-        <div class="header-right-future">
-            <a href="#" class="hbtn-future" onclick="window.location.reload();">↻ Refresh</a>
-            <a href="https://en.wikipedia.org/wiki/World-systems_theory" target="_blank" class="hbtn-future primary">📖 Source</a>
-        </div>
+        <nav class="header-right-future" aria-label="Page actions">
+            <a href="#" class="hbtn-future" onclick="window.location.reload(); return false;">↻ Refresh</a>
+            <a href="https://en.wikipedia.org/wiki/World-systems_theory" target="_blank" rel="noopener" class="hbtn-future primary">📖 Source</a>
+        </nav>
     </header>
 
     <!-- ─── MAIN CONTENT ───────────────────────────────────────────────── -->
-    <div class="app">
-        <div class="encyclopedia-content" id="content">
+    <main class="app" id="main-content">
+        <article class="encyclopedia-content" id="content" itemscope itemtype="https://schema.org/Article">
             <div class="loader-container">
-                <div class="loader-ring"></div>
+                <div class="loader-ring" role="status" aria-live="polite"></div>
                 <div class="loader-h">Assembling Encyclopedia</div>
                 <div class="loader-sub">Fetching &amp; synthesizing from 5 Wikipedia sources …</div>
             </div>
-        </div>
-    </div>
+        </article>
+    </main>
 
     <script>
         (function() {
@@ -513,6 +628,9 @@
             }
 
             // ─── BUILD ENCYCLOPEDIA ─────────────────────────────────────
+            // SEO note: content is wrapped in <section> elements with
+            // itemprop hooks so crawlers can parse a clean outline
+            // (one <h1>, ordered <h2>/<h3>/<h4> hierarchy, no skipped levels).
             function buildEncyclopedia(extracts) {
                 const wst = extracts['World-systems theory'] || '';
                 const core = extracts['Core countries'] || '';
@@ -523,11 +641,12 @@
                 let html = '';
 
                 // ── Title ──
-                html += `<h1>World-Systems Theory</h1>`;
+                html += `<h1 itemprop="headline">World-Systems Theory</h1>`;
+                html += `<p class="visually-hidden" itemprop="description">A comprehensive, continuously-updated overview of world-systems theory covering core, periphery, and semi-periphery countries, dependency theory, and capitalism.</p>`;
 
                 // ── Intro from WST ──
+                let introText = '<section aria-label="Introduction">';
                 const wstLines = wst.split(/\n+/);
-                let introText = '';
                 let paragraphCount = 0;
                 for (const line of wstLines) {
                     if (line.trim().length === 0) continue;
@@ -535,33 +654,34 @@
                     introText += `<p>${line.trim()}</p>`;
                     paragraphCount++;
                 }
+                introText += '</section>';
                 html += introText;
 
                 // ── Background ──
                 const bg = extractSection(wst, 'Background', 'Origins');
                 if (bg) {
-                    html += `<h2>Background</h2><p>${bg}</p>`;
+                    html += `<section aria-labelledby="sec-background"><h2 id="sec-background">Background</h2><p>${bg}</p></section>`;
                 }
 
                 // ── Origins ──
                 const origins = extractSection(wst, 'Origins', 'Characteristics');
                 if (origins) {
-                    html += `<h2>Origins and Intellectual Influences</h2><p>${origins}</p>`;
+                    html += `<section aria-labelledby="sec-origins"><h2 id="sec-origins">Origins and Intellectual Influences</h2><p>${origins}</p></section>`;
                 }
 
                 // ── Dependency Theory ──
                 const dep = extractSection(wst, 'Dependency theory', 'Importance');
                 if (dep) {
-                    html += `<h2>Dependency Theory and Its Influence</h2><p>${dep}</p>`;
+                    html += `<section aria-labelledby="sec-dependency"><h2 id="sec-dependency">Dependency Theory and Its Influence</h2><p>${dep}</p></section>`;
                 }
 
                 // ── Tripartite Structure ──
-                html += `<h2>The Tripartite Structure: Core, Periphery, and Semi-Periphery</h2>`;
+                html += `<section aria-labelledby="sec-tripartite"><h2 id="sec-tripartite">The Tripartite Structure: Core, Periphery, and Semi-Periphery</h2>`;
                 html += `<p>World-systems theory divides the global economy into three broad zones: <strong>core</strong>, <strong>periphery</strong>, and <strong>semi-periphery</strong>. These categories reflect a country's position in the international division of labour and its relative power, wealth, and level of industrialisation.</p>`;
 
                 // ── Core ──
                 const coreIntro = extractIntro(core);
-                html += `<h3>Core Countries</h3>`;
+                html += `<h3 id="sec-core">Core Countries</h3>`;
                 html += `<p>${coreIntro || 'Core countries are the industrialised, wealthy, and powerful states that dominate the world economy. They have strong institutions, advanced technology, and command the most profitable activities.'}</p>`;
                 const coreChar = extractSection(core, 'Definition', 'Throughout history');
                 if (coreChar) html += `<p>${coreChar}</p>`;
@@ -574,7 +694,7 @@
 
                 // ── Periphery ──
                 const periIntro = extractIntro(periphery);
-                html += `<h3>Periphery Countries</h3>`;
+                html += `<h3 id="sec-periphery">Periphery Countries</h3>`;
                 html += `<p>${periIntro || 'Periphery countries are less developed, have weak state institutions, and are dependent on—and often exploited by—core countries. They typically export raw materials and agricultural goods.'}</p>`;
                 const periChar = extractSection(periphery, 'Background', 'Formation');
                 if (periChar) html += `<p>${periChar}</p>`;
@@ -585,7 +705,7 @@
 
                 // ── Semi-periphery ──
                 const semiIntro = extractIntro(semi);
-                html += `<h3>Semi-Periphery Countries</h3>`;
+                html += `<h3 id="sec-semi-periphery">Semi-Periphery Countries</h3>`;
                 html += `<p>${semiIntro || 'Semi-periphery countries are industrialising, middle-income states that share characteristics of both core and periphery. They mediate between the core and the periphery.'}</p>`;
                 const semiChar = extractSection(semi, 'Sociological theory', 'History and development');
                 if (semiChar) html += `<p>${semiChar}</p>`;
@@ -595,9 +715,10 @@
                     semiList.forEach(item => html += `<li>${item}</li>`);
                     html += `</ul>`;
                 }
+                html += `</section>`;
 
                 // ── Capitalism ──
-                html += `<h2>Capitalism: The Economic Foundation</h2>`;
+                html += `<section aria-labelledby="sec-capitalism"><h2 id="sec-capitalism">Capitalism: The Economic Foundation</h2>`;
                 const capIntro = extractIntro(capitalism);
                 html += `<p>${capIntro || 'Capitalism is an economic system based on private ownership of the means of production and their operation for profit. It is characterised by capital accumulation, competitive markets, wage labour, and innovation.'}</p>`;
                 const capHist = extractSection(capitalism, 'History', 'Characteristics');
@@ -612,25 +733,28 @@
                 if (capSupply) {
                     html += `<h3>Supply and Demand</h3><p>${capSupply}</p>`;
                 }
+                html += `</section>`;
 
                 // ── Modern World-System ──
-                html += `<h2>The Modern World-System in Perspective</h2>`;
+                html += `<section aria-labelledby="sec-modern"><h2 id="sec-modern">The Modern World-System in Perspective</h2>`;
                 const interpret = extractSection(wst, 'The interpretation of world history', '');
                 if (interpret) {
                     html += `<p>${interpret}</p>`;
                 } else {
                     html += `<p>World-systems analysis views the capitalist world-economy as a historically specific system that emerged in the "long" 16th century. It has since expanded to encompass the entire globe, creating an inter-regional division of labour that perpetuates inequality. The system is dynamic, with cyclical rhythms and secular trends, and it is currently in a period of transition whose outcome is uncertain. Understanding the interlocking roles of core, periphery, and semi-periphery—alongside the logic of capital accumulation—is essential for grasping the trajectory of modern global history.</p>`;
                 }
+                html += `</section>`;
 
                 // ── Footer ──
                 html += `<hr />`;
-                html += `<div class="footer-note">`;
+                html += `<footer class="footer-note">`;
                 html += `This article is a dynamic synthesis of content from: `;
                 html += PAGES.map(p =>
-                    `<a href="https://en.wikipedia.org/wiki/${p.replace(/ /g, '_')}" target="_blank">${p}</a>`
+                    `<a href="https://en.wikipedia.org/wiki/${p.replace(/ /g, '_')}" target="_blank" rel="noopener">${p}</a>`
                 ).join(', ');
-                html += `. Data fetched via Wikipedia API and combined in real-time.`;
-                html += `</div>`;
+                html += `. Data fetched via Wikipedia API and combined in real-time, licensed under `;
+                html += `<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.`;
+                html += `</footer>`;
 
                 return html;
             }
@@ -669,6 +793,11 @@
                     const htmlContent = buildEncyclopedia(extracts);
                     container.innerHTML = htmlContent;
 
+                    // SEO: update <title> once real content is confirmed loaded,
+                    // and drop a static snapshot into a noscript-visible node
+                    // for crawlers that don't execute JS.
+                    document.title = 'World-Systems Theory: Core, Periphery & Semi-Periphery Explained | GCIS Encyclopedia';
+
                 } catch (err) {
                     container.innerHTML = `
                         <div style="text-align:center; padding:3rem 1rem; color:#ff375f;">
@@ -689,6 +818,16 @@
 
         })();
     </script>
+
+    <!-- SEO: noscript fallback — many crawlers and all non-JS agents see this -->
+    <noscript>
+        <div style="max-width:800px;margin:2rem auto;padding:2rem;color:#e2f0ff;font-family:sans-serif;line-height:1.7;">
+            <h1>World-Systems Theory</h1>
+            <p>World-systems theory is a macro-sociological framework, most closely associated with Immanuel Wallerstein, for understanding the historical development of the capitalist world economy. It analyzes global society through the relationships between <strong>core</strong>, <strong>semi-periphery</strong>, and <strong>periphery</strong> countries, tracing how the international division of labor produces and sustains global inequality.</p>
+            <p>This page loads its full content dynamically from Wikipedia. Please enable JavaScript to view the complete, continuously-updated article, or visit the
+            <a href="https://en.wikipedia.org/wiki/World-systems_theory">Wikipedia source article</a> directly.</p>
+        </div>
+    </noscript>
 
 </body>
 </html>
