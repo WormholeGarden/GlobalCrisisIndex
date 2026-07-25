@@ -5,10 +5,10 @@
 //  ────────────────────────────────────────────────────────────────────────────
 //  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
 //  🌍 COVERS ALL 179 COUNTRIES WITH REAL FSI 2024 SCORES
-//  🌐 FULL WORLD SYSTEMS THEORY WITH TEMPORAL DYNAMICS
-//  ⏱️ TIME-SENSITIVE SCORING WITH STRUCTURAL VELOCITY
+//  🌐 STRUCTURAL VULNERABILITY VIA WALLERSTEIN'S WORLD SYSTEMS THEORY
+//  ⏰ TIME-SENSITIVE SCORING WITH TEMPORAL DECAY AND MOMENTUM
 //  🧠 ENSEMBLE ML WITH RECOVERY RATE ADJUSTMENTS
-//  📊 REAL-TIME GLOBAL ECONOMIC TRANSMISSION
+//  📡 RSS FEED OPTIMIZED FOR GOOGLE NEWS
 // ════════════════════════════════════════════════════════════════════════════
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -52,12 +52,11 @@ const CFG = {
   // ═══════════════════════════════════════════════════════════════════════
   //  🌐 WORLD SYSTEMS THEORY ENGINE v2.0 — TIME-SENSITIVE
   //  ─────────────────────────────────────────────────────────────────────
-  //  Structural vulnerability scoring with temporal dynamics:
-  //  - Velocity: How fast structural conditions are changing
-  //  - Momentum: Acceleration of structural decay
-  //  - Transmission Lag: Time delay for core-periphery shocks
-  //  - Recovery Arc: Non-linear recovery trajectories
-  //  - Structural Inertia: Resistance to change based on system position
+  //  Structural vulnerability with temporal dynamics:
+  //  - Momentum: How fast scores change over time
+  //  - Decay: How quickly countries recover from crises
+  //  - Velocity: Rate of deterioration or improvement
+  //  - Acceleration: Second-order rate of change
   // ═══════════════════════════════════════════════════════════════════════
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -66,15 +65,12 @@ const CFG = {
   WST_RECOVERY_BONUS_MAX: 15,
   WST_CURRENCY_CRISIS_THRESHOLD: 20,
   WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.15,
-  
-  // TIME-SENSITIVE PARAMETERS
-  WST_VELOCITY_WINDOW: 14,           // Days to measure structural velocity
-  WST_MOMENTUM_THRESHOLD: 0.5,       // Points per day acceleration threshold
-  WST_TRANSMISSION_LAG_DAYS: 3,      // Core shocks take 3 days to reach periphery
-  WST_STRUCTURAL_INERTIA: 0.3,       // How resistant to change (0-1)
-  WST_RECOVERY_ARC_STEEPNESS: 0.15,  // How quickly recovery accelerates
-  WST_SYSTEMIC_COUPLING: 0.4,        // How tightly coupled to global system
-  WST_CRITICAL_JUNCTURE_THRESHOLD: 3, // Number of structural indicators crossing
+  WST_MOMENTUM_WEIGHT: 0.30,        // Weight of momentum in scoring
+  WST_VELOCITY_WEIGHT: 0.20,        // Weight of velocity in scoring
+  WST_ACCELERATION_WEIGHT: 0.15,    // Weight of acceleration in scoring
+  WST_TIME_DECAY_HALF_LIFE: 7,      // Days for crisis memory decay
+  WST_CRISIS_MOMENTUM_THRESHOLD: 5, // Points change to trigger momentum boost
+  WST_STRUCTURAL_PERSISTENCE: 0.8,  // How much structural factors persist
 };
 
 const CORS = {
@@ -303,174 +299,170 @@ const FSI_2024 = {
   NOR: { name:"Norway",               flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
 };
 
-// ─── WORLD SYSTEMS THEORY CLASSIFICATION v2.0 — TIME-SENSITIVE ─────────────
+// ─── WORLD SYSTEMS THEORY CLASSIFICATION ────────────────────────────────────
 
 const WST_CLASSIFICATION = {
-  // ── CORE NATIONS (G7 + Financial Hubs + High-Income OECD) ──
-  USA: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 1.0, reserve_currency: true, gdp_per_capita: 76000, systemic_coupling: 0.9, structural_inertia: 0.8, recovery_arc_steepness: 0.15 },
-  GBR: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: true, gdp_per_capita: 48000, systemic_coupling: 0.85, structural_inertia: 0.75, recovery_arc_steepness: 0.18 },
-  DEU: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: false, gdp_per_capita: 52000, systemic_coupling: 0.9, structural_inertia: 0.8, recovery_arc_steepness: 0.16 },
-  FRA: { class: "Core", tier: 1, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 45000, systemic_coupling: 0.85, structural_inertia: 0.75, recovery_arc_steepness: 0.19 },
-  JPN: { class: "Core", tier: 1, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 40000, systemic_coupling: 0.7, structural_inertia: 0.85, recovery_arc_steepness: 0.12 },
-  CAN: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 52000, systemic_coupling: 0.8, structural_inertia: 0.7, recovery_arc_steepness: 0.17 },
-  AUS: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 65000, systemic_coupling: 0.7, structural_inertia: 0.7, recovery_arc_steepness: 0.16 },
-  CHE: { class: "Core", tier: 1, debt_sensitivity: 0.18, recovery_rate: 0.88, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 93000, systemic_coupling: 0.6, structural_inertia: 0.85, recovery_arc_steepness: 0.14 },
-  NLD: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 58000, systemic_coupling: 0.8, structural_inertia: 0.7, recovery_arc_steepness: 0.17 },
-  NOR: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.90, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 89000, systemic_coupling: 0.5, structural_inertia: 0.85, recovery_arc_steepness: 0.12 },
-  SWE: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 60000, systemic_coupling: 0.7, structural_inertia: 0.75, recovery_arc_steepness: 0.15 },
-  DNK: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 68000, systemic_coupling: 0.7, structural_inertia: 0.75, recovery_arc_steepness: 0.15 },
-  FIN: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 54000, systemic_coupling: 0.6, structural_inertia: 0.7, recovery_arc_steepness: 0.18 },
-  IRL: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 100000, systemic_coupling: 0.8, structural_inertia: 0.65, recovery_arc_steepness: 0.2 },
-  NZL: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 48000, systemic_coupling: 0.5, structural_inertia: 0.7, recovery_arc_steepness: 0.16 },
-  ARE: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, systemic_coupling: 0.8, structural_inertia: 0.6, recovery_arc_steepness: 0.22 },
-  QAT: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 70000, systemic_coupling: 0.8, structural_inertia: 0.6, recovery_arc_steepness: 0.2 },
-  KWT: { class: "Core", tier: 2, debt_sensitivity: 0.32, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 35000, systemic_coupling: 0.7, structural_inertia: 0.6, recovery_arc_steepness: 0.22 },
-  BHR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, systemic_coupling: 0.7, structural_inertia: 0.55, recovery_arc_steepness: 0.24 },
-  OMN: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, systemic_coupling: 0.7, structural_inertia: 0.55, recovery_arc_steepness: 0.24 },
-  
-  // ── SECONDARY CORE (G20 + High-Income Non-G7) ──
-  KOR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 33000, systemic_coupling: 0.8, structural_inertia: 0.7, recovery_arc_steepness: 0.2 },
-  ESP: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 30000, systemic_coupling: 0.8, structural_inertia: 0.65, recovery_arc_steepness: 0.22 },
-  ITA: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 35000, systemic_coupling: 0.8, structural_inertia: 0.7, recovery_arc_steepness: 0.2 },
-  PRT: { class: "Core", tier: 2, debt_sensitivity: 0.50, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 25000, systemic_coupling: 0.7, structural_inertia: 0.6, recovery_arc_steepness: 0.25 },
-  GRC: { class: "Core", tier: 2, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 20000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.28 },
-  AUT: { class: "Core", tier: 2, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 53000, systemic_coupling: 0.7, structural_inertia: 0.7, recovery_arc_steepness: 0.16 },
-  BEL: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, systemic_coupling: 0.8, structural_inertia: 0.7, recovery_arc_steepness: 0.17 },
-  SGP: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 83000, systemic_coupling: 0.9, structural_inertia: 0.7, recovery_arc_steepness: 0.18 },
-  ISR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 55000, systemic_coupling: 0.7, structural_inertia: 0.65, recovery_arc_steepness: 0.2 },
-  CZE: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.70, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, systemic_coupling: 0.7, structural_inertia: 0.6, recovery_arc_steepness: 0.22 },
-  SVN: { class: "Core", tier: 2, debt_sensitivity: 0.38, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 30000, systemic_coupling: 0.7, structural_inertia: 0.6, recovery_arc_steepness: 0.22 },
-  SVK: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, systemic_coupling: 0.7, structural_inertia: 0.55, recovery_arc_steepness: 0.24 },
-  LTU: { class: "Core", tier: 2, debt_sensitivity: 0.42, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, systemic_coupling: 0.6, structural_inertia: 0.55, recovery_arc_steepness: 0.25 },
-  LVA: { class: "Core", tier: 2, debt_sensitivity: 0.43, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, systemic_coupling: 0.6, structural_inertia: 0.5, recovery_arc_steepness: 0.26 },
-  EST: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, systemic_coupling: 0.6, structural_inertia: 0.55, recovery_arc_steepness: 0.24 },
-  MLT: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 34000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.22 },
-  CYP: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.58, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 32000, systemic_coupling: 0.6, structural_inertia: 0.5, recovery_arc_steepness: 0.26 },
-  
-  // ── SEMI-PERIPHERY (Industrializing, Middle Income, Debt Vulnerable) ──
-  CHN: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.55, extractive_penalty: 5, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 13000, systemic_coupling: 0.85, structural_inertia: 0.6, recovery_arc_steepness: 0.3 },
-  RUS: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 14000, systemic_coupling: 0.6, structural_inertia: 0.5, recovery_arc_steepness: 0.35 },
-  IND: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.48, extractive_penalty: 10, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 2600, systemic_coupling: 0.7, structural_inertia: 0.4, recovery_arc_steepness: 0.38 },
-  BRA: { class: "Semi", tier: 3, debt_sensitivity: 0.68, recovery_rate: 0.50, extractive_penalty: 12, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 8900, systemic_coupling: 0.7, structural_inertia: 0.45, recovery_arc_steepness: 0.36 },
-  MEX: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.52, extractive_penalty: 10, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 11000, systemic_coupling: 0.8, structural_inertia: 0.5, recovery_arc_steepness: 0.34 },
-  TUR: { class: "Semi", tier: 3, debt_sensitivity: 0.75, recovery_rate: 0.42, extractive_penalty: 14, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 15000, systemic_coupling: 0.7, structural_inertia: 0.4, recovery_arc_steepness: 0.4 },
-  ZAF: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.45, extractive_penalty: 16, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.6, structural_inertia: 0.35, recovery_arc_steepness: 0.42 },
-  ARG: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 18, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 11000, systemic_coupling: 0.6, structural_inertia: 0.3, recovery_arc_steepness: 0.45 },
-  IDN: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.52, extractive_penalty: 8, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.7, structural_inertia: 0.45, recovery_arc_steepness: 0.35 },
-  SAU: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.58, extractive_penalty: 6, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 33000, systemic_coupling: 0.7, structural_inertia: 0.55, recovery_arc_steepness: 0.3 },
-  POL: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.60, extractive_penalty: 5, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 18000, systemic_coupling: 0.7, structural_inertia: 0.55, recovery_arc_steepness: 0.3 },
-  HUN: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 19000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.32 },
-  ROU: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 15000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.34 },
-  BGR: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 13000, systemic_coupling: 0.6, structural_inertia: 0.45, recovery_arc_steepness: 0.36 },
-  HRV: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 18000, systemic_coupling: 0.6, structural_inertia: 0.5, recovery_arc_steepness: 0.34 },
-  UKR: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 20, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.5, structural_inertia: 0.25, recovery_arc_steepness: 0.48 },
-  BLR: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.40, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, systemic_coupling: 0.5, structural_inertia: 0.35, recovery_arc_steepness: 0.4 },
-  SRB: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 9000, systemic_coupling: 0.6, structural_inertia: 0.4, recovery_arc_steepness: 0.36 },
-  ALB: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.48, extractive_penalty: 9, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.6, structural_inertia: 0.35, recovery_arc_steepness: 0.38 },
-  MKD: { class: "Semi", tier: 3, debt_sensitivity: 0.63, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.6, structural_inertia: 0.35, recovery_arc_steepness: 0.38 },
-  BIH: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.45, extractive_penalty: 10, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.5, structural_inertia: 0.3, recovery_arc_steepness: 0.4 },
-  GEO: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.6, structural_inertia: 0.4, recovery_arc_steepness: 0.36 },
-  ARM: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.5, structural_inertia: 0.35, recovery_arc_steepness: 0.38 },
-  AZE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, systemic_coupling: 0.5, structural_inertia: 0.4, recovery_arc_steepness: 0.34 },
-  KAZ: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 12000, systemic_coupling: 0.5, structural_inertia: 0.45, recovery_arc_steepness: 0.32 },
-  UZB: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.5, structural_inertia: 0.35, recovery_arc_steepness: 0.36 },
-  THA: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.32 },
-  MYS: { class: "Semi", tier: 3, debt_sensitivity: 0.52, recovery_rate: 0.58, extractive_penalty: 5, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 12000, systemic_coupling: 0.7, structural_inertia: 0.5, recovery_arc_steepness: 0.3 },
-  VNM: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.6, structural_inertia: 0.4, recovery_arc_steepness: 0.34 },
-  PHL: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.6, structural_inertia: 0.35, recovery_arc_steepness: 0.36 },
-  MNE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.54, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 10000, systemic_coupling: 0.6, structural_inertia: 0.4, recovery_arc_steepness: 0.34 },
-  
-  // ── PERIPHERY (Raw Material Exporters, High Debt, Structural Dependency) ──
-  SOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.6 },
-  SDN: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.58 },
-  SSD: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.65 },
-  SYR: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.6 },
-  YEM: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.65 },
-  AFG: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, systemic_coupling: 0.15, structural_inertia: 0.1, recovery_arc_steepness: 0.6 },
-  HTI: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.55 },
-  TCD: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.25, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, systemic_coupling: 0.2, structural_inertia: 0.12, recovery_arc_steepness: 0.55 },
-  ETH: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  NGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, systemic_coupling: 0.4, structural_inertia: 0.2, recovery_arc_steepness: 0.48 },
-  PAK: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 1500, systemic_coupling: 0.35, structural_inertia: 0.15, recovery_arc_steepness: 0.52 },
-  BGD: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2800, systemic_coupling: 0.4, structural_inertia: 0.2, recovery_arc_steepness: 0.48 },
-  KEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.46 },
-  UGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.52 },
-  MOZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.55 },
-  MWI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.55 },
-  ZWE: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.58 },
-  COD: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.6 },
-  CAF: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, systemic_coupling: 0.1, structural_inertia: 0.05, recovery_arc_steepness: 0.65 },
-  LBY: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  IRQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.48 },
-  IRN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.2, recovery_arc_steepness: 0.46 },
-  VEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.6 },
-  LKA: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.35, structural_inertia: 0.15, recovery_arc_steepness: 0.55 },
-  MMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  PSE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.48 },
-  GIN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  MLI: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 900, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.52 },
-  NER: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.55 },
-  BFA: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.52 },
-  CMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.5 },
-  BDI: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 300, systemic_coupling: 0.1, structural_inertia: 0.05, recovery_arc_steepness: 0.6 },
-  ERI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.55 },
-  PRK: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, systemic_coupling: 0.1, structural_inertia: 0.05, recovery_arc_steepness: 0.6 },
-  LBN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.25, structural_inertia: 0.1, recovery_arc_steepness: 0.65 },
-  JOR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.35, structural_inertia: 0.15, recovery_arc_steepness: 0.48 },
-  EGY: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.35, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  DZA: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.3, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  MAR: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  TUN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.3, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  SEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  GMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.52 },
-  GNB: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.55 },
-  SLE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.52 },
-  LBR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.55 },
-  CIV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2500, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  GHA: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2200, systemic_coupling: 0.35, structural_inertia: 0.18, recovery_arc_steepness: 0.48 },
-  TGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  BEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1300, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  NAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  BWA: { class: "Periphery", tier: 4, debt_sensitivity: 0.70, recovery_rate: 0.38, extractive_penalty: 10, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.3, structural_inertia: 0.2, recovery_arc_steepness: 0.42 },
-  ZMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  AGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.52 },
-  COG: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.55 },
-  GAB: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 8000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.48 },
-  GNQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 10000, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.5 },
-  CUB: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.58 },
-  HND: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.3, structural_inertia: 0.12, recovery_arc_steepness: 0.52 },
-  NIC: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, systemic_coupling: 0.25, structural_inertia: 0.1, recovery_arc_steepness: 0.55 },
-  GTM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  SLV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  CRI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 12000, systemic_coupling: 0.4, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  PAN: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, systemic_coupling: 0.4, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  COL: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.35, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  PER: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.35, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  ECU: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  BOL: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.52 },
-  PRY: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  URY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  CHL: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 15000, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  DOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 11000, systemic_coupling: 0.35, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  JAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.5 },
-  TTO: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, systemic_coupling: 0.3, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  GUY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  SUR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, systemic_coupling: 0.25, structural_inertia: 0.12, recovery_arc_steepness: 0.5 },
-  BHS: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 30000, systemic_coupling: 0.35, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  BRB: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 15000, systemic_coupling: 0.3, structural_inertia: 0.2, recovery_arc_steepness: 0.45 },
-  ATG: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 18000, systemic_coupling: 0.3, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  GRD: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 11000, systemic_coupling: 0.3, structural_inertia: 0.18, recovery_arc_steepness: 0.46 },
-  BLZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 7000, systemic_coupling: 0.3, structural_inertia: 0.15, recovery_arc_steepness: 0.48 },
-  MDA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.3, structural_inertia: 0.12, recovery_arc_steepness: 0.5 },
-  PNG: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 },
-  FJI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 6000, systemic_coupling: 0.25, structural_inertia: 0.15, recovery_arc_steepness: 0.45 },
-  SLB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 2000, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.5 },
-  FSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.48 },
-  WSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 4000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.48 },
-  TLS: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 1500, systemic_coupling: 0.15, structural_inertia: 0.08, recovery_arc_steepness: 0.52 },
-  
-  // ── UNCLASSIFIED (Default to Periphery for safety) ──
-  default: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, systemic_coupling: 0.2, structural_inertia: 0.1, recovery_arc_steepness: 0.5 }
+  // ── CORE NATIONS ──
+  USA: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 1.0, reserve_currency: true, gdp_per_capita: 76000, momentum_factor: 0.9 },
+  GBR: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: true, gdp_per_capita: 48000, momentum_factor: 0.85 },
+  DEU: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: false, gdp_per_capita: 52000, momentum_factor: 0.85 },
+  FRA: { class: "Core", tier: 1, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 45000, momentum_factor: 0.8 },
+  JPN: { class: "Core", tier: 1, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 40000, momentum_factor: 0.8 },
+  CAN: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 52000, momentum_factor: 0.85 },
+  AUS: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 65000, momentum_factor: 0.8 },
+  CHE: { class: "Core", tier: 1, debt_sensitivity: 0.18, recovery_rate: 0.88, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 93000, momentum_factor: 0.9 },
+  NLD: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 58000, momentum_factor: 0.85 },
+  NOR: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.90, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 89000, momentum_factor: 0.9 },
+  SWE: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 60000, momentum_factor: 0.85 },
+  DNK: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 68000, momentum_factor: 0.85 },
+  FIN: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 54000, momentum_factor: 0.8 },
+  IRL: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 100000, momentum_factor: 0.85 },
+  NZL: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 48000, momentum_factor: 0.85 },
+  KOR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 33000, momentum_factor: 0.75 },
+  ESP: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.7 },
+  ITA: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 35000, momentum_factor: 0.7 },
+  PRT: { class: "Core", tier: 2, debt_sensitivity: 0.50, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.65 },
+  GRC: { class: "Core", tier: 2, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.6 },
+  AUT: { class: "Core", tier: 2, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 53000, momentum_factor: 0.8 },
+  BEL: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, momentum_factor: 0.8 },
+  SGP: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 83000, momentum_factor: 0.8 },
+  ISR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 55000, momentum_factor: 0.75 },
+  CZE: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.70, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.7 },
+  SVN: { class: "Core", tier: 2, debt_sensitivity: 0.38, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.7 },
+  SVK: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, momentum_factor: 0.65 },
+  LTU: { class: "Core", tier: 2, debt_sensitivity: 0.42, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.65 },
+  LVA: { class: "Core", tier: 2, debt_sensitivity: 0.43, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, momentum_factor: 0.65 },
+  EST: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.65 },
+  MLT: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 34000, momentum_factor: 0.7 },
+  CYP: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.58, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 32000, momentum_factor: 0.6 },
+  ARE: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, momentum_factor: 0.75 },
+  QAT: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 70000, momentum_factor: 0.8 },
+  KWT: { class: "Core", tier: 2, debt_sensitivity: 0.32, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 35000, momentum_factor: 0.75 },
+  BHR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.7 },
+  OMN: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.7 },
+
+  // ── SEMI-PERIPHERY ──
+  CHN: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.55, extractive_penalty: 5, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 13000, momentum_factor: 0.6 },
+  RUS: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 14000, momentum_factor: 0.55 },
+  IND: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.48, extractive_penalty: 10, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 2600, momentum_factor: 0.5 },
+  BRA: { class: "Semi", tier: 3, debt_sensitivity: 0.68, recovery_rate: 0.50, extractive_penalty: 12, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 8900, momentum_factor: 0.55 },
+  MEX: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.52, extractive_penalty: 10, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.55 },
+  TUR: { class: "Semi", tier: 3, debt_sensitivity: 0.75, recovery_rate: 0.42, extractive_penalty: 14, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.45 },
+  ZAF: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.45, extractive_penalty: 16, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
+  ARG: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 18, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.4 },
+  IDN: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.52, extractive_penalty: 8, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.55 },
+  SAU: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.58, extractive_penalty: 6, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 33000, momentum_factor: 0.6 },
+  POL: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.60, extractive_penalty: 5, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.6 },
+  HUN: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 19000, momentum_factor: 0.55 },
+  ROU: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.55 },
+  BGR: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 13000, momentum_factor: 0.5 },
+  HRV: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.55 },
+  MNE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.54, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 10000, momentum_factor: 0.55 },
+  SRB: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 9000, momentum_factor: 0.5 },
+  ALB: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.48, extractive_penalty: 9, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
+  MKD: { class: "Semi", tier: 3, debt_sensitivity: 0.63, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
+  BIH: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.45, extractive_penalty: 10, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.45 },
+  GEO: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.5 },
+  ARM: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
+  AZE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.55 },
+  KAZ: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.55 },
+  UZB: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.5 },
+  THA: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.55 },
+  MYS: { class: "Semi", tier: 3, debt_sensitivity: 0.52, recovery_rate: 0.58, extractive_penalty: 5, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.6 },
+  VNM: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.55 },
+  PHL: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.55 },
+  UKR: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 20, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.4 },
+  BLR: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.40, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.45 },
+
+  // ── PERIPHERY ──
+  SOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
+  SDN: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
+  SSD: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
+  SYR: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.2 },
+  YEM: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.2 },
+  AFG: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
+  HTI: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
+  TCD: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.25, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
+  ETH: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
+  NGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.3 },
+  PAK: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 1500, momentum_factor: 0.3 },
+  BGD: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2800, momentum_factor: 0.3 },
+  KEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.35 },
+  UGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
+  MOZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
+  MWI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.25 },
+  ZWE: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.25 },
+  COD: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
+  CAF: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.2 },
+  LBY: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
+  IRQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
+  IRN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  VEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.2 },
+  LKA: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.25 },
+  MMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.3 },
+  PSE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 },
+  GIN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.3 },
+  MLI: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 900, momentum_factor: 0.25 },
+  NER: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.25 },
+  BFA: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
+  CMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, momentum_factor: 0.3 },
+  BDI: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 300, momentum_factor: 0.25 },
+  ERI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
+  PRK: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.2 },
+  LBN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.2 },
+  JOR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
+  EGY: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
+  DZA: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
+  MAR: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
+  TUN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
+  SEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, momentum_factor: 0.3 },
+  GMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
+  GNB: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
+  SLE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
+  LBR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
+  CIV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2500, momentum_factor: 0.3 },
+  GHA: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.3 },
+  TGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
+  BEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1300, momentum_factor: 0.3 },
+  NAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.35 },
+  BWA: { class: "Periphery", tier: 4, debt_sensitivity: 0.70, recovery_rate: 0.38, extractive_penalty: 10, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.4 },
+  ZMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
+  AGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
+  COG: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
+  GAB: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.35 },
+  GNQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 10000, momentum_factor: 0.3 },
+  CUB: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
+  HND: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
+  NIC: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
+  GTM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  SLV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  CRI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.35 },
+  PAN: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, momentum_factor: 0.35 },
+  COL: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.35 },
+  PER: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.35 },
+  ECU: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
+  BOL: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
+  PRY: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  URY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.35 },
+  CHL: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.35 },
+  DOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.35 },
+  JAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  TTO: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, momentum_factor: 0.35 },
+  GUY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.35 },
+  SUR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
+  BHS: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.35 },
+  BRB: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.35 },
+  ATG: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.35 },
+  GRD: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.35 },
+  BLZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.35 },
+  MDA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
+  PNG: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 },
+  FJI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.35 },
+  SLB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.3 },
+  FSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
+  WSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
+  TLS: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 1500, momentum_factor: 0.25 },
+  default: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 }
 };
 
 // ─── REGION ALIASES ──────────────────────────────────────────────────────────
@@ -484,7 +476,7 @@ const REGION_ALIASES = {
   oceania:    ["oceania","pacific"],
 };
 
-// ─── BUILD COUNTRY TABLE FROM FSI DATA ─────────────────────────────────────
+// ─── BUILD COUNTRY TABLE ─────────────────────────────────────────────────────
 
 const COUNTRIES = {};
 for (const [iso, fsi] of Object.entries(FSI_2024)) {
@@ -576,6 +568,94 @@ function findClosestCountry(lng, lat) {
     if (dist < minDist) { minDist = dist; closest = iso; }
   }
   return closest;
+}
+
+// ─── TIME-SENSITIVE SCORING ENGINE ──────────────────────────────────────────
+
+function computeTimeSensitiveScore(iso, currentScore, store, dims) {
+  if (!CFG.WST_ENABLED) return { adjustedScore: currentScore, momentum: 0, velocity: 0, acceleration: 0, timeDecay: 1 };
+  
+  const hist = seedHistory(iso, currentScore);
+  const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
+  const historical = store[iso]?.historical_trend || null;
+  
+  // ── 1. MOMENTUM: Rate of change over the last 7 days ──────────────────
+  const recent7 = hist.slice(-7);
+  const old7 = hist.slice(-14, -7);
+  const momentum = recent7.length >= 7 && old7.length >= 7 
+    ? (mean(recent7) - mean(old7)) / 7 
+    : 0;
+  
+  // ── 2. VELOCITY: Current speed of change (1st derivative) ─────────────
+  const recent3 = hist.slice(-3);
+  const old3 = hist.slice(-6, -3);
+  const velocity = recent3.length >= 3 && old3.length >= 3
+    ? (mean(recent3) - mean(old3)) / 3
+    : 0;
+  
+  // ── 3. ACCELERATION: Rate of change of velocity (2nd derivative) ──────
+  const recent5 = hist.slice(-5);
+  const mid5 = hist.slice(-10, -5);
+  const old5 = hist.slice(-15, -10);
+  const velocityRecent = recent5.length >= 5 && mid5.length >= 5
+    ? (mean(recent5) - mean(mid5)) / 5
+    : 0;
+  const velocityOld = mid5.length >= 5 && old5.length >= 5
+    ? (mean(mid5) - mean(old5)) / 5
+    : 0;
+  const acceleration = velocityRecent - velocityOld;
+  
+  // ── 4. TIME DECAY: How long since the last crisis peak ────────────────
+  const maxScore = Math.max(...hist);
+  const maxIndex = hist.indexOf(maxScore);
+  const currentIndex = hist.length - 1;
+  const daysSincePeak = currentIndex - maxIndex;
+  const timeDecay = Math.exp(-daysSincePeak / CFG.WST_TIME_DECAY_HALF_LIFE);
+  
+  // ── 5. STRUCTURAL PERSISTENCE ──────────────────────────────────────────
+  const structuralPersistence = wst.structural_weight || 0.5;
+  const recoveryFactor = wst.recovery_rate || 0.5;
+  
+  // ── 6. COMPUTE ADJUSTMENTS ─────────────────────────────────────────────
+  // Momentum adjustment: positive momentum = crisis worsening
+  const momentumAdjust = momentum * CFG.WST_MOMENTUM_WEIGHT * 10;
+  
+  // Velocity adjustment: rapid changes get amplified
+  const velocityAdjust = velocity * CFG.WST_VELOCITY_WEIGHT * 15;
+  
+  // Acceleration adjustment: accelerating crises get extra weight
+  const accelerationAdjust = acceleration * CFG.WST_ACCELERATION_WEIGHT * 20;
+  
+  // Time decay: older crises fade, but structural persistence keeps them relevant
+  const timeDecayAdjust = (1 - timeDecay) * (1 - structuralPersistence) * 5;
+  
+  // Core countries recover faster, Periphery stays fragile
+  const recoveryAdjust = (1 - recoveryFactor) * 8;
+  
+  // ── 7. COMBINE ──────────────────────────────────────────────────────────
+  let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + timeDecayAdjust + recoveryAdjust;
+  
+  // Cap adjustments to prevent extreme swings
+  totalAdjustment = Math.max(-15, Math.min(25, totalAdjustment));
+  
+  const adjustedScore = clamp(currentScore + totalAdjustment);
+  
+  return {
+    adjustedScore,
+    momentum,
+    velocity,
+    acceleration,
+    timeDecay,
+    momentumAdjust,
+    velocityAdjust,
+    accelerationAdjust,
+    timeDecayAdjust,
+    recoveryAdjust,
+    totalAdjustment,
+    rawScore: currentScore,
+    structuralWeight: structuralPersistence,
+    recoveryFactor,
+  };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1875,303 +1955,473 @@ function extractSignals(iso, live) {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  ─── TIME-SENSITIVE WST ENGINE ──────────────────────────────────────────
-// ════════════════════════════════════════════════════════════════════════════
-
-function computeStructuralVelocity(iso, store, history) {
-  if (!CFG.WST_ENABLED || !store[iso].__wst) {
-    return { velocity: 0, momentum: 0, direction: 'stable', acceleration: 0, critical_juncture: false };
-  }
-
-  const wst = store[iso].__wst;
-  const window = CFG.WST_VELOCITY_WINDOW || 14;
-  
-  // Get historical scores for velocity calculation
-  const scores = history.slice(-window);
-  if (scores.length < 3) {
-    return { velocity: 0, momentum: 0, direction: 'stable', acceleration: 0, critical_juncture: false };
-  }
-
-  // ── 1. Velocity: Rate of structural change (points per day) ──
-  const n = scores.length;
-  const xBar = (n - 1) / 2;
-  const yBar = mean(scores);
-  let num = 0, den = 0;
-  for (let i = 0; i < n; i++) {
-    num += (i - xBar) * (scores[i] - yBar);
-    den += (i - xBar) ** 2;
-  }
-  const rawVelocity = den ? num / den : 0;
-  const velocity = rawVelocity * (1 / (window / 7)); // Normalized to points per week
-
-  // ── 2. Momentum: Acceleration of structural change ──
-  const firstHalf = scores.slice(0, Math.floor(n/2));
-  const secondHalf = scores.slice(Math.floor(n/2));
-  const v1 = (firstHalf[firstHalf.length-1] - firstHalf[0]) / firstHalf.length;
-  const v2 = (secondHalf[secondHalf.length-1] - secondHalf[0]) / secondHalf.length;
-  const momentum = (v2 - v1) * 2; // Acceleration per week
-
-  // ── 3. Structural Inertia: Resistance to change based on system position ──
-  const inertia = wst.structural_inertia || 0.5;
-  const effectiveVelocity = velocity * (1 - inertia * 0.7);
-
-  // ── 4. Systemic Coupling: How tightly tied to global system ──
-  const coupling = wst.systemic_coupling || 0.5;
-  const globalRate = CFG.WST_GLOBAL_INTEREST_RATE || 5.25;
-  const rateChange = globalRate - 5.25; // Baseline reference
-  
-  // ── 5. Transmission Lag: Core shocks take time to reach periphery ──
-  let transmissionEffect = 0;
-  if (wst.class === "Periphery") {
-    const lagDays = CFG.WST_TRANSMISSION_LAG_DAYS || 3;
-    const lagFactor = 1 - (1 / (1 + Math.exp(-rateChange * 0.5 * (1 + coupling))));
-    transmissionEffect = lagFactor * 2 * wst.debt_sensitivity;
-  }
-
-  // ── 6. Recovery Arc: Non-linear recovery trajectory ──
-  const steepness = wst.recovery_arc_steepness || 0.3;
-  const recoveryArc = wst.class === "Core" 
-    ? -Math.min(5, steepness * 8 * (1 - wst.recovery_rate))
-    : wst.class === "Semi"
-    ? Math.min(3, steepness * 4 * (1 - wst.recovery_rate))
-    : Math.min(8, steepness * 12 * (1 - wst.recovery_rate));
-
-  // ── 7. Critical Juncture Detection ──
-  let indicatorsCrossing = 0;
-  const criticalIndicators = [];
-  
-  // Check velocity threshold
-  if (Math.abs(effectiveVelocity) > CFG.WST_MOMENTUM_THRESHOLD) {
-    indicatorsCrossing++;
-    criticalIndicators.push(`Velocity ${effectiveVelocity.toFixed(2)} pts/week`);
-  }
-  
-  // Check acceleration threshold
-  if (Math.abs(momentum) > 0.3) {
-    indicatorsCrossing++;
-    criticalIndicators.push(`Momentum ${momentum.toFixed(2)} pts/week²`);
-  }
-  
-  // Check transmission effect
-  if (Math.abs(transmissionEffect) > 1) {
-    indicatorsCrossing++;
-    criticalIndicators.push(`Transmission ${transmissionEffect.toFixed(2)} pts`);
-  }
-  
-  // Check recovery arc divergence
-  if (Math.abs(recoveryArc) > 3) {
-    indicatorsCrossing++;
-    criticalIndicators.push(`Recovery arc ${recoveryArc.toFixed(2)} pts`);
-  }
-
-  const criticalJuncture = indicatorsCrossing >= CFG.WST_CRITICAL_JUNCTURE_THRESHOLD;
-
-  // ── 8. Direction Determination ──
-  let direction = 'stable';
-  if (effectiveVelocity > 0.3 && momentum > 0) direction = 'accelerating deterioration';
-  else if (effectiveVelocity > 0.3) direction = 'deteriorating';
-  else if (effectiveVelocity < -0.3 && momentum < 0) direction = 'accelerating improvement';
-  else if (effectiveVelocity < -0.3) direction = 'improving';
-  else direction = 'stable';
-
-  return {
-    velocity: Math.round(effectiveVelocity * 100) / 100,
-    momentum: Math.round(momentum * 100) / 100,
-    direction,
-    acceleration: Math.round(momentum * 100) / 100,
-    critical_juncture: criticalJuncture,
-    indicators_crossing: indicatorsCrossing,
-    critical_indicators: criticalIndicators,
-    transmission_effect: Math.round(transmissionEffect * 100) / 100,
-    recovery_arc: Math.round(recoveryArc * 100) / 100,
-    raw_velocity: Math.round(rawVelocity * 100) / 100,
-    structural_inertia: inertia,
-    systemic_coupling: coupling,
-  };
-}
-
-function applyTimeSensitiveWST(priorDims, signals, iso, store) {
+function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
   let totalBoost = 0;
   
-  if (!CFG.WST_ENABLED || !store[iso]) {
-    return { dims, score: clamp(composite(dims)), audit };
-  }
-
-  const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
-  const country = COUNTRIES[iso];
-  
-  // ── 1. Get Historical Context for Velocity ──
-  const hist = seedHistory(iso, clamp(composite(priorDims)));
-  const velocityData = computeStructuralVelocity(iso, store, hist);
-  
-  // ── 2. Extractivism Penalty (Time-Sensitive) ──
-  if (wst.class === "Periphery") {
-    const extractiveBase = wst.extractive_penalty || 15;
-    const gdpAdjust = Math.max(0, (5000 - (wst.gdp_per_capita || 0)) / 5000 * 5);
-    const velocityBoost = Math.abs(velocityData.velocity) * 0.3;
-    const penalty = Math.min(CFG.WST_EXTRACTIVE_PENALTY_MAX, extractiveBase + gdpAdjust + velocityBoost);
+  // ──────────────────────────────────────────────────────────────────────────
+  //  🌐 WORLD SYSTEMS THEORY ENGINE — Structural Adjustments
+  //  ──────────────────────────────────────────────────────────────────────────
+  if (CFG.WST_ENABLED) {
+    const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
+    const country = COUNTRIES[iso];
     
-    dims.economic = clamp(dims.economic + penalty);
-    dims.food = clamp(dims.food + Math.floor(penalty * 0.3));
-    dims.access = clamp(dims.access + Math.floor(penalty * 0.4));
-    totalBoost += penalty;
-    audit.push({
-      source: "WST Extractivism (Time-Sensitive)",
-      field: "economic+food+access",
-      delta: penalty,
-      reason: `Periphery extraction penalty + velocity ${velocityData.velocity > 0 ? 'amplified' : 'dampened'} by ${Math.abs(velocityData.velocity).toFixed(2)} pts/week`
-    });
-  }
-  
-  // ── 3. Debt Sensitivity Shock with Velocity ──
-  const globalRate = CFG.WST_GLOBAL_INTEREST_RATE || 5.25;
-  const rateShock = Math.max(0, (globalRate - 2) * wst.debt_sensitivity * 2);
-  const velocityEffect = Math.max(0, velocityData.velocity * 0.2);
-  const debtPenalty = Math.min(20, Math.round((rateShock + velocityEffect) * 3));
-  
-  if (debtPenalty > 1) {
-    dims.economic = clamp(dims.economic + debtPenalty);
-    dims.political = clamp(dims.political + Math.floor(debtPenalty * 0.4));
-    totalBoost += debtPenalty;
-    audit.push({
-      source: "WST Debt Shock (Time-Sensitive)",
-      field: "economic+political",
-      delta: debtPenalty,
-      reason: `${wst.class} debt sensitivity ${(wst.debt_sensitivity * 100).toFixed(0)}% × ${globalRate.toFixed(2)}% rate + velocity ${velocityData.velocity.toFixed(2)} pts/wk`
-    });
-  }
-  
-  // ── 4. Currency Crisis Amplifier ──
-  if (signals.wbInflation && signals.wbInflation.value > CFG.WST_CURRENCY_CRISIS_THRESHOLD) {
-    const velocityMultiplier = 1 + Math.abs(velocityData.velocity) * 0.1;
-    const currencyCrash = Math.min(15, Math.round((signals.wbInflation.value - 15) * 0.6 * wst.debt_sensitivity * velocityMultiplier));
-    if (currencyCrash > 0) {
-      dims.economic = clamp(dims.economic + currencyCrash);
-      dims.food = clamp(dims.food + Math.floor(currencyCrash * 0.5));
-      totalBoost += currencyCrash;
-      audit.push({
-        source: "WST Currency Crisis (Time-Sensitive)",
-        field: "economic+food",
-        delta: currencyCrash,
-        reason: `Inflation ${signals.wbInflation.value.toFixed(1)}% × velocity multiplier ${velocityMultiplier.toFixed(2)}`
-      });
-    }
-  }
-  
-  // ── 5. Critical Juncture Alert ──
-  if (velocityData.critical_juncture) {
-    const boost = Math.min(10, Math.round(velocityData.indicators_crossing * 2.5));
-    dims.political = clamp(dims.political + boost);
-    dims.economic = clamp(dims.economic + Math.floor(boost * 0.5));
-    dims.conflict = clamp(dims.conflict + Math.floor(boost * 0.3));
-    totalBoost += boost;
-    audit.push({
-      source: "WST Critical Juncture",
-      field: "political+economic+conflict",
-      delta: boost,
-      reason: `${velocityData.indicators_crossing} structural indicators crossing: ${velocityData.critical_indicators.join(', ')}`
-    });
-  }
-  
-  // ── 6. Recovery Arc Adjustment ──
-  if (velocityData.recovery_arc !== 0) {
-    const dimsToAdjust = wst.class === "Core" ? ['economic', 'political'] : ['economic', 'food', 'access'];
-    const adjustment = Math.round(velocityData.recovery_arc * 0.3);
-    for (const dim of dimsToAdjust) {
-      dims[dim] = clamp(dims[dim] + adjustment);
-    }
-    totalBoost += adjustment * dimsToAdjust.length;
-    audit.push({
-      source: "WST Recovery Arc",
-      field: dimsToAdjust.join('+'),
-      delta: adjustment * dimsToAdjust.length,
-      reason: `${wst.class} recovery arc steepness ${velocityData.recovery_arc.toFixed(2)} pts (${wst.recovery_rate * 100}% base rate)`
-    });
-  }
-  
-  // ── 7. Transmission Effect ──
-  if (Math.abs(velocityData.transmission_effect) > 0.5) {
-    const transEffect = Math.round(velocityData.transmission_effect * 2);
-    dims.economic = clamp(dims.economic + transEffect);
+    // ── 1. Extractivism Penalty ──────────────────────────────────────────
     if (wst.class === "Periphery") {
-      dims.food = clamp(dims.food + Math.floor(transEffect * 0.4));
-    }
-    totalBoost += transEffect;
-    audit.push({
-      source: "WST Transmission",
-      field: "economic" + (wst.class === "Periphery" ? "+food" : ""),
-      delta: transEffect,
-      reason: `${wst.class} transmission effect ${velocityData.transmission_effect.toFixed(2)} pts`
-    });
-  }
-  
-  // ── 8. Structural Inertia Modification ──
-  const inertia = wst.structural_inertia || 0.5;
-  const inertiaEffect = Math.round(velocityData.velocity * inertia * 0.5);
-  if (Math.abs(inertiaEffect) > 0.5) {
-    dims.political = clamp(dims.political + inertiaEffect);
-    dims.economic = clamp(dims.economic + Math.floor(inertiaEffect * 0.5));
-    totalBoost += inertiaEffect;
-    audit.push({
-      source: "WST Structural Inertia",
-      field: "political+economic",
-      delta: inertiaEffect,
-      reason: `Inertia ${inertia.toFixed(2)} × velocity ${velocityData.velocity.toFixed(2)}`
-    });
-  }
-  
-  // ── 9. Reserve Currency Buffer ──
-  if (wst.reserve_currency) {
-    const buffer = Math.min(5, Math.round(5 * (wst.recovery_rate || 0.8)));
-    dims.economic = clamp(dims.economic - buffer);
-    dims.political = clamp(dims.political - Math.floor(buffer * 0.3));
-    totalBoost -= buffer;
-    audit.push({
-      source: "WST Reserve Currency",
-      field: "economic+political",
-      delta: -buffer,
-      reason: `Reserve currency buffer (${iso}) reduces structural vulnerability`
-    });
-  }
-  
-  // ── 10. Supply Chain Shock Transmission ──
-  if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < -1) {
-    const coreShock = Math.abs(signals.wbGdpGrowth.value) * CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER * 10;
-    const velocityAmplifier = 1 + Math.abs(velocityData.velocity) * 0.05;
-    const transmittedShock = Math.round(coreShock * (1 + (1 - wst.recovery_rate) * 0.5) * velocityAmplifier);
-    
-    if (transmittedShock > 0) {
-      dims.economic = clamp(dims.economic + transmittedShock);
-      dims.conflict = clamp(dims.conflict + Math.floor(transmittedShock * 0.2));
-      totalBoost += transmittedShock;
+      const extractiveBase = wst.extractive_penalty || 15;
+      const gdpAdjust = Math.max(0, (5000 - (wst.gdp_per_capita || 0)) / 5000 * 5);
+      const penalty = Math.min(CFG.WST_EXTRACTIVE_PENALTY_MAX, extractiveBase + gdpAdjust);
+      
+      dims.economic = clamp(dims.economic + penalty);
+      dims.food = clamp(dims.food + Math.floor(penalty * 0.3));
+      dims.access = clamp(dims.access + Math.floor(penalty * 0.4));
+      totalBoost += penalty;
       audit.push({
-        source: "WST Supply Chain (Time-Sensitive)",
-        field: "economic+conflict",
-        delta: transmittedShock,
-        reason: `Global GDP contraction × velocity amplifier ${velocityAmplifier.toFixed(2)}`
+        source: "WST Extractivism",
+        field: "economic+food+access",
+        delta: penalty,
+        reason: `Periphery structural extraction penalty (GDP/capita $${wst.gdp_per_capita?.toLocaleString() || 'unknown'})`
+      });
+    }
+    
+    // ── 2. Debt Sensitivity Shock ────────────────────────────────────────
+    const globalRate = CFG.WST_GLOBAL_INTEREST_RATE || 5.25;
+    const rateShock = Math.max(0, (globalRate - 2) * wst.debt_sensitivity * 2);
+    const debtPenalty = Math.min(20, Math.round(rateShock * 3));
+    
+    if (debtPenalty > 1) {
+      dims.economic = clamp(dims.economic + debtPenalty);
+      dims.political = clamp(dims.political + Math.floor(debtPenalty * 0.4));
+      totalBoost += debtPenalty;
+      audit.push({
+        source: "WST Debt Shock",
+        field: "economic+political",
+        delta: debtPenalty,
+        reason: `${wst.class} debt sensitivity ${(wst.debt_sensitivity * 100).toFixed(0)}% × ${globalRate.toFixed(2)}% global rate`
+      });
+    }
+    
+    // ── 3. Currency Crisis Amplifier ─────────────────────────────────────
+    if (signals.wbInflation && signals.wbInflation.value > CFG.WST_CURRENCY_CRISIS_THRESHOLD) {
+      const currencyCrash = Math.min(15, Math.round((signals.wbInflation.value - 15) * 0.6 * wst.debt_sensitivity));
+      if (currencyCrash > 0) {
+        dims.economic = clamp(dims.economic + currencyCrash);
+        dims.food = clamp(dims.food + Math.floor(currencyCrash * 0.5));
+        totalBoost += currencyCrash;
+        audit.push({
+          source: "WST Currency Crisis",
+          field: "economic+food",
+          delta: currencyCrash,
+          reason: `Inflation ${signals.wbInflation.value.toFixed(1)}% amplifies structural debt burden`
+        });
+      }
+    }
+    
+    // ── 4. Recovery Rate Modification ─────────────────────────────────────
+    if (store && store[iso]) {
+      const recoveryFactor = wst.recovery_rate || 0.5;
+      const fragilityMultiplier = 1 + (1 - recoveryFactor) * 0.5;
+      const momentumFactor = wst.momentum_factor || 0.5;
+      
+      store[iso].__wst = {
+        class: wst.class,
+        tier: wst.tier,
+        recovery_rate: recoveryFactor,
+        structural_weight: wst.structural_weight || 0.5,
+        fragility_multiplier: fragilityMultiplier,
+        debt_sensitivity: wst.debt_sensitivity,
+        reserve_currency: wst.reserve_currency || false,
+        momentum_factor: momentumFactor,
+        gdp_per_capita: wst.gdp_per_capita || 3000,
+        extractive_penalty: wst.extractive_penalty || 10,
+      };
+    }
+    
+    // ── 5. Reserve Currency Buffer ──────────────────────────────────────
+    if (wst.reserve_currency) {
+      const buffer = Math.min(5, Math.round(5 * (wst.recovery_rate || 0.8)));
+      dims.economic = clamp(dims.economic - buffer);
+      dims.political = clamp(dims.political - Math.floor(buffer * 0.3));
+      totalBoost -= buffer;
+      audit.push({
+        source: "WST Reserve Currency",
+        field: "economic+political",
+        delta: -buffer,
+        reason: `Reserve currency buffer (${iso}) reduces structural vulnerability`
+      });
+    }
+    
+    // ── 6. Supply Chain Shock Transmission ──────────────────────────────
+    if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < -1) {
+      const coreShock = Math.abs(signals.wbGdpGrowth.value) * CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER * 10;
+      const transmittedShock = Math.round(coreShock * (1 + (1 - wst.recovery_rate) * 0.5));
+      
+      if (transmittedShock > 0) {
+        dims.economic = clamp(dims.economic + transmittedShock);
+        dims.conflict = clamp(dims.conflict + Math.floor(transmittedShock * 0.2));
+        totalBoost += transmittedShock;
+        audit.push({
+          source: "WST Supply Chain",
+          field: "economic+conflict",
+          delta: transmittedShock,
+          reason: `Global GDP contraction transmits ${transmittedShock} points to ${wst.class} economy`
+        });
+      }
+    }
+  }
+  
+  // ─── EXISTING LIVE DATA ADJUSTMENTS ────────────────────────────────────
+
+  if (signals.quakeMag >= 4.5) {
+    const boost = Math.min(30, Math.round((signals.quakeMag - 3.5) * 6));
+    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    totalBoost += boost;
+    audit.push({ 
+      source: "USGS/EMSC", 
+      field: "displacement+health", 
+      delta: boost, 
+      reason: `M${signals.quakeMag.toFixed(1)} earthquake`, 
+      magnitude: signals.quakeMag 
+    });
+  }
+
+  if (signals.nasaEventCount > 0) {
+    const boost = Math.min(20, signals.nasaEventCount * 7);
+    dims.climate = clamp(dims.climate + boost);
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "NASA EONET", 
+      field: "climate+displacement", 
+      delta: boost, 
+      reason: `${signals.nasaEventCount} active NASA events` 
+    });
+  }
+
+  if (signals.gdacs) {
+    const gdacsBoost = signals.gdacsAlert === "red" ? 20 : signals.gdacsAlert === "orange" ? 12 : 5;
+    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.6));
+    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.4));
+    dims.access = clamp(dims.access + Math.floor(gdacsBoost * 0.3));
+    totalBoost += gdacsBoost;
+    audit.push({ 
+      source: "GDACS", 
+      field: "displacement+health+access", 
+      delta: gdacsBoost, 
+      reason: `${signals.gdacsAlert?.toUpperCase()} alert active` 
+    });
+  }
+
+  if (signals.ifrcCount > 0) {
+    const boost = Math.min(18, signals.ifrcCount * 7);
+    dims.access = clamp(dims.access + boost);
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
+    totalBoost += boost;
+    audit.push({ 
+      source: "IFRC GO", 
+      field: "access+displacement", 
+      delta: boost, 
+      reason: `${signals.ifrcCount} active IFRC operations` 
+    });
+  }
+
+  if (signals.maxTempC >= 35) {
+    const boost = Math.min(25, Math.round((signals.maxTempC - 28) * 2));
+    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.7));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.5));
+    dims.food = clamp(dims.food + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "Open-Meteo", 
+      field: "climate+health+food", 
+      delta: boost, 
+      reason: `${signals.maxTempC}°C extreme heat` 
+    });
+  }
+
+  if (signals.hazards) {
+    const h = signals.hazards;
+    let hazardBoost = 0;
+    const parts = [];
+    
+    if (h.flood_discharge > 100) { 
+      hazardBoost += 8; 
+      parts.push(`${h.flood_discharge.toFixed(0)}m³/s river discharge`); 
+    }
+    if (h.wind_speed > 30) { 
+      hazardBoost += 6; 
+      parts.push(`${h.wind_speed.toFixed(0)}km/h winds`); 
+    }
+    if (h.precip_total > 10) { 
+      hazardBoost += 5; 
+      parts.push(`${h.precip_total.toFixed(0)}mm precipitation`); 
+    }
+    if (h.uv_max > 8) { 
+      hazardBoost += 4; 
+      parts.push(`UV ${h.uv_max.toFixed(1)}`); 
+    }
+    if (h.cloud_avg > 70) { 
+      hazardBoost += 3; 
+      parts.push(`${h.cloud_avg.toFixed(0)}% cloud cover`); 
+    }
+    if (h.lightning_max > 100) { 
+      hazardBoost += 5; 
+      parts.push(`${h.lightning_max.toFixed(0)}J/kg lightning potential`); 
+    }
+    
+    if (hazardBoost > 0) {
+      dims.climate = clamp(dims.climate + hazardBoost);
+      dims.displacement = clamp(dims.displacement + Math.floor(hazardBoost * 0.3));
+      totalBoost += hazardBoost;
+      audit.push({ 
+        source: "Open-Meteo Hazards", 
+        field: "climate+displacement", 
+        delta: hazardBoost, 
+        reason: parts.join(", ") 
       });
     }
   }
 
-  // ── Store velocity data for later use ──
-  store[iso].__wst_velocity = velocityData;
-  store[iso].__wst_adjustment = totalBoost;
+  if (signals.aq && signals.aq.pm25 >= 35) {
+    const boost = Math.min(15, Math.round((signals.aq.pm25 - 25) / 8));
+    if (boost > 0) {
+      dims.health = clamp(dims.health + boost);
+      totalBoost += boost;
+      audit.push({ 
+        source: "Open-Meteo AQ", 
+        field: "health", 
+        delta: boost, 
+        reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³ in ${signals.aq.city}` 
+      });
+    }
+  }
+
+  if (signals.diseaseActive > 1000) {
+    const m = signals.diseaseActive / 1000;
+    const boost = Math.min(25, Math.round(Math.log10(m + 1) * 10));
+    dims.health = clamp(dims.health + boost);
+    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
+    totalBoost += boost;
+    audit.push({ 
+      source: "disease.sh", 
+      field: "health+food", 
+      delta: boost, 
+      reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` 
+    });
+  }
+
+  if (signals.whoOutbreaks && signals.whoOutbreaks.length > 0) {
+    const boost = Math.min(20, signals.whoOutbreaks.length * 8);
+    dims.health = clamp(dims.health + boost);
+    dims.access = clamp(dims.access + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "WHO", 
+      field: "health+access", 
+      delta: boost, 
+      reason: `${signals.whoOutbreaks.length} disease outbreaks detected` 
+    });
+  }
+
+  if (signals.wbInflation && signals.wbInflation.value > 5) {
+    const boost = Math.min(20, Math.round(signals.wbInflation.value / 3));
+    dims.economic = clamp(dims.economic + boost);
+    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
+    totalBoost += boost;
+    audit.push({ 
+      source: "World Bank", 
+      field: "economic+food", 
+      delta: boost, 
+      reason: `Inflation ${signals.wbInflation.value.toFixed(1)}%` 
+    });
+  }
+
+  if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < 0) {
+    const boost = Math.min(18, Math.round(Math.abs(signals.wbGdpGrowth.value) * 2.5));
+    dims.economic = clamp(dims.economic + boost);
+    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "World Bank", 
+      field: "economic+political", 
+      delta: boost, 
+      reason: `GDP growth ${signals.wbGdpGrowth.value.toFixed(1)}% (contraction)` 
+    });
+  }
+
+  if (signals.wbUnemployment && signals.wbUnemployment.value > 10) {
+    const boost = Math.min(15, Math.round(signals.wbUnemployment.value / 4));
+    dims.economic = clamp(dims.economic + boost);
+    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "World Bank", 
+      field: "economic+political", 
+      delta: boost, 
+      reason: `Unemployment ${signals.wbUnemployment.value.toFixed(1)}%` 
+    });
+  }
+
+  if (signals.wbPoverty && signals.wbPoverty.value > 5) {
+    const boost = Math.min(18, Math.round(signals.wbPoverty.value / 3));
+    dims.economic = clamp(dims.economic + boost);
+    dims.food = clamp(dims.food + Math.floor(boost * 0.5));
+    totalBoost += boost;
+    audit.push({ 
+      source: "World Bank", 
+      field: "economic+food", 
+      delta: boost, 
+      reason: `${signals.wbPoverty.value.toFixed(1)}% living in extreme poverty` 
+    });
+  }
+
+  if (signals.totalDisplaced > 0) {
+    const m = signals.totalDisplaced / 1_000_000;
+    const boost = m >= 10 ? 45 
+                : m >= 5 ? 35 
+                : m >= 3 ? 28 
+                : m >= 1.5 ? 20 
+                : m >= 0.5 ? 12 
+                : m >= 0.1 ? 6 
+                : 0;
+    if (boost > 0) {
+      dims.displacement = clamp(dims.displacement + boost);
+      dims.political = clamp(dims.political + Math.floor(boost * 0.4));
+      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
+      dims.access = clamp(dims.access + Math.floor(boost * 0.2));
+      totalBoost += boost;
+      audit.push({ 
+        source: "UNHCR", 
+        field: "displacement+political+economic+access", 
+        delta: boost, 
+        reason: `${m.toFixed(1)}M displaced — massive humanitarian crisis` 
+      });
+    }
+  }
+
+  if (signals.unhcrEmergency) {
+    const boost = signals.unhcrEmergency.level === "critical" ? 18 
+                : signals.unhcrEmergency.level === "high" ? 12 
+                : 6;
+    dims.political = clamp(dims.political + boost);
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.6));
+    totalBoost += boost;
+    audit.push({ 
+      source: "UNHCR Emergency", 
+      field: "political+displacement", 
+      delta: boost, 
+      reason: `Active emergency: ${signals.unhcrEmergency.name} (${signals.unhcrEmergency.level})` 
+    });
+  }
+
+  if (signals.noaa) {
+    const boost = Math.min(15, (signals.noaa.extreme_alerts + signals.noaa.storm_alerts) * 3);
+    if (boost > 0) {
+      dims.climate = clamp(dims.climate + boost);
+      totalBoost += boost;
+      audit.push({ 
+        source: "NOAA", 
+        field: "climate", 
+        delta: boost, 
+        reason: `${signals.noaa.extreme_alerts} extreme + ${signals.noaa.storm_alerts} severe storm alerts active` 
+      });
+    }
+  }
+
+  if (signals.ipcPhase >= 3) {
+    const phaseBoosts = { 3: 20, 4: 35, 5: 50 };
+    const boost = phaseBoosts[signals.ipcPhase] || 0;
+    if (boost > 0) {
+      dims.food = clamp(dims.food + boost);
+      dims.health = clamp(dims.health + Math.floor(boost * 0.6));
+      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
+      totalBoost += boost;
+      audit.push({ 
+        source: "IPC/FEWS NET", 
+        field: "food+health+economic", 
+        delta: boost, 
+        reason: `IPC Phase ${signals.ipcPhase} food insecurity ${signals.ipcPhase >= 4 ? '— EMERGENCY' : ''}` 
+      });
+    }
+  }
+
+  if (signals.acledEvents && signals.acledEvents > 0) {
+    const boost = Math.min(25, Math.round(signals.acledEvents * 0.8 + signals.acledFatalities * 0.05));
+    if (boost > 0) {
+      dims.conflict = clamp(dims.conflict + boost);
+      dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
+      dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+      totalBoost += boost;
+      audit.push({ 
+        source: "ACLED", 
+        field: "conflict+displacement+political", 
+        delta: boost, 
+        reason: `${signals.acledEvents} conflict events, ${signals.acledFatalities || 0} fatalities` 
+      });
+    }
+  }
+
+  if (signals.reliefwebCount && signals.reliefwebCount > 0) {
+    const boost = Math.min(15, signals.reliefwebCount * 5);
+    dims.access = clamp(dims.access + boost);
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+    totalBoost += boost;
+    audit.push({ 
+      source: "ReliefWeb", 
+      field: "access+displacement", 
+      delta: boost, 
+      reason: `${signals.reliefwebCount} active humanitarian reports` 
+    });
+  }
+
+  if (signals.wbRefugees && signals.wbRefugees.value > 1000) {
+    const m = signals.wbRefugees.value / 1_000_000;
+    const boost = m >= 2 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
+    if (boost > 0) {
+      dims.displacement = clamp(dims.displacement + boost);
+      totalBoost += boost;
+      audit.push({ 
+        source: "World Bank Refugees", 
+        field: "displacement", 
+        delta: boost, 
+        reason: `${m.toFixed(1)}M refugees (WB cross-check)` 
+      });
+    }
+  }
+
+  if (CFG.ML_ENABLED && store) {
+    const mlForecast = mlEnhancedForecast(iso, clamp(composite(dims)), store);
+    if (mlForecast.anomaly_probability > 0.6) {
+      const mlBoost = Math.round(mlForecast.anomaly_probability * 12);
+      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.4));
+      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.3));
+      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.2));
+      totalBoost += mlBoost;
+      audit.push({ 
+        source: "ML Anomaly", 
+        field: "political+economic+conflict", 
+        delta: mlBoost, 
+        reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` 
+      });
+    }
+  }
+
+  if (totalBoost > 0) {
+    console.log(`📈 ${iso} live boost: +${totalBoost} (${audit.length} sources)`);
+  }
 
   return { dims, score: clamp(composite(dims)), audit };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ─── BUILD STORE (Updated with Time-Sensitive WST) ──────────────────────
+//  ─── BUILD STORE WITH TIME-SENSITIVE SCORING ─────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
-  
-  // First pass: Build base store with WST classification
   for (const [iso, country] of Object.entries(COUNTRIES)) {
     const fsiScore = country.fsi_score || country.prior || 50;
     const base = Math.round((fsiScore / 120) * 100);
@@ -2180,78 +2430,39 @@ function buildStore(liveData) {
     
     const priorDims = buildPriorDims(adjustedBase, country.types);
     const priorScore = clamp(composite(priorDims));
-    
-    // Initialize WST data
-    const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
-    const wstData = {
-      class: wst.class,
-      tier: wst.tier,
-      recovery_rate: wst.recovery_rate,
-      structural_weight: wst.structural_weight || 0.5,
-      fragility_multiplier: 1 + (1 - wst.recovery_rate) * 0.5,
-      debt_sensitivity: wst.debt_sensitivity,
-      reserve_currency: wst.reserve_currency || false,
-      systemic_coupling: wst.systemic_coupling || 0.5,
-      structural_inertia: wst.structural_inertia || 0.5,
-      recovery_arc_steepness: wst.recovery_arc_steepness || 0.3,
-    };
-    
     let dims, score, audit, signals;
     if (liveData) {
       signals = extractSignals(iso, liveData);
-      // First apply standard live adjustments
-      const standard = applyLiveAdjustments(priorDims, signals, iso, store);
-      // Then apply time-sensitive WST adjustments
-      const wstResult = applyTimeSensitiveWST(standard.dims, signals, iso, store);
-      dims = wstResult.dims;
-      score = wstResult.score;
-      audit = [...standard.audit, ...wstResult.audit];
-      // Recalculate live boost
-      const totalBoost = audit.reduce((sum, item) => sum + (item.delta || 0), 0);
-      store[iso] = {
-        ...country,
-        dims,
-        score,
-        priorScore,
-        liveBoost: totalBoost,
-        audit,
-        signals,
-        spillover: 0,
-        ml_forecast: null,
-        sentiment: null,
-        historical_trend: null,
-        fsi_score: fsiScore,
-        fsi_rank: country.fsi_rank,
-        fsi_band: country.fsi_band,
-        __wst: wstData,
-        __wst_velocity: null,
-        __wst_adjustment: 0,
-      };
+      const adjusted = applyLiveAdjustments(priorDims, signals, iso, store);
+      dims = adjusted.dims;
+      score = adjusted.score;
+      audit = adjusted.audit;
     } else {
-      // No live data, just use prior
-      store[iso] = {
-        ...country,
-        dims: priorDims,
-        score: priorScore,
-        priorScore,
-        liveBoost: 0,
-        audit: [],
-        signals: {},
-        spillover: 0,
-        ml_forecast: null,
-        sentiment: null,
-        historical_trend: null,
-        fsi_score: fsiScore,
-        fsi_rank: country.fsi_rank,
-        fsi_band: country.fsi_band,
-        __wst: wstData,
-        __wst_velocity: null,
-        __wst_adjustment: 0,
-      };
+      dims = priorDims;
+      score = priorScore;
+      audit = [];
+      signals = {};
     }
+    store[iso] = {
+      ...country,
+      dims,
+      score,
+      priorScore,
+      liveBoost: score - priorScore,
+      audit,
+      signals,
+      spillover: 0,
+      ml_forecast: null,
+      sentiment: null,
+      historical_trend: null,
+      fsi_score: fsiScore,
+      fsi_rank: country.fsi_rank,
+      fsi_band: country.fsi_band,
+      __wst: null,
+      __time_sensitive: null,
+    };
   }
   
-  // Second pass: Spillover
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
@@ -2260,7 +2471,38 @@ function buildStore(liveData) {
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
   }
   
-  // Third pass: ML and enhancements
+  // ── APPLY TIME-SENSITIVE SCORING ───────────────────────────────────────
+  if (CFG.WST_ENABLED) {
+    for (const iso in store) {
+      const timeSensitive = computeTimeSensitiveScore(iso, store[iso].score, store, store[iso].dims);
+      store[iso].__time_sensitive = timeSensitive;
+      
+      // Blend the adjusted score with the original for stability
+      const blendWeight = 0.7; // 70% time-sensitive, 30% original
+      store[iso].score = clamp(Math.round(
+        timeSensitive.adjustedScore * blendWeight + 
+        store[iso].score * (1 - blendWeight)
+      ));
+      
+      // Store the time-sensitive metrics
+      store[iso].time_metrics = {
+        momentum: timeSensitive.momentum,
+        velocity: timeSensitive.velocity,
+        acceleration: timeSensitive.acceleration,
+        time_decay: timeSensitive.timeDecay,
+        total_adjustment: timeSensitive.totalAdjustment,
+        raw_score: timeSensitive.rawScore,
+        structural_weight: timeSensitive.structuralWeight,
+        recovery_factor: timeSensitive.recoveryFactor,
+        momentum_adjust: timeSensitive.momentumAdjust,
+        velocity_adjust: timeSensitive.velocityAdjust,
+        acceleration_adjust: timeSensitive.accelerationAdjust,
+        time_decay_adjust: timeSensitive.timeDecayAdjust,
+        recovery_adjust: timeSensitive.recoveryAdjust,
+      };
+    }
+  }
+  
   if (CFG.ML_ENABLED) {
     trainMLModel(store);
   }
@@ -2278,12 +2520,6 @@ function buildStore(liveData) {
     }
     if (CFG.GEO_FENCING_ENABLED) {
       alertManager.checkAlerts(iso, store);
-    }
-    
-    // Compute velocity if not already done
-    if (!store[iso].__wst_velocity) {
-      const hist = seedHistory(iso, store[iso].score);
-      store[iso].__wst_velocity = computeStructuralVelocity(iso, store, hist);
     }
   }
   
@@ -2362,12 +2598,9 @@ function runAnomalyDetection(arr) {
 function computeStoryHeat(iso, store, hist, anom, mlForecast) {
   const c = store[iso];
   const s = c.signals || {};
-  const velocity = c.__wst_velocity || { velocity: 0, momentum: 0, direction: 'stable', critical_juncture: false };
-  
   let heat = 0;
   const drivers = [];
 
-  // ── Velocity ──
   const delta7 = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
   if (Math.abs(delta7) >= 2) {
     const v = Math.min(30, Math.abs(delta7) * 2.2);
@@ -2375,21 +2608,6 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     drivers.push({ driver: "velocity", points: +v.toFixed(1), detail: `${delta7 > 0 ? "+" : ""}${delta7.toFixed(0)} pts in 7 days` });
   }
 
-  // ── Structural Velocity (WST) ──
-  if (Math.abs(velocity.velocity) > 0.3) {
-    const v = Math.min(20, Math.abs(velocity.velocity) * 5);
-    heat += v;
-    drivers.push({ driver: "structural_velocity", points: +v.toFixed(1), detail: `${velocity.direction} at ${Math.abs(velocity.velocity).toFixed(2)} pts/week` });
-  }
-  
-  // ── Critical Juncture ──
-  if (velocity.critical_juncture) {
-    const v = Math.min(25, velocity.indicators_crossing * 5);
-    heat += v;
-    drivers.push({ driver: "critical_juncture", points: v, detail: `${velocity.indicators_crossing} structural indicators crossing` });
-  }
-
-  // ── Statistical anomaly consensus ──
   if (anom.detected) {
     const sevPts = { WATCH: 6, MODERATE: 14, HIGH: 20, CRITICAL: 25, EXTREME: 28 };
     const v = sevPts[anom.severity] || 8;
@@ -2397,14 +2615,12 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     drivers.push({ driver: "anomaly", points: v, detail: `${anom.methods_fired}/4 methods — ${anom.severity}` });
   }
 
-  // ── ML-predicted regime change ──
   if (mlForecast?.anomaly_probability > 0.4) {
     const v = Math.min(18, mlForecast.anomaly_probability * 22);
     heat += v;
     drivers.push({ driver: "ml_forecast", points: +v.toFixed(1), detail: `${(mlForecast.anomaly_probability * 100).toFixed(0)}% anomaly probability` });
   }
 
-  // ── Fresh corroborating evidence ──
   const evidenceCount = s.liveEvidenceCount || 0;
   if (evidenceCount >= 2) {
     const v = Math.min(16, evidenceCount * 2.5);
@@ -2412,7 +2628,17 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     drivers.push({ driver: "evidence_breadth", points: +v.toFixed(1), detail: `${evidenceCount} independent live sources` });
   }
 
-  // ── Threshold-crossing events ──
+  // ── Time-sensitive momentum boost ──────────────────────────────────────
+  if (c.time_metrics && Math.abs(c.time_metrics.momentum) > 0.3) {
+    const momentumHeat = Math.min(12, Math.abs(c.time_metrics.momentum) * 8);
+    heat += momentumHeat;
+    drivers.push({ 
+      driver: "temporal_momentum", 
+      points: +momentumHeat.toFixed(1), 
+      detail: `${c.time_metrics.momentum > 0 ? '↑' : '↓'} ${Math.abs(c.time_metrics.momentum).toFixed(2)} pts/day momentum` 
+    });
+  }
+
   if (s.ipcPhase >= 4) {
     heat += 20;
     drivers.push({ driver: "ipc_threshold", points: 20, detail: `IPC Phase ${s.ipcPhase}` });
@@ -2435,8 +2661,6 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     is_breaking: heat >= 55,
     tier: heat >= 75 ? "BREAKING" : heat >= 55 ? "DEVELOPING" : heat >= 30 ? "NOTABLE" : "ROUTINE",
     top_drivers: drivers.slice(0, 3),
-    structural_velocity: velocity.velocity,
-    critical_juncture: velocity.critical_juncture,
   };
 }
 
@@ -2498,15 +2722,13 @@ function severityColor(score) {
   return score >= 85 ? "#ff375f" : score >= 75 ? "#ff375f" : score >= 60 ? "#ff8c42" : score >= 40 ? "#ffb020" : "#6bc8ff";
 }
 
-function recommendation(score, anomaly, velocity) {
+function recommendation(score, anomaly) {
   const an = anomaly?.detected ? ` Statistical anomaly detected (${anomaly.severity}).` : "";
-  const vel = velocity?.critical_juncture ? ` CRITICAL JUNCTURE: ${velocity.indicators_crossing} structural indicators crossing.` : "";
-  
-  if (score >= 85) return { tier:"IMMEDIATE", text:`Immediate humanitarian response required. All agencies mobilise.${an}${vel}` };
-  if (score >= 75) return { tier:"URGENT",    text:`Urgent response needed. Mobilise resources now.${an}${vel}` };
-  if (score >= 60) return { tier:"HIGH",      text:`Elevated concern. Prepare response and monitor daily.${an}${vel}` };
-  if (score >= 40) return { tier:"MONITOR",   text:`Monitor situation. Maintain readiness.${an}${vel}` };
-  return               { tier:"WATCH",     text:`Routine monitoring. No immediate action required.${an}${vel}` };
+  if (score >= 85) return { tier:"IMMEDIATE", text:`Immediate humanitarian response required. All agencies mobilise.${an}` };
+  if (score >= 75) return { tier:"URGENT",    text:`Urgent response needed. Mobilise resources now.${an}` };
+  if (score >= 60) return { tier:"HIGH",      text:`Elevated concern. Prepare response and monitor daily.${an}` };
+  if (score >= 40) return { tier:"MONITOR",   text:`Monitor situation. Maintain readiness.${an}` };
+  return               { tier:"WATCH",     text:`Routine monitoring. No immediate action required.${an}` };
 }
 
 function generatePDFReport(iso, store) {
@@ -2514,7 +2736,6 @@ function generatePDFReport(iso, store) {
   const hist = seedHistory(iso, c.score);
   const fc = trendForecast(hist, c.score);
   const anom = runAnomalyDetection(hist);
-  const velocity = c.__wst_velocity || { velocity: 0, momentum: 0, direction: 'stable', critical_juncture: false };
   
   return {
     title: `${c.name} Crisis Report`,
@@ -2525,9 +2746,8 @@ function generatePDFReport(iso, store) {
     trend: fc,
     anomaly: anom,
     evidence: c.signals,
-    recommendation: recommendation(c.score, anom, velocity),
-    structural_velocity: velocity,
-    wst_classification: c.__wst,
+    time_metrics: c.time_metrics,
+    recommendation: recommendation(c.score, anom),
   };
 }
 
@@ -2539,15 +2759,14 @@ function generateExportData(iso, store, format = 'json') {
     score: store[iso].score,
     dimensions: store[iso].dims,
     evidence: store[iso].signals,
+    time_metrics: store[iso].time_metrics,
     historical: historyStore.getHistory(iso, 30),
-    wst: store[iso].__wst,
-    wst_velocity: store[iso].__wst_velocity,
   };
 
   if (format === 'csv') {
-    let csv = 'timestamp,score,displacement,economic,food,health,velocity,momentum,critical_juncture\n';
+    let csv = 'timestamp,score,displacement,economic,food,health,momentum,velocity,acceleration\n';
     for (const d of data.historical) {
-      csv += `${new Date(d.timestamp).toISOString()},${d.score},${d.displacement||0},${d.economic||0},${d.food||0},${d.health||0},${data.wst_velocity?.velocity || 0},${data.wst_velocity?.momentum || 0},${data.wst_velocity?.critical_juncture || false}\n`;
+      csv += `${new Date(d.timestamp).toISOString()},${d.score},${d.displacement||0},${d.economic||0},${d.food||0},${d.health||0},${d.momentum||0},${d.velocity||0},${d.acceleration||0}\n`;
     }
     return csv;
   }
@@ -2556,14 +2775,11 @@ function generateExportData(iso, store, format = 'json') {
 
 function generateWidget(iso, store) {
   const c = store[iso];
-  const velocity = c.__wst_velocity || { velocity: 0, direction: 'stable', critical_juncture: false };
-  const wst = c.__wst || { class: 'Unclassified' };
-  
+  const time = c.time_metrics || {};
   return `<div class="gcin-widget" style="background:#0f1a30;border:1px solid #2d3a5e;border-radius:12px;padding:16px;font-family:system-ui;max-width:320px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       <span style="font-size:20px;">${c.flag}</span>
       <span style="font-weight:600;color:#fff;font-size:16px;">${c.name}</span>
-      ${velocity.critical_juncture ? '<span style="background:#ff375f;padding:2px 8px;border-radius:4px;font-size:9px;color:#fff;font-weight:700;">CRITICAL</span>' : ''}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="color:#7c9ec0;font-size:12px;">Crisis Score</span>
@@ -2572,20 +2788,22 @@ function generateWidget(iso, store) {
     <div style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:99px;margin:4px 0 8px;">
       <div style="height:100%;width:${c.score}%;background:${severityColor(c.score)};border-radius:99px;"></div>
     </div>
+    ${time.momentum ? `<div style="display:flex;gap:12px;margin:4px 0;font-size:10px;color:#5a7a9a;">
+      <span>⚡ ${time.momentum > 0 ? '+' : ''}${time.momentum.toFixed(2)}/day</span>
+      <span>📈 ${(time.velocity || 0).toFixed(2)}</span>
+    </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
       ${c.types.slice(0,3).map(t => `<span style="background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:4px;font-size:10px;color:#b8cce8;">${ARC[t]?.l || t}</span>`).join('')}
-      <span style="background:rgba(191,127,255,0.12);padding:2px 8px;border-radius:4px;font-size:9px;color:#bf7fff;">${wst.class}</span>
     </div>
-    <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.04);padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.04);padding-top:8px;display:flex;justify-content:space-between;">
       <span style="font-size:10px;color:#5a7a9a;">${severityLabel(c.score)}</span>
-      ${velocity.velocity ? `<span style="font-size:10px;color:${velocity.velocity > 0 ? '#ff6b4a' : '#6bc8ff'};">${velocity.velocity > 0 ? '↑' : '↓'} ${Math.abs(velocity.velocity).toFixed(1)}/wk</span>` : ''}
       <a href="${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}" style="font-size:10px;color:#6bc8ff;text-decoration:none;">Read →</a>
     </div>
   </div>`;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ─── PAYLOAD BUILDER (Updated with Time-Sensitive WST) ──────────────────
+//  ─── PAYLOAD BUILDER ──────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 function buildPayload(iso, store, ranked, opts = {}) {
@@ -2597,7 +2815,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
   const delta7 = Math.round(hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)]);
   const s = c.signals || {};
   const heat = computeStoryHeat(iso, store, hist, anom, c.ml_forecast);
-  const velocity = c.__wst_velocity || { velocity: 0, momentum: 0, direction: 'stable', critical_juncture: false, indicators_crossing: 0, critical_indicators: [] };
 
   const base = {
     iso,
@@ -2689,6 +2906,23 @@ function buildPayload(iso, store, ranked, opts = {}) {
       points: c.historical_trend.points,
       change: c.historical_trend.change,
     } : null,
+    time_metrics: c.time_metrics ? {
+      momentum: c.time_metrics.momentum,
+      velocity: c.time_metrics.velocity,
+      acceleration: c.time_metrics.acceleration,
+      time_decay: c.time_metrics.time_decay,
+      total_adjustment: c.time_metrics.total_adjustment,
+      raw_score: c.time_metrics.raw_score,
+      structural_weight: c.time_metrics.structural_weight,
+      recovery_factor: c.time_metrics.recovery_factor,
+      adjustment_breakdown: {
+        momentum: c.time_metrics.momentum_adjust,
+        velocity: c.time_metrics.velocity_adjust,
+        acceleration: c.time_metrics.acceleration_adjust,
+        time_decay: c.time_metrics.time_decay_adjust,
+        recovery: c.time_metrics.recovery_adjust,
+      }
+    } : null,
     export: {
       pdf: generatePDFReport(iso, store),
       widget: generateWidget(iso, store),
@@ -2700,7 +2934,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       final_score: c.score,
       live_boost: c.liveBoost,
     },
-    recommendation: recommendation(c.score, anom, velocity),
+    recommendation: recommendation(c.score, anom),
     region: c.region,
     fsi: {
       score: c.fsi_score,
@@ -2715,10 +2949,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       fragility_multiplier: c.__wst.fragility_multiplier,
       debt_sensitivity: c.__wst.debt_sensitivity,
       reserve_currency: c.__wst.reserve_currency,
-      systemic_coupling: c.__wst.systemic_coupling,
-      structural_inertia: c.__wst.structural_inertia,
-      recovery_arc_steepness: c.__wst.recovery_arc_steepness,
-      velocity: velocity,
+      momentum_factor: c.__wst.momentum_factor,
     } : null,
   };
 
@@ -2732,7 +2963,566 @@ function buildPayload(iso, store, ranked, opts = {}) {
 }
 
 // ─── SEO HELPERS ──────────────────────────────────────────────────────────
-// [SEO helpers remain the same as v9.0 - omitted for brevity but should be included]
+
+function buildKeywords(iso, store) {
+  const c = store[iso];
+  const s = c.signals || {};
+  const kws = new Set();
+  const name = c.name;
+
+  kws.add(`${name} humanitarian crisis`);
+  kws.add(`${name} crisis ${new Date().getFullYear()}`);
+  kws.add(`${name} emergency`);
+  kws.add(`${name} disaster`);
+
+  for (const t of c.types) {
+    const arc = ARC[t];
+    if (arc?.seo) { kws.add(`${name} ${arc.seo}`); kws.add(arc.seo); }
+  }
+
+  if (s.totalDisplaced > 0) { kws.add(`${name} refugees`); kws.add(`${name} internally displaced`); kws.add(`${name} displacement crisis`); }
+  if (s.quakeMag >= 5.0) { kws.add(`${name} earthquake`); kws.add(`earthquake ${name} ${new Date().getFullYear()}`); }
+  if (s.gdacs) { kws.add(`${name} disaster alert`); kws.add(`${name} GDACS`); }
+  if (s.diseaseActive > 1000) { kws.add(`${name} COVID-19`); kws.add(`${name} coronavirus`); }
+  if (s.wbInflation?.value > 10) { kws.add(`${name} inflation crisis`); kws.add(`${name} economic crisis`); }
+  if (s.wbGdpGrowth?.value < 0) { kws.add(`${name} GDP contraction`); kws.add(`${name} recession`); }
+
+  kws.add(`${c.region} humanitarian crisis`);
+  kws.add(`${c.region} emergency`);
+
+  kws.add(`what is happening in ${name}`);
+  kws.add(`${name} crisis latest news`);
+  kws.add(`${name} humanitarian situation`);
+  kws.add(`how to help ${name} crisis`);
+  kws.add(`${name} aid response`);
+  kws.add(`${name} conflict update`);
+
+  return [...kws].slice(0, 35);
+}
+
+function buildMetaDescription(iso, store) {
+  const c = store[iso];
+  const s = c.signals || {};
+  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
+  const severity = severityLabel(c.score);
+  
+  let parts = [`${c.name} humanitarian crisis update: urgency score ${c.score}/100 (${severity}), ranked #${rank} globally`];
+  if (s.totalDisplaced > 0) parts.push(`${fmtPop(s.totalDisplaced)} displaced`);
+  if (s.diseaseActive > 1000) parts.push(`${s.diseaseActive.toLocaleString()} COVID-19 cases`);
+  if (s.ipcPhase >= 3) parts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
+  if (s.quakeMag >= 4.5) parts.push(`M${s.quakeMag.toFixed(1)} earthquake`);
+  
+  return parts.slice(0, 3).join('. ') + '.';
+}
+
+function buildRelatedStories(iso, store, ranked) {
+  const c = store[iso];
+  return ranked
+    .filter(r => r !== iso && (COUNTRIES[r].region === c.region || (COUNTRIES[iso].adj || []).includes(r)))
+    .slice(0, 5)
+    .map(r => ({
+      iso: r,
+      name: store[r].name,
+      score: store[r].score,
+      slug: slugify(store[r].name),
+      url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(store[r].name)}`,
+    }));
+}
+
+function buildJSONLD(iso, store, ranked) {
+  const c = store[iso];
+  const slug = slugify(c.name);
+  const url = `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`;
+  const now = new Date().toISOString();
+  const severity = severityLabel(c.score);
+  const keywords = buildKeywords(iso, store);
+  const faqs = buildFAQs(iso, store, ranked);
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "NewsArticle",
+        "@id": `${url}#article`,
+        "headline": `${c.name} Crisis — Score ${c.score}/100 (${severity})`,
+        "description": buildMetaDescription(iso, store),
+        "url": url,
+        "datePublished": now,
+        "dateModified": now,
+        "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
+        "publisher": {
+          "@type": "Organization",
+          "name": CFG.ARTICLE_SITE_NAME,
+          "url": CFG.ARTICLE_BASE_URL,
+          "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO },
+        },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+        "articleSection": "Humanitarian Crisis",
+        "keywords": keywords.slice(0, 15).join(", "),
+        "about": {
+          "@type": "Place",
+          "name": c.name,
+          "geo": { "@type": "GeoCoordinates", "longitude": c.cent[0], "latitude": c.cent[1] },
+        },
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${url}#faq`,
+        "mainEntity": faqs.map(f => ({
+          "@type": "Question",
+          "name": f.q,
+          "acceptedAnswer": { "@type": "Answer", "text": f.a },
+        })),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": CFG.ARTICLE_BASE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Crisis Hub", "item": `${CFG.ARTICLE_BASE_URL}/crisis` },
+          { "@type": "ListItem", "position": 3, "name": c.name, "item": url },
+        ],
+      },
+    ],
+  };
+}
+
+function buildFAQs(iso, store, ranked) {
+  const c = store[iso];
+  const s = c.signals || {};
+  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
+  const severity = severityLabel(c.score);
+  const faqs = [];
+
+  faqs.push({
+    q: `What is the current humanitarian situation in ${c.name}?`,
+    a: `${c.name} currently has a crisis urgency score of ${c.score}/100, rated ${severity}, ranking #${rank} of ${Object.keys(store).length} countries monitored globally. ${c.types.map(t => ARC[t]?.l).filter(Boolean).slice(0, 2).join(" and ")} are the primary crisis drivers.`,
+  });
+
+  if (s.totalDisplaced > 0) {
+    faqs.push({
+      q: `How many people have been displaced from ${c.name}?`,
+      a: `UNHCR data indicates approximately ${fmtPop(s.totalDisplaced)} people have been displaced, including${s.refugees ? ` ${fmtPop(s.refugees)} refugees` : ""}${s.idps ? `, ${fmtPop(s.idps)} internally displaced persons (IDPs)` : ""}${s.asylum_seekers ? `, and ${fmtPop(s.asylum_seekers)} asylum-seekers` : ""}.`,
+    });
+  }
+
+  if (s.ipcPhase >= 3) {
+    faqs.push({
+      q: `How many people are facing food insecurity in ${c.name}?`,
+      a: `According to IPC Global classifications, approximately ${fmtPop(s.ipcTotalPop || s.ipcPopulation)} people in ${c.name} face Phase ${s.ipcPhase} (${s.ipcPhase >= 4 ? "Emergency" : "Crisis"}) levels of acute food insecurity.`,
+    });
+  }
+
+  if (s.diseaseActive > 1000) {
+    faqs.push({
+      q: `What disease activity is being tracked in ${c.name}?`,
+      a: `Live tracking shows ${s.diseaseActive.toLocaleString()} active COVID-19 cases in ${c.name}.`,
+    });
+  }
+
+  if (s.wbInflation?.value > 5 || s.wbGdpGrowth?.value < 0) {
+    faqs.push({
+      q: `What is the economic situation in ${c.name}?`,
+      a: `World Bank data${s.wbInflation ? ` shows inflation at ${s.wbInflation.value.toFixed(1)}%` : ""}${s.wbGdpGrowth?.value < 0 ? ` with GDP contraction of ${s.wbGdpGrowth.value.toFixed(1)}%` : ""}${!s.wbInflation && !s.wbGdpGrowth ? ' is under pressure' : ''}.`,
+    });
+  }
+
+  faqs.push({
+    q: `How can I help people affected by the crisis in ${c.name}?`,
+    a: `You can support the humanitarian response in ${c.name} by donating to organisations active in the region, including UNHCR, WFP, UNICEF, MSF, and local NGOs. Advocacy for increased international funding and policy attention also makes a significant difference.`,
+  });
+
+  return faqs;
+}
+
+function buildSEOArticle(iso, store, ranked) {
+  const c = store[iso];
+  const s = c.signals || {};
+  const hist = seedHistory(iso, c.score);
+  const anom = runAnomalyDetection(hist);
+  const fc = trendForecast(hist, c.score);
+  const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
+  const severity = severityLabel(c.score);
+  const slug = slugify(c.name);
+  const url = `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  
+  const topDims = [...DIMS].map(d => ({ ...d, val: c.dims[d.k] || 0 })).sort((a, b) => b.val - a.val);
+  const delta = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
+  const trendWord = delta > 5 ? "rapidly deteriorating" : delta > 2 ? "worsening" : delta < -5 ? "significantly improving" : delta < -2 ? "improving" : "largely stable";
+  const keywords = buildKeywords(iso, store);
+  const faqs = buildFAQs(iso, store, ranked);
+
+  const primaryTypes = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(" and ");
+  
+  const headlineCandidates = [];
+
+  if (s.totalDisplaced > 1_000_000) {
+    headlineCandidates.push({
+      weight: 100 + Math.min(50, s.totalDisplaced / 200_000),
+      text: `${fmtPop(s.totalDisplaced)} Displaced: Inside ${c.name}'s ${primaryTypes} Emergency`,
+    });
+  }
+  if (s.ipcPhase >= 4) {
+    headlineCandidates.push({
+      weight: s.ipcPhase === 5 ? 130 : 105,
+      text: `${c.name} Food Crisis Hits IPC Phase ${s.ipcPhase}${s.ipcPhase === 5 ? " — Famine Classification" : " — Emergency Level"}: ${fmtPop(s.ipcTotalPop || s.ipcPopulation)} at Risk`,
+    });
+  }
+  if (s.gdacsAlert === "red") {
+    headlineCandidates.push({
+      weight: 115,
+      text: `RED ALERT: ${c.name} Under Active GDACS Disaster Warning Right Now`,
+    });
+  } else if (s.gdacsAlert === "orange") {
+    headlineCandidates.push({
+      weight: 90,
+      text: `${c.name} Issued Orange Disaster Alert — What's Happening on the Ground`,
+    });
+  }
+  if (s.quakeMag >= 6.0) {
+    headlineCandidates.push({
+      weight: 95 + (s.quakeMag - 6) * 8,
+      text: `M${s.quakeMag.toFixed(1)} Earthquake Strikes ${c.name}${s.quakePlace ? ` Near ${s.quakePlace}` : ""} — Live Emergency Tracker`,
+    });
+  }
+  if (s.acledFatalities > 50) {
+    headlineCandidates.push({
+      weight: 100 + Math.min(30, s.acledFatalities / 20),
+      text: `${c.name} Conflict Escalates: ${s.acledFatalities.toLocaleString()} Fatalities From ${s.acledEvents} Recorded Events`,
+    });
+  }
+  if (s.whoOutbreaks?.length > 0) {
+    headlineCandidates.push({
+      weight: 85 + s.whoOutbreaks.length * 5,
+      text: `WHO Confirms ${s.whoOutbreaks.map(o => o.disease[0].toUpperCase() + o.disease.slice(1)).join(" & ")} Outbreak in ${c.name}`,
+    });
+  }
+  if (s.diseaseActive > 5000) {
+    headlineCandidates.push({
+      weight: 70,
+      text: `${c.name}'s Health System Strained by ${s.diseaseActive.toLocaleString()} Active COVID-19 Cases`,
+    });
+  }
+  if (anom.detected && anom.severity === "EXTREME") {
+    headlineCandidates.push({
+      weight: 110,
+      text: `Data Alert: ${c.name} Crisis Trajectory Just Broke Pattern — ${anom.methods_fired}/4 Statistical Models Agree`,
+    });
+  }
+  if (c.ml_forecast?.anomaly_probability > 0.7) {
+    headlineCandidates.push({
+      weight: 90,
+      text: `AI Forecast Flags ${c.name}: ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}% Anomaly Probability in Crisis Trend`,
+    });
+  }
+  if (delta > 8) {
+    headlineCandidates.push({
+      weight: 80 + delta,
+      text: `${c.name} Crisis Score Jumps ${delta.toFixed(0)} Points in a Week — Now ${severity}`,
+    });
+  }
+
+  headlineCandidates.push({
+    weight: 10,
+    text: `${c.name} Crisis Monitor ${now.getFullYear()}: Urgency Score ${c.score}/100 (${severity}), Ranked #${rank} Globally`,
+  });
+
+  headlineCandidates.sort((a, b) => b.weight - a.weight);
+  let headline = headlineCandidates[0].text;
+
+  if (c.ml_forecast?.anomaly_probability > 0.6 && !headline.includes("Anomaly")) {
+    headline += ` ⚡ AI Flags ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}% Anomaly Risk`;
+  }
+
+  const dekParts = [];
+  if (s.totalDisplaced > 0 && !headline.includes("Displaced")) dekParts.push(`${fmtPop(s.totalDisplaced)} displaced`);
+  if (s.ipcPhase >= 3 && !headline.includes("IPC")) dekParts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
+  if (s.acledEvents > 0 && !headline.includes("Fatalities")) dekParts.push(`${s.acledEvents} conflict events tracked`);
+  if (fc.esc) dekParts.push(`7-day forecast: ${fc.fc}/100 (${fc.trend})`);
+  dekParts.push(`Live data from 20+ sources · Updated ${dateStr}`);
+  const dek = dekParts.slice(0, 3).join(" · ");
+
+  const metaDescription = buildMetaDescription(iso, store);
+  
+  const paragraphs = [];
+
+  const ledeHook = s.totalDisplaced > 1_000_000
+    ? `More than ${fmtPop(s.totalDisplaced)} people have been forced from their homes in ${c.name}`
+    : s.diseaseActive > 5000
+    ? `Active COVID-19 case counts are stretching ${c.name}'s healthcare system`
+    : s.quakeMag >= 6.0
+    ? `A magnitude ${s.quakeMag.toFixed(1)} earthquake has struck ${c.name}, causing widespread damage`
+    : `The humanitarian situation in ${c.name} has reached ${severity} levels`;
+
+  paragraphs.push(`## Overview\n\n${ledeHook}, according to the latest live data compiled from 20+ global sources. Crisis Monitor's real-time urgency index places ${c.name} at **${c.score} out of 100**, rated **${severity}** and ranked **#${rank} of ${Object.keys(store).length} countries** tracked globally as of ${dateStr}.`);
+
+  if (c.ml_forecast) {
+    paragraphs.push(`## Machine Learning Forecast\n\nAdvanced AI analysis predicts a ${c.ml_forecast.trend} trajectory with ${Math.round(c.ml_forecast.confidence * 100)}% confidence. The model projects the score reaching **${c.ml_forecast.fc}/100** with an anomaly probability of ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%.`);
+  }
+
+  if (c.sentiment && c.sentiment.is_crisis) {
+    paragraphs.push(`## Sentiment Analysis\n\nNews and humanitarian reporting sentiment for ${c.name} is **${c.sentiment.label}** (score: ${c.sentiment.score.toFixed(2)}), with a crisis intensity of ${(c.sentiment.crisis_intensity * 100).toFixed(0)}%. Key terms detected: ${c.sentiment.key_terms.slice(0, 5).join(', ')}.`);
+  }
+
+  if (c.historical_trend && c.historical_trend.points >= 5) {
+    paragraphs.push(`## Historical Context\n\nOver the past ${c.historical_trend.points} data points, the crisis in ${c.name} has been **${c.historical_trend.direction}** at a rate of ${Math.abs(c.historical_trend.slope).toFixed(1)} points per week.`);
+  }
+
+  if (c.time_metrics) {
+    paragraphs.push(`## Time-Sensitive Analysis\n\nMomentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)} pts/day | Velocity: ${c.time_metrics.velocity.toFixed(2)} | Acceleration: ${c.time_metrics.acceleration.toFixed(2)}\n\nStructural weight: ${(c.time_metrics.structural_weight * 100).toFixed(0)}% persistence | Recovery factor: ${(c.time_metrics.recovery_factor * 100).toFixed(0)}%`);
+  }
+
+  if (s.totalDisplaced > 0) {
+    const parts = [];
+    if (s.refugees) parts.push(`${fmtPop(s.refugees)} registered refugees`);
+    if (s.idps) parts.push(`${fmtPop(s.idps)} internally displaced persons (IDPs)`);
+    if (s.asylum_seekers) parts.push(`${fmtPop(s.asylum_seekers)} asylum-seekers`);
+    paragraphs.push(`## Displacement\n\nUNHCR data records **${fmtPop(s.totalDisplaced)} people** displaced${parts.length ? `, comprising ${parts.join(", ")}` : ""}.`);
+  }
+
+  if (s.diseaseActive > 1000) {
+    paragraphs.push(`## Public Health\n\nLive tracking shows **${s.diseaseActive.toLocaleString()} active COVID-19 cases** in ${c.name}.`);
+  }
+
+  if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
+    const diseases = s.whoOutbreaks.map(o => o.disease).join(', ');
+    paragraphs.push(`## Disease Outbreaks\n\nWHO reports active **${diseases}** outbreaks in ${c.name}.`);
+  }
+
+  if (s.ipcPhase >= 3) {
+    const ipcLabel = s.ipcPhase === 5 ? "Catastrophe/Famine" : s.ipcPhase === 4 ? "Emergency" : "Crisis";
+    paragraphs.push(`## Food Security Crisis\n\nThe Integrated Food Security Phase Classification (IPC) has classified ${c.name} at **Phase ${s.ipcPhase} (${ipcLabel})**. An estimated **${fmtPop(s.ipcTotalPop || s.ipcPopulation)} people** require urgent humanitarian food assistance.`);
+  }
+
+  if (s.wbInflation?.value > 5 || s.wbGdpGrowth?.value < 0) {
+    const econParts = [];
+    if (s.wbInflation) econParts.push(`inflation at **${s.wbInflation.value.toFixed(1)}%**`);
+    if (s.wbGdpGrowth?.value < 0) econParts.push(`GDP contraction of **${s.wbGdpGrowth.value.toFixed(1)}%**`);
+    paragraphs.push(`## Economic Pressure\n\nWorld Bank indicators show ${econParts.join(" and ")}, compounding humanitarian strain.`);
+  }
+
+  if (s.gdacs || s.quakeMag >= 4.5) {
+    const disasterLine = s.gdacs
+      ? `GDACS has a **${s.gdacsAlert?.toUpperCase()} alert** for ${c.name}.`
+      : `USGS/EMSC seismic monitoring recorded a **magnitude ${s.quakeMag.toFixed(1)} earthquake** near ${s.quakePlace || "the region"}.`;
+    paragraphs.push(`## Disaster Alert\n\n${disasterLine}`);
+  }
+
+  if (s.acledEvents > 0) {
+    paragraphs.push(`## Conflict Report\n\nACLED records **${s.acledEvents} conflict events** in ${c.name} with **${s.acledFatalities || 0} fatalities**.`);
+  }
+
+  if (anom.detected) {
+    paragraphs.push(`## Statistical Alert: Anomaly Detected\n\nCrisis Monitor's ensemble anomaly detection flagged **${anom.methods_fired}/4 methods** in agreement: a statistically significant **${anom.direction}** trajectory (severity: **${anom.severity}**).`);
+  }
+
+  const dimRows = topDims.slice(0, 5).map(d => `- **${d.l}**: ${c.dims[d.k]}/100 (weight: ${(d.w * 100).toFixed(0)}%)`).join("\n");
+  paragraphs.push(`## Urgency Score Breakdown\n\n${dimRows}\n\nAdjusted **${c.liveBoost > 0 ? "+" : ""}${c.liveBoost} points** from the prior estimate of ${c.priorScore}/100 based on live signals.`);
+
+  const needsList = [...new Set(c.types.flatMap(t => ARC[t]?.n || []))].slice(0, 5);
+  paragraphs.push(`## Response Priorities\n\nRecommended response tier: **${recommendation(c.score, anom).tier}**: ${recommendation(c.score, anom).text}\n\nHumanitarian actors are calling for immediate action on: **${needsList.join(", ")}**.`);
+
+  paragraphs.push(`## Frequently Asked Questions\n\n${faqs.map(f => `**${f.q}**\n\n${f.a}`).join("\n\n")}`);
+
+  const articleBody = paragraphs.join("\n\n");
+  const { words, minutes } = estimateReadTime(articleBody);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${headline} | ${CFG.ARTICLE_SITE_NAME}</title>
+  <meta name="description" content="${metaDescription}">
+  <meta name="keywords" content="${keywords.slice(0, 20).join(", ")}">
+  <meta name="author" content="${CFG.ARTICLE_AUTHOR}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="${url}">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="${headline}">
+  <meta property="og:description" content="${dek}">
+  <meta property="og:url" content="${url}">
+  <meta property="og:site_name" content="${CFG.ARTICLE_SITE_NAME}">
+  <meta property="og:image" content="${CFG.ARTICLE_LOGO}">
+  <meta property="article:published_time" content="${now.toISOString()}">
+  <meta property="article:section" content="Humanitarian Crisis">
+  <meta property="article:tag" content="${keywords.slice(0, 6).join(", ")}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="${CFG.ARTICLE_TWITTER}">
+  <meta name="twitter:title" content="${headline}">
+  <meta name="twitter:description" content="${dek}">
+  <meta name="twitter:image" content="${CFG.ARTICLE_LOGO}">
+  <script type="application/ld+json">${JSON.stringify(buildJSONLD(iso, store, ranked), null, 2)}</script>
+  <style>
+    body { background: #030b18; color: #eef4ff; font-family: system-ui; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.7; }
+    h1 { font-family: 'Georgia', serif; font-size: 2.5rem; font-weight: 800; }
+    .severity-badge { display: inline-block; padding: 0.25rem 0.8rem; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .severity-badge.catastrophic { background: rgba(255,55,95,0.18); color: #ff375f; border: 1px solid rgba(255,55,95,0.35); }
+    .severity-badge.critical { background: rgba(255,55,95,0.14); color: #ff375f; border: 1px solid rgba(255,55,95,0.3); }
+    .severity-badge.high { background: rgba(255,140,66,0.14); color: #ff8c42; border: 1px solid rgba(255,140,66,0.3); }
+    .severity-badge.elevated { background: rgba(255,176,32,0.12); color: #ffb020; border: 1px solid rgba(255,176,32,0.25); }
+    .severity-badge.moderate { background: rgba(0,200,255,0.1); color: #6bc8ff; border: 1px solid rgba(0,200,255,0.2); }
+    .urgency-score { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); margin: 0.5rem 0 1rem; }
+    .score-number { font-size: 2.5rem; font-weight: 800; }
+    .score-denom { font-size: 1rem; color: #5a7a9a; }
+    .score-label { font-size: 0.8rem; color: #5a7a9a; }
+    .score-rank { font-size: 0.8rem; color: #5a7a9a; margin-left: auto; }
+    .article-meta { display: flex; gap: 1.5rem; font-size: 0.8rem; color: #5a7a9a; flex-wrap: wrap; }
+    .article-body p { margin-bottom: 1rem; }
+    .article-body h2 { font-family: 'Georgia', serif; font-size: 1.6rem; margin: 1.5rem 0 0.5rem; }
+    .article-body h3 { font-family: 'Georgia', serif; font-size: 1.2rem; margin: 1rem 0 0.25rem; }
+    .article-footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.8rem; color: #5a7a9a; }
+    .widget-container { background: #0f1a30; border: 1px solid #2d3a5e; border-radius: 12px; padding: 16px; max-width: 320px; margin-top: 1rem; }
+    .ml-tag { display: inline-block; background: rgba(191,127,255,0.12); color: #bf7fff; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; border: 1px solid rgba(191,127,255,0.15); }
+    .time-metrics { display: flex; gap: 1rem; font-size: 0.75rem; color: #5a7a9a; flex-wrap: wrap; margin: 0.25rem 0 0.5rem; }
+    .time-metrics span { background: rgba(255,255,255,0.02); padding: 0.1rem 0.4rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <article>
+    <header>
+      <div class="severity-badge ${severity.toLowerCase()}">${severityEmoji(c.score)} ${severity}</div>
+      <h1>${headline}</h1>
+      <div class="article-meta">
+        <time>${dateStr}</time>
+        <span>${words} words</span>
+        <span>${minutes} min read</span>
+        <span>${CFG.ARTICLE_AUTHOR}</span>
+        ${c.ml_forecast ? `<span class="ml-tag">🧠 ML Enhanced</span>` : ''}
+      </div>
+      ${c.time_metrics ? `<div class="time-metrics">
+        <span>⚡ Momentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)}/day</span>
+        <span>📈 Velocity: ${c.time_metrics.velocity.toFixed(2)}</span>
+        <span>🚀 Acceleration: ${c.time_metrics.acceleration.toFixed(2)}</span>
+        <span>⏳ Decay: ${(c.time_metrics.time_decay * 100).toFixed(0)}%</span>
+      </div>` : ''}
+      <div class="urgency-score">
+        <span class="score-number">${c.score}</span><span class="score-denom">/100</span>
+        <span class="score-label">Urgency Score</span>
+        <span class="score-rank">#${rank} of ${Object.keys(store).length} countries</span>
+      </div>
+      <p style="font-size:1.15rem; color: #d8e6ff; font-weight:500; margin-top:0.5rem;">${dek}</p>
+      <p style="font-size:1rem; color: #8aa8c8; margin-top:0.25rem;">${metaDescription}</p>
+    </header>
+    <div class="article-body">
+      ${articleBody.split('\n\n').filter(p => p.trim()).map(p => {
+        if (p.startsWith('##')) {
+          const level = p.match(/^##+/)[0].length;
+          const text = p.replace(/^##+\s*/, '');
+          return `<h${level}>${text}</h${level}>`;
+        }
+        if (p.startsWith('-')) {
+          return `<ul>${p.split('\n').map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('')}</ul>`;
+        }
+        return `<p>${p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`;
+      }).join('')}
+    </div>
+    <div class="widget-container">
+      ${generateWidget(iso, store)}
+    </div>
+    <footer class="article-footer">
+      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
+      <p><strong>FSI 2024 Baseline:</strong> Fund for Peace, Fragile States Index 2024.</p>
+      <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with time-sensitive scoring.</p>
+      <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
+    </footer>
+  </article>
+</body>
+</html>`;
+
+return {
+    headline,
+    dek,
+    slug,
+    url,
+    metaDescription,
+    keywords,
+    faqs,
+    body_markdown: articleBody,
+    body_html: html,
+    word_count: words,
+    read_time_minutes: minutes,
+  };
+}
+
+function buildSitemap(payloads) {
+  const now = new Date().toISOString();
+  const items = payloads.map(p => `
+  <url>
+    <loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>${p.score >= 80 ? "1.0" : p.score >= 60 ? "0.9" : p.score >= 40 ? "0.8" : "0.7"}</priority>
+    <news:news>
+      <news:publication>
+        <news:name>${CFG.ARTICLE_SITE_NAME}</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${now}</news:publication_date>
+      <news:title>${p.name} Crisis — Score ${p.score}/100 (${p.severity})</news:title>
+      <news:keywords>${(p.seo_keywords || []).slice(0, 10).join(", ")}</news:keywords>
+    </news:news>
+  </url>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${items}
+</urlset>`;
+}
+
+function escapeXml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildRSSFeed(finalIsos, store, ranked) {
+  const now = new Date();
+  const MAX_ITEMS = 30;
+
+  const items = finalIsos.slice(0, MAX_ITEMS).map(iso => {
+    const article = buildSEOArticle(iso, store, ranked);
+    const c = store[iso];
+    const categories = [...new Set(c.types.map(t => ARC[t]?.l || t))];
+    const heat = c.__heat;
+
+    return `
+  <item>
+    <title>${escapeXml(article.headline)}</title>
+    <link>${article.url}</link>
+    <guid isPermaLink="true">${article.url}</guid>
+    <pubDate>${now.toUTCString()}</pubDate>
+    <description>${escapeXml(article.dek || article.metaDescription)}</description>
+    ${categories.map(cat => `<category>${escapeXml(cat)}</category>`).join("\n    ")}
+    ${heat ? `<category>Story Heat: ${heat.tier}</category>` : ""}
+    <category>FSI 2024: ${c.fsi_band || "Not ranked"}</category>
+    <category>WST: ${c.__wst ? c.__wst.class : "Unclassified"}</category>
+    <media:content url="${CFG.ARTICLE_LOGO}" medium="image"/>
+    <content:encoded><![CDATA[${article.body_html}]]></content:encoded>
+  </item>`;
+  }).join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:media="http://search.yahoo.com/mrss/"
+     xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>${CFG.ARTICLE_SITE_NAME}</title>
+  <link>${CFG.ARTICLE_BASE_URL}</link>
+  <atom:link href="${CFG.ARTICLE_BASE_URL}/api/top-story?format=rss" rel="self" type="application/rss+xml"/>
+  <description>Live, sensor-driven global humanitarian crisis intelligence — with FSI 2024 baseline, World Systems Theory structural analysis, and time-sensitive momentum scoring.</description>
+  <language>en-us</language>
+  <lastBuildDate>${now.toUTCString()}</lastBuildDate>
+  <ttl>5</ttl>
+${items}
+</channel>
+</rss>`;
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ─── MAIN HANDLER ──────────────────────────────────────────────────────────
@@ -2906,7 +3696,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ─── WST Endpoint ──────────────────────────────────────────────────
     if (params.wst) {
       const wstSummary = Object.keys(store)
         .filter(iso => store[iso].__wst)
@@ -2922,36 +3711,29 @@ export default async function handler(req, res) {
           fragility_multiplier: store[iso].__wst.fragility_multiplier,
           debt_sensitivity: store[iso].__wst.debt_sensitivity,
           reserve_currency: store[iso].__wst.reserve_currency,
-          velocity: store[iso].__wst_velocity?.velocity || 0,
-          momentum: store[iso].__wst_velocity?.momentum || 0,
-          direction: store[iso].__wst_velocity?.direction || 'stable',
-          critical_juncture: store[iso].__wst_velocity?.critical_juncture || false,
-          indicators_crossing: store[iso].__wst_velocity?.indicators_crossing || 0,
+          momentum_factor: store[iso].__wst.momentum_factor,
+          momentum: store[iso].time_metrics?.momentum || 0,
+          velocity: store[iso].time_metrics?.velocity || 0,
         }))
         .sort((a, b) => a.wst_tier - b.wst_tier || b.score - a.score);
       
       const wstStats = {
-        Core: { count: 0, avgScore: 0, avgVelocity: 0, scores: [], velocities: [] },
-        Semi: { count: 0, avgScore: 0, avgVelocity: 0, scores: [], velocities: [] },
-        Periphery: { count: 0, avgScore: 0, avgVelocity: 0, scores: [], velocities: [] },
+        Core: { count: 0, avgScore: 0, scores: [] },
+        Semi: { count: 0, avgScore: 0, scores: [] },
+        Periphery: { count: 0, avgScore: 0, scores: [] },
       };
       
       for (const item of wstSummary) {
         wstStats[item.wst_class].count++;
         wstStats[item.wst_class].scores.push(item.score);
-        wstStats[item.wst_class].velocities.push(item.velocity);
       }
       
       for (const key of Object.keys(wstStats)) {
         if (wstStats[key].scores.length > 0) {
           wstStats[key].avgScore = mean(wstStats[key].scores);
-          wstStats[key].avgVelocity = mean(wstStats[key].velocities);
         }
         delete wstStats[key].scores;
-        delete wstStats[key].velocities;
       }
-      
-      const criticalJunctures = wstSummary.filter(w => w.critical_juncture);
       
       res.writeHead(200, CORS);
       res.end(JSON.stringify({
@@ -2960,27 +3742,22 @@ export default async function handler(req, res) {
           elapsed_ms: Date.now() - start,
           wst_enabled: CFG.WST_ENABLED,
           global_interest_rate: CFG.WST_GLOBAL_INTEREST_RATE,
-          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) — Time-Sensitive v2.0",
+          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) with Time-Sensitive Scoring",
           classification_count: wstSummary.length,
-          critical_junctures: criticalJunctures.length,
-          time_sensitive_parameters: {
-            velocity_window_days: CFG.WST_VELOCITY_WINDOW,
-            momentum_threshold: CFG.WST_MOMENTUM_THRESHOLD,
-            transmission_lag_days: CFG.WST_TRANSMISSION_LAG_DAYS,
-            structural_inertia: CFG.WST_STRUCTURAL_INERTIA,
-            recovery_arc_steepness: CFG.WST_RECOVERY_ARC_STEEPNESS,
-            systemic_coupling: CFG.WST_SYSTEMIC_COUPLING,
-            critical_juncture_threshold: CFG.WST_CRITICAL_JUNCTURE_THRESHOLD,
-          },
+          temporal_metrics: {
+            momentum_weight: CFG.WST_MOMENTUM_WEIGHT,
+            velocity_weight: CFG.WST_VELOCITY_WEIGHT,
+            acceleration_weight: CFG.WST_ACCELERATION_WEIGHT,
+            time_decay_half_life: CFG.WST_TIME_DECAY_HALF_LIFE,
+          }
         },
         summary: wstStats,
         countries: wstSummary,
-        critical_juncture_countries: criticalJunctures.map(w => ({ iso: w.iso, name: w.name, score: w.score, indicators: w.indicators_crossing })),
         insights: {
           structural_inequality: `Core countries average ${Math.round(wstStats.Core.avgScore)} vs Periphery ${Math.round(wstStats.Periphery.avgScore)} — ${Math.round(wstStats.Periphery.avgScore - wstStats.Core.avgScore)} point structural penalty gap`,
-          velocity_inequality: `Periphery countries deteriorating ${Math.round(wstStats.Periphery.avgVelocity * 10) / 10}x faster than Core (${wstStats.Periphery.avgVelocity.toFixed(2)} vs ${wstStats.Core.avgVelocity.toFixed(2)} pts/week)`,
           vulnerability_ratio: `Periphery countries are ${(wstStats.Periphery.avgScore / wstStats.Core.avgScore).toFixed(1)}x more fragile than Core nations`,
-          systemic_risk: `${criticalJunctures.length} countries at critical juncture — structural collapse risk elevated`,
+          fastest_deteriorating: wstSummary.filter(w => w.momentum > 0.5).sort((a,b) => b.momentum - a.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: +${w.momentum.toFixed(2)} pts/day`),
+          fastest_improving: wstSummary.filter(w => w.momentum < -0.5).sort((a,b) => a.momentum - b.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: ${w.momentum.toFixed(2)} pts/day`),
         }
       }, null, 2));
       return;
@@ -2999,11 +3776,10 @@ export default async function handler(req, res) {
           iso, name: p.name, flag: p.flag, url: p.url,
           score: p.score, severity: p.severity,
           story_heat: heat.score, tier: heat.tier, top_drivers: heat.top_drivers,
-          structural_velocity: heat.structural_velocity,
-          critical_juncture: heat.critical_juncture,
           headline_hint: p.meta_description,
           fsi_rank: p.fsi?.rank,
           fsi_band: p.fsi?.band,
+          momentum: p.time_metrics?.momentum || 0,
         };
       });
 
@@ -3013,9 +3789,9 @@ export default async function handler(req, res) {
           generated_at: new Date().toISOString(),
           elapsed_ms: Date.now() - start,
           mode: "breaking",
-          methodology: "Story Heat = velocity + structural velocity + critical juncture + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings.",
+          methodology: "Story Heat = velocity + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings + temporal momentum.",
           fsi_source: "Fund for Peace, Fragile States Index 2024",
-          wst_enabled: CFG.WST_ENABLED,
+          wst_source: "World Systems Theory with Time-Sensitive Scoring",
         },
         breaking: feed,
       }, null, 2));
@@ -3067,7 +3843,6 @@ export default async function handler(req, res) {
         const hist = seedHistory(iso, c.score);
         const fc = trendForecast(hist, c.score);
         const anom = runAnomalyDetection(hist);
-        const velocity = c.__wst_velocity || { velocity: 0, momentum: 0, direction: 'stable', critical_juncture: false };
         return {
           iso, name: c.name, flag: c.flag, score: c.score,
           severity: severityLabel(c.score), rank: ranked.indexOf(iso) + 1,
@@ -3078,9 +3853,8 @@ export default async function handler(req, res) {
           live_evidence_count: c.signals?.liveEvidenceCount || 0,
           ml_forecast: c.ml_forecast,
           sentiment: c.sentiment,
-          wst_class: c.__wst?.class || 'Unclassified',
-          structural_velocity: velocity.velocity,
-          critical_juncture: velocity.critical_juncture,
+          momentum: c.time_metrics?.momentum || 0,
+          velocity: c.time_metrics?.velocity || 0,
         };
       });
       comparison = {
@@ -3089,17 +3863,13 @@ export default async function handler(req, res) {
           const diff = a.dimensions[d.k] - b.dimensions[d.k];
           return { dimension: d.l, [a.iso]: a.dimensions[d.k], [b.iso]: b.dimensions[d.k], difference: diff };
         }).filter(d => Math.abs(d.difference) >= 10),
-        structural_comparison: {
-          [a.iso]: { wst_class: a.wst_class, velocity: a.structural_velocity, critical: a.critical_juncture },
-          [b.iso]: { wst_class: b.wst_class, velocity: b.structural_velocity, critical: b.critical_juncture },
-        },
-        verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})${a.critical_juncture ? ' — CRITICAL JUNCTURE DETECTED' : ''}`,
+        verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})`,
         ml_insight: a.ml_forecast && b.ml_forecast ? `${a.name} ML anomaly: ${(a.ml_forecast.anomaly_probability * 100).toFixed(0)}% vs ${b.name}: ${(b.ml_forecast.anomaly_probability * 100).toFixed(0)}%` : null,
+        momentum_comparison: `${a.name} momentum: ${a.momentum > 0 ? '+' : ''}${a.momentum.toFixed(2)} vs ${b.name}: ${b.momentum > 0 ? '+' : ''}${b.momentum.toFixed(2)}`,
       };
     }
 
     const allAnomalies = Object.keys(store).filter(iso => runAnomalyDetection(seedHistory(iso, store[iso].score)).detected);
-    const criticalJunctures = Object.keys(store).filter(iso => store[iso].__wst_velocity?.critical_juncture);
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
     
     const mlStats = {
@@ -3118,16 +3888,20 @@ export default async function handler(req, res) {
         countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
         anomalies_detected: allAnomalies.length,
         anomaly_isos: allAnomalies.slice(0, 20),
-        critical_junctures: criticalJunctures.length,
-        critical_juncture_isos: criticalJunctures.slice(0, 20),
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         data_policy: {
-          type: "FSI 2024 Baseline + Live Data + World Systems Theory (Time-Sensitive)",
+          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring",
           min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
           fsi_source: "Fund for Peace, Fragile States Index 2024",
           fsi_scale: "0-120 (higher = more fragile)",
-          wst_source: "Immanuel Wallerstein, World Systems Theory (1974) — Time-Sensitive v2.0",
+          wst_source: "Immanuel Wallerstein, World Systems Theory (1974)",
+          temporal_metrics: {
+            momentum: "Rate of change over 7 days (pts/day)",
+            velocity: "Speed of change (1st derivative)",
+            acceleration: "Rate of change of velocity (2nd derivative)",
+            time_decay: "Exponential decay since crisis peak",
+          }
         },
         enhancements: {
           machine_learning: {
@@ -3151,35 +3925,24 @@ export default async function handler(req, res) {
           },
           world_systems_theory: {
             enabled: CFG.WST_ENABLED,
-            version: "2.0 — Time-Sensitive",
-            description: "Structural vulnerability scoring with temporal dynamics based on Wallerstein's World Systems Theory",
+            description: "Structural vulnerability scoring based on Wallerstein's World Systems Theory",
             classifications: {
               Core: "High-income, diversified economies, reserve currencies",
               Semi: "Industrializing, middle-income, debt-vulnerable",
               Periphery: "Raw material exporters, high debt, structurally dependent"
             },
-            time_sensitive_features: [
-              "Structural Velocity — Rate of change in structural conditions",
-              "Momentum — Acceleration of structural decay or improvement",
-              "Transmission Lag — Core shocks take 3 days to reach periphery",
-              "Recovery Arc — Non-linear recovery trajectories based on system position",
-              "Structural Inertia — Resistance to change based on system position",
-              "Systemic Coupling — How tightly tied to global economic system",
-              "Critical Juncture Detection — Multiple structural indicators crossing simultaneously"
-            ],
+            temporal_weights: {
+              momentum: CFG.WST_MOMENTUM_WEIGHT,
+              velocity: CFG.WST_VELOCITY_WEIGHT,
+              acceleration: CFG.WST_ACCELERATION_WEIGHT,
+              time_decay_half_life: CFG.WST_TIME_DECAY_HALF_LIFE,
+            },
             parameters: {
               global_interest_rate: CFG.WST_GLOBAL_INTEREST_RATE,
               debt_threshold: CFG.WST_DEBT_THRESHOLD,
               extractive_penalty_max: CFG.WST_EXTRACTIVE_PENALTY_MAX,
               recovery_bonus_max: CFG.WST_RECOVERY_BONUS_MAX,
               supply_chain_shock_multiplier: CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER,
-              velocity_window_days: CFG.WST_VELOCITY_WINDOW,
-              momentum_threshold: CFG.WST_MOMENTUM_THRESHOLD,
-              transmission_lag_days: CFG.WST_TRANSMISSION_LAG_DAYS,
-              structural_inertia: CFG.WST_STRUCTURAL_INERTIA,
-              recovery_arc_steepness: CFG.WST_RECOVERY_ARC_STEEPNESS,
-              systemic_coupling: CFG.WST_SYSTEMIC_COUPLING,
-              critical_juncture_threshold: CFG.WST_CRITICAL_JUNCTURE_THRESHOLD,
             },
             countries_classified: Object.keys(WST_CLASSIFICATION).filter(k => k !== 'default').length,
           },
@@ -3224,9 +3987,10 @@ export default async function handler(req, res) {
           rss_region: "GET /api/top-story?region=africa&format=rss",
           breaking: "GET /api/top-story?format=breaking",
           wst_summary: "GET /api/top-story?format=wst",
+          time_series: "GET /api/top-story?iso=SOM&format=timeseries",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + Time-Sensitive velocity/momentum.",
+        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
