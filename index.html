@@ -2325,6 +2325,7 @@ function logout() {
 }
 
 // *** FIX 3: checkProStatusAndUpdateUI — local override + Airtable ***
+// *** FIX 3: checkProStatusAndUpdateUI — local override ***
 async function checkProStatusAndUpdateUI(email) {
   try {
     let isPro = false;
@@ -2338,22 +2339,6 @@ async function checkProStatusAndUpdateUI(email) {
         const proEmails = JSON.parse(localStorage.getItem('proEmails') || '[]');
         if (proEmails.includes(email)) isPro = true;
       } catch(e) {}
-      
-      // If still not pro, try Airtable
-      if (!isPro) {
-        try {
-          const response = await fetch(
-            `https://api.airtable.com/v0/app5RcMj4TSLHraH9/Users?filterByFormula={Email}="${email}"`,
-            { headers: { 'Authorization': 'Bearer patC6zVFSofyfnQwi.a75220222551de0f20d5f4cdd8bfd630f3a272b0c8c0e488f9a68644398546d8' } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            isPro = data.records && data.records.length > 0 && data.records[0].fields.Tier === 'pro';
-          }
-        } catch(e) {
-          console.warn('Airtable check failed:', e);
-        }
-      }
     }
 
     if (isPro) {
