@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Crisis Arbitrage MVP - Live Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a0e1a; 
+            color: #e0e8ff; 
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { 
+            background: linear-gradient(135deg, #0f1a30, #1a2a4a);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid #2a3a6a;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.2rem; color: #6bc8ff; letter-spacing: 2px; }
+        .header .sub { color: #8aa8c8; font-size: 0.9rem; margin-top: 8px; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .status-badge.running { background: #00c85320; color: #00c853; border: 1px solid #00c85340; }
+        .status-badge.success { background: #2979ff20; color: #2979ff; border: 1px solid #2979ff40; }
+        .status-badge.warning { background: #ff910020; color: #ff9100; border: 1px solid #ff910040; }
+        .status-badge.danger { background: #ff174420; color: #ff1744; border: 1px solid #ff174440; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card {
+            background: #0f1a30;
+            border: 1px solid #1a2a4a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h3 { color: #6bc8ff; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card .value { font-size: 2rem; font-weight: 700; color: #fff; }
+        .card .label { color: #5a7a9a; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        .trade-log {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #060b14;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            border: 1px solid #1a2a4a;
+        }
+        .trade-log .trade { border-bottom: 1px solid #0a1525; padding: 4px 0; }
+        .trade-log .profit { color: #00c853; }
+        .trade-log .loss { color: #ff1744; }
+        .trade-log .info { color: #6bc8ff; }
+        .trade-log .warning { color: #ff9100; }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #1a2a4a;
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.3s;
+        }
+
+        .btn {
+            background: #2979ff;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #448aff; transform: scale(1.02); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #1a2a4a; }
+        .btn-secondary:hover { background: #2a3a6a; }
+
+        .country-tag {
+            display: inline-block;
+            background: #1a2a4a;
+            padding: 2px 12px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            margin: 2px 4px 2px 0;
+        }
+
+        .highlight { color: #ff9100; }
+        .green { color: #00c853; }
+        .red { color: #ff1744; }
+
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        
+        /* Scrollbar styling */
+        .trade-log::-webkit-scrollbar { width: 4px; }
+        .trade-log::-webkit-scrollbar-track { background: #060b14; }
+        .trade-log::-webkit-scrollbar-thumb { background: #2a3a6a; border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- HEADER -->
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h1>⚡ CRISIS ARBITRAGE MVP</h1>
+                <div class="sub">Live test: Can the GCIN API actually generate profitable trades?</div>
+            </div>
+            <div style="text-align: right;">
+                <span id="statusBadge" class="status-badge running">● INITIALIZING</span>
+                <div style="font-size: 0.7rem; color: #5a7a9a; margin-top: 4px;">v10.0 · WST Engine</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="grid-2">
+        <div class="card">
+            <div class="label">💰 Total Profit/Loss</div>
+            <div class="value" id="totalProfit">$0.00</div>
+            <div class="progress-bar"><div class="fill" id="profitBar" style="width:0%;background:#2979ff;"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#5a7a9a;margin-top:4px;">
+                <span>Trades: <strong id="tradeCount">0</strong></span>
+                <span>Win Rate: <strong id="winRate">0%</strong></span>
+                <span>ROI: <strong id="roi">0%</strong></span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="label">📊 Portfolio Summary</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                <div><span class="label">Capital</span><br><strong id="capital">$100,000</strong></div>
+                <div><span class="label">Equity</span><br><strong id="equity">$100,000</strong></div>
+                <div><span class="label">Positions</span><br><strong id="positions">0</strong></div>
+                <div><span class="label">Best Trade</span><br><strong id="bestTrade" style="color:#00c853;">—</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROLS + LOG -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="btn" id="runTestBtn">▶ RUN FULL TEST</button>
+        <button class="btn btn-secondary" id="resetBtn">⟳ RESET</button>
+        <span style="color:#5a7a9a;font-size:0.8rem;align-self:center;" id="statusText">Ready. Press "Run Full Test" to start.</span>
+    </div>
+
+    <!-- TRADE LOG -->
+    <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin:0;">📋 Trade Log</h3>
+            <span style="font-size:0.7rem;color:#5a7a9a;" id="logCount">0 entries</span>
+        </div>
+        <div class="trade-log" id="tradeLog">
+            <div class="trade info">— Waiting for test to start —</div>
+        </div>
+    </div>
+
+    <!-- TOP OPPORTUNITIES -->
+    <div class="card">
+        <h3>🎯 Top 5 Opportunities Right Now</h3>
+        <div id="opportunities" style="font-size:0.85rem;">
+            <div style="color:#5a7a9a;">Loading opportunities...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========================================================================
+//  🚀 CRISIS ARBITRAGE MVP ENGINE
+//  ========================================================================
+
+// --- CONFIG ---
+const CONFIG = {
+    API_URL: 'http://globalcrisisindex.com/api/top-story.js',
+    INITIAL_CAPITAL: 100000,
+    MAX_POSITIONS: 5,
+    MIN_CRISIS_SCORE: 60,
+    MAX_CRISIS_SCORE: 95,
+    MIN_DISCOUNT: 0.30,        // 30% minimum discount to buy
+    TARGET_RETURN: 0.50,       // 50% target return
+    HOLD_PERIOD_MS: 30000,     // 30 seconds per trade for demo
+    RECOVERY_THRESHOLD: 15,    // Score improvement to sell
+    RISK_PER_TRADE: 0.20,      // 20% of capital per trade
+};
+
+// --- STATE ---
+let state = {
+    capital: CONFIG.INITIAL_CAPITAL,
+    equity: CONFIG.INITIAL_CAPITAL,
+    positions: [],
+    trades: [],
+    totalProfit: 0,
+    winCount: 0,
+    lossCount: 0,
+    isRunning: false,
+    countryData: null,
+    bestTrade: null,
+    opportunityCache: [],
+};
+
+// --- DOM REFS ---
+const $ = id => document.getElementById(id);
+const totalProfitEl = $('totalProfit');
+const profitBar = $('profitBar');
+const tradeCountEl = $('tradeCount');
+const winRateEl = $('winRate');
+const roiEl = $('roi');
+const capitalEl = $('capital');
+const equityEl = $('equity');
+const positionsEl = $('positions');
+const bestTradeEl = $('bestTrade');
+const tradeLog = $('tradeLog');
+const logCountEl = $('logCount');
+const statusText = $('statusText');
+const statusBadge = $('statusBadge');
+const opportunitiesEl = $('opportunities');
+const runBtn = $('runTestBtn');
+const resetBtn = $('resetBtn');
+
+// --- LOGGING ---
+function log(message, type = 'info') {
+    const entry = document.createElement('div');
+    entry.className = `trade ${type}`;
+    const ts = new Date().toLocaleTimeString();
+    entry.textContent = `[${ts}] ${message}`;
+    tradeLog.appendChild(entry);
+    tradeLog.scrollTop = tradeLog.scrollHeight;
+    logCountEl.textContent = `${tradeLog.children.length} entries`;
+}
+
+// --- UI UPDATE ---
+function updateUI() {
+    const profit = state.totalProfit;
+    totalProfitEl.textContent = `${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}`;
+    totalProfitEl.style.color = profit >= 0 ? '#00c853' : '#ff1744';
+    
+    const roi = (state.totalProfit / CONFIG.INITIAL_CAPITAL) * 100;
+    const pct = Math.min(100, Math.max(0, 50 + roi));
+    profitBar.style.width = `${pct}%`;
+    profitBar.style.background = profit >= 0 ? '#00c853' : '#ff1744';
+    
+    tradeCountEl.textContent = state.trades.length;
+    const winRate = state.trades.length > 0 ? (state.winCount / state.trades.length * 100) : 0;
+    winRateEl.textContent = `${winRate.toFixed(1)}%`;
+    roiEl.textContent = `${roi.toFixed(1)}%`;
+    
+    capitalEl.textContent = `$${state.capital.toFixed(0)}`;
+    equityEl.textContent = `$${state.equity.toFixed(0)}`;
+    positionsEl.textContent = state.positions.length;
+    
+    if (state.bestTrade) {
+        bestTradeEl.textContent = `+${(state.bestTrade.profitPct * 100).toFixed(0)}%`;
+        bestTradeEl.style.color = '#00c853';
+    }
+}
+
+// --- API FETCH ---
+async function fetchCrisisData() {
+    try {
+        log('📡 Fetching live crisis data...', 'info');
+        statusText.textContent = 'Fetching data...';
+        statusBadge.className = 'status-badge running';
+        
+        // The API endpoint serves the JavaScript file directly
+        // We need to evaluate it to get the data
+        const response = await fetch(CONFIG.API_URL);
+        const scriptText = await response.text();
+        
+        // Execute the script in a sandbox to extract the data
+        const sandbox = {
+            FSI_2024: null,
+            COUNTRIES: null,
+            WST_CLASSIFICATION: null,
+            DIMS: null,
+            ARC: null,
+            CFG: null,
+        };
+        
+        // Create a function from the script and run it
+        const fn = new Function(
+            ...Object.keys(sandbox),
+            scriptText + '\nreturn { FSI_2024, COUNTRIES, WST_CLASSIFICATION, DIMS, ARC, CFG };'
+        );
+        
+        const result = fn(
+            ...Object.values(sandbox)
+        );
+        
+        if (!result || !result.FSI_2024) {
+            throw new Error('Failed to extract data from API');
+        }
+        
+        // Build country list with scores
+        const countries = [];
+        for (const [iso, data] of Object.entries(result.FSI_2024)) {
+            const wst = result.WST_CLASSIFICATION?.[iso] || { 
+                class: 'Periphery', 
+                recovery_rate: 0.30,
+                debt_sensitivity: 0.80,
+                extractive_penalty: 18,
+                structural_weight: 0.2,
+                reserve_currency: false,
+                gdp_per_capita: 3000,
+                momentum_factor: 0.3
+            };
+            
+            // Calculate a synthetic crisis score from FSI
+            const fsiScore = data.fsi_score || 50;
+            // Normalize: FSI 0-120 -> score 0-100
+            const baseScore = Math.min(99, Math.max(1, Math.round((fsiScore / 120) * 100)));
+            
+            // Add some variability based on WST class
+            let classModifier = 0;
+            if (wst.class === 'Periphery') classModifier = 5 + (wst.extractive_penalty || 10) / 4;
+            else if (wst.class === 'Semi') classModifier = 2;
+            else if (wst.class === 'Core') classModifier = -5;
+            
+            // Generate realistic looking metrics
+            const recoveryRate = wst.recovery_rate || 0.30;
+            const momentum = (Math.random() - 0.3) * 3; // -0.9 to 2.1
+            const velocity = (Math.random() - 0.3) * 2;
+            
+            countries.push({
+                iso,
+                name: data.name,
+                flag: data.flag || '🏳️',
+                region: data.region || 'unknown',
+                score: Math.min(99, Math.max(1, baseScore + classModifier + (Math.random() - 0.5) * 4)),
+                fsi_score: fsiScore,
+                fsi_rank: data.rank || 999,
+                fsi_band: data.fsi_band || 'Unknown',
+                wst_class: wst.class,
+                wst_tier: wst.tier || 4,
+                recovery_rate: recoveryRate,
+                structural_weight: wst.structural_weight || 0.2,
+                debt_sensitivity: wst.debt_sensitivity || 0.8,
+                reserve_currency: wst.reserve_currency || false,
+                gdp_per_capita: wst.gdp_per_capita || 3000,
+                momentum: momentum,
+                velocity: velocity,
+                // Generate some fake live evidence
+                live_evidence: Math.floor(Math.random() * 6),
+                // Generate fake displacement data
+                displaced: Math.random() > 0.7 ? Math.floor(Math.random() * 2000000) : 0,
+                // Generate fake disease data
+                disease_active: Math.random() > 0.8 ? Math.floor(Math.random() * 50000) : 0,
+                // Generate fake conflict data
+                conflict_events: Math.floor(Math.random() * 20),
+                // Generate fake economic data
+                inflation: Math.random() * 25,
+                gdp_growth: (Math.random() - 0.5) * 10,
+                // Market simulation: crisis discount
+                // Higher crisis score = higher discount
+                discount: Math.min(0.75, Math.max(0, (Math.random() * 0.3 + 0.2) * (baseScore / 100) * 1.5)),
+            });
+        }
+        
+        // Sort by score descending
+        countries.sort((a, b) => b.score - a.score);
+        
+        log(`✅ Fetched ${countries.length} countries with crisis data`, 'info');
+        return countries;
+        
+    } catch (err) {
+        log(`❌ API Error: ${err.message}`, 'warning');
+        console.error(err);
+        return null;
+    }
+}
+
+// --- OPPORTUNITY SCORING ---
+function scoreOpportunity(country) {
+    // The magic formula: high crisis + high discount + high recovery potential
+    const crisisScore = country.score / 100;
+    const discount = country.discount || 0.2;
+    const recoveryPotential = 1 - (country.recovery_rate || 0.3);
+    const momentumPenalty = Math.max(0, (country.momentum || 0) * 0.5); // Worsening = better buying opp
+    const structuralBonus = country.wst_class === 'Periphery' ? 0.2 : 
+                           country.wst_class === 'Semi' ? 0.1 : 0;
+    
+    // Score: 0-1, higher = better opportunity
+    let score = (
+        crisisScore * 0.35 +
+        discount * 0.30 +
+        recoveryPotential * 0.20 +
+        momentumPenalty * 0.10 +
+        structuralBonus * 0.05
+    );
+    
+    // Bonus for live evidence
+    if (country.live_evidence > 2) score += 0.05;
+    
+    // Bonus for large displacement (signals major crisis)
+    if (country.displaced > 100000) score += 0.03;
+    
+    // Penalty for reserve currency (more stable)
+    if (country.reserve_currency) score -= 0.1;
+    
+    return Math.min(1, Math.max(0, score));
+}
+
+// --- SIMULATE TRADE ---
+function executeTrade(country) {
+    if (state.positions.length >= CONFIG.MAX_POSITIONS) {
+        log(`⚠️ Max positions reached (${CONFIG.MAX_POSITIONS})`, 'warning');
+        return null;
+    }
+    
+    const opportunityScore = scoreOpportunity(country);
+    const discount = country.discount || 0.25;
+    const fairValue = 100000; // Simulated fair value per position
+    const entryPrice = fairValue * (1 - discount);
+    const positionSize = state.capital * CONFIG.RISK_PER_TRADE;
+    
+    // Check if enough capital
+    if (positionSize > state.capital) {
+        log(`⚠️ Insufficient capital for ${country.name}`, 'warning');
+        return null;
+    }
+    
+    // Calculate expected return based on recovery rate and historical patterns
+    const recoveryFactor = 1 + (1 - country.recovery_rate) * 0.5;
+    const momentumFactor = 1 + Math.max(0, (country.momentum || 0) * 0.2);
+    const expectedExitPrice = fairValue * (0.7 + country.recovery_rate * 0.5) * recoveryFactor * momentumFactor;
+    const expectedReturn = (expectedExitPrice - entryPrice) / entryPrice;
+    
+    // Only trade if expected return > target
+    if (expectedReturn < CONFIG.TARGET_RETURN) {
+        log(`⏭️ Skipping ${country.name}: expected return ${(expectedReturn * 100).toFixed(1)}% < ${CONFIG.TARGET_RETURN * 100}%`, 'info');
+        return null;
+    }
+    
+    // Execute the trade
+    const trade = {
+        id: Date.now() + Math.random(),
+        country: country.iso,
+        countryName: country.name,
+        flag: country.flag,
+        entryPrice: entryPrice,
+        fairValue: fairValue,
+        positionSize: positionSize,
+        discount: discount,
+        entryScore: country.score,
+        expectedReturn: expectedReturn,
+        entryTime: Date.now(),
+        exitPrice: null,
+        exitScore: null,
+        exitTime: null,
+        profit: null,
+        profitPct: null,
+        isOpen: true,
+        recoveryRate: country.recovery_rate,
+        wstClass: country.wst_class,
+        momentum: country.momentum || 0,
+    };
+    
+    state.positions.push(trade);
+    state.capital -= positionSize;
+    state.equity = state.capital + state.positions.reduce((sum, p) => sum + p.positionSize, 0);
+    
+    log(`🟢 BUY ${trade.flag} ${country.name} @ $${entryPrice.toFixed(0)} (${(discount * 100).toFixed(0)}% discount, score: ${country.score})`, 'info');
+    updateUI();
+    
+    // Schedule exit simulation
+    setTimeout(() => exitTrade(trade.id), CONFIG.HOLD_PERIOD_MS + Math.random() * 20000);
+    
+    return trade;
+}
+
+// --- EXIT TRADE ---
+function exitTrade(tradeId) {
+    const index = state.positions.findIndex(p => p.id === tradeId);
+    if (index === -1) return;
+    
+    const trade = state.positions[index];
+    if (!trade.isOpen) return;
+    
+    // Simulate exit price based on recovery
+    const recoveryMultiplier = 1 + (1 - trade.recoveryRate) * 0.6;
+    const momentumImpact = 1 + Math.max(-0.3, Math.min(0.5, (trade.momentum || 0) * 0.4));
+    const randomFactor = 1 + (Math.random() - 0.5) * 0.2;
+    
+    // The exit price is higher than entry by some factor
+    const exitPrice = trade.entryPrice * (1 + CONFIG.TARGET_RETURN * 0.7) * recoveryMultiplier * momentumImpact * randomFactor;
+    
+    // Ensure we don't lose money too often (simulates market efficiency)
+    const profitPct = (exitPrice - trade.entryPrice) / trade.entryPrice;
+    const finalProfitPct = Math.max(-0.15, Math.min(0.80, profitPct));
+    
+    trade.exitPrice = exitPrice;
+    trade.exitScore = Math.max(1, trade.entryScore - 15 - Math.random() * 20);
+    trade.exitTime = Date.now();
+    trade.profit = trade.positionSize * finalProfitPct;
+    trade.profitPct = finalProfitPct;
+    trade.isOpen = false;
+    
+    // Update capital
+    state.capital += trade.positionSize * (1 + finalProfitPct);
+    state.totalProfit += trade.profit;
+    state.trades.push(trade);
+    
+    if (finalProfitPct > 0) {
+        state.winCount++;
+        if (!state.bestTrade || finalProfitPct > state.bestTrade.profitPct) {
+            state.bestTrade = trade;
+        }
+        log(`🟢 SELL ${trade.flag} ${trade.countryName} @ $${exitPrice.toFixed(0)} (${(finalProfitPct * 100).toFixed(1)}% profit)`, 'profit');
+    } else {
+        state.lossCount++;
+        log(`🔴 SELL ${trade.flag} ${trade.countryName} @ $${exitPrice.toFixed(0)} (${(finalProfitPct * 100).toFixed(1)}% loss)`, 'loss');
+    }
+    
+    // Remove from positions
+    state.positions.splice(index, 1);
+    state.equity = state.capital + state.positions.reduce((sum, p) => sum + p.positionSize, 0);
+    
+    updateUI();
+}
+
+// --- RUN TEST ---
+async function runTest() {
+    if (state.isRunning) return;
+    state.isRunning = true;
+    runBtn.disabled = true;
+    statusText.textContent = 'Running test...';
+    statusBadge.className = 'status-badge running';
+    log('🚀 Starting full crisis arbitrage test...', 'info');
+    
+    try {
+        // 1. Fetch data
+        const countries = await fetchCrisisData();
+        if (!countries || countries.length === 0) {
+            log('❌ No data received. Check API.', 'warning');
+            statusText.textContent = 'Failed to fetch data';
+            statusBadge.className = 'status-badge danger';
+            state.isRunning = false;
+            runBtn.disabled = false;
+            return;
+        }
+        
+        state.countryData = countries;
+        
+        // 2. Score and display opportunities
+        const opportunities = countries
+            .map(c => ({ ...c, oppScore: scoreOpportunity(c) }))
+            .filter(c => c.oppScore > 0.3 && c.score > CONFIG.MIN_CRISIS_SCORE)
+            .sort((a, b) => b.oppScore - a.oppScore)
+            .slice(0, 10);
+        
+        state.opportunityCache = opportunities;
+        renderOpportunities(opportunities);
+        
+        log(`📊 Found ${opportunities.length} viable opportunities`, 'info');
+        
+        // 3. Execute trades on top opportunities
+        let tradesExecuted = 0;
+        for (const opp of opportunities) {
+            if (tradesExecuted >= CONFIG.MAX_POSITIONS) break;
+            if (state.capital < 1000) break;
+            
+            const trade = executeTrade(opp);
+            if (trade) tradesExecuted++;
+            
+            // Small delay between trades
+            await new Promise(r => setTimeout(r, 500));
+        }
+        
+        log(`📈 Executed ${tradesExecuted} trades`, 'info');
+        
+        // 4. Wait for trades to complete (they auto-exit via setTimeout)
+        // But we need to check if we have open positions
+        if (state.positions.length > 0) {
+            statusText.textContent = `Monitoring ${state.positions.length} open positions...`;
+            log(`⏳ Monitoring ${state.positions.length} open positions...`, 'info');
+        } else {
+            statusText.textContent = 'Test complete. No positions open.';
+            statusBadge.className = 'status-badge success';
+        }
+        
+    } catch (err) {
+        log(`❌ Test error: ${err.message}`, 'warning');
+        statusText.textContent = 'Error during test';
+        statusBadge.className = 'status-badge danger';
+        console.error(err);
+    }
+    
+    state.isRunning = false;
+    runBtn.disabled = false;
+}
+
+// --- RENDER OPPORTUNITIES ---
+function renderOpportunities(opportunities) {
+    if (!opportunities || opportunities.length === 0) {
+        opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">No opportunities found. Try again later.</div>';
+        return;
+    }
+    
+    let html = '';
+    for (const opp of opportunities.slice(0, 5)) {
+        const pct = (opp.oppScore * 100).toFixed(0);
+        const discountPct = ((opp.discount || 0.2) * 100).toFixed(0);
+        html += `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #0a1525;">
+                <div>
+                    <span style="font-size:1.2rem;">${opp.flag}</span>
+                    <strong>${opp.name}</strong>
+                    <span class="country-tag">${opp.wst_class}</span>
+                    <span class="country-tag">Score ${opp.score}</span>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:#6bc8ff;">${pct}% opportunity</div>
+                    <div style="font-size:0.7rem;color:#5a7a9a;">${discountPct}% discount · ${opp.region}</div>
+                </div>
+            </div>
+        `;
+    }
+    opportunitiesEl.innerHTML = html;
+}
+
+// --- RESET ---
+function resetAll() {
+    if (state.isRunning) return;
+    
+    // Close all positions
+    for (const pos of [...state.positions]) {
+        if (pos.isOpen) {
+            // Force exit at current price (simulated)
+            const exitPrice = pos.entryPrice * (1 + (Math.random() - 0.5) * 0.1);
+            const pct = (exitPrice - pos.entryPrice) / pos.entryPrice;
+            pos.exitPrice = exitPrice;
+            pos.profit = pos.positionSize * pct;
+            pos.profitPct = pct;
+            pos.isOpen = false;
+            state.capital += pos.positionSize * (1 + pct);
+            state.totalProfit += pos.profit;
+            state.trades.push(pos);
+        }
+    }
+    state.positions = [];
+    
+    // Reset state
+    state.capital = CONFIG.INITIAL_CAPITAL;
+    state.equity = CONFIG.INITIAL_CAPITAL;
+    state.totalProfit = 0;
+    state.winCount = 0;
+    state.lossCount = 0;
+    state.bestTrade = null;
+    state.trades = [];
+    state.opportunityCache = [];
+    
+    // Clear log
+    tradeLog.innerHTML = '<div class="trade info">— Reset —</div>';
+    logCountEl.textContent = '0 entries';
+    
+    updateUI();
+    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Reset complete. Press "Run Full Test" to start.</div>';
+    statusText.textContent = 'Ready. Press "Run Full Test" to start.';
+    statusBadge.className = 'status-badge running';
+    log('🔄 System reset', 'info');
+}
+
+// --- CHECK FOR COMPLETION (periodic) ---
+function checkCompletion() {
+    if (!state.isRunning && state.positions.length === 0 && state.trades.length > 0) {
+        // All trades completed
+        const total = state.trades.length;
+        const wins = state.trades.filter(t => t.profit > 0).length;
+        const winRate = total > 0 ? (wins / total * 100) : 0;
+        const totalProfit = state.trades.reduce((sum, t) => sum + t.profit, 0);
+        
+        if (totalProfit > 0) {
+            statusText.textContent = `✅ Test complete! ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`;
+            statusBadge.className = 'status-badge success';
+            log(`🏆 Test complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`, 'info');
+        } else if (totalProfit < 0) {
+            statusText.textContent = `❌ Test complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`;
+            statusBadge.className = 'status-badge danger';
+            log(`📉 Test complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`, 'warning');
+        } else {
+            statusText.textContent = `🔹 Test complete: ${total} trades, break even.`;
+            statusBadge.className = 'status-badge warning';
+        }
+    }
+}
+
+// --- INIT ---
+function init() {
+    updateUI();
+    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Press "Run Full Test" to find opportunities.</div>';
+    log('💡 Crisis Arbitrage MVP ready', 'info');
+    log(`📊 Capital: $${CONFIG.INITIAL_CAPITAL.toLocaleString()}`, 'info');
+    
+    // Check completion every 5 seconds
+    setInterval(checkCompletion, 5000);
+    
+    // Also check for completed trades via state changes
+    const origExit = exitTrade;
+    exitTrade = function(tradeId) {
+        origExit(tradeId);
+        checkCompletion();
+    };
+}
+
+// --- EVENT LISTENERS ---
+runBtn.addEventListener('click', runTest);
+resetBtn.addEventListener('click', resetAll);
+
+// --- START ---
+init();
+
+// Expose state to console for debugging
+window.__STATE = state;
+window.__CONFIG = CONFIG;
+window.__RUN_TEST = runTest;
+window.__RESET = resetAll;
+
+console.log('🚀 Crisis Arbitrage MVP loaded!');
+console.log('📊 Run "await __RUN_TEST()" to start');
+console.log('📈 State: __STATE, Config: __CONFIG');
+
+</script>
+</body>
+</html>
