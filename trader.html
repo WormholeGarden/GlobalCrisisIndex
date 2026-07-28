@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏆 CRISIS ARBITRAGE v9.0 - FINAL</title>
+    <title>🎯 REALISTIC CRISIS ARBITRAGE - HONEST RESULTS</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -13,82 +13,22 @@
             padding: 20px;
             min-height: 100vh;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
         .header { 
             background: linear-gradient(135deg, #0f1a30, #1a2a4a);
-            padding: 25px 30px;
+            padding: 30px;
             border-radius: 16px;
             border: 1px solid #2a3a6a;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
-        .header h1 { font-size: 2rem; color: #6bc8ff; letter-spacing: 2px; }
-        .header .sub { color: #8aa8c8; font-size: 0.85rem; margin-top: 6px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .card {
-            background: #0f1a30;
-            border: 1px solid #1a2a4a;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 16px;
-        }
-        .card h3 { color: #6bc8ff; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-        .card .value { font-size: 1.8rem; font-weight: 700; color: #fff; }
-        .card .label { color: #5a7a9a; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; }
-        .trade-log {
-            max-height: 350px;
-            overflow-y: auto;
-            background: #060b14;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 0.75rem;
-            line-height: 1.8;
-            border: 1px solid #1a2a4a;
-            font-family: 'Courier New', monospace;
-        }
-        .trade-log .trade { border-bottom: 1px solid #0a1525; padding: 3px 0; }
-        .trade-log .profit { color: #00c853; }
-        .trade-log .loss { color: #ff1744; }
-        .trade-log .info { color: #6bc8ff; }
-        .trade-log .warning { color: #ff9100; }
-        .trade-log .entry { color: #2979ff; }
-        .trade-log .exit { color: #ff6d00; }
-        .trade-log .black-swan { color: #ff1744; background: #ff174420; padding: 2px 8px; border-radius: 4px; }
-        .trade-log .stagnation { color: #ff9100; background: #ff910020; padding: 2px 8px; border-radius: 4px; }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #1a2a4a;
-            border-radius: 99px;
-            overflow: hidden;
-            margin: 6px 0;
-        }
-        .progress-bar .fill { height: 100%; border-radius: 99px; transition: width 0.5s; }
-        .btn {
-            background: #2979ff;
-            color: #fff;
-            border: none;
-            padding: 10px 22px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-        .btn:hover { background: #448aff; transform: scale(1.02); }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-        .btn-secondary { background: #1a2a4a; }
-        .btn-secondary:hover { background: #2a3a6a; }
-        .btn-danger { background: #d32f2f; }
-        .btn-danger:hover { background: #f44336; }
-        .btn-success { background: #00c853; }
-        .btn-success:hover { background: #00e676; }
+        .header h1 { font-size: 2.2rem; color: #6bc8ff; letter-spacing: 2px; }
+        .header .sub { color: #8aa8c8; font-size: 0.9rem; margin-top: 8px; }
         .status-badge {
             display: inline-block;
-            padding: 4px 14px;
+            padding: 4px 16px;
             border-radius: 99px;
             font-weight: 700;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
         }
         .status-badge.running { background: #00c85320; color: #00c853; border: 1px solid #00c85340; animation: pulse 1s infinite; }
@@ -96,145 +36,128 @@
         .status-badge.warning { background: #ff910020; color: #ff9100; border: 1px solid #ff910040; }
         .status-badge.danger { background: #ff174420; color: #ff1744; border: 1px solid #ff174440; }
         .status-badge.idle { background: #5a7a9a20; color: #5a7a9a; border: 1px solid #5a7a9a40; }
-        .metric-box {
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card {
+            background: #0f1a30;
+            border: 1px solid #1a2a4a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h3 { color: #6bc8ff; margin-bottom: 12px; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card .value { font-size: 2rem; font-weight: 700; color: #fff; }
+        .card .label { color: #5a7a9a; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        .trade-log {
+            max-height: 400px;
+            overflow-y: auto;
             background: #060b14;
-            padding: 8px 12px;
-            border-radius: 6px;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.8rem;
+            line-height: 1.8;
             border: 1px solid #1a2a4a;
         }
-        .metric-box .label { font-size: 0.6rem; color: #5a7a9a; }
-        .metric-box .value { font-size: 1.2rem; font-weight: 700; }
+        .trade-log .trade { border-bottom: 1px solid #0a1525; padding: 4px 0; }
+        .trade-log .profit { color: #00c853; }
+        .trade-log .loss { color: #ff1744; }
+        .trade-log .info { color: #6bc8ff; }
+        .trade-log .warning { color: #ff9100; }
+        .trade-log .reality { color: #bf7fff; }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #1a2a4a;
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.3s;
+        }
+
+        .btn {
+            background: #2979ff;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #448aff; transform: scale(1.02); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #1a2a4a; }
+        .btn-secondary:hover { background: #2a3a6a; }
+        .btn-success { background: #00c853; }
+        .btn-success:hover { background: #00e676; }
+        .btn-danger { background: #d32f2f; }
+        .btn-danger:hover { background: #f44336; }
+
         .country-tag {
             display: inline-block;
             background: #1a2a4a;
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 99px;
-            font-size: 0.65rem;
-            margin: 1px 3px 1px 0;
+            font-size: 0.7rem;
+            margin: 2px 4px 2px 0;
         }
-        .config-panel { 
-            background: #060b14; 
-            padding: 12px 16px; 
-            border-radius: 8px; 
-            border: 1px solid #1a2a4a; 
-            margin-bottom: 16px; 
+
+        .reality-banner {
+            background: #bf7fff20;
+            border: 1px solid #bf7fff40;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #bf7fff;
         }
-        .config-panel label { color: #5a7a9a; font-size: 0.7rem; margin-right: 8px; }
-        .config-panel input { 
-            background: #0f1a30; 
-            border: 1px solid #1a2a4a; 
-            color: #e0e8ff; 
-            padding: 4px 8px; 
-            border-radius: 4px; 
-            width: 70px; 
-            font-size: 0.8rem; 
-        }
-        .config-panel input:focus { outline: none; border-color: #2979ff; }
-        .config-panel .config-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 4px 0; }
-        .confidence-meter {
-            width: 100%;
-            height: 4px;
-            background: #1a2a4a;
-            border-radius: 99px;
-            margin-top: 4px;
-        }
-        .confidence-meter .fill {
-            height: 100%;
-            border-radius: 99px;
-            background: linear-gradient(90deg, #ff1744, #ff9100, #00c853);
-        }
-        @media (max-width: 1024px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 768px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        
         .trade-log::-webkit-scrollbar { width: 4px; }
         .trade-log::-webkit-scrollbar-track { background: #060b14; }
         .trade-log::-webkit-scrollbar-thumb { background: #2a3a6a; border-radius: 99px; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .warning-banner {
-            background: #ff910020;
-            border: 1px solid #ff910040;
-            padding: 8px 16px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 0.75rem;
-            color: #ff9100;
-            display: none;
-        }
-        .warning-banner.show { display: block; }
-        .timer-display {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #6bc8ff;
-            text-align: center;
-            padding: 8px;
-            background: #060b14;
-            border-radius: 8px;
-            border: 1px solid #1a2a4a;
-            font-variant-numeric: tabular-nums;
-        }
-        .data-source-badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 99px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            background: #00c85320;
-            color: #00c853;
-            border: 1px solid #00c85340;
-        }
-        .data-source-badge.hardcoded { background: #2979ff20; color: #2979ff; border: 1px solid #2979ff40; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- HEADER -->
     <div class="header">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
             <div>
-                <h1>🏆 CRISIS ARBITRAGE v9.0</h1>
-                <div class="sub">FULLY WORKING · HARDCODED FSI 2024 · 179 COUNTRIES</div>
+                <h1>🎯 REALISTIC CRISIS ARBITRAGE</h1>
+                <div class="sub">Honest Results · Realistic Assumptions · No 100% Win Rate</div>
             </div>
             <div style="text-align: right;">
                 <span id="statusBadge" class="status-badge idle">● IDLE</span>
-                <div style="font-size: 0.65rem; color: #5a7a9a; margin-top: 4px;" id="botStatus">Ready</div>
-                <div style="font-size: 0.6rem; color: #5a7a9a; margin-top: 2px;" id="dataSource">📡 Data: <span class="data-source-badge hardcoded">Hardcoded FSI 2024</span></div>
+                <div style="font-size: 0.7rem; color: #5a7a9a; margin-top: 4px;">v14.0 · Realistic</div>
             </div>
         </div>
     </div>
 
-    <div id="warningBanner" class="warning-banner show">
-        ✅ <strong>FIXED:</strong> All functions defined. Using hardcoded FSI 2024 values. 179 countries.
+    <!-- REALITY BANNER -->
+    <div class="reality-banner">
+        ⚡ <strong>REALITY CHECK:</strong> This simulation shows REALISTIC results. 
+        You will NOT get 100% win rate. Expect 55-75% win rate and 15-30% returns per cycle.
+        <br>🔴 Losses ARE included. This is what real trading looks like.
     </div>
 
-    <div class="config-panel">
-        <div class="config-row">
-            <label>Capital: $<input type="number" id="cfgCapital" value="100000" step="10000"></label>
-            <label>Max Positions: <input type="number" id="cfgMaxPos" value="6" min="1" max="15"></label>
-            <label>Risk/Trade: <input type="number" id="cfgRisk" value="15" step="1" min="5" max="30">%</label>
-            <label>Min ROI: <input type="number" id="cfgMinROI" value="15" step="5" min="5" max="100">%</label>
-            <label>Hold Days: <input type="number" id="cfgHoldDays" value="90" step="10" min="30" max="365"></label>
-        </div>
-        <div class="config-row" style="margin-top:6px; border-top:1px solid #1a2a4a; padding-top:6px;">
-            <label>Slippage: <input type="number" id="cfgSlippage" value="10" step="1" min="0" max="25">%</label>
-            <label>Costs: <input type="number" id="cfgCosts" value="8" step="1" min="0" max="20">%</label>
-            <label>Failure Rate: <input type="number" id="cfgFailureRate" value="15" step="1" min="0" max="40">%</label>
-            <label>Black Swan: <input type="number" id="cfgBlackSwan" value="5" step="1" min="0" max="20">%</label>
-            <label>Stagnation: <input type="number" id="cfgStagnation" value="30" step="5" min="0" max="60">%</label>
-            <label>Partial Recovery: <input type="number" id="cfgPartialRecovery" value="20" step="5" min="0" max="50">%</label>
-        </div>
-        <div class="config-row" style="margin-top:6px; border-top:1px solid #1a2a4a; padding-top:6px;">
-            <label>Exec Failure: <input type="number" id="cfgExecFailure" value="10" step="2" min="0" max="30">%</label>
-            <label>Timing Error: <input type="number" id="cfgTimingError" value="15" step="2" min="0" max="30">%</label>
-            <label>Speed: <input type="number" id="cfgSpeed" value="1000" step="100" min="100" max="10000">x</label>
-            <label style="color:#ff9100;">⚠️ Realism: <span id="realismLevelDisplay">EXTREME</span></label>
-        </div>
-    </div>
-
-    <div class="grid-3">
+    <!-- STATS ROW -->
+    <div class="grid-2">
         <div class="card">
-            <div class="label">💰 Total P&L</div>
+            <div class="label">💰 Realistic P&L</div>
             <div class="value" id="totalProfit">$0.00</div>
             <div class="progress-bar"><div class="fill" id="profitBar" style="width:0%;background:#2979ff;"></div></div>
-            <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:#5a7a9a;margin-top:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#5a7a9a;margin-top:4px;">
                 <span>Trades: <strong id="tradeCount">0</strong></span>
                 <span>Win Rate: <strong id="winRate">0%</strong></span>
                 <span>ROI: <strong id="roi">0%</strong></span>
@@ -242,83 +165,55 @@
         </div>
         <div class="card">
             <div class="label">📊 Portfolio</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;">
-                <div class="metric-box"><div class="label">Cash</div><div class="value" id="capital">$100K</div></div>
-                <div class="metric-box"><div class="label">Equity</div><div class="value" id="equity">$100K</div></div>
-                <div class="metric-box"><div class="label">Positions</div><div class="value" id="positions">0</div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                <div><span class="label">Cash</span><br><strong id="capital">$100,000</strong></div>
+                <div><span class="label">Equity</span><br><strong id="equity">$100,000</strong></div>
+                <div><span class="label">Positions</span><br><strong id="positions">0</strong></div>
+                <div><span class="label">Best Trade</span><br><strong id="bestTrade" style="color:#00c853;">—</strong></div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
-                <div class="metric-box"><div class="label">Best Trade</div><div class="value" id="bestTrade" style="color:#00c853;font-size:1rem;">—</div></div>
-                <div class="metric-box"><div class="label">Worst Trade</div><div class="value" id="worstTrade" style="color:#ff1744;font-size:1rem;">—</div></div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="label">📈 Performance</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
-                <div class="metric-box"><div class="label">Avg Win</div><div class="value" id="avgWin" style="color:#00c853;font-size:1rem;">—</div></div>
-                <div class="metric-box"><div class="label">Avg Loss</div><div class="value" id="avgLoss" style="color:#ff1744;font-size:1rem;">—</div></div>
-                <div class="metric-box"><div class="label">Profit Factor</div><div class="value" id="profitFactor" style="font-size:1rem;">—</div></div>
-                <div class="metric-box"><div class="label">Sharpe (est)</div><div class="value" id="sharpe" style="font-size:1rem;">—</div></div>
-            </div>
-            <div style="margin-top:6px;">
-                <div class="confidence-meter"><div class="fill" id="confidenceBar" style="width:50%;"></div></div>
-                <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#5a7a9a;">
-                    <span>Risk</span>
-                    <span id="confidenceLabel">50% Confidence</span>
-                    <span>Reward</span>
-                </div>
+            <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;font-size:0.7rem;color:#5a7a9a;">
+                <span>✅ Wins: <strong id="winCount" style="color:#00c853;">0</strong></span>
+                <span>❌ Losses: <strong id="lossCount" style="color:#ff1744;">0</strong></span>
+                <span>⚡ Failed: <strong id="failedCount" style="color:#ff1744;">0</strong></span>
+                <span>💀 Black Swan: <strong id="bsCount" style="color:#ff1744;">0</strong></span>
             </div>
         </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
-        <div class="card" style="margin-bottom:0;text-align:center;">
-            <div class="label">⏱️ Simulation Speed</div>
-            <div class="timer-display" id="speedDisplay">1,000x</div>
-        </div>
-        <div class="card" style="margin-bottom:0;text-align:center;">
-            <div class="label">📆 Time Elapsed</div>
-            <div class="timer-display" id="timeElapsed">0 days</div>
-        </div>
-        <div class="card" style="margin-bottom:0;text-align:center;">
-            <div class="label">⏳ Active Positions</div>
-            <div class="timer-display" id="pendingExits">0</div>
-        </div>
-    </div>
-
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    <!-- CONTROLS -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
         <button class="btn" id="runBtn">▶ RUN 1 CYCLE</button>
         <button class="btn btn-success" id="runMultiBtn">▶▶ RUN 10 CYCLES</button>
-        <button class="btn btn-success" id="runStressBtn">🔬 STRESS TEST (50 CYCLES)</button>
         <button class="btn btn-danger" id="resetBtn">⟳ RESET</button>
-        <button class="btn btn-secondary" id="exportBtn">📥 Export CSV</button>
-        <span style="color:#5a7a9a;font-size:0.75rem;align-self:center;" id="statusText">Ready</span>
+        <span style="color:#5a7a9a;font-size:0.8rem;align-self:center;" id="statusText">Ready. Press "RUN 1 CYCLE" to start.</span>
     </div>
 
-    <div class="grid-2">
-        <div class="card" style="margin-bottom:0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <h3 style="margin:0;">📋 Trade Log</h3>
-                <span style="font-size:0.65rem;color:#5a7a9a;" id="logCount">0 entries</span>
-            </div>
-            <div class="trade-log" id="tradeLog">
-                <div class="trade info">— Waiting for bot to run —</div>
-            </div>
+    <!-- TRADE LOG -->
+    <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin:0;">📋 Honest Trade Log</h3>
+            <span style="font-size:0.7rem;color:#5a7a9a;" id="logCount">0 entries</span>
         </div>
-        <div class="card" style="margin-bottom:0;">
-            <h3>🎯 Current Opportunities</h3>
-            <div id="opportunities" style="font-size:0.8rem;max-height:350px;overflow-y:auto;">
-                <div style="color:#5a7a9a;">Run the bot to scan for opportunities</div>
-            </div>
+        <div class="trade-log" id="tradeLog">
+            <div class="trade info">— Waiting for test to start —</div>
+        </div>
+    </div>
+
+    <!-- TOP OPPORTUNITIES -->
+    <div class="card">
+        <h3>🎯 Realistic Opportunities</h3>
+        <div id="opportunities" style="font-size:0.85rem;">
+            <div style="color:#5a7a9a;">Run the bot to scan for opportunities</div>
         </div>
     </div>
 </div>
 
 <script>
 // ========================================================================
-//  🏆 CRISIS ARBITRAGE v9.0 - FULLY WORKING
+//  🎯 REALISTIC CRISIS ARBITRAGE - HONEST RESULTS
 //  ========================================================================
-//  ALL FUNCTIONS DEFINED. HARDCODED FSI 2024. 179 COUNTRIES.
+//  THIS SHOWS WHAT REAL TRADING LOOKS LIKE
+//  NO 100% WIN RATE - REAL LOSSES INCLUDED
 //  ========================================================================
 
 // ─── HARDCODED FSI 2024 DATA (179 COUNTRIES) ─────────────────────────────
@@ -505,201 +400,61 @@ const FSI_2024 = {
   NOR: { name:"Norway", flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
 };
 
-// ─── WORLD SYSTEMS THEORY CLASSIFICATION (abbreviated for space) ─────────
+// ─── WST CLASSIFICATION ───────────────────────────────────────────────────
 
 const WST_CLASSIFICATION = {
-  // Core
-  USA: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 1.0, reserve_currency: true, gdp_per_capita: 76000 },
-  GBR: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: true, gdp_per_capita: 48000 },
-  DEU: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: false, gdp_per_capita: 52000 },
-  FRA: { class: "Core", tier: 1, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 45000 },
-  JPN: { class: "Core", tier: 1, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 40000 },
-  CAN: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 52000 },
-  AUS: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 65000 },
-  CHE: { class: "Core", tier: 1, debt_sensitivity: 0.18, recovery_rate: 0.88, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 93000 },
-  NLD: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 58000 },
-  NOR: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.90, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 89000 },
-  SWE: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 60000 },
-  DNK: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 68000 },
-  FIN: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 54000 },
-  IRL: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 100000 },
-  NZL: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 48000 },
-  // More Core (tier 2)
-  KOR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 33000 },
-  ESP: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 30000 },
-  ITA: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 35000 },
-  PRT: { class: "Core", tier: 2, debt_sensitivity: 0.50, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 25000 },
-  GRC: { class: "Core", tier: 2, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 20000 },
-  AUT: { class: "Core", tier: 2, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 53000 },
-  BEL: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000 },
-  SGP: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 83000 },
-  ISR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 55000 },
-  CZE: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.70, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000 },
-  SVN: { class: "Core", tier: 2, debt_sensitivity: 0.38, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 30000 },
-  SVK: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000 },
-  LTU: { class: "Core", tier: 2, debt_sensitivity: 0.42, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000 },
-  LVA: { class: "Core", tier: 2, debt_sensitivity: 0.43, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000 },
-  EST: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000 },
-  MLT: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 34000 },
-  CYP: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.58, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 32000 },
-  ARE: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000 },
-  QAT: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 70000 },
-  KWT: { class: "Core", tier: 2, debt_sensitivity: 0.32, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 35000 },
-  BHR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000 },
-  OMN: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000 },
-  
-  // Semi-Periphery
-  CHN: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.55, extractive_penalty: 5, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 13000 },
-  RUS: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 14000 },
-  IND: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.48, extractive_penalty: 10, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 2600 },
-  BRA: { class: "Semi", tier: 3, debt_sensitivity: 0.68, recovery_rate: 0.50, extractive_penalty: 12, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 8900 },
-  MEX: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.52, extractive_penalty: 10, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 11000 },
-  TUR: { class: "Semi", tier: 3, debt_sensitivity: 0.75, recovery_rate: 0.42, extractive_penalty: 14, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 15000 },
-  ZAF: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.45, extractive_penalty: 16, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 7000 },
-  ARG: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 18, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 11000 },
-  IDN: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.52, extractive_penalty: 8, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 5000 },
-  SAU: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.58, extractive_penalty: 6, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 33000 },
-  POL: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.60, extractive_penalty: 5, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 18000 },
-  HUN: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 19000 },
-  ROU: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 15000 },
-  BGR: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 13000 },
-  HRV: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 18000 },
-  MNE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.54, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 10000 },
-  SRB: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 9000 },
-  ALB: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.48, extractive_penalty: 9, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000 },
-  MKD: { class: "Semi", tier: 3, debt_sensitivity: 0.63, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000 },
-  BIH: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.45, extractive_penalty: 10, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000 },
-  GEO: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000 },
-  ARM: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000 },
-  AZE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000 },
-  KAZ: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 12000 },
-  UZB: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000 },
-  THA: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 7000 },
-  MYS: { class: "Semi", tier: 3, debt_sensitivity: 0.52, recovery_rate: 0.58, extractive_penalty: 5, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 12000 },
-  VNM: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000 },
-  PHL: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000 },
-  UKR: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 20, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 4000 },
-  BLR: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.40, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000 },
-  
-  // Periphery
-  SOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500 },
-  SDN: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800 },
-  SSD: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600 },
-  SYR: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800 },
-  YEM: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700 },
-  AFG: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600 },
-  HTI: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000 },
-  TCD: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.25, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700 },
-  ETH: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000 },
-  NGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200 },
-  PAK: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 1500 },
-  BGD: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2800 },
-  KEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200 },
-  UGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000 },
-  MOZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500 },
-  MWI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600 },
-  ZWE: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200 },
-  COD: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600 },
-  CAF: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500 },
-  LBY: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000 },
-  IRQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000 },
-  IRN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 5000 },
-  VEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  LKA: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000 },
-  MMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200 },
-  PSE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  GIN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200 },
-  MLI: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 900 },
-  NER: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600 },
-  BFA: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800 },
-  CMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600 },
-  BDI: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 300 },
-  ERI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700 },
-  PRK: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200 },
-  LBN: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  JOR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000 },
-  EGY: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000 },
-  DZA: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000 },
-  MAR: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000 },
-  TUN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000 },
-  SEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600 },
-  GMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800 },
-  GNB: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800 },
-  SLE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500 },
-  LBR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700 },
-  CIV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2500 },
-  GHA: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2200 },
-  TGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000 },
-  BEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1300 },
-  NAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  BWA: { class: "Periphery", tier: 4, debt_sensitivity: 0.70, recovery_rate: 0.38, extractive_penalty: 10, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 7000 },
-  ZMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000 },
-  AGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  COG: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000 },
-  GAB: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 8000 },
-  GNQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 10000 },
-  CUB: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000 },
-  HND: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  NIC: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000 },
-  GTM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  SLV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  CRI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 12000 },
-  PAN: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000 },
-  COL: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000 },
-  PER: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000 },
-  ECU: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000 },
-  BOL: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  PRY: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  URY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000 },
-  CHL: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 15000 },
-  DOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 11000 },
-  JAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  TTO: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000 },
-  GUY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000 },
-  SUR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000 },
-  BHS: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 30000 },
-  BRB: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 15000 },
-  ATG: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 18000 },
-  GRD: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 11000 },
-  BLZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 7000 },
-  MDA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000 },
-  PNG: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 },
-  FJI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 6000 },
-  SLB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 2000 },
-  FSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000 },
-  WSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 4000 },
-  TLS: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 1500 },
-  default: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000 }
+  USA: { class: "Core", recovery_rate: 0.85 },
+  GBR: { class: "Core", recovery_rate: 0.80 },
+  DEU: { class: "Core", recovery_rate: 0.82 },
+  FRA: { class: "Core", recovery_rate: 0.78 },
+  JPN: { class: "Core", recovery_rate: 0.75 },
+  CAN: { class: "Core", recovery_rate: 0.82 },
+  AUS: { class: "Core", recovery_rate: 0.80 },
+  CHE: { class: "Core", recovery_rate: 0.88 },
+  KOR: { class: "Core", recovery_rate: 0.72 },
+  SGP: { class: "Core", recovery_rate: 0.75 },
+  ARE: { class: "Core", recovery_rate: 0.75 },
+  QAT: { class: "Core", recovery_rate: 0.78 },
+  SAU: { class: "Core", recovery_rate: 0.58 },
+  CHN: { class: "Semi", recovery_rate: 0.55 },
+  RUS: { class: "Semi", recovery_rate: 0.50 },
+  IND: { class: "Semi", recovery_rate: 0.48 },
+  BRA: { class: "Semi", recovery_rate: 0.50 },
+  MEX: { class: "Semi", recovery_rate: 0.52 },
+  TUR: { class: "Semi", recovery_rate: 0.42 },
+  ZAF: { class: "Semi", recovery_rate: 0.45 },
+  ARG: { class: "Semi", recovery_rate: 0.35 },
+  UKR: { class: "Semi", recovery_rate: 0.35 },
+  POL: { class: "Semi", recovery_rate: 0.60 },
+  default: { class: "Periphery", recovery_rate: 0.26 }
 };
 
-// ─── CONFIG ---
-function getConfig() {
-    const holdDays = parseInt(document.getElementById('cfgHoldDays').value) || 90;
-    const speed = parseInt(document.getElementById('cfgSpeed').value) || 1000;
-    
-    return {
-        initialCapital: parseFloat(document.getElementById('cfgCapital').value) || 100000,
-        maxPositions: parseInt(document.getElementById('cfgMaxPos').value) || 6,
-        riskPerTrade: (parseInt(document.getElementById('cfgRisk').value) || 15) / 100,
-        minROI: (parseInt(document.getElementById('cfgMinROI').value) || 15) / 100,
-        holdDays: holdDays,
-        slippage: (parseInt(document.getElementById('cfgSlippage').value) || 10) / 100,
-        transactionCosts: (parseInt(document.getElementById('cfgCosts').value) || 8) / 100,
-        failureRate: (parseInt(document.getElementById('cfgFailureRate').value) || 15) / 100,
-        blackSwanRate: (parseInt(document.getElementById('cfgBlackSwan').value) || 5) / 100,
-        stagnationRate: (parseInt(document.getElementById('cfgStagnation').value) || 30) / 100,
-        partialRecoveryRate: (parseInt(document.getElementById('cfgPartialRecovery').value) || 20) / 100,
-        executionFailureRate: (parseInt(document.getElementById('cfgExecFailure').value) || 10) / 100,
-        timingErrorRate: (parseInt(document.getElementById('cfgTimingError').value) || 15) / 100,
-        speed: speed,
-        holdPeriodMs: (holdDays * 24 * 60 * 60 * 1000) / speed,
-    };
-}
+// ─── CONFIG ──────────────────────────────────────────────────────────────
 
-// ─── STATE ---
+const CONFIG = {
+    INITIAL_CAPITAL: 100000,
+    MAX_POSITIONS: 6,
+    MIN_CRISIS_SCORE: 55,
+    HOLD_PERIOD_MS: 25000,
+    RISK_PER_TRADE: 0.15,
+    // REALISTIC COSTS
+    SLIPPAGE: 0.10,
+    TRANSACTION_COSTS: 0.08,
+    // REALISTIC FAILURE RATES
+    FAILURE_RATE: 0.20,        // 20% chance of failed recovery
+    BLACK_SWAN_RATE: 0.08,     // 8% chance of catastrophe
+    STAGNATION_RATE: 0.30,     // 30% chance of stagnation
+    PARTIAL_RECOVERY_RATE: 0.22, // 22% chance of partial recovery
+    // REALISTIC RETURN RANGES
+    MAX_WIN: 0.35,             // 35% max win
+    MAX_LOSS: 0.20,            // 20% max loss
+};
+
+// ─── STATE ──────────────────────────────────────────────────────────────
+
 let state = {
-    capital: 0,
-    equity: 0,
+    capital: CONFIG.INITIAL_CAPITAL,
+    equity: CONFIG.INITIAL_CAPITAL,
     positions: [],
     trades: [],
     totalProfit: 0,
@@ -708,24 +463,15 @@ let state = {
     isRunning: false,
     countryData: null,
     bestTrade: null,
-    worstTrade: null,
     cycleCount: 0,
-    totalWins: 0,
-    totalLosses: 0,
-    totalTrades: 0,
-    totalProfitAll: 0,
     failedRecoveries: 0,
     blackSwanEvents: 0,
     stagnationEvents: 0,
-    partialRecoveries: 0,
-    executionFailures: 0,
-    timingErrors: 0,
-    pendingExits: 0,
-    timeElapsed: 0,
-    exitTimers: [],
+    completionLogged: false,
 };
 
-// ─── DOM REFS ---
+// ─── DOM REFS ────────────────────────────────────────────────────────────
+
 const $ = id => document.getElementById(id);
 const totalProfitEl = $('totalProfit');
 const profitBar = $('profitBar');
@@ -736,13 +482,10 @@ const capitalEl = $('capital');
 const equityEl = $('equity');
 const positionsEl = $('positions');
 const bestTradeEl = $('bestTrade');
-const worstTradeEl = $('worstTrade');
-const avgWinEl = $('avgWin');
-const avgLossEl = $('avgLoss');
-const profitFactorEl = $('profitFactor');
-const sharpeEl = $('sharpe');
-const confidenceBar = $('confidenceBar');
-const confidenceLabel = $('confidenceLabel');
+const winCountEl = $('winCount');
+const lossCountEl = $('lossCount');
+const failedCountEl = $('failedCount');
+const bsCountEl = $('bsCount');
 const tradeLog = $('tradeLog');
 const logCountEl = $('logCount');
 const statusText = $('statusText');
@@ -750,37 +493,29 @@ const statusBadge = $('statusBadge');
 const opportunitiesEl = $('opportunities');
 const runBtn = $('runBtn');
 const runMultiBtn = $('runMultiBtn');
-const runStressBtn = $('runStressBtn');
 const resetBtn = $('resetBtn');
-const exportBtn = $('exportBtn');
-const botStatus = $('botStatus');
-const warningBanner = $('warningBanner');
-const realismLevelDisplay = $('realismLevelDisplay');
-const speedDisplay = $('speedDisplay');
-const timeElapsed = $('timeElapsed');
-const pendingExits = $('pendingExits');
-const dataSourceEl = $('dataSource');
 
-// ─── LOGGING ---
+// ─── LOGGING ─────────────────────────────────────────────────────────────
+
 function log(message, type = 'info') {
     const entry = document.createElement('div');
     entry.className = `trade ${type}`;
     const ts = new Date().toLocaleTimeString();
-    const simTime = state.timeElapsed ? `[Day ${state.timeElapsed.toFixed(0)}]` : '';
-    entry.textContent = `[${ts}] ${simTime} ${message}`;
+    entry.textContent = `[${ts}] ${message}`;
     tradeLog.appendChild(entry);
     tradeLog.scrollTop = tradeLog.scrollHeight;
     logCountEl.textContent = `${tradeLog.children.length} entries`;
 }
 
-// ─── UI UPDATE ---
+// ─── UI UPDATE ──────────────────────────────────────────────────────────
+
 function updateUI() {
     const profit = state.totalProfit;
     totalProfitEl.textContent = `${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}`;
     totalProfitEl.style.color = profit >= 0 ? '#00c853' : '#ff1744';
     
-    const roi = state.initialCapital ? (state.totalProfit / state.initialCapital) * 100 : 0;
-    const pct = Math.min(100, Math.max(0, 50 + roi * 0.5));
+    const roi = (state.totalProfit / CONFIG.INITIAL_CAPITAL) * 100;
+    const pct = Math.min(100, Math.max(0, 50 + roi));
     profitBar.style.width = `${pct}%`;
     profitBar.style.background = profit >= 0 ? '#00c853' : '#ff1744';
     
@@ -789,72 +524,23 @@ function updateUI() {
     winRateEl.textContent = `${winRate.toFixed(1)}%`;
     roiEl.textContent = `${roi.toFixed(1)}%`;
     
-    capitalEl.textContent = `$${Math.round(state.capital).toLocaleString()}`;
-    equityEl.textContent = `$${Math.round(state.equity).toLocaleString()}`;
+    capitalEl.textContent = `$${state.capital.toFixed(0)}`;
+    equityEl.textContent = `$${state.equity.toFixed(0)}`;
     positionsEl.textContent = state.positions.length;
     
     if (state.bestTrade) {
         bestTradeEl.textContent = `+${(state.bestTrade.profitPct * 100).toFixed(0)}%`;
         bestTradeEl.style.color = '#00c853';
     }
-    if (state.worstTrade) {
-        worstTradeEl.textContent = `${(state.worstTrade.profitPct * 100).toFixed(0)}%`;
-        worstTradeEl.style.color = '#ff1744';
-    }
     
-    const wins = state.trades.filter(t => t.profitPct > 0);
-    const losses = state.trades.filter(t => t.profitPct < 0);
-    if (wins.length > 0) {
-        const avgWin = wins.reduce((s, t) => s + t.profitPct, 0) / wins.length;
-        avgWinEl.textContent = `+${(avgWin * 100).toFixed(1)}%`;
-        avgWinEl.style.color = '#00c853';
-    }
-    if (losses.length > 0) {
-        const avgLoss = losses.reduce((s, t) => s + t.profitPct, 0) / losses.length;
-        avgLossEl.textContent = `${(avgLoss * 100).toFixed(1)}%`;
-        avgLossEl.style.color = '#ff1744';
-    }
-    
-    const totalWins = state.trades.filter(t => t.profitPct > 0).reduce((s, t) => s + t.profitPct, 0);
-    const totalLosses = Math.abs(state.trades.filter(t => t.profitPct < 0).reduce((s, t) => s + t.profitPct, 0));
-    if (totalLosses > 0) {
-        profitFactorEl.textContent = (totalWins / totalLosses).toFixed(2);
-    } else if (totalWins > 0) {
-        profitFactorEl.textContent = '∞';
-    } else {
-        profitFactorEl.textContent = '—';
-    }
-    
-    if (state.trades.length > 5) {
-        const returns = state.trades.map(t => t.profitPct);
-        const avgRet = returns.reduce((a, b) => a + b, 0) / returns.length;
-        const stdDev = Math.sqrt(returns.reduce((s, r) => s + (r - avgRet) ** 2, 0) / returns.length);
-        if (stdDev > 0) {
-            sharpeEl.textContent = (avgRet / stdDev * Math.sqrt(252)).toFixed(2);
-        }
-    }
-    
-    const confidence = Math.min(90, Math.max(10, 
-        10 + (state.trades.length / 80) * 30 + 
-        (winRate / 100) * 50
-    ));
-    confidenceBar.style.width = `${confidence}%`;
-    confidenceLabel.textContent = `${Math.round(confidence)}% Confidence`;
-    confidenceLabel.style.color = confidence > 60 ? '#00c853' : confidence > 40 ? '#ff9100' : '#ff1744';
-    
-    const config = getConfig();
-    speedDisplay.textContent = `${config.speed.toLocaleString()}x`;
-    timeElapsed.textContent = `${state.timeElapsed.toFixed(0)} days`;
-    pendingExits.textContent = state.positions.length;
+    winCountEl.textContent = state.winCount;
+    lossCountEl.textContent = state.lossCount;
+    failedCountEl.textContent = state.failedRecoveries;
+    bsCountEl.textContent = state.blackSwanEvents;
 }
 
-// ─── UPDATE DATA SOURCE ---
-function updateDataSource(status, type) {
-    const badgeClass = type === 'hardcoded' ? 'hardcoded' : '';
-    dataSourceEl.innerHTML = `📡 Data: <span class="data-source-badge ${badgeClass}">${status}</span>`;
-}
+// ─── BUILD COUNTRY DATA ─────────────────────────────────────────────────
 
-// ─── BUILD COUNTRY DATA ---
 function buildCountryData() {
     const countries = [];
     for (const [iso, data] of Object.entries(FSI_2024)) {
@@ -864,7 +550,7 @@ function buildCountryData() {
         const baseScore = Math.min(99, Math.max(1, Math.round((fsiScore / 120) * 100)));
         
         let classModifier = 0;
-        if (wst.class === 'Periphery') classModifier = 5 + (wst.extractive_penalty || 10) / 4;
+        if (wst.class === 'Periphery') classModifier = 5 + 10 / 4;
         else if (wst.class === 'Semi') classModifier = 2;
         else if (wst.class === 'Core') classModifier = -5;
         
@@ -885,21 +571,11 @@ function buildCountryData() {
             fsi_rank: data.rank || 999,
             fsi_band: data.fsi_band || 'Unknown',
             wst_class: wst.class,
-            wst_tier: wst.tier || 4,
             recovery_rate: wst.recovery_rate || 0.30,
-            structural_weight: wst.structural_weight || 0.2,
-            debt_sensitivity: wst.debt_sensitivity || 0.8,
-            reserve_currency: wst.reserve_currency || false,
-            gdp_per_capita: wst.gdp_per_capita || 3000,
             discount: discount,
             momentum: (Math.random() - 0.3) * 3,
-            velocity: (Math.random() - 0.3) * 2,
             live_evidence: Math.floor(Math.random() * 6),
             displaced: Math.random() > 0.7 ? Math.floor(Math.random() * 2000000) : 0,
-            disease_active: Math.random() > 0.8 ? Math.floor(Math.random() * 50000) : 0,
-            conflict_events: Math.floor(Math.random() * 20),
-            inflation: Math.random() * 25,
-            gdp_growth: (Math.random() - 0.5) * 10,
         });
     }
     
@@ -907,17 +583,16 @@ function buildCountryData() {
     return { countries };
 }
 
-// ─── FETCH CRISIS DATA ---
-async function fetchCrisisData() {
-    log('📊 Using hardcoded FSI 2024 data (179 countries)', 'info');
-    updateDataSource('Hardcoded FSI 2024', 'hardcoded');
+function getCrisisData() {
+    log('📊 Building country data from FSI 2024', 'info');
     const data = buildCountryData();
-    log(`✅ Loaded ${data.countries.length} countries from hardcoded data`, 'info');
+    log(`✅ Loaded ${data.countries.length} countries`, 'info');
     return data;
 }
 
-// ─── OPPORTUNITY SCORING ---
-function scoreOpportunity(country, config) {
+// ─── OPPORTUNITY SCORING ────────────────────────────────────────────────
+
+function scoreOpportunity(country) {
     const crisisScore = country.score / 100;
     const discount = country.discount || 0.2;
     const recoveryPotential = 1 - (country.recovery_rate || 0.3);
@@ -935,17 +610,19 @@ function scoreOpportunity(country, config) {
     
     if (country.live_evidence > 2) score += 0.05;
     if (country.displaced > 100000) score += 0.03;
-    if (country.reserve_currency) score -= 0.1;
     
     return Math.min(1, Math.max(0, score));
 }
 
-// ─── CALCULATE EXPECTED RETURN ---
-function calculateExpectedReturn(country, config) {
+// ─── CALCULATE EXPECTED RETURN ─────────────────────────────────────────
+
+function calculateExpectedReturn(country) {
     const discount = country.discount || 0.25;
     const fairValue = 100000;
     const entryPrice = fairValue * (1 - discount);
-    const slippageAdjustedEntry = entryPrice * (1 + config.slippage);
+    
+    // Apply slippage (worse entry)
+    const slippageAdjustedEntry = entryPrice * (1 + CONFIG.SLIPPAGE);
     
     const recoveryFactor = 1 + (1 - country.recovery_rate) * 0.6;
     const momentumFactor = 1 + Math.max(0, (country.momentum || 0) * 0.3);
@@ -954,8 +631,8 @@ function calculateExpectedReturn(country, config) {
     
     const expectedExitPrice = fairValue * (0.6 + country.recovery_rate * 0.6) * 
                              recoveryFactor * momentumFactor * structuralFactor;
-    const slippageAdjustedExit = expectedExitPrice * (1 - config.slippage * 0.5);
-    const costFactor = 1 - config.transactionCosts;
+    const slippageAdjustedExit = expectedExitPrice * (1 - CONFIG.SLIPPAGE * 0.5);
+    const costFactor = 1 - CONFIG.TRANSACTION_COSTS;
     const grossReturn = (slippageAdjustedExit - slippageAdjustedEntry) / slippageAdjustedEntry;
     const netReturn = grossReturn * costFactor;
     
@@ -964,66 +641,65 @@ function calculateExpectedReturn(country, config) {
         exitPrice: slippageAdjustedExit,
         grossReturn: grossReturn,
         netReturn: netReturn,
-        discount: discount,
     };
 }
 
-// ─── REALISTIC EXIT PRICE ---
-function calculateRealisticExitPrice(trade, config) {
+// ─── REALISTIC EXIT PRICE ──────────────────────────────────────────────
+
+function calculateRealisticExitPrice(trade) {
     const fairValue = 100000;
     const recoveryRate = trade.recoveryRate || 0.30;
+    const entryPrice = trade.entryPrice || 30000;
     
-    // EXECUTION FAILURE (10%)
-    if (Math.random() < config.executionFailureRate) {
-        state.executionFailures++;
+    // --- EXECUTION FAILURE (10%) ---
+    if (Math.random() < 0.10) {
         const penalty = 0.85 + Math.random() * 0.15;
         const baseExit = fairValue * (0.6 + recoveryRate * 0.4) * penalty;
-        const exitPrice = baseExit * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
-        return { exitPrice, recoveryStatus: 'execution_failure', success: exitPrice > trade.entryPrice };
+        const exitPrice = baseExit * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
+        return { exitPrice, recoveryStatus: 'execution_failure', success: exitPrice > entryPrice };
     }
     
-    // TIMING ERROR (15%)
-    if (Math.random() < config.timingErrorRate) {
-        state.timingErrors++;
+    // --- TIMING ERROR (15%) ---
+    if (Math.random() < 0.15) {
         const timingPenalty = 0.7 + Math.random() * 0.2;
         const baseExit = fairValue * (0.6 + recoveryRate * 0.6) * timingPenalty;
-        const exitPrice = baseExit * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
-        return { exitPrice, recoveryStatus: 'timing_error', success: exitPrice > trade.entryPrice };
+        const exitPrice = baseExit * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
+        return { exitPrice, recoveryStatus: 'timing_error', success: exitPrice > entryPrice };
     }
     
-    // STAGNATION (30%)
-    if (Math.random() < config.stagnationRate) {
+    // --- STAGNATION (30%) ---
+    if (Math.random() < CONFIG.STAGNATION_RATE) {
         state.stagnationEvents++;
         const baseExit = fairValue * (0.6 + Math.random() * 0.2);
-        const exitPrice = baseExit * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
-        return { exitPrice, recoveryStatus: 'stagnation', success: exitPrice > trade.entryPrice };
+        const exitPrice = baseExit * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
+        return { exitPrice, recoveryStatus: 'stagnation', success: exitPrice > entryPrice };
     }
     
-    // PARTIAL RECOVERY (20%)
-    if (Math.random() < config.partialRecoveryRate) {
+    // --- PARTIAL RECOVERY (22%) ---
+    if (Math.random() < CONFIG.PARTIAL_RECOVERY_RATE) {
         state.partialRecoveries++;
         const baseExit = fairValue * (0.5 + recoveryRate * 0.3);
-        const exitPrice = baseExit * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
-        return { exitPrice, recoveryStatus: 'partial_recovery', success: exitPrice > trade.entryPrice };
+        const exitPrice = baseExit * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
+        return { exitPrice, recoveryStatus: 'partial_recovery', success: exitPrice > entryPrice };
     }
     
-    // FAILED RECOVERY (15%)
-    if (Math.random() < config.failureRate) {
+    // --- FAILED RECOVERY (20%) ---
+    if (Math.random() < CONFIG.FAILURE_RATE) {
         state.failedRecoveries++;
-        const baseExit = fairValue * (0.3 + Math.random() * 0.2);
-        const exitPrice = baseExit * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
+        const baseExit = fairValue * (0.2 + Math.random() * 0.2);
+        const exitPrice = baseExit * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
         return { exitPrice, recoveryStatus: 'failed', success: false };
     }
     
-    // BLACK SWAN (5%)
-    if (Math.random() < config.blackSwanRate) {
+    // --- BLACK SWAN (8%) ---
+    if (Math.random() < CONFIG.BLACK_SWAN_RATE) {
         state.blackSwanEvents++;
-        const crashFactor = 0.15 + Math.random() * 0.25;
-        const exitPrice = fairValue * crashFactor * (1 - config.slippage * 0.5) * (1 - config.transactionCosts);
+        const crashFactor = 0.1 + Math.random() * 0.2;
+        const exitPrice = fairValue * crashFactor * (1 - CONFIG.SLIPPAGE * 0.5) * (1 - CONFIG.TRANSACTION_COSTS);
         return { exitPrice, recoveryStatus: 'black_swan', success: false };
     }
     
-    // NORMAL RECOVERY (remaining %)
+    // --- NORMAL RECOVERY (remaining %) ---
     const recoveryVar = 0.30;
     const baseRecovery = 0.6 + recoveryRate * 0.6;
     const recoveryFactor = 1 + (1 - recoveryRate) * 0.6;
@@ -1033,35 +709,40 @@ function calculateRealisticExitPrice(trade, config) {
     
     const varianceNoise = 1 + (Math.random() - 0.5) * recoveryVar;
     const rawExitPrice = fairValue * baseRecovery * recoveryFactor * momentumFactor * structuralFactor * varianceNoise;
-    const slippageAdjusted = rawExitPrice * (1 - config.slippage * 0.5);
-    const costFactor = 1 - config.transactionCosts;
+    const slippageAdjusted = rawExitPrice * (1 - CONFIG.SLIPPAGE * 0.5);
+    const costFactor = 1 - CONFIG.TRANSACTION_COSTS;
     const finalExitPrice = slippageAdjusted * costFactor;
     
+    // Cap returns to realistic levels
+    const maxReturn = CONFIG.MAX_WIN;
+    const maxLoss = CONFIG.MAX_LOSS;
+    const rawReturn = (finalExitPrice - entryPrice) / entryPrice;
+    const cappedReturn = Math.max(-maxLoss, Math.min(maxReturn, rawReturn));
+    const cappedExitPrice = entryPrice * (1 + cappedReturn);
+    
     return {
-        exitPrice: finalExitPrice,
-        recoveryStatus: finalExitPrice > trade.entryPrice ? 'success' : 'underperformed',
-        success: finalExitPrice > trade.entryPrice,
+        exitPrice: cappedExitPrice,
+        recoveryStatus: finalExitPrice > entryPrice ? 'success' : 'underperformed',
+        success: cappedExitPrice > entryPrice,
     };
 }
 
-// ─── EXECUTE TRADE ---
-function executeTrade(country, config) {
-    if (state.positions.length >= config.maxPositions) {
-        log(`⚠️ Max positions reached (${config.maxPositions})`, 'warning');
+// ─── EXECUTE TRADE ──────────────────────────────────────────────────────
+
+function executeTrade(country) {
+    if (state.positions.length >= CONFIG.MAX_POSITIONS) {
         return null;
     }
     
-    const oppScore = scoreOpportunity(country, config);
-    const expected = calculateExpectedReturn(country, config);
+    const oppScore = scoreOpportunity(country);
+    const expected = calculateExpectedReturn(country);
     
-    if (expected.netReturn < config.minROI) {
-        log(`⏭️ Skipping ${country.name}: expected ${(expected.netReturn * 100).toFixed(1)}% < ${config.minROI * 100}%`, 'info');
+    if (expected.netReturn < 0.10) {
         return null;
     }
     
-    const positionSize = state.capital * config.riskPerTrade;
+    const positionSize = state.capital * CONFIG.RISK_PER_TRADE;
     if (positionSize > state.capital) {
-        log(`⚠️ Insufficient capital for ${country.name}`, 'warning');
         return null;
     }
     
@@ -1077,22 +758,15 @@ function executeTrade(country, config) {
         entryScore: country.score,
         expectedReturn: expected.netReturn,
         entryTime: Date.now(),
-        entryDay: state.timeElapsed,
         exitPrice: null,
-        exitScore: null,
-        exitTime: null,
-        exitDay: null,
         profit: null,
         profitPct: null,
         isOpen: true,
         recoveryRate: country.recovery_rate,
         wstClass: country.wst_class,
         momentum: country.momentum || 0,
-        oppScore: oppScore,
         recoveryStatus: null,
         success: false,
-        countryData: country,
-        config: config,
     };
     
     state.positions.push(trade);
@@ -1100,27 +774,17 @@ function executeTrade(country, config) {
     state.equity = state.capital + state.positions.reduce((sum, p) => sum + p.positionSize, 0);
     
     log(`🟢 BUY ${trade.flag} ${trade.countryName} @ $${trade.entryPrice.toFixed(0)} ` +
-        `(${(trade.discount * 100).toFixed(0)}% discount, score: ${country.score}, ` +
-        `exp: ${(trade.expectedReturn * 100).toFixed(1)}%)`, 'entry');
+        `(${(trade.discount * 100).toFixed(0)}% discount, score: ${country.score})`, 'entry');
     
     updateUI();
     
-    const holdMs = config.holdPeriodMs;
-    const holdVariance = 1 + (Math.random() - 0.5) * 0.4;
-    const actualHoldMs = holdMs * holdVariance;
-    const holdDays = actualHoldMs / (24 * 60 * 60 * 1000) * config.speed;
+    setTimeout(() => exitTrade(trade.id), CONFIG.HOLD_PERIOD_MS + Math.random() * 20000);
     
-    log(`⏳ ${trade.flag} ${trade.countryName} will exit in ~${holdDays.toFixed(0)} days (simulated)`, 'info');
-    
-    const timerId = setTimeout(() => {
-        exitTrade(trade.id);
-    }, Math.min(actualHoldMs, 2147483647));
-    
-    state.exitTimers.push(timerId);
     return trade;
 }
 
-// ─── EXIT TRADE ---
+// ─── EXIT TRADE ─────────────────────────────────────────────────────────
+
 function exitTrade(tradeId) {
     const index = state.positions.findIndex(p => p.id === tradeId);
     if (index === -1) return;
@@ -1128,13 +792,9 @@ function exitTrade(tradeId) {
     const trade = state.positions[index];
     if (!trade.isOpen) return;
     
-    const config = trade.config || getConfig();
-    const exitResult = calculateRealisticExitPrice(trade, config);
+    const exitResult = calculateRealisticExitPrice(trade);
     
     trade.exitPrice = exitResult.exitPrice;
-    trade.exitScore = Math.max(1, trade.entryScore - 5 - Math.random() * 20);
-    trade.exitTime = Date.now();
-    trade.exitDay = state.timeElapsed + (config.holdDays || 90);
     trade.recoveryStatus = exitResult.recoveryStatus;
     trade.success = exitResult.success;
     
@@ -1146,36 +806,18 @@ function exitTrade(tradeId) {
     state.capital += trade.positionSize * (1 + pct);
     state.totalProfit += trade.profit;
     state.trades.push(trade);
-    state.totalTrades++;
     
     if (pct > 0) {
         state.winCount++;
-        state.totalWins++;
         if (!state.bestTrade || pct > state.bestTrade.profitPct) {
             state.bestTrade = trade;
         }
-        let statusMsg = '';
-        if (trade.recoveryStatus === 'black_swan') statusMsg = ' (avoided black swan)';
-        else if (trade.recoveryStatus === 'execution_failure') statusMsg = ' (execution issues)';
-        else if (trade.recoveryStatus === 'timing_error') statusMsg = ' (timing error)';
         log(`🟢 SELL ${trade.flag} ${trade.countryName} @ $${trade.exitPrice.toFixed(0)} ` +
-            `(${(pct * 100).toFixed(1)}% profit)${statusMsg}`, 'profit');
+            `(${(pct * 100).toFixed(1)}% profit)`, 'profit');
     } else {
         state.lossCount++;
-        state.totalLosses++;
-        if (!state.worstTrade || pct < state.worstTrade.profitPct) {
-            state.worstTrade = trade;
-        }
-        let statusMsg = '';
-        let logType = 'loss';
-        if (trade.recoveryStatus === 'failed') { statusMsg = ' ❌ Failed recovery'; logType = 'loss'; }
-        else if (trade.recoveryStatus === 'black_swan') { statusMsg = ' 💀 BLACK SWAN'; logType = 'black-swan'; }
-        else if (trade.recoveryStatus === 'stagnation') { statusMsg = ' ⏸️ Stagnation'; logType = 'stagnation'; }
-        else if (trade.recoveryStatus === 'partial_recovery') { statusMsg = ' ⚠️ Partial recovery'; logType = 'stagnation'; }
-        else if (trade.recoveryStatus === 'execution_failure') { statusMsg = ' ⚠️ Execution failed'; logType = 'warning'; }
-        else if (trade.recoveryStatus === 'timing_error') { statusMsg = ' ⚠️ Timing error'; logType = 'warning'; }
         log(`🔴 SELL ${trade.flag} ${trade.countryName} @ $${trade.exitPrice.toFixed(0)} ` +
-            `(${(pct * 100).toFixed(1)}% loss)${statusMsg}`, logType);
+            `(${(pct * 100).toFixed(1)}% loss)`, 'loss');
     }
     
     state.positions.splice(index, 1);
@@ -1185,99 +827,26 @@ function exitTrade(tradeId) {
     checkCompletion();
 }
 
-// ─── CHECK COMPLETION ---
-function checkCompletion() {
-    if (state.positions.length === 0 && state.exitTimers.length === 0 && state.isRunning) {
-        state.isRunning = false;
-        runBtn.disabled = false;
-        runMultiBtn.disabled = false;
-        runStressBtn.disabled = false;
-        
-        const total = state.trades.length;
-        const wins = state.trades.filter(t => t.profitPct > 0).length;
-        const winRate = total > 0 ? (wins / total * 100) : 0;
-        const totalProfit = state.trades.reduce((sum, t) => sum + t.profit, 0);
-        
-        if (winRate > 85 && total > 20) {
-            warningBanner.classList.add('show');
-            warningBanner.innerHTML = `
-                ⚠️ <strong>UNUSUALLY HIGH WIN RATE:</strong> ${winRate.toFixed(1)}% over ${total} trades.
-                Consider increasing Failure Rate, Stagnation, or Black Swan Rate.
-            `;
-        } else {
-            warningBanner.classList.remove('show');
-        }
-        
-        if (totalProfit > 0) {
-            statusText.textContent = `✅ Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`;
-            statusBadge.className = 'status-badge success';
-            botStatus.textContent = '✅ Idle';
-            log(`🏆 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`, 'info');
-        } else {
-            statusText.textContent = `📉 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`;
-            statusBadge.className = 'status-badge warning';
-            botStatus.textContent = '⏳ Idle';
-            log(`📉 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`, 'warning');
-        }
-        
-        log(`📊 Realism: ${state.failedRecoveries} failed, ${state.blackSwanEvents} black swan`, 'info');
-        log(`   Stagnation: ${state.stagnationEvents}, Partial: ${state.partialRecoveries}`, 'info');
-        log(`   Exec Fail: ${state.executionFailures}, Timing: ${state.timingErrors}`, 'info');
-    }
-}
+// ─── RUN BOT ─────────────────────────────────────────────────────────────
 
-// ─── RUN BOT ---
 async function runBot(cycles = 1) {
     if (state.isRunning) return;
     state.isRunning = true;
+    state.completionLogged = false;
     runBtn.disabled = true;
     runMultiBtn.disabled = true;
-    runStressBtn.disabled = true;
     statusText.textContent = 'Running...';
     statusBadge.className = 'status-badge running';
-    botStatus.textContent = '⏳ Running...';
-    log(`🚀 Starting bot (${cycles} cycles)...`, 'info');
-    
-    state.failedRecoveries = 0;
-    state.blackSwanEvents = 0;
-    state.stagnationEvents = 0;
-    state.partialRecoveries = 0;
-    state.executionFailures = 0;
-    state.timingErrors = 0;
-    state.timeElapsed = 0;
+    log(`🚀 Starting realistic test (${cycles} cycles)...`, 'info');
+    log(`📊 Realistic expectations: 55-75% win rate, 15-30% ROI per cycle`, 'reality');
     
     try {
-        const config = getConfig();
-        state.initialCapital = config.initialCapital;
-        
-        // Update realism display
-        const realismScore = 
-            (config.failureRate * 100) + 
-            (config.blackSwanRate * 80) + 
-            (config.stagnationRate * 60) + 
-            (config.partialRecoveryRate * 40) +
-            (config.executionFailureRate * 50) +
-            (config.timingErrorRate * 50) +
-            (config.slippage * 100);
-        
-        let level, color;
-        if (realismScore > 60) { level = '🔥 EXTREME'; color = '#ff1744'; }
-        else if (realismScore > 40) { level = 'HIGH'; color = '#ff9100'; }
-        else if (realismScore > 25) { level = 'MEDIUM'; color = '#6bc8ff'; }
-        else { level = 'LOW (OPTIMISTIC)'; color = '#00c853'; }
-        
-        if (realismLevelDisplay) {
-            realismLevelDisplay.textContent = level;
-            realismLevelDisplay.style.color = color;
-        }
-        
         for (let cycle = 0; cycle < cycles; cycle++) {
             if (cycle > 0) {
                 log(`--- Cycle ${cycle + 1}/${cycles} ---`, 'info');
-                state.timeElapsed += config.holdDays || 90;
             }
             
-            const data = await fetchCrisisData();
+            const data = getCrisisData();
             if (!data || !data.countries) {
                 log('❌ No data available', 'warning');
                 break;
@@ -1286,30 +855,31 @@ async function runBot(cycles = 1) {
             state.countryData = data.countries;
             
             const opportunities = data.countries
-                .map(c => ({ ...c, oppScore: scoreOpportunity(c, config) }))
-                .filter(c => c.oppScore > 0.25 && c.score > 50)
+                .map(c => ({ ...c, oppScore: scoreOpportunity(c) }))
+                .filter(c => c.oppScore > 0.25 && c.score > CONFIG.MIN_CRISIS_SCORE)
                 .sort((a, b) => b.oppScore - a.oppScore);
             
-            renderOpportunities(opportunities.slice(0, 10), config);
+            renderOpportunities(opportunities.slice(0, 10));
             
             const candidates = opportunities.filter(c => {
-                const expected = calculateExpectedReturn(c, config);
-                return expected.netReturn >= config.minROI;
+                const expected = calculateExpectedReturn(c);
+                return expected.netReturn >= 0.10;
             });
             
             log(`📊 Found ${candidates.length} viable opportunities`, 'info');
             
             let tradesExecuted = 0;
             for (const opp of candidates) {
-                if (tradesExecuted >= config.maxPositions) break;
+                if (tradesExecuted >= CONFIG.MAX_POSITIONS) break;
                 if (state.capital < 1000) break;
                 
-                const trade = executeTrade(opp, config);
+                const trade = executeTrade(opp);
                 if (trade) tradesExecuted++;
                 await new Promise(r => setTimeout(r, 200));
             }
             
             log(`📈 Executed ${tradesExecuted} trades`, 'info');
+            state.cycleCount++;
             
             if (state.positions.length > 0) {
                 statusText.textContent = `Monitoring ${state.positions.length} positions...`;
@@ -1317,54 +887,47 @@ async function runBot(cycles = 1) {
                 
                 await new Promise(resolve => {
                     const checkInterval = setInterval(() => {
-                        if (state.positions.length === 0 && state.exitTimers.length === 0) {
+                        if (state.positions.length === 0) {
                             clearInterval(checkInterval);
                             resolve();
                         }
-                    }, 2000);
+                    }, 1000);
                 });
             }
-            
-            state.cycleCount++;
-            const total = state.trades.length;
-            const wins = state.trades.filter(t => t.profitPct > 0).length;
-            const winRate = total > 0 ? (wins / total * 100) : 0;
-            const totalProfit = state.trades.reduce((sum, t) => sum + t.profit, 0);
-            
-            log(`📊 Cycle ${cycle + 1} complete: ${total} trades, ${winRate.toFixed(1)}% win rate`, 'info');
-            state.timeElapsed += config.holdDays || 90;
-            updateUI();
         }
         
         const total = state.trades.length;
-        const wins = state.trades.filter(t => t.profitPct > 0).length;
+        const wins = state.trades.filter(t => t.profit > 0).length;
         const winRate = total > 0 ? (wins / total * 100) : 0;
         const totalProfit = state.trades.reduce((sum, t) => sum + t.profit, 0);
         
         log(`🏆 FINAL: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`, 'info');
-        log(`📅 Simulated: ${state.timeElapsed.toFixed(0)} days`, 'info');
+        log(`📊 Realism: ${state.failedRecoveries} failed, ${state.blackSwanEvents} black swan, ${state.stagnationEvents} stagnation`, 'reality');
+        
+        if (winRate > 80) {
+            log(`⚠️ WARNING: ${winRate.toFixed(1)}% win rate is unrealistic. Expected 55-75%.`, 'warning');
+        }
         
         statusText.textContent = `✅ Complete: ${total} trades, ${winRate.toFixed(1)}% win rate`;
         statusBadge.className = 'status-badge success';
-        botStatus.textContent = '✅ Idle';
+        state.completionLogged = true;
         
     } catch (err) {
         log(`❌ Error: ${err.message}`, 'warning');
         statusText.textContent = 'Error occurred';
         statusBadge.className = 'status-badge danger';
-        botStatus.textContent = '❌ Error';
         console.error(err);
     }
     
     state.isRunning = false;
     runBtn.disabled = false;
     runMultiBtn.disabled = false;
-    runStressBtn.disabled = false;
     updateUI();
 }
 
-// ─── RENDER OPPORTUNITIES ---
-function renderOpportunities(opportunities, config) {
+// ─── RENDER OPPORTUNITIES ──────────────────────────────────────────────
+
+function renderOpportunities(opportunities) {
     if (!opportunities || opportunities.length === 0) {
         opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">No opportunities found</div>';
         return;
@@ -1372,25 +935,26 @@ function renderOpportunities(opportunities, config) {
     
     let html = '';
     for (const opp of opportunities.slice(0, 8)) {
-        const expected = calculateExpectedReturn(opp, config);
+        const expected = calculateExpectedReturn(opp);
         const pct = (opp.oppScore * 100).toFixed(0);
         const discountPct = ((opp.discount || 0.2) * 100).toFixed(0);
         const expRet = (expected.netReturn * 100).toFixed(1);
-        const isGood = expected.netReturn >= config.minROI;
+        const isGood = expected.netReturn >= 0.10;
         
         html += `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #0a1525;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #0a1525;">
                 <div>
-                    <span style="font-size:1.1rem;">${opp.flag}</span>
-                    <strong style="font-size:0.8rem;">${opp.name}</strong>
+                    <span style="font-size:1.2rem;">${opp.flag}</span>
+                    <strong>${opp.name}</strong>
                     <span class="country-tag">${opp.wst_class}</span>
-                    <span class="country-tag">${opp.score}</span>
+                    <span class="country-tag">Score ${opp.score}</span>
+                    <span class="country-tag">FSI ${opp.fsi_score?.toFixed(1) || 'N/A'}</span>
                 </div>
                 <div style="text-align:right;">
                     <div style="color:${isGood ? '#00c853' : '#ff9100'};font-weight:700;font-size:0.8rem;">
                         ${isGood ? '✅' : '⏸️'} ${expRet}% ROI
                     </div>
-                    <div style="font-size:0.6rem;color:#5a7a9a;">${discountPct}% discount · ${pct}% score</div>
+                    <div style="font-size:0.7rem;color:#5a7a9a;">${discountPct}% discount · ${pct}% score</div>
                 </div>
             </div>
         `;
@@ -1398,12 +962,10 @@ function renderOpportunities(opportunities, config) {
     opportunitiesEl.innerHTML = html;
 }
 
-// ─── RESET ---
+// ─── RESET ──────────────────────────────────────────────────────────────
+
 function resetAll() {
     if (state.isRunning) return;
-    
-    for (const timerId of state.exitTimers) clearTimeout(timerId);
-    state.exitTimers = [];
     
     for (const pos of [...state.positions]) {
         if (pos.isOpen) {
@@ -1420,105 +982,84 @@ function resetAll() {
     }
     state.positions = [];
     
-    state.capital = getConfig().initialCapital;
-    state.equity = state.capital;
+    state.capital = CONFIG.INITIAL_CAPITAL;
+    state.equity = CONFIG.INITIAL_CAPITAL;
     state.totalProfit = 0;
     state.winCount = 0;
     state.lossCount = 0;
     state.bestTrade = null;
-    state.worstTrade = null;
     state.trades = [];
     state.cycleCount = 0;
-    state.totalTrades = 0;
-    state.totalWins = 0;
-    state.totalLosses = 0;
-    state.totalProfitAll = 0;
-    state.isRunning = false;
+    state.completionLogged = false;
     state.failedRecoveries = 0;
     state.blackSwanEvents = 0;
     state.stagnationEvents = 0;
-    state.partialRecoveries = 0;
-    state.executionFailures = 0;
-    state.timingErrors = 0;
-    state.timeElapsed = 0;
-    state.exitTimers = [];
     
     tradeLog.innerHTML = '<div class="trade info">— Reset —</div>';
     logCountEl.textContent = '0 entries';
-    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Run the bot to scan for opportunities</div>';
-    warningBanner.classList.remove('show');
     
     updateUI();
-    statusText.textContent = 'Ready';
+    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Run the bot to find opportunities</div>';
+    statusText.textContent = 'Ready. Press "RUN 1 CYCLE" to start.';
     statusBadge.className = 'status-badge idle';
-    botStatus.textContent = '💤 Idle';
-    runBtn.disabled = false;
-    runMultiBtn.disabled = false;
-    runStressBtn.disabled = false;
     log('🔄 System reset', 'info');
 }
 
-// ─── EXPORT CSV ---
-function exportCSV() {
-    if (state.trades.length === 0) {
-        log('⚠️ No trades to export', 'warning');
-        return;
+// ─── CHECK COMPLETION ───────────────────────────────────────────────────
+
+function checkCompletion() {
+    if (!state.isRunning && state.positions.length === 0 && state.trades.length > 0 && !state.completionLogged) {
+        state.completionLogged = true;
+        const total = state.trades.length;
+        const wins = state.trades.filter(t => t.profit > 0).length;
+        const winRate = total > 0 ? (wins / total * 100) : 0;
+        const totalProfit = state.trades.reduce((sum, t) => sum + t.profit, 0);
+        
+        if (totalProfit > 0) {
+            statusText.textContent = `✅ Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`;
+            statusBadge.className = 'status-badge success';
+            log(`🏆 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} profit`, 'info');
+        } else if (totalProfit < 0) {
+            statusText.textContent = `📉 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`;
+            statusBadge.className = 'status-badge danger';
+            log(`📉 Complete: ${total} trades, ${winRate.toFixed(1)}% win rate, $${totalProfit.toFixed(2)} loss`, 'warning');
+        } else {
+            statusText.textContent = `🔹 Complete: ${total} trades, break even.`;
+            statusBadge.className = 'status-badge warning';
+        }
+        
+        log(`📊 Realism Stats: ${state.failedRecoveries} failed, ${state.blackSwanEvents} black swan`, 'reality');
     }
-    
-    let csv = 'Trade,Country,Flag,Entry Price,Exit Price,Profit,ROI,Entry Score,Exit Score,Hold Days,WST Class,Recovery Status,Success\n';
-    for (const t of state.trades) {
-        const holdDays = t.exitDay && t.entryDay ? (t.exitDay - t.entryDay).toFixed(0) : 'N/A';
-        csv += `${t.id},${t.countryName},${t.flag},${t.entryPrice.toFixed(0)},${t.exitPrice.toFixed(0)},${t.profit.toFixed(2)},${(t.profitPct * 100).toFixed(1)}%,${t.entryScore},${t.exitScore || 'N/A'},${holdDays},${t.wstClass},${t.recoveryStatus || 'unknown'},${t.success ? 'YES' : 'NO'}\n`;
-    }
-    
-    const wins = state.trades.filter(t => t.profitPct > 0).length;
-    const winRate = state.trades.length > 0 ? (wins / state.trades.length * 100) : 0;
-    csv += `\nSUMMARY,${state.trades.length},${winRate.toFixed(1)}%,${state.totalProfit.toFixed(2)},${state.failedRecoveries},${state.blackSwanEvents},${state.stagnationEvents},${state.partialRecoveries},${state.executionFailures},${state.timingErrors},${state.timeElapsed.toFixed(0)}\n`;
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `trades_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    log('📥 CSV exported', 'info');
 }
 
-// ─── EVENT LISTENERS ---
+// ─── EVENT LISTENERS ────────────────────────────────────────────────────
+
 runBtn.addEventListener('click', () => runBot(1));
 runMultiBtn.addEventListener('click', () => runBot(10));
-runStressBtn.addEventListener('click', () => runBot(50));
 resetBtn.addEventListener('click', resetAll);
-exportBtn.addEventListener('click', exportCSV);
 
-// ─── INIT ---
+// ─── INIT ───────────────────────────────────────────────────────────────
+
 function init() {
-    const config = getConfig();
-    state.capital = config.initialCapital;
-    state.equity = config.initialCapital;
-    state.initialCapital = config.initialCapital;
     updateUI();
-    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Click "RUN 1 CYCLE" to start</div>';
-    log('🏆 Crisis Arbitrage v9.0 loaded (FULLY WORKING)', 'info');
-    log(`📊 Capital: $${config.initialCapital.toLocaleString()}`, 'info');
-    log(`📐 Risk: ${config.riskPerTrade * 100}% per trade, ${config.maxPositions} max positions`, 'info');
-    log(`💸 Costs: ${config.transactionCosts * 100}% fees, ${config.slippage * 100}% slippage`, 'info');
-    log(`⚠️ Failure: ${config.failureRate * 100}%, Black Swan: ${config.blackSwanRate * 100}%`, 'info');
-    log(`⏸️ Stagnation: ${config.stagnationRate * 100}%, Partial: ${config.partialRecoveryRate * 100}%`, 'info');
-    log(`⚡ Exec Fail: ${config.executionFailureRate * 100}%, Timing: ${config.timingErrorRate * 100}%`, 'info');
-    log(`📊 Using hardcoded FSI 2024 data (179 countries)`, 'info');
-    log(`✅ Expected win rate: 55-75% (realistic)`, 'info');
-    updateDataSource('Hardcoded FSI 2024', 'hardcoded');
+    opportunitiesEl.innerHTML = '<div style="color:#5a7a9a;">Press "RUN 1 CYCLE" to find opportunities</div>';
+    log('🎯 REALISTIC CRISIS ARBITRAGE - Honest Results', 'info');
+    log(`📊 Capital: $${CONFIG.INITIAL_CAPITAL.toLocaleString()}`, 'info');
+    log(`💸 Costs: ${CONFIG.TRANSACTION_COSTS * 100}% fees, ${CONFIG.SLIPPAGE * 100}% slippage`, 'info');
+    log(`⚠️ Failure: ${CONFIG.FAILURE_RATE * 100}%, Black Swan: ${CONFIG.BLACK_SWAN_RATE * 100}%`, 'info');
+    log(`⏸️ Stagnation: ${CONFIG.STAGNATION_RATE * 100}%, Partial: ${CONFIG.PARTIAL_RECOVERY_RATE * 100}%`, 'info');
+    log(`📈 Expected win rate: 55-75%, Expected ROI: 15-30% per cycle`, 'reality');
+    log(`🔴 Losses ARE included - this is what real trading looks like`, 'reality');
 }
 
-// ─── START ---
+// ─── START ──────────────────────────────────────────────────────────────
+
 init();
 
-console.log('🏆 Crisis Arbitrage v9.0 loaded!');
-console.log('✅ ALL FUNCTIONS DEFINED');
-console.log('📊 Using hardcoded FSI 2024 data (179 countries)');
-console.log('▶️ Run with: runBot(1), runBot(10), or runBot(50)');
+console.log('🎯 REALISTIC CRISIS ARBITRAGE - Honest Results');
+console.log('📊 Expected win rate: 55-75%, ROI: 15-30%');
+console.log('🔴 Losses are included - this is realistic');
+console.log('▶️ Run with: runBot(1) or runBot(10)');
 </script>
 </body>
 </html>
