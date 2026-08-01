@@ -1,12 +1,13 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — ULTIMATE EDITION v10.0 — TIME-SENSITIVE WST
+//  TOP-STORY API  — ULTIMATE EDITION v10.1 — CRYPTO-ENHANCED WST
 //  ────────────────────────────────────────────────────────────────────────────
 //  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
 //  🌍 COVERS ALL 179 COUNTRIES WITH REAL FSI 2024 SCORES
 //  🌐 STRUCTURAL VULNERABILITY VIA WALLERSTEIN'S WORLD SYSTEMS THEORY
 //  ⏰ TIME-SENSITIVE SCORING WITH TEMPORAL DECAY AND MOMENTUM
+//  ₿ CRYPTO ECONOMIC IMPACT WITH COUNTRY-SPECIFIC WEIGHTS
 //  🧠 ENSEMBLE ML WITH RECOVERY RATE ADJUSTMENTS
 //  📡 RSS FEED OPTIMIZED FOR GOOGLE NEWS
 // ════════════════════════════════════════════════════════════════════════════
@@ -50,6 +51,21 @@ const CFG = {
   ARTICLE_LOGO:         "https://globalcrisisindex.com/logo.png",
   
   // ═══════════════════════════════════════════════════════════════════════
+  //  ₿ CRYPTO ECONOMIC IMPACT ENGINE
+  //  ─────────────────────────────────────────────────────────────────────
+  //  Country-weighted crypto price integration
+  //  - Each country has a weight based on crypto adoption/economic impact
+  //  - BTC/ETH prices adjust economic scores proportionally
+  //  - Higher weight = more sensitive to crypto price movements
+  // ═══════════════════════════════════════════════════════════════════════
+  CRYPTO_ENABLED: true,
+  CRYPTO_WEIGHT_DEFAULT: 0.03,
+  CRYPTO_PRICE_TARGET: 60000,  // BTC price baseline
+  CRYPTO_MAX_ADJUSTMENT: 15,   // Max points adjustment
+  CRYPTO_MIN_ADJUSTMENT: -10,  // Min points adjustment
+  CRYPTO_VOLATILITY_WEIGHT: 0.3,
+  
+  // ═══════════════════════════════════════════════════════════════════════
   //  🌐 WORLD SYSTEMS THEORY ENGINE v2.0 — TIME-SENSITIVE
   //  ─────────────────────────────────────────────────────────────────────
   //  Structural vulnerability with temporal dynamics:
@@ -65,12 +81,12 @@ const CFG = {
   WST_RECOVERY_BONUS_MAX: 15,
   WST_CURRENCY_CRISIS_THRESHOLD: 20,
   WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.15,
-  WST_MOMENTUM_WEIGHT: 0.30,        // Weight of momentum in scoring
-  WST_VELOCITY_WEIGHT: 0.20,        // Weight of velocity in scoring
-  WST_ACCELERATION_WEIGHT: 0.15,    // Weight of acceleration in scoring
-  WST_TIME_DECAY_HALF_LIFE: 7,      // Days for crisis memory decay
-  WST_CRISIS_MOMENTUM_THRESHOLD: 5, // Points change to trigger momentum boost
-  WST_STRUCTURAL_PERSISTENCE: 0.8,  // How much structural factors persist
+  WST_MOMENTUM_WEIGHT: 0.30,
+  WST_VELOCITY_WEIGHT: 0.20,
+  WST_ACCELERATION_WEIGHT: 0.15,
+  WST_TIME_DECAY_HALF_LIFE: 7,
+  WST_CRISIS_MOMENTUM_THRESHOLD: 5,
+  WST_STRUCTURAL_PERSISTENCE: 0.8,
 };
 
 const CORS = {
@@ -114,6 +130,70 @@ const DIMS = [
   { k:"access",       l:"Access",        w:0.02, icon:"🚧", color:"#8bbdd8" },
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
+
+// ─── COUNTRY CRYPTO WEIGHTS ────────────────────────────────────────────────
+// Higher weight = more economic impact from crypto price movements
+// Based on: crypto adoption rate, remittance dependency, mining, etc.
+
+const CRYPTO_WEIGHTS = {
+  // ── HIGH CRYPTO EXPOSURE ──
+  "SLV": 0.35,  // El Salvador - Bitcoin legal tender
+  "NGA": 0.22,  // Nigeria - High crypto adoption, remittances
+  "VEN": 0.20,  // Venezuela - Crypto used as inflation hedge
+  "ZWE": 0.18,  // Zimbabwe - Crypto for remittances
+  "SOM": 0.17,  // Somalia - Remittance dependent
+  "UKR": 0.16,  // Ukraine - Crypto for aid, sanctions evasion
+  "TUR": 0.15,  // Turkey - Crypto hedge against inflation
+  "ARG": 0.15,  // Argentina - Crypto hedge against inflation
+  
+  // ── MEDIUM CRYPTO EXPOSURE ──
+  "USA": 0.14,  // USA - High adoption, major exchanges
+  "GBR": 0.13,  // UK - Major crypto hub
+  "CAN": 0.12,  // Canada - High adoption
+  "IND": 0.12,  // India - Growing adoption
+  "BRA": 0.11,  // Brazil - Growing crypto market
+  "KOR": 0.10,  // South Korea - Active crypto market
+  "DEU": 0.10,  // Germany - Major crypto hub
+  "FRA": 0.09,  // France - Growing adoption
+  "AUS": 0.09,  // Australia - High adoption
+  "ZAF": 0.09,  // South Africa - Growing crypto use
+  "KEN": 0.08,  // Kenya - Mobile money, crypto growing
+  "PAK": 0.08,  // Pakistan - Remittance dependent
+  "BGD": 0.08,  // Bangladesh - Remittance dependent
+  "PHL": 0.08,  // Philippines - Remittance dependent
+  "IDN": 0.07,  // Indonesia - Growing adoption
+  "MEX": 0.07,  // Mexico - Growing crypto use
+  "RUS": 0.07,  // Russia - Mining, sanctions evasion
+  "CHN": 0.06,  // China - Low due to restrictions
+  "JPN": 0.06,  // Japan - Regulated market
+  "SGP": 0.06,  // Singapore - Major crypto hub
+  
+  // ── LOW CRYPTO EXPOSURE ──
+  "ARE": 0.05,  // UAE - Growing but regulated
+  "SAU": 0.04,  // Saudi - Low adoption
+  "EGY": 0.04,  // Egypt - Low adoption
+  "IRN": 0.04,  // Iran - Mining but restricted
+  "ETH": 0.03,  // Ethiopia - Low adoption
+  "UGA": 0.03,  // Uganda - Low adoption
+  "TZA": 0.03,  // Tanzania - Low adoption
+  "MWI": 0.03,  // Malawi - Very low adoption
+  "NPL": 0.03,  // Nepal - Low adoption
+  "LKA": 0.03,  // Sri Lanka - Low adoption
+  "VNM": 0.03,  // Vietnam - Growing but low
+  
+  // ── MINIMAL CRYPTO EXPOSURE ──
+  "NOR": 0.02,  // Norway - Low adoption
+  "CHE": 0.02,  // Switzerland - Low adoption
+  "DNK": 0.02,  // Denmark - Low adoption
+  "FIN": 0.02,  // Finland - Low adoption
+  "ISL": 0.01,  // Iceland - Minimal
+  "LUX": 0.01,  // Luxembourg - Minimal
+  "MLT": 0.01,  // Malta - Minimal
+};
+
+function getCryptoWeight(iso) {
+  return CRYPTO_WEIGHTS[iso] || CFG.CRYPTO_WEIGHT_DEFAULT;
+}
 
 // ─── REAL FSI 2024 COUNTRY DATA (179 COUNTRIES) ─────────────────────────────
 
@@ -570,6 +650,60 @@ function findClosestCountry(lng, lat) {
   return closest;
 }
 
+// ─── CRYPTO ECONOMIC IMPACT ENGINE ─────────────────────────────────────────
+
+function calculateCryptoEconomicImpact(iso, btcPrice, btcChange) {
+  if (!CFG.CRYPTO_ENABLED) return { adjustment: 0, weight: 0, impact: "none", breakdown: {} };
+  
+  const weight = getCryptoWeight(iso);
+  if (weight === 0) return { adjustment: 0, weight: 0, impact: "none", breakdown: {} };
+  
+  // Price stress: lower price = more economic stress
+  const priceTarget = CFG.CRYPTO_PRICE_TARGET || 60000;
+  const priceStress = Math.max(0, (priceTarget - btcPrice) / 2000);
+  
+  // Volatility stress: large changes = more uncertainty
+  const volatilityStress = Math.abs(btcChange) / 5;
+  
+  // Combine impacts
+  const rawImpact = (priceStress * 0.7 + volatilityStress * 0.3);
+  
+  // Apply country weight
+  const weightedImpact = rawImpact * weight * 3;
+  
+  // Direction: negative change = bad (positive adjustment to score)
+  // Positive change = good (negative adjustment to score)
+  const direction = btcChange > 0 ? -1 : 1;
+  const finalAdjustment = weightedImpact * direction * 1.5;
+  
+  // Clamp to reasonable range
+  const clamped = Math.max(
+    CFG.CRYPTO_MIN_ADJUSTMENT || -10,
+    Math.min(CFG.CRYPTO_MAX_ADJUSTMENT || 15, finalAdjustment)
+  );
+  
+  const rounded = Math.round(clamped * 10) / 10;
+  
+  return {
+    adjustment: rounded,
+    weight: weight,
+    impact: rounded > 1 ? "negative" : rounded < -1 ? "positive" : "neutral",
+    breakdown: {
+      price_stress: Math.round(priceStress * 10) / 10,
+      volatility_stress: Math.round(volatilityStress * 10) / 10,
+      weighted_impact: Math.round(weightedImpact * 10) / 10,
+      direction: direction > 0 ? "bearish" : "bullish"
+    }
+  };
+}
+
+function getCryptoSentiment(btcPrice, btcChange) {
+  if (btcPrice > 80000 && btcChange > -3) return { emoji: "🟢", label: "Bullish", class: "positive" };
+  if (btcPrice > 50000 && btcChange > -5) return { emoji: "🟡", label: "Neutral", class: "neutral" };
+  if (btcPrice > 40000) return { emoji: "🟠", label: "Cautious", class: "negative" };
+  return { emoji: "🔴", label: "Bearish", class: "negative" };
+}
+
 // ─── TIME-SENSITIVE SCORING ENGINE ──────────────────────────────────────────
 
 function computeTimeSensitiveScore(iso, currentScore, store, dims) {
@@ -579,21 +713,18 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
   const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
   const historical = store[iso]?.historical_trend || null;
   
-  // ── 1. MOMENTUM: Rate of change over the last 7 days ──────────────────
   const recent7 = hist.slice(-7);
   const old7 = hist.slice(-14, -7);
   const momentum = recent7.length >= 7 && old7.length >= 7 
     ? (mean(recent7) - mean(old7)) / 7 
     : 0;
   
-  // ── 2. VELOCITY: Current speed of change (1st derivative) ─────────────
   const recent3 = hist.slice(-3);
   const old3 = hist.slice(-6, -3);
   const velocity = recent3.length >= 3 && old3.length >= 3
     ? (mean(recent3) - mean(old3)) / 3
     : 0;
   
-  // ── 3. ACCELERATION: Rate of change of velocity (2nd derivative) ──────
   const recent5 = hist.slice(-5);
   const mid5 = hist.slice(-10, -5);
   const old5 = hist.slice(-15, -10);
@@ -605,37 +736,22 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     : 0;
   const acceleration = velocityRecent - velocityOld;
   
-  // ── 4. TIME DECAY: How long since the last crisis peak ────────────────
   const maxScore = Math.max(...hist);
   const maxIndex = hist.indexOf(maxScore);
   const currentIndex = hist.length - 1;
   const daysSincePeak = currentIndex - maxIndex;
   const timeDecay = Math.exp(-daysSincePeak / CFG.WST_TIME_DECAY_HALF_LIFE);
   
-  // ── 5. STRUCTURAL PERSISTENCE ──────────────────────────────────────────
   const structuralPersistence = wst.structural_weight || 0.5;
   const recoveryFactor = wst.recovery_rate || 0.5;
   
-  // ── 6. COMPUTE ADJUSTMENTS ─────────────────────────────────────────────
-  // Momentum adjustment: positive momentum = crisis worsening
   const momentumAdjust = momentum * CFG.WST_MOMENTUM_WEIGHT * 10;
-  
-  // Velocity adjustment: rapid changes get amplified
   const velocityAdjust = velocity * CFG.WST_VELOCITY_WEIGHT * 15;
-  
-  // Acceleration adjustment: accelerating crises get extra weight
   const accelerationAdjust = acceleration * CFG.WST_ACCELERATION_WEIGHT * 20;
-  
-  // Time decay: older crises fade, but structural persistence keeps them relevant
   const timeDecayAdjust = (1 - timeDecay) * (1 - structuralPersistence) * 5;
-  
-  // Core countries recover faster, Periphery stays fragile
   const recoveryAdjust = (1 - recoveryFactor) * 8;
   
-  // ── 7. COMBINE ──────────────────────────────────────────────────────────
   let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + timeDecayAdjust + recoveryAdjust;
-  
-  // Cap adjustments to prevent extreme swings
   totalAdjustment = Math.max(-15, Math.min(25, totalAdjustment));
   
   const adjustedScore = clamp(currentScore + totalAdjustment);
@@ -849,7 +965,6 @@ function mlEnhancedForecast(iso, currentScore, store) {
   const mlPrediction = mlModel.predict(hist);
   const trad = trendForecast(hist, currentScore);
   
-  // ── WST Recovery Rate Adjustment ────────────────────────────────────────
   let wstAdjustment = 0;
   let wstRecoveryRate = 0.5;
   let wstClass = "Unclassified";
@@ -1657,11 +1772,37 @@ async function fetchWHO() {
   return { data: {}, live: false };
 }
 
+async function fetchCryptoPrices() {
+  try {
+    const r = await safeFetch(
+      fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true").then(r => r.json())
+    );
+    if (r.ok && r.data) {
+      return {
+        btc: {
+          price: r.data.bitcoin?.usd || 60000,
+          change_24h: r.data.bitcoin?.usd_24h_change || 0,
+        },
+        eth: {
+          price: r.data.ethereum?.usd || 3400,
+          change_24h: r.data.ethereum?.usd_24h_change || 0,
+        },
+        live: true,
+      };
+    }
+  } catch {}
+  return {
+    btc: { price: 60000, change_24h: 0 },
+    eth: { price: 3400, change_24h: 0 },
+    live: false,
+  };
+}
+
 async function fetchAllLive(isos) {
   const [
     usgs, emsc, nasa, gdacs, ifrc,
     heat, hazards, aq, noaa,
-    disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who
+    disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who, crypto
   ] = await Promise.all([
     fetchUSGS(), 
     fetchEMSC(), 
@@ -1680,13 +1821,15 @@ async function fetchAllLive(isos) {
     fetchAcled(),
     fetchReliefWeb(),
     fetchWHO(),
+    fetchCryptoPrices(),
   ]);
   
   return { 
     usgs, emsc, nasa, gdacs, ifrc, 
     heat, hazards, aq, noaa, 
     disease, wb, unhcr, 
-    ipc, fewsnet, acled, reliefweb, who
+    ipc, fewsnet, acled, reliefweb, who,
+    crypto
   };
 }
 
@@ -1961,13 +2104,36 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   let totalBoost = 0;
   
   // ──────────────────────────────────────────────────────────────────────────
+  //  ₿ CRYPTO ECONOMIC IMPACT ENGINE
+  //  ──────────────────────────────────────────────────────────────────────────
+  if (CFG.CRYPTO_ENABLED && store && store.crypto) {
+    const cryptoData = store.crypto;
+    const cryptoImpact = calculateCryptoEconomicImpact(
+      iso, 
+      cryptoData.btc.price, 
+      cryptoData.btc.change_24h
+    );
+    
+    if (cryptoImpact.adjustment !== 0) {
+      dims.economic = clamp(dims.economic + cryptoImpact.adjustment);
+      totalBoost += cryptoImpact.adjustment;
+      audit.push({
+        source: "Crypto",
+        field: "economic",
+        delta: cryptoImpact.adjustment,
+        weight: cryptoImpact.weight,
+        reason: `BTC $${cryptoData.btc.price.toLocaleString()} (${cryptoData.btc.change_24h > 0 ? '+' : ''}${cryptoData.btc.change_24h.toFixed(1)}%) — ${cryptoImpact.impact} impact (weight: ${(cryptoImpact.weight * 100).toFixed(0)}%)`
+      });
+    }
+  }
+  
+  // ──────────────────────────────────────────────────────────────────────────
   //  🌐 WORLD SYSTEMS THEORY ENGINE — Structural Adjustments
   //  ──────────────────────────────────────────────────────────────────────────
   if (CFG.WST_ENABLED) {
     const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
     const country = COUNTRIES[iso];
     
-    // ── 1. Extractivism Penalty ──────────────────────────────────────────
     if (wst.class === "Periphery") {
       const extractiveBase = wst.extractive_penalty || 15;
       const gdpAdjust = Math.max(0, (5000 - (wst.gdp_per_capita || 0)) / 5000 * 5);
@@ -1985,7 +2151,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       });
     }
     
-    // ── 2. Debt Sensitivity Shock ────────────────────────────────────────
     const globalRate = CFG.WST_GLOBAL_INTEREST_RATE || 5.25;
     const rateShock = Math.max(0, (globalRate - 2) * wst.debt_sensitivity * 2);
     const debtPenalty = Math.min(20, Math.round(rateShock * 3));
@@ -2002,7 +2167,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       });
     }
     
-    // ── 3. Currency Crisis Amplifier ─────────────────────────────────────
     if (signals.wbInflation && signals.wbInflation.value > CFG.WST_CURRENCY_CRISIS_THRESHOLD) {
       const currencyCrash = Math.min(15, Math.round((signals.wbInflation.value - 15) * 0.6 * wst.debt_sensitivity));
       if (currencyCrash > 0) {
@@ -2018,7 +2182,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       }
     }
     
-    // ── 4. Recovery Rate Modification ─────────────────────────────────────
     if (store && store[iso]) {
       const recoveryFactor = wst.recovery_rate || 0.5;
       const fragilityMultiplier = 1 + (1 - recoveryFactor) * 0.5;
@@ -2038,7 +2201,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       };
     }
     
-    // ── 5. Reserve Currency Buffer ──────────────────────────────────────
     if (wst.reserve_currency) {
       const buffer = Math.min(5, Math.round(5 * (wst.recovery_rate || 0.8)));
       dims.economic = clamp(dims.economic - buffer);
@@ -2052,7 +2214,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
       });
     }
     
-    // ── 6. Supply Chain Shock Transmission ──────────────────────────────
     if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < -1) {
       const coreShock = Math.abs(signals.wbGdpGrowth.value) * CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER * 10;
       const transmittedShock = Math.round(coreShock * (1 + (1 - wst.recovery_rate) * 0.5));
@@ -2422,6 +2583,12 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
+  
+  // Store crypto data for use in adjustments
+  if (liveData && liveData.crypto) {
+    store.crypto = liveData.crypto;
+  }
+  
   for (const [iso, country] of Object.entries(COUNTRIES)) {
     const fsiScore = country.fsi_score || country.prior || 50;
     const base = Math.round((fsiScore / 120) * 100);
@@ -2477,14 +2644,12 @@ function buildStore(liveData) {
       const timeSensitive = computeTimeSensitiveScore(iso, store[iso].score, store, store[iso].dims);
       store[iso].__time_sensitive = timeSensitive;
       
-      // Blend the adjusted score with the original for stability
-      const blendWeight = 0.7; // 70% time-sensitive, 30% original
+      const blendWeight = 0.7;
       store[iso].score = clamp(Math.round(
         timeSensitive.adjustedScore * blendWeight + 
         store[iso].score * (1 - blendWeight)
       ));
       
-      // Store the time-sensitive metrics
       store[iso].time_metrics = {
         momentum: timeSensitive.momentum,
         velocity: timeSensitive.velocity,
@@ -2628,7 +2793,6 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     drivers.push({ driver: "evidence_breadth", points: +v.toFixed(1), detail: `${evidenceCount} independent live sources` });
   }
 
-  // ── Time-sensitive momentum boost ──────────────────────────────────────
   if (c.time_metrics && Math.abs(c.time_metrics.momentum) > 0.3) {
     const momentumHeat = Math.min(12, Math.abs(c.time_metrics.momentum) * 8);
     heat += momentumHeat;
@@ -2816,6 +2980,13 @@ function buildPayload(iso, store, ranked, opts = {}) {
   const s = c.signals || {};
   const heat = computeStoryHeat(iso, store, hist, anom, c.ml_forecast);
 
+  // ── Crypto Economic Impact ──────────────────────────────────────────────
+  let cryptoImpact = null;
+  if (CFG.CRYPTO_ENABLED && store.crypto) {
+    const cryptoData = store.crypto;
+    cryptoImpact = calculateCryptoEconomicImpact(iso, cryptoData.btc.price, cryptoData.btc.change_24h);
+  }
+
   const base = {
     iso,
     name: c.name,
@@ -2886,6 +3057,17 @@ function buildPayload(iso, store, ranked, opts = {}) {
       unhcr_emergency: s.unhcrEmergency ? { ...s.unhcrEmergency, source: "UNHCR" } : null,
       unhcr_statistics: s.unhcrStats ? { ...s.unhcrStats, source: "UNHCR" } : null,
     },
+    crypto: cryptoImpact ? {
+      adjustment: cryptoImpact.adjustment,
+      weight: cryptoImpact.weight,
+      impact: cryptoImpact.impact,
+      breakdown: cryptoImpact.breakdown,
+      btc_price: store.crypto.btc.price,
+      btc_change_24h: store.crypto.btc.change_24h,
+      eth_price: store.crypto.eth.price,
+      eth_change_24h: store.crypto.eth.change_24h,
+      sentiment: getCryptoSentiment(store.crypto.btc.price, store.crypto.btc.change_24h),
+    } : null,
     ml: c.ml_forecast ? {
       forecast: c.ml_forecast.fc,
       confidence: c.ml_forecast.confidence,
@@ -3422,9 +3604,10 @@ function buildSEOArticle(iso, store, ranked) {
       ${generateWidget(iso, store)}
     </div>
     <footer class="article-footer">
-      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
+      <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, WHO, CoinGecko.</p>
       <p><strong>FSI 2024 Baseline:</strong> Fund for Peace, Fragile States Index 2024.</p>
       <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with time-sensitive scoring.</p>
+      <p><strong>Crypto Economic Impact:</strong> Country-weighted BTC/ETH price integration for real-time economic adjustments.</p>
       <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
     </footer>
   </article>
@@ -3490,6 +3673,11 @@ function buildRSSFeed(finalIsos, store, ranked) {
     const categories = [...new Set(c.types.map(t => ARC[t]?.l || t))];
     const heat = c.__heat;
 
+    // Add crypto category if applicable
+    if (c.crypto && Math.abs(c.crypto.adjustment) > 1) {
+      categories.push(`Crypto Impact: ${c.crypto.impact}`);
+    }
+
     return `
   <item>
     <title>${escapeXml(article.headline)}</title>
@@ -3501,6 +3689,7 @@ function buildRSSFeed(finalIsos, store, ranked) {
     ${heat ? `<category>Story Heat: ${heat.tier}</category>` : ""}
     <category>FSI 2024: ${c.fsi_band || "Not ranked"}</category>
     <category>WST: ${c.__wst ? c.__wst.class : "Unclassified"}</category>
+    ${c.crypto && Math.abs(c.crypto.adjustment) > 1 ? `<category>Crypto Impact: ${c.crypto.adjustment > 0 ? '+' : ''}${c.crypto.adjustment} pts</category>` : ''}
     <media:content url="${CFG.ARTICLE_LOGO}" medium="image"/>
     <content:encoded><![CDATA[${article.body_html}]]></content:encoded>
   </item>`;
@@ -3515,7 +3704,7 @@ function buildRSSFeed(finalIsos, store, ranked) {
   <title>${CFG.ARTICLE_SITE_NAME}</title>
   <link>${CFG.ARTICLE_BASE_URL}</link>
   <atom:link href="${CFG.ARTICLE_BASE_URL}/api/top-story?format=rss" rel="self" type="application/rss+xml"/>
-  <description>Live, sensor-driven global humanitarian crisis intelligence — with FSI 2024 baseline, World Systems Theory structural analysis, and time-sensitive momentum scoring.</description>
+  <description>Live, sensor-driven global humanitarian crisis intelligence — with FSI 2024 baseline, World Systems Theory structural analysis, time-sensitive momentum scoring, and country-weighted crypto economic impact.</description>
   <language>en-us</language>
   <lastBuildDate>${now.toUTCString()}</lastBuildDate>
   <ttl>5</ttl>
@@ -3566,6 +3755,7 @@ export default async function handler(req, res) {
       breaking: url.searchParams.get("format") === "breaking",
       rss: url.searchParams.get("format") === "rss",
       wst: url.searchParams.get("format") === "wst",
+      crypto: url.searchParams.get("format") === "crypto",
     };
     if (Number.isNaN(params.top)) params.top = 179;
     if (Number.isNaN(params.threshold)) params.threshold = 0;
@@ -3681,6 +3871,15 @@ export default async function handler(req, res) {
       const hist = seedHistory(iso, store[iso].score);
       const anom = runAnomalyDetection(hist);
       store[iso].__heat = computeStoryHeat(iso, store, hist, anom, store[iso].ml_forecast);
+      
+      // Add crypto data to store for RSS/Article generation
+      if (CFG.CRYPTO_ENABLED && store.crypto) {
+        store[iso].crypto = calculateCryptoEconomicImpact(
+          iso, 
+          store.crypto.btc.price, 
+          store.crypto.btc.change_24h
+        );
+      }
     }
 
     if (params.rss) {
@@ -3763,6 +3962,50 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (params.crypto) {
+      const cryptoData = store.crypto || { btc: { price: 60000, change_24h: 0 }, eth: { price: 3400, change_24h: 0 } };
+      const cryptoSummary = finalIsos.map(iso => {
+        const c = store[iso];
+        const impact = calculateCryptoEconomicImpact(iso, cryptoData.btc.price, cryptoData.btc.change_24h);
+        return {
+          iso,
+          name: c.name,
+          flag: c.flag,
+          score: c.score,
+          crypto_adjusted_score: c.score + impact.adjustment,
+          crypto_impact: impact,
+          crypto_weight: getCryptoWeight(iso),
+          btc_price: cryptoData.btc.price,
+          btc_change: cryptoData.btc.change_24h,
+          eth_price: cryptoData.eth.price,
+          eth_change: cryptoData.eth.change_24h,
+          sentiment: getCryptoSentiment(cryptoData.btc.price, cryptoData.btc.change_24h),
+        };
+      }).sort((a, b) => b.crypto_adjusted_score - a.crypto_adjusted_score);
+
+      res.writeHead(200, CORS);
+      res.end(JSON.stringify({
+        meta: {
+          generated_at: new Date().toISOString(),
+          elapsed_ms: Date.now() - start,
+          mode: "crypto",
+          crypto_enabled: CFG.CRYPTO_ENABLED,
+          methodology: "Country-weighted BTC/ETH price integration for real-time economic adjustments",
+          price_target: CFG.CRYPTO_PRICE_TARGET,
+          max_adjustment: CFG.CRYPTO_MAX_ADJUSTMENT,
+          min_adjustment: CFG.CRYPTO_MIN_ADJUSTMENT,
+          default_weight: CFG.CRYPTO_WEIGHT_DEFAULT,
+        },
+        crypto_data: {
+          btc: cryptoData.btc,
+          eth: cryptoData.eth,
+          sentiment: getCryptoSentiment(cryptoData.btc.price, cryptoData.btc.change_24h),
+        },
+        countries: cryptoSummary,
+      }, null, 2));
+      return;
+    }
+
     if (params.breaking) {
       const heatRanked = Object.keys(store)
         .map(iso => ({ iso, heat: store[iso].__heat }))
@@ -3780,6 +4023,7 @@ export default async function handler(req, res) {
           fsi_rank: p.fsi?.rank,
           fsi_band: p.fsi?.band,
           momentum: p.time_metrics?.momentum || 0,
+          crypto_impact: p.crypto?.adjustment || 0,
         };
       });
 
@@ -3792,6 +4036,7 @@ export default async function handler(req, res) {
           methodology: "Story Heat = velocity + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings + temporal momentum.",
           fsi_source: "Fund for Peace, Fragile States Index 2024",
           wst_source: "World Systems Theory with Time-Sensitive Scoring",
+          crypto_enabled: CFG.CRYPTO_ENABLED,
         },
         breaking: feed,
       }, null, 2));
@@ -3855,6 +4100,8 @@ export default async function handler(req, res) {
           sentiment: c.sentiment,
           momentum: c.time_metrics?.momentum || 0,
           velocity: c.time_metrics?.velocity || 0,
+          crypto_impact: c.crypto?.adjustment || 0,
+          crypto_weight: c.crypto?.weight || 0,
         };
       });
       comparison = {
@@ -3866,6 +4113,7 @@ export default async function handler(req, res) {
         verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})`,
         ml_insight: a.ml_forecast && b.ml_forecast ? `${a.name} ML anomaly: ${(a.ml_forecast.anomaly_probability * 100).toFixed(0)}% vs ${b.name}: ${(b.ml_forecast.anomaly_probability * 100).toFixed(0)}%` : null,
         momentum_comparison: `${a.name} momentum: ${a.momentum > 0 ? '+' : ''}${a.momentum.toFixed(2)} vs ${b.name}: ${b.momentum > 0 ? '+' : ''}${b.momentum.toFixed(2)}`,
+        crypto_comparison: `${a.name} crypto impact: ${a.crypto_impact > 0 ? '+' : ''}${a.crypto_impact.toFixed(1)}pts (weight: ${(a.crypto_weight * 100).toFixed(0)}%) vs ${b.name}: ${b.crypto_impact > 0 ? '+' : ''}${b.crypto_impact.toFixed(1)}pts (weight: ${(b.crypto_weight * 100).toFixed(0)}%)`,
       };
     }
 
@@ -3891,7 +4139,7 @@ export default async function handler(req, res) {
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         data_policy: {
-          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring",
+          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring + Crypto Economic Impact",
           min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
           fsi_source: "Fund for Peace, Fragile States Index 2024",
           fsi_scale: "0-120 (higher = more fragile)",
@@ -3901,6 +4149,14 @@ export default async function handler(req, res) {
             velocity: "Speed of change (1st derivative)",
             acceleration: "Rate of change of velocity (2nd derivative)",
             time_decay: "Exponential decay since crisis peak",
+          },
+          crypto_metrics: {
+            enabled: CFG.CRYPTO_ENABLED,
+            methodology: "Country-weighted BTC/ETH price integration",
+            price_target: CFG.CRYPTO_PRICE_TARGET,
+            max_adjustment: CFG.CRYPTO_MAX_ADJUSTMENT,
+            min_adjustment: CFG.CRYPTO_MIN_ADJUSTMENT,
+            default_weight: CFG.CRYPTO_WEIGHT_DEFAULT,
           }
         },
         enhancements: {
@@ -3968,6 +4224,7 @@ export default async function handler(req, res) {
           acled: { live: liveData.acled.live, label: "ACLED" },
           reliefweb: { live: liveData.reliefweb.live, label: "ReliefWeb" },
           who: { live: liveData.who.live, label: "WHO" },
+          crypto: { live: liveData.crypto.live, label: "CoinGecko" },
         },
         endpoints: {
           single: "GET /api/top-story",
@@ -3987,10 +4244,11 @@ export default async function handler(req, res) {
           rss_region: "GET /api/top-story?region=africa&format=rss",
           breaking: "GET /api/top-story?format=breaking",
           wst_summary: "GET /api/top-story?format=wst",
+          crypto_summary: "GET /api/top-story?format=crypto",
           time_series: "GET /api/top-story?iso=SOM&format=timeseries",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
+        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration + crypto economic impact.",
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
@@ -4004,7 +4262,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v10.0]", err);
+    console.error("[top-story v10.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
