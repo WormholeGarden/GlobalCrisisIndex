@@ -1,7 +1,7 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — ULTIMATE EDITION v10.0 — TIME-SENSITIVE WST
+//  TOP-STORY API  — ULTIMATE EDITION v10.1 — FIXED SCORE INFLATION
 //  ────────────────────────────────────────────────────────────────────────────
 //  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
 //  🌍 COVERS ALL 179 COUNTRIES WITH REAL FSI 2024 SCORES
@@ -17,9 +17,9 @@ const CFG = {
   SEED_INTERVAL_MS:     300_000,
   FETCH_TIMEOUT_MS:     15_000,
   MAX_TOP_N:            179,
-  SPILLOVER_RATE:       0.13,
-  SPILLOVER_FLOOR:      50,
-  PRIOR_JITTER:         2,
+  SPILLOVER_RATE:       0.08,  // REDUCED from 0.13
+  SPILLOVER_FLOOR:      55,    // INCREASED from 50
+  PRIOR_JITTER:         1,     // REDUCED from 2
   PRIOR_CAP:            99,
   MIN_LIVE_EVIDENCE_SOURCES: 1,
   ANOMALY_WINDOW:       28,
@@ -50,27 +50,23 @@ const CFG = {
   ARTICLE_LOGO:         "https://globalcrisisindex.com/logo.png",
   
   // ═══════════════════════════════════════════════════════════════════════
-  //  🌐 WORLD SYSTEMS THEORY ENGINE v2.0 — TIME-SENSITIVE
+  //  🌐 WORLD SYSTEMS THEORY ENGINE v2.1 — FIXED OVERLAP
   //  ─────────────────────────────────────────────────────────────────────
-  //  Structural vulnerability with temporal dynamics:
-  //  - Momentum: How fast scores change over time
-  //  - Decay: How quickly countries recover from crises
-  //  - Velocity: Rate of deterioration or improvement
-  //  - Acceleration: Second-order rate of change
-  // ═══════════════════════════════════════════════════════════════════════
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
   WST_DEBT_THRESHOLD: 60,
-  WST_EXTRACTIVE_PENALTY_MAX: 25,
-  WST_RECOVERY_BONUS_MAX: 15,
+  WST_EXTRACTIVE_PENALTY_MAX: 15,   // REDUCED from 25
+  WST_RECOVERY_BONUS_MAX: 8,        // REDUCED from 15
   WST_CURRENCY_CRISIS_THRESHOLD: 20,
-  WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.15,
-  WST_MOMENTUM_WEIGHT: 0.30,        // Weight of momentum in scoring
-  WST_VELOCITY_WEIGHT: 0.20,        // Weight of velocity in scoring
-  WST_ACCELERATION_WEIGHT: 0.15,    // Weight of acceleration in scoring
-  WST_TIME_DECAY_HALF_LIFE: 7,      // Days for crisis memory decay
-  WST_CRISIS_MOMENTUM_THRESHOLD: 5, // Points change to trigger momentum boost
-  WST_STRUCTURAL_PERSISTENCE: 0.8,  // How much structural factors persist
+  WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.08, // REDUCED from 0.15
+  WST_MOMENTUM_WEIGHT: 0.20,        // REDUCED from 0.30
+  WST_VELOCITY_WEIGHT: 0.15,        // REDUCED from 0.20
+  WST_ACCELERATION_WEIGHT: 0.10,    // REDUCED from 0.15
+  WST_TIME_DECAY_HALF_LIFE: 10,     // INCREASED from 7 (slower decay)
+  WST_CRISIS_MOMENTUM_THRESHOLD: 5,
+  WST_STRUCTURAL_PERSISTENCE: 0.7,  // REDUCED from 0.8
+  WST_MAX_BOOST_ABOVE_FSI: 25,      // NEW: cap on total boost above FSI
+  WST_MIN_BOOST_BUFFER: 5,          // NEW: minimum buffer for stability
 };
 
 const CORS = {
@@ -299,6 +295,8 @@ const FSI_2024 = {
   NOR: { name:"Norway",               flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
 };
 
+// ─── WORLD SYSTEMS THEORY CLASSIFICATION ────────────────────────────────────
+
 const WST_CLASSIFICATION = {
   // ── CORE NATIONS ──
   USA: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 1.0, reserve_currency: true, gdp_per_capita: 76000, momentum_factor: 0.9 },
@@ -339,7 +337,7 @@ const WST_CLASSIFICATION = {
   BHR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.7 },
   OMN: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.7 },
 
-  // ── SEMI-PERIPHERY (CORRECTED: Ukraine, Lebanon, Sri Lanka moved here) ──
+  // ── SEMI-PERIPHERY ──
   CHN: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.55, extractive_penalty: 5, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 13000, momentum_factor: 0.6 },
   RUS: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 14000, momentum_factor: 0.55 },
   IND: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.48, extractive_penalty: 10, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 2600, momentum_factor: 0.5 },
@@ -370,8 +368,6 @@ const WST_CLASSIFICATION = {
   VNM: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.55 },
   PHL: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.55 },
   BLR: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.40, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.45 },
-  
-  // ── CRITICAL FIX: Ukraine, Lebanon, Sri Lanka moved to Semi-Periphery ──
   UKR: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 20, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.4 },
   LBN: { class: "Semi", tier: 3, debt_sensitivity: 0.92, recovery_rate: 0.25, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
   LKA: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.30, extractive_penalty: 15, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
@@ -389,7 +385,7 @@ const WST_CLASSIFICATION = {
   PSE: { class: "Semi", tier: 3, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 },
   CUB: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
 
-  // ── PERIPHERY (TRULY STRUCTURALLY VULNERABLE) ──
+  // ── PERIPHERY ──
   SOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
   SDN: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
   SSD: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
@@ -464,6 +460,7 @@ const WST_CLASSIFICATION = {
   TLS: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 1500, momentum_factor: 0.25 },
   default: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 }
 };
+
 // ─── REGION ALIASES ──────────────────────────────────────────────────────────
 
 const REGION_ALIASES = {
@@ -575,52 +572,45 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
   if (!CFG.WST_ENABLED) return { adjustedScore: currentScore, momentum: 0, velocity: 0, acceleration: 0, timeDecay: 1 };
   
   const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
+  const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
   
-  // ── USE ACTUAL HISTORICAL DATA INSTEAD OF SYNTHETIC ──────────────────
+  // ── USE ACTUAL HISTORICAL DATA ────────────────────────────────────────
   let hist = [];
-  
-  // Try to get real historical data from store
   if (store && store[iso] && store[iso].historical_scores) {
     hist = store[iso].historical_scores;
   } else if (historyStore && historyStore.data && historyStore.data[iso]) {
-    // Get from history store
     const rawHistory = historyStore.getHistory(iso, 30);
     if (rawHistory && rawHistory.length > 0) {
       hist = rawHistory.map(d => d.score);
     }
   }
-  
-  // Fallback to synthetic if no real data (minimum 14 points needed)
   if (hist.length < 14) {
     hist = seedHistory(iso, currentScore);
-    // Store the synthetic data for future use
     if (store && store[iso]) {
       if (!store[iso].historical_scores) store[iso].historical_scores = [];
       store[iso].historical_scores = hist;
     }
   }
-  
-  // Ensure we have the current score at the end
   if (hist.length > 0 && hist[hist.length - 1] !== currentScore) {
     hist.push(currentScore);
-    if (hist.length > 60) hist = hist.slice(-60); // Keep last 60 days
+    if (hist.length > 60) hist = hist.slice(-60);
   }
   
-  // ── 1. MOMENTUM: Rate of change over the last 7 days ──────────────────
+  // ── 1. MOMENTUM ────────────────────────────────────────────────────────
   const recent7 = hist.slice(-7);
   const old7 = hist.slice(-14, -7);
   const momentum = recent7.length >= 7 && old7.length >= 7 
     ? (mean(recent7) - mean(old7)) / 7 
     : 0;
   
-  // ── 2. VELOCITY: Current speed of change (1st derivative) ─────────────
+  // ── 2. VELOCITY ──────────────────────────────────────────────────────
   const recent3 = hist.slice(-3);
   const old3 = hist.slice(-6, -3);
   const velocity = recent3.length >= 3 && old3.length >= 3
     ? (mean(recent3) - mean(old3)) / 3
     : 0;
   
-  // ── 3. ACCELERATION: Rate of change of velocity (2nd derivative) ──────
+  // ── 3. ACCELERATION ──────────────────────────────────────────────────
   const recent5 = hist.slice(-5);
   const mid5 = hist.slice(-10, -5);
   const old5 = hist.slice(-15, -10);
@@ -632,40 +622,27 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     : 0;
   const acceleration = velocityRecent - velocityOld;
   
-  // ── 4. TIME DECAY: How long since the last crisis peak ────────────────
+  // ── 4. TIME DECAY ─────────────────────────────────────────────────────
   const maxScore = Math.max(...hist);
   const maxIndex = hist.indexOf(maxScore);
   const currentIndex = hist.length - 1;
   const daysSincePeak = currentIndex - maxIndex;
   const timeDecay = Math.exp(-daysSincePeak / CFG.WST_TIME_DECAY_HALF_LIFE);
   
-  // ── 5. STRUCTURAL PERSISTENCE ──────────────────────────────────────────
+  // ── 5. STRUCTURAL PERSISTENCE ──────────────────────────────────────
   const structuralPersistence = wst.structural_weight || 0.5;
   const recoveryFactor = wst.recovery_rate || 0.5;
   
-  // ── 6. COMPUTE ADJUSTMENTS ─────────────────────────────────────────────
-  // Momentum adjustment: positive momentum = crisis worsening
-  const momentumAdjust = momentum * CFG.WST_MOMENTUM_WEIGHT * 10;
-  
-  // Velocity adjustment: rapid changes get amplified
-  const velocityAdjust = velocity * CFG.WST_VELOCITY_WEIGHT * 15;
-  
-  // Acceleration adjustment: accelerating crises get extra weight
-  const accelerationAdjust = acceleration * CFG.WST_ACCELERATION_WEIGHT * 20;
-  
-  // Time decay: older crises fade, but structural persistence keeps them relevant
-  const timeDecayAdjust = (1 - timeDecay) * (1 - structuralPersistence) * 5;
-  
-  // Core countries recover faster, Periphery stays fragile
-  const recoveryAdjust = (1 - recoveryFactor) * 8;
-  
-  // ── 7. VOLATILITY PENALTY ──────────────────────────────────────────────
-  // Crises with high volatility are more dangerous and unpredictable
+  // ── 6. COMPUTE ADJUSTMENTS ──────────────────────────────────────────
+  const momentumAdjust = momentum * CFG.WST_MOMENTUM_WEIGHT * 8;
+  const velocityAdjust = velocity * CFG.WST_VELOCITY_WEIGHT * 10;
+  const accelerationAdjust = acceleration * CFG.WST_ACCELERATION_WEIGHT * 12;
+  const timeDecayAdjust = (1 - timeDecay) * (1 - structuralPersistence) * 3;
+  const recoveryAdjust = (1 - recoveryFactor) * 4;
   const volatility = hist.length >= 10 ? stddev(hist.slice(-10)) : 0;
-  const volatilityAdjust = Math.min(8, volatility * 1.5);
+  const volatilityAdjust = Math.min(4, volatility * 0.8);
   
-  // ── 8. TREND REVERSAL DETECTION ──────────────────────────────────────
-  // Detect if crisis is accelerating after showing signs of recovery
+  // ── 7. TREND REVERSAL DETECTION ──────────────────────────────────────
   let trendReversalAdjust = 0;
   if (hist.length >= 14) {
     const firstWeek = mean(hist.slice(-14, -7));
@@ -673,27 +650,26 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     if (secondWeek > firstWeek && old3.length > 0 && recent3.length > 0) {
       const oldTrend = old3[old3.length - 1] - old3[0];
       const newTrend = recent3[recent3.length - 1] - recent3[0];
-      if (oldTrend < 0 && newTrend > 0) {
-        trendReversalAdjust = 10; // Significant reversal from improving to worsening
-      } else if (oldTrend < -0.5 && newTrend > 0.5) {
-        trendReversalAdjust = 15; // Sharp reversal
-      }
+      if (oldTrend < 0 && newTrend > 0) trendReversalAdjust = 6;
     }
   }
   
-  // ── 9. COMBINE ──────────────────────────────────────────────────────────
+  // ── 8. COMBINE WITH FSI CAP ──────────────────────────────────────────
   let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + 
                         timeDecayAdjust + recoveryAdjust + volatilityAdjust + 
                         trendReversalAdjust;
   
-  // Cap adjustments to prevent extreme swings
-  totalAdjustment = Math.max(-20, Math.min(30, totalAdjustment));
+  totalAdjustment = Math.max(-15, Math.min(20, totalAdjustment));
   
-  // Blend with structural persistence for stability
-  const structuralBlend = structuralPersistence * 0.3 + 0.7;
-  const adjustedScore = clamp(currentScore + (totalAdjustment * structuralBlend));
+  // ── CRITICAL FIX: Anchor to FSI baseline ─────────────────────────────
+  const fsiScore = Math.round((fsiBase / 120) * 100);
+  const maxAllowed = Math.min(99, fsiScore + CFG.WST_MAX_BOOST_ABOVE_FSI);
+  const minAllowed = Math.max(1, fsiScore - 20);
   
-  // ── 10. STORE HISTORICAL DATA FOR FUTURE USE ──────────────────────────
+  let adjustedScore = clamp(currentScore + totalAdjustment);
+  adjustedScore = Math.max(minAllowed, Math.min(maxAllowed, adjustedScore));
+  
+  // ── STORE FOR FUTURE ──────────────────────────────────────────────────
   if (store && store[iso]) {
     if (!store[iso].historical_scores) store[iso].historical_scores = [];
     if (store[iso].historical_scores.length === 0 || 
@@ -703,57 +679,32 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
         store[iso].historical_scores = store[iso].historical_scores.slice(-60);
       }
     }
-    // Store time metrics for later use
     store[iso].__temp_time_metrics = {
-      momentum,
-      velocity,
-      acceleration,
-      timeDecay,
-      volatility,
-      trendReversalAdjust,
-      totalAdjustment,
-      rawScore: currentScore,
-      structuralWeight: structuralPersistence,
-      recoveryFactor,
-      hist_length: hist.length,
-      data_source: hist.length >= 14 ? 'real' : 'synthetic'
+      momentum, velocity, acceleration, timeDecay, volatility,
+      totalAdjustment, rawScore: currentScore,
+      structuralWeight: structuralPersistence, recoveryFactor,
+      fsi_anchor: fsiScore, max_allowed: maxAllowed, min_allowed: minAllowed
     };
   }
   
   return {
     adjustedScore,
-    momentum,
-    velocity,
-    acceleration,
-    timeDecay,
-    momentumAdjust,
-    velocityAdjust,
-    accelerationAdjust,
-    timeDecayAdjust,
-    recoveryAdjust,
-    volatilityAdjust,
-    trendReversalAdjust,
-    totalAdjustment,
-    rawScore: currentScore,
-    structuralWeight: structuralPersistence,
-    recoveryFactor,
-    hist_length: hist.length,
-    data_source: hist.length >= 14 ? 'real' : 'synthetic',
-    volatility
+    momentum, velocity, acceleration, timeDecay,
+    momentumAdjust, velocityAdjust, accelerationAdjust,
+    timeDecayAdjust, recoveryAdjust, volatilityAdjust, trendReversalAdjust,
+    totalAdjustment, rawScore: currentScore,
+    structuralWeight: structuralPersistence, recoveryFactor,
+    volatility, fsi_anchor: fsiScore, max_allowed: maxAllowed, min_allowed: minAllowed
   };
 }
+
 // ════════════════════════════════════════════════════════════════════════════
 //  ─── ENHANCEMENT 1: MACHINE LEARNING ENGINE ──────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 class CrisisMLModel {
   constructor() {
-    this.weights = {
-      input_hidden: [],
-      hidden_output: [],
-      bias_hidden: [],
-      bias_output: [],
-    };
+    this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] };
     this.trained = false;
     this.trainingCount = 0;
     this.lastUpdate = Date.now();
@@ -765,11 +716,9 @@ class CrisisMLModel {
     if (!this.trained || sequence.length < 5) {
       return this.simpleTrendForecast(sequence);
     }
-
     const normalized = this.normalizeSequence(sequence);
     const hidden = this.forwardPass(normalized);
     const prediction = this.outputLayer(hidden);
-    
     return {
       forecast: this.denormalize(prediction),
       confidence: this.performance.r2 || 0.7,
@@ -800,29 +749,21 @@ class CrisisMLModel {
 
   train(sequences) {
     if (sequences.length < 2) return;
-
     const inputs = sequences.map(s => this.normalizeSequence(s.slice(0, -1)));
     const targets = sequences.map(s => this.normalizeValue(s[s.length - 1]));
-
-    if (!this.trained) {
-      this.initializeWeights(inputs[0].length);
-    }
-
+    if (!this.trained) this.initializeWeights(inputs[0].length);
     const learningRate = CFG.LEARNING_RATE || 0.01;
     let totalError = 0;
-
     for (let epoch = 0; epoch < 10; epoch++) {
       for (let i = 0; i < inputs.length; i++) {
         const hidden = this.forwardPass(inputs[i]);
         const output = this.outputLayer(hidden);
         const error = targets[i] - output;
-
         const outputDelta = error;
         for (let j = 0; j < hidden.length; j++) {
           this.weights.hidden_output[j] = (this.weights.hidden_output[j] || 0) + learningRate * outputDelta * hidden[j];
         }
         this.weights.bias_output = (this.weights.bias_output || 0) + learningRate * outputDelta;
-
         for (let j = 0; j < this.weights.input_hidden.length; j++) {
           const hiddenDelta = outputDelta * (this.weights.hidden_output[j] || 0) * (hidden[j] > 0 ? 1 : 0);
           for (let k = 0; k < inputs[i].length; k++) {
@@ -830,11 +771,9 @@ class CrisisMLModel {
           }
           this.weights.bias_hidden[j] = (this.weights.bias_hidden[j] || 0) + learningRate * hiddenDelta;
         }
-
         totalError += error * error;
       }
     }
-
     this.trained = true;
     this.trainingCount += sequences.length;
     this.lastUpdate = Date.now();
@@ -871,25 +810,15 @@ class CrisisMLModel {
     return seq.map(v => (v - min) / range);
   }
 
-  normalizeValue(v) {
-    return v / 100;
-  }
-
-  denormalize(v) {
-    return Math.min(99, Math.max(1, Math.round(v * 100)));
-  }
+  normalizeValue(v) { return v / 100; }
+  denormalize(v) { return Math.min(99, Math.max(1, Math.round(v * 100))); }
 
   simpleTrendForecast(seq) {
     if (seq.length < 4) return { forecast: seq[seq.length - 1] || 50, confidence: 0.3 };
     const recent = seq.slice(-7);
     const slope = (recent[recent.length - 1] - recent[0]) / (recent.length - 1);
     const forecast = Math.min(99, Math.max(1, Math.round(recent[recent.length - 1] + slope * 3)));
-    return {
-      forecast,
-      confidence: 0.4,
-      trend: slope > 0.5 ? "escalating" : slope < -0.5 ? "improving" : "stable",
-      anomaly_probability: 0.1,
-    };
+    return { forecast, confidence: 0.4, trend: slope > 0.5 ? "escalating" : slope < -0.5 ? "improving" : "stable", anomaly_probability: 0.1 };
   }
 
   determineTrend(seq, prediction) {
@@ -911,21 +840,16 @@ const mlModel = new CrisisMLModel();
 
 function trainMLModel(store) {
   if (!CFG.ML_ENABLED) return;
-
   const sequences = [];
   for (const iso in store) {
     const hist = seedHistory(iso, store[iso].score);
     if (hist.length >= 14) {
       for (let i = 7; i < hist.length - 1; i++) {
-        const seq = hist.slice(i - 7, i + 1);
-        sequences.push(seq);
+        sequences.push(hist.slice(i - 7, i + 1));
       }
     }
   }
-
-  if (sequences.length >= 10) {
-    mlModel.train(sequences);
-  }
+  if (sequences.length >= 10) mlModel.train(sequences);
 }
 
 function mlEnhancedForecast(iso, currentScore, store) {
@@ -933,7 +857,6 @@ function mlEnhancedForecast(iso, currentScore, store) {
   const mlPrediction = mlModel.predict(hist);
   const trad = trendForecast(hist, currentScore);
   
-  // ── WST Recovery Rate Adjustment ────────────────────────────────────────
   let wstAdjustment = 0;
   let wstRecoveryRate = 0.5;
   let wstClass = "Unclassified";
@@ -942,24 +865,17 @@ function mlEnhancedForecast(iso, currentScore, store) {
     const wst = store[iso].__wst;
     wstRecoveryRate = wst.recovery_rate || 0.5;
     wstClass = wst.class;
-    
-    if (wstClass === "Core") {
-      wstAdjustment = -Math.round((1 - wstRecoveryRate) * 8);
-    } else if (wstClass === "Semi") {
-      wstAdjustment = Math.round((1 - wstRecoveryRate) * 4);
-    } else if (wstClass === "Periphery") {
-      wstAdjustment = Math.round((1 - wstRecoveryRate) * 12);
-    }
-    
-    if (wst.reserve_currency) {
-      wstAdjustment -= 2;
-    }
+    if (wstClass === "Core") wstAdjustment = -Math.round((1 - wstRecoveryRate) * 4);
+    else if (wstClass === "Semi") wstAdjustment = Math.round((1 - wstRecoveryRate) * 2);
+    else if (wstClass === "Periphery") wstAdjustment = Math.round((1 - wstRecoveryRate) * 6);
+    if (wst.reserve_currency) wstAdjustment -= 1;
   }
 
-  const tradAdjusted = Math.max(1, Math.min(99, trad.fc + wstAdjustment));
+  const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
+  const fsiScore = Math.round((fsiBase / 120) * 100);
+  const tradAdjusted = Math.max(fsiScore - 15, Math.min(fsiScore + 25, trad.fc + wstAdjustment));
   const blended = Math.round(mlPrediction.forecast * 0.6 + tradAdjusted * 0.4);
-  const confidence = (mlPrediction.confidence + trad.confidence) / 2;
-
+  
   return {
     fc: clamp(blended),
     ml_forecast: mlPrediction.forecast,
@@ -967,13 +883,14 @@ function mlEnhancedForecast(iso, currentScore, store) {
     wst_adjusted_trad_forecast: tradAdjusted,
     wst_class: wstClass,
     wst_recovery_rate: wstRecoveryRate,
-    confidence: Math.min(0.95, Math.max(0.3, confidence)),
+    confidence: Math.min(0.95, Math.max(0.3, (mlPrediction.confidence + trad.confidence) / 2)),
     trend: mlPrediction.trend || trad.trend,
     esc: blended > currentScore + 5,
     slope: trad.slope,
     anomaly_probability: mlPrediction.anomaly_probability || 0.1,
     ml_trained: mlModel.trained,
     training_count: mlModel.trainingCount,
+    fsi_anchor: fsiScore,
   };
 }
 
@@ -983,84 +900,36 @@ function mlEnhancedForecast(iso, currentScore, store) {
 
 class SentimentAnalyzer {
   constructor() {
-    this.positiveWords = [
-      'peace', 'ceasefire', 'truce', 'agreement', 'aid', 'humanitarian', 'relief',
-      'recovery', 'stabilize', 'improve', 'progress', 'positive', 'good', 'great',
-      'excellent', 'success', 'successful', 'hope', 'hopeful', 'resolution'
-    ];
-    this.negativeWords = [
-      'war', 'conflict', 'violence', 'attack', 'bomb', 'missile', 'strike',
-      'kill', 'death', 'casualty', 'destroy', 'collapse', 'crisis', 'emergency',
-      'famine', 'hunger', 'disease', 'outbreak', 'escalate', 'worsen', 'deteriorate',
-      'critical', 'severe', 'dire', 'catastrophe', 'disaster', 'devastating'
-    ];
-    this.strongNegative = [
-      'exterminate', 'genocide', 'massacre', 'pogrom', 'ethnic cleansing',
-      'famine', 'starvation', 'catastrophic'
-    ];
-    this.positivePhrases = [
-      'negotiations progress', 'peace talks', 'aid delivered',
-      'ceasefire holds', 'reconstruction', 'recovery efforts'
-    ];
-    this.negativePhrases = [
-      'escalation of', 'intensified fighting', 'heavy casualties',
-      'civilians killed', 'mass displacement', 'health system collapse',
-      'food insecurity worsens', 'drought intensifies'
-    ];
+    this.positiveWords = ['peace', 'ceasefire', 'truce', 'agreement', 'aid', 'humanitarian', 'relief', 'recovery', 'stabilize', 'improve', 'progress', 'positive', 'good', 'great', 'excellent', 'success', 'successful', 'hope', 'hopeful', 'resolution'];
+    this.negativeWords = ['war', 'conflict', 'violence', 'attack', 'bomb', 'missile', 'strike', 'kill', 'death', 'casualty', 'destroy', 'collapse', 'crisis', 'emergency', 'famine', 'hunger', 'disease', 'outbreak', 'escalate', 'worsen', 'deteriorate', 'critical', 'severe', 'dire', 'catastrophe', 'disaster', 'devastating'];
+    this.strongNegative = ['exterminate', 'genocide', 'massacre', 'pogrom', 'ethnic cleansing', 'famine', 'starvation', 'catastrophic'];
+    this.positivePhrases = ['negotiations progress', 'peace talks', 'aid delivered', 'ceasefire holds', 'reconstruction', 'recovery efforts'];
+    this.negativePhrases = ['escalation of', 'intensified fighting', 'heavy casualties', 'civilians killed', 'mass displacement', 'health system collapse', 'food insecurity worsens', 'drought intensifies'];
   }
 
   analyze(text) {
     if (!text || text.length < 10) {
       return { score: 0, label: 'neutral', confidence: 0.5, key_terms: [] };
     }
-
     const lower = text.toLowerCase();
     let score = 0;
     let matches = 0;
-
-    for (const word of this.positiveWords) {
-      if (lower.includes(word)) { score += 0.15; matches++; }
-    }
-    for (const word of this.negativeWords) {
-      if (lower.includes(word)) { score -= 0.2; matches++; }
-    }
-    for (const word of this.strongNegative) {
-      if (lower.includes(word)) { score -= 0.5; matches++; }
-    }
-
-    for (const phrase of this.positivePhrases) {
-      if (lower.includes(phrase)) { score += 0.3; matches += 2; }
-    }
-    for (const phrase of this.negativePhrases) {
-      if (lower.includes(phrase)) { score -= 0.4; matches += 2; }
-    }
-
+    for (const word of this.positiveWords) { if (lower.includes(word)) { score += 0.15; matches++; } }
+    for (const word of this.negativeWords) { if (lower.includes(word)) { score -= 0.2; matches++; } }
+    for (const word of this.strongNegative) { if (lower.includes(word)) { score -= 0.5; matches++; } }
+    for (const phrase of this.positivePhrases) { if (lower.includes(phrase)) { score += 0.3; matches += 2; } }
+    for (const phrase of this.negativePhrases) { if (lower.includes(phrase)) { score -= 0.4; matches += 2; } }
     const totalMatches = Math.min(matches, 10);
     const normalizedScore = Math.max(-1, Math.min(1, score / (Math.max(totalMatches, 1) / 2)));
-
     const keyTerms = [];
-    for (const word of this.negativeWords) {
-      if (lower.includes(word)) keyTerms.push(word);
-    }
-    for (const word of this.positiveWords) {
-      if (lower.includes(word)) keyTerms.push(word);
-    }
-
+    for (const word of this.negativeWords) { if (lower.includes(word)) keyTerms.push(word); }
+    for (const word of this.positiveWords) { if (lower.includes(word)) keyTerms.push(word); }
     let label, confidence;
-    if (normalizedScore > 0.2) {
-      label = 'positive';
-      confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5);
-    } else if (normalizedScore < -0.2) {
-      label = 'negative';
-      confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5);
-    } else {
-      label = 'neutral';
-      confidence = 0.5 + (1 - Math.abs(normalizedScore)) * 0.3;
-    }
-
+    if (normalizedScore > 0.2) { label = 'positive'; confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5); }
+    else if (normalizedScore < -0.2) { label = 'negative'; confidence = Math.min(0.95, 0.5 + Math.abs(normalizedScore) * 0.5); }
+    else { label = 'neutral'; confidence = 0.5 + (1 - Math.abs(normalizedScore)) * 0.3; }
     const crisisIntensity = Math.min(1, Math.abs(normalizedScore) * 1.5);
     const isCrisis = label === 'negative' && crisisIntensity > 0.5;
-
     return {
       score: Math.round(normalizedScore * 100) / 100,
       label,
@@ -1076,42 +945,28 @@ const sentimentAnalyzer = new SentimentAnalyzer();
 
 function analyzeCountrySentiment(iso, store) {
   if (!CFG.SENTIMENT_ENABLED) return null;
-
   const c = store[iso];
   const signals = c.signals || {};
   const text = [];
-
   if (signals.whoOutbreaks?.length) {
     text.push(signals.whoOutbreaks.map(o => o.disease + ' outbreak ' + o.severity).join(' '));
   }
   if (signals.reliefwebItems?.length) {
     text.push(signals.reliefwebItems.map(r => r.headline).join(' '));
   }
-  if (signals.gdacs?.title) {
-    text.push(signals.gdacs.title);
-  }
-  if (signals.fewsPhase) {
-    text.push(signals.fewsPhase + ' famine warning');
-  }
+  if (signals.gdacs?.title) text.push(signals.gdacs.title);
+  if (signals.fewsPhase) text.push(signals.fewsPhase + ' famine warning');
   if (signals.acledEvents > 0) {
     text.push(signals.acledEvents + ' conflict events, ' + signals.acledFatalities + ' fatalities');
   }
-
   const dims = c.dims || {};
   if (dims.food > 70) text.push('severe food insecurity ' + dims.food + '/100');
   if (dims.conflict > 70) text.push('intense conflict ' + dims.conflict + '/100');
   if (dims.displacement > 70) text.push('mass displacement ' + dims.displacement + '/100');
-
   if (text.length === 0) return null;
-
   const fullText = text.join('. ');
   const result = sentimentAnalyzer.analyze(fullText);
-
-  return {
-    ...result,
-    sources_analyzed: text.length,
-    text_sample: fullText.slice(0, 200) + (fullText.length > 200 ? '...' : ''),
-  };
+  return { ...result, sources_analyzed: text.length, text_sample: fullText.slice(0, 200) + (fullText.length > 200 ? '...' : '') };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1125,13 +980,8 @@ class HistoricalDataStore {
   }
 
   store(iso, data) {
-    if (!this.data[iso]) {
-      this.data[iso] = [];
-    }
-    this.data[iso].push({
-      timestamp: Date.now(),
-      ...data,
-    });
+    if (!this.data[iso]) this.data[iso] = [];
+    this.data[iso].push({ timestamp: Date.now(), ...data });
     this.cleanup(iso);
   }
 
@@ -1158,10 +1008,8 @@ class HistoricalDataStore {
   getTrend(iso, days = 30) {
     const history = this.getHistory(iso, days);
     if (history.length < 3) return null;
-
     const scores = history.map(d => d.score);
     const timestamps = history.map(d => d.timestamp);
-    
     const n = scores.length;
     const xMean = timestamps.reduce((a, b) => a + b, 0) / n;
     const yMean = scores.reduce((a, b) => a + b, 0) / n;
@@ -1172,15 +1020,7 @@ class HistoricalDataStore {
     }
     const slope = den ? num / den : 0;
     const direction = slope > 0 ? 'worsening' : slope < 0 ? 'improving' : 'stable';
-
-    return {
-      direction,
-      slope: slope * 86400000 * 7,
-      points: n,
-      start_score: scores[0],
-      end_score: scores[scores.length - 1],
-      change: scores[scores.length - 1] - scores[0],
-    };
+    return { direction, slope: slope * 86400000 * 7, points: n, start_score: scores[0], end_score: scores[scores.length - 1], change: scores[scores.length - 1] - scores[0] };
   }
 
   exportData(iso, format = 'json') {
@@ -1198,19 +1038,8 @@ class HistoricalDataStore {
   getStats(iso) {
     const data = this.data[iso] || [];
     if (data.length === 0) return null;
-
     const scores = data.map(d => d.score);
-    return {
-      count: data.length,
-      min: Math.min(...scores),
-      max: Math.max(...scores),
-      mean: mean(scores),
-      median: median(scores),
-      stddev: stddev(scores),
-      latest: scores[scores.length - 1],
-      first: scores[0],
-      change: scores[scores.length - 1] - scores[0],
-    };
+    return { count: data.length, min: Math.min(...scores), max: Math.max(...scores), mean: mean(scores), median: median(scores), stddev: stddev(scores), latest: scores[scores.length - 1], first: scores[0], change: scores[scores.length - 1] - scores[0] };
   }
 }
 
@@ -1236,75 +1065,42 @@ class AlertManager {
   constructor() {
     this.webhookUrl = CFG.ALERT_WEBHOOK_URL || null;
     this.email = CFG.ALERT_EMAIL || null;
-    this.thresholds = {
-      global: 75,
-      region: 70,
-      country: 80,
-    };
+    this.thresholds = { global: 75, region: 70, country: 80 };
     this.lastAlerts = {};
   }
 
   checkAlerts(iso, store) {
     if (!CFG.GEO_FENCING_ENABLED) return [];
-
     const c = store[iso];
     const triggered = [];
     const now = Date.now();
-
     if (c.score >= this.thresholds.global) {
       const key = `${iso}_global`;
       if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({
-          iso,
-          name: c.name,
-          score: c.score,
-          threshold: this.thresholds.global,
-          type: 'global',
-          message: `${c.name} has reached ${c.score}/100, exceeding the global crisis threshold.`,
-        });
+        triggered.push({ iso, name: c.name, score: c.score, threshold: this.thresholds.global, type: 'global', message: `${c.name} has reached ${c.score}/100, exceeding the global crisis threshold.` });
         this.lastAlerts[key] = now;
       }
     }
-
     const hist = seedHistory(iso, c.score);
     if (hist.length >= 7) {
       const delta = hist[hist.length - 1] - hist[hist.length - 7];
       if (delta > 10) {
         const key = `${iso}_rapid`;
         if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-          triggered.push({
-            iso,
-            name: c.name,
-            score: c.score,
-            delta,
-            type: 'rapid_deterioration',
-            message: `${c.name} crisis score has risen ${delta} points in 7 days.`,
-          });
+          triggered.push({ iso, name: c.name, score: c.score, delta, type: 'rapid_deterioration', message: `${c.name} crisis score has risen ${delta} points in 7 days.` });
           this.lastAlerts[key] = now;
         }
       }
     }
-
     const anom = runAnomalyDetection(hist);
     if (anom.detected && (anom.severity === 'HIGH' || anom.severity === 'EXTREME')) {
       const key = `${iso}_anomaly`;
       if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({
-          iso,
-          name: c.name,
-          score: c.score,
-          anomaly: anom,
-          type: 'anomaly',
-          message: `${c.name} shows a ${anom.severity} statistical anomaly (${anom.methods_fired}/4 methods).`,
-        });
+        triggered.push({ iso, name: c.name, score: c.score, anomaly: anom, type: 'anomaly', message: `${c.name} shows a ${anom.severity} statistical anomaly (${anom.methods_fired}/4 methods).` });
         this.lastAlerts[key] = now;
       }
     }
-
-    for (const alert of triggered) {
-      this.sendAlert(alert);
-    }
-
+    for (const alert of triggered) this.sendAlert(alert);
     return triggered;
   }
 
@@ -1314,28 +1110,16 @@ class AlertManager {
         await fetch(this.webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'crisis_alert',
-            timestamp: new Date().toISOString(),
-            ...alert,
-          }),
+          body: JSON.stringify({ type: 'crisis_alert', timestamp: new Date().toISOString(), ...alert }),
         });
-      } catch (e) {
-        console.warn('Webhook alert failed:', e);
-      }
+      } catch (e) { console.warn('Webhook alert failed:', e); }
     }
-
-    if (this.email) {
-      console.log(`📧 ALERT EMAIL to ${this.email}: ${alert.message}`);
-    }
-
+    if (this.email) console.log(`📧 ALERT EMAIL to ${this.email}: ${alert.message}`);
     console.log(`🚨 ALERT: ${alert.message}`);
   }
 
   setThreshold(type, value) {
-    if (this.thresholds.hasOwnProperty(type)) {
-      this.thresholds[type] = value;
-    }
+    if (this.thresholds.hasOwnProperty(type)) this.thresholds[type] = value;
   }
 }
 
@@ -1350,9 +1134,7 @@ async function fetchUSGS() {
     const r = await safeFetch(
       fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())
     );
-    if (r.ok && r.data?.features?.length) {
-      return { data: r.data.features, live: true };
-    }
+    if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true };
   } catch {}
   return { data: [], live: false };
 }
@@ -1362,9 +1144,7 @@ async function fetchEMSC() {
     const r = await safeFetch(
       fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())
     );
-    if (r.ok && r.data?.features?.length) {
-      return { data: r.data.features, live: true };
-    }
+    if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true };
   } catch {}
   return { data: [], live: false };
 }
@@ -1404,9 +1184,7 @@ async function fetchIFRC() {
     const r = await safeFetch(
       fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json())
     );
-    if (r.ok && r.data?.results?.length) {
-      return { data: r.data.results, live: true };
-    }
+    if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true };
   } catch {}
   return { data: [], live: false };
 }
@@ -1434,7 +1212,6 @@ async function fetchHeatStress() {
 async function fetchWeatherHazards() {
   const results = { flood_discharge: 0, wave_height: 0, wind_speed: 0, precip_total: 0, uv_max: 0, cloud_avg: 0, lightning_max: 0 };
   let anyLive = false;
-  
   const endpoints = [
     { key: 'flood_discharge', url: 'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3', path: ['daily','river_discharge'], transform: arr => Math.max(...(arr||[0])) },
     { key: 'wind_speed', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1', path: ['current_weather','windspeed'], transform: v => v || 0 },
@@ -1443,15 +1220,12 @@ async function fetchWeatherHazards() {
     { key: 'cloud_avg', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3', path: ['hourly','cloudcover'], transform: arr => mean(arr||[0]) },
     { key: 'lightning_max', url: 'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1', path: ['hourly','lightning_potential'], transform: arr => Math.max(...(arr||[0])) },
   ];
-
   for (const ep of endpoints) {
     try {
       const r = await safeFetch(fetch(ep.url).then(r => r.json()));
       if (r.ok) {
         let val = r.data;
-        for (const segment of ep.path) {
-          val = val?.[segment];
-        }
+        for (const segment of ep.path) val = val?.[segment];
         if (val !== undefined && val !== null) {
           results[ep.key] = ep.transform(val);
           if (results[ep.key] > 0) anyLive = true;
@@ -1459,7 +1233,6 @@ async function fetchWeatherHazards() {
       }
     } catch {}
   }
-  
   return { data: results, live: anyLive };
 }
 
@@ -1517,9 +1290,7 @@ async function fetchDiseaseSh() {
     const r = await safeFetch(
       fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=50").then(r => r.json())
     );
-    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
-      return { data: r.data, live: true };
-    }
+    if (r.ok && Array.isArray(r.data) && r.data.length > 0) return { data: r.data, live: true };
   } catch {}
   return { data: [], live: false };
 }
@@ -1561,7 +1332,6 @@ async function fetchUNHCR() {
       safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=30").then(r => r.json())),
       safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=30").then(r => r.json())),
     ]);
-    
     const displacement = {};
     if (pop.ok && pop.data?.items) {
       pop.data.items.forEach(item => {
@@ -1580,7 +1350,6 @@ async function fetchUNHCR() {
         displacement[iso].asylum_seekers += item.asylum_seekers || 0;
       });
     }
-    
     const operations = {};
     if (ops.ok) {
       const list = ops.data?.items || ops.data?.data || [];
@@ -1589,7 +1358,6 @@ async function fetchUNHCR() {
         if (iso) operations[iso] = { name: op.name || "UNHCR operation", status: op.status || "active" };
       });
     }
-    
     const emergencies = {};
     if (emerg.ok) {
       const list = emerg.data?.items || emerg.data?.data || [];
@@ -1598,7 +1366,6 @@ async function fetchUNHCR() {
         if (iso) emergencies[iso] = { name: em.name || "Emergency response", level: em.level || "unknown" };
       });
     }
-    
     const statistics = {};
     if (stats.ok) {
       const list = stats.data?.data || stats.data?.items || [];
@@ -1607,7 +1374,6 @@ async function fetchUNHCR() {
         if (iso && s.refugees > 0) statistics[iso] = { refugees: s.refugees, year: s.year || "2024" };
       });
     }
-    
     const live = Object.keys(displacement).length > 0 || Object.keys(operations).length > 0 || Object.keys(emergencies).length > 0;
     return { data: { displacement, operations, emergencies, statistics }, live };
   } catch {}
@@ -1630,13 +1396,7 @@ async function fetchIPC() {
         let phase = 3;
         if (title.includes('famine')) phase = 5;
         else if (title.includes('emergency')) phase = 4;
-        ipcData[iso] = { 
-          phase, 
-          title: item.fields?.name || '', 
-          population: 0,
-          total_population: 0,
-          date: item.fields?.date?.created || null
-        };
+        ipcData[iso] = { phase, title: item.fields?.name || '', population: 0, total_population: 0, date: item.fields?.date?.created || null };
       });
       return { data: ipcData, live: Object.keys(ipcData).length > 0 };
     }
@@ -1747,31 +1507,12 @@ async function fetchAllLive(isos) {
     heat, hazards, aq, noaa,
     disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who
   ] = await Promise.all([
-    fetchUSGS(), 
-    fetchEMSC(), 
-    fetchNASA(), 
-    fetchGDACS(), 
-    fetchIFRC(),
-    fetchHeatStress(), 
-    fetchWeatherHazards(), 
-    fetchAirQuality(), 
-    fetchNOAA(),
-    fetchDiseaseSh(), 
-    fetchWorldBankAll(), 
-    fetchUNHCR(),
-    fetchIPC(),
-    fetchFewsNet(),
-    fetchAcled(),
-    fetchReliefWeb(),
-    fetchWHO(),
+    fetchUSGS(), fetchEMSC(), fetchNASA(), fetchGDACS(), fetchIFRC(),
+    fetchHeatStress(), fetchWeatherHazards(), fetchAirQuality(), fetchNOAA(),
+    fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(),
+    fetchIPC(), fetchFewsNet(), fetchAcled(), fetchReliefWeb(), fetchWHO(),
   ]);
-  
-  return { 
-    usgs, emsc, nasa, gdacs, ifrc, 
-    heat, hazards, aq, noaa, 
-    disease, wb, unhcr, 
-    ipc, fewsnet, acled, reliefweb, who
-  };
+  return { usgs, emsc, nasa, gdacs, ifrc, heat, hazards, aq, noaa, disease, wb, unhcr, ipc, fewsnet, acled, reliefweb, who };
 }
 
 const safeFetch = p =>
@@ -1788,7 +1529,6 @@ function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   let liveEvidenceCount = 0;
   const evidenceSources = [];
-  
   const signals = {};
 
   const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
@@ -2043,460 +1783,310 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
   let totalBoost = 0;
+  const country = COUNTRIES[iso];
+  const fsiBase = country?.fsi_score || 50;
   
-  // ──────────────────────────────────────────────────────────────────────────
-  //  🌐 WORLD SYSTEMS THEORY ENGINE — Structural Adjustments
-  //  ──────────────────────────────────────────────────────────────────────────
+  // ── WST STRUCTURAL ADJUSTMENTS (REDUCED) ─────────────────────────────
   if (CFG.WST_ENABLED) {
     const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
-    const country = COUNTRIES[iso];
     
-    // ── 1. Extractivism Penalty ──────────────────────────────────────────
     if (wst.class === "Periphery") {
       const extractiveBase = wst.extractive_penalty || 15;
-      const gdpAdjust = Math.max(0, (5000 - (wst.gdp_per_capita || 0)) / 5000 * 5);
-      const penalty = Math.min(CFG.WST_EXTRACTIVE_PENALTY_MAX, extractiveBase + gdpAdjust);
+      const gdpAdjust = Math.max(0, (5000 - (wst.gdp_per_capita || 0)) / 5000 * 3);
+      const penalty = Math.min(CFG.WST_EXTRACTIVE_PENALTY_MAX, (extractiveBase + gdpAdjust) * 0.6);
       
-      dims.economic = clamp(dims.economic + penalty);
-      dims.food = clamp(dims.food + Math.floor(penalty * 0.3));
-      dims.access = clamp(dims.access + Math.floor(penalty * 0.4));
-      totalBoost += penalty;
-      audit.push({
-        source: "WST Extractivism",
-        field: "economic+food+access",
-        delta: penalty,
-        reason: `Periphery structural extraction penalty (GDP/capita $${wst.gdp_per_capita?.toLocaleString() || 'unknown'})`
-      });
+      dims.economic = clamp(dims.economic + Math.round(penalty * 0.5));
+      dims.food = clamp(dims.food + Math.round(penalty * 0.15));
+      dims.access = clamp(dims.access + Math.round(penalty * 0.2));
+      totalBoost += Math.round(penalty * 0.85);
+      audit.push({ source: "WST Extractivism", field: "economic+food+access", delta: Math.round(penalty * 0.85), reason: `Periphery structural penalty (${wst.class})` });
     }
     
-    // ── 2. Debt Sensitivity Shock ────────────────────────────────────────
     const globalRate = CFG.WST_GLOBAL_INTEREST_RATE || 5.25;
-    const rateShock = Math.max(0, (globalRate - 2) * wst.debt_sensitivity * 2);
-    const debtPenalty = Math.min(20, Math.round(rateShock * 3));
+    const rateShock = Math.max(0, (globalRate - 2) * wst.debt_sensitivity * 1.2);
+    const debtPenalty = Math.min(12, Math.round(rateShock * 1.5));
     
     if (debtPenalty > 1) {
       dims.economic = clamp(dims.economic + debtPenalty);
-      dims.political = clamp(dims.political + Math.floor(debtPenalty * 0.4));
+      dims.political = clamp(dims.political + Math.round(debtPenalty * 0.3));
       totalBoost += debtPenalty;
-      audit.push({
-        source: "WST Debt Shock",
-        field: "economic+political",
-        delta: debtPenalty,
-        reason: `${wst.class} debt sensitivity ${(wst.debt_sensitivity * 100).toFixed(0)}% × ${globalRate.toFixed(2)}% global rate`
-      });
+      audit.push({ source: "WST Debt Shock", field: "economic+political", delta: debtPenalty, reason: `${wst.class} debt sensitivity` });
     }
     
-    // ── 3. Currency Crisis Amplifier ─────────────────────────────────────
     if (signals.wbInflation && signals.wbInflation.value > CFG.WST_CURRENCY_CRISIS_THRESHOLD) {
-      const currencyCrash = Math.min(15, Math.round((signals.wbInflation.value - 15) * 0.6 * wst.debt_sensitivity));
+      const currencyCrash = Math.min(10, Math.round((signals.wbInflation.value - 15) * 0.4 * wst.debt_sensitivity));
       if (currencyCrash > 0) {
         dims.economic = clamp(dims.economic + currencyCrash);
-        dims.food = clamp(dims.food + Math.floor(currencyCrash * 0.5));
+        dims.food = clamp(dims.food + Math.round(currencyCrash * 0.4));
         totalBoost += currencyCrash;
-        audit.push({
-          source: "WST Currency Crisis",
-          field: "economic+food",
-          delta: currencyCrash,
-          reason: `Inflation ${signals.wbInflation.value.toFixed(1)}% amplifies structural debt burden`
-        });
+        audit.push({ source: "WST Currency Crisis", field: "economic+food", delta: currencyCrash, reason: `Inflation ${signals.wbInflation.value.toFixed(1)}%` });
       }
     }
     
-    // ── 4. Recovery Rate Modification ─────────────────────────────────────
     if (store && store[iso]) {
       const recoveryFactor = wst.recovery_rate || 0.5;
-      const fragilityMultiplier = 1 + (1 - recoveryFactor) * 0.5;
+      const fragilityMultiplier = 1 + (1 - recoveryFactor) * 0.3;
       const momentumFactor = wst.momentum_factor || 0.5;
-      
       store[iso].__wst = {
-        class: wst.class,
-        tier: wst.tier,
-        recovery_rate: recoveryFactor,
-        structural_weight: wst.structural_weight || 0.5,
-        fragility_multiplier: fragilityMultiplier,
-        debt_sensitivity: wst.debt_sensitivity,
-        reserve_currency: wst.reserve_currency || false,
-        momentum_factor: momentumFactor,
-        gdp_per_capita: wst.gdp_per_capita || 3000,
+        class: wst.class, tier: wst.tier, recovery_rate: recoveryFactor,
+        structural_weight: wst.structural_weight || 0.5, fragility_multiplier: fragilityMultiplier,
+        debt_sensitivity: wst.debt_sensitivity, reserve_currency: wst.reserve_currency || false,
+        momentum_factor: momentumFactor, gdp_per_capita: wst.gdp_per_capita || 3000,
         extractive_penalty: wst.extractive_penalty || 10,
       };
     }
     
-    // ── 5. Reserve Currency Buffer ──────────────────────────────────────
     if (wst.reserve_currency) {
-      const buffer = Math.min(5, Math.round(5 * (wst.recovery_rate || 0.8)));
+      const buffer = Math.min(3, Math.round(3 * (wst.recovery_rate || 0.8)));
       dims.economic = clamp(dims.economic - buffer);
-      dims.political = clamp(dims.political - Math.floor(buffer * 0.3));
+      dims.political = clamp(dims.political - Math.round(buffer * 0.3));
       totalBoost -= buffer;
-      audit.push({
-        source: "WST Reserve Currency",
-        field: "economic+political",
-        delta: -buffer,
-        reason: `Reserve currency buffer (${iso}) reduces structural vulnerability`
-      });
+      audit.push({ source: "WST Reserve Currency", field: "economic+political", delta: -buffer, reason: `Reserve currency buffer` });
     }
     
-    // ── 6. Supply Chain Shock Transmission ──────────────────────────────
     if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < -1) {
-      const coreShock = Math.abs(signals.wbGdpGrowth.value) * CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER * 10;
-      const transmittedShock = Math.round(coreShock * (1 + (1 - wst.recovery_rate) * 0.5));
-      
+      const coreShock = Math.abs(signals.wbGdpGrowth.value) * CFG.WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER * 8;
+      const transmittedShock = Math.round(coreShock * (1 + (1 - wst.recovery_rate) * 0.3));
       if (transmittedShock > 0) {
         dims.economic = clamp(dims.economic + transmittedShock);
-        dims.conflict = clamp(dims.conflict + Math.floor(transmittedShock * 0.2));
+        dims.conflict = clamp(dims.conflict + Math.round(transmittedShock * 0.15));
         totalBoost += transmittedShock;
-        audit.push({
-          source: "WST Supply Chain",
-          field: "economic+conflict",
-          delta: transmittedShock,
-          reason: `Global GDP contraction transmits ${transmittedShock} points to ${wst.class} economy`
-        });
+        audit.push({ source: "WST Supply Chain", field: "economic+conflict", delta: transmittedShock, reason: `GDP contraction transmits shock` });
       }
     }
   }
   
-  // ─── EXISTING LIVE DATA ADJUSTMENTS ────────────────────────────────────
+  // ─── LIVE DATA ADJUSTMENTS (REDUCED) ──────────────────────────────────
 
   if (signals.quakeMag >= 4.5) {
-    const boost = Math.min(30, Math.round((signals.quakeMag - 3.5) * 6));
-    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    const boost = Math.min(15, Math.round((signals.quakeMag - 3.5) * 3.5));
+    dims.displacement = clamp(dims.displacement + Math.ceil(boost * 0.5));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.3));
     totalBoost += boost;
-    audit.push({ 
-      source: "USGS/EMSC", 
-      field: "displacement+health", 
-      delta: boost, 
-      reason: `M${signals.quakeMag.toFixed(1)} earthquake`, 
-      magnitude: signals.quakeMag 
-    });
+    audit.push({ source: "USGS/EMSC", field: "displacement+health", delta: boost, reason: `M${signals.quakeMag.toFixed(1)} earthquake`, magnitude: signals.quakeMag });
   }
 
   if (signals.nasaEventCount > 0) {
-    const boost = Math.min(20, signals.nasaEventCount * 7);
+    const boost = Math.min(12, signals.nasaEventCount * 4);
     dims.climate = clamp(dims.climate + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.25));
     totalBoost += boost;
-    audit.push({ 
-      source: "NASA EONET", 
-      field: "climate+displacement", 
-      delta: boost, 
-      reason: `${signals.nasaEventCount} active NASA events` 
-    });
+    audit.push({ source: "NASA EONET", field: "climate+displacement", delta: boost, reason: `${signals.nasaEventCount} active NASA events` });
   }
 
   if (signals.gdacs) {
-    const gdacsBoost = signals.gdacsAlert === "red" ? 20 : signals.gdacsAlert === "orange" ? 12 : 5;
-    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.6));
-    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.4));
-    dims.access = clamp(dims.access + Math.floor(gdacsBoost * 0.3));
+    const gdacsBoost = signals.gdacsAlert === "red" ? 12 : signals.gdacsAlert === "orange" ? 7 : 3;
+    dims.displacement = clamp(dims.displacement + Math.ceil(gdacsBoost * 0.5));
+    dims.health = clamp(dims.health + Math.floor(gdacsBoost * 0.3));
+    dims.access = clamp(dims.access + Math.floor(gdacsBoost * 0.25));
     totalBoost += gdacsBoost;
-    audit.push({ 
-      source: "GDACS", 
-      field: "displacement+health+access", 
-      delta: gdacsBoost, 
-      reason: `${signals.gdacsAlert?.toUpperCase()} alert active` 
-    });
+    audit.push({ source: "GDACS", field: "displacement+health+access", delta: gdacsBoost, reason: `${signals.gdacsAlert?.toUpperCase()} alert active` });
   }
 
   if (signals.ifrcCount > 0) {
-    const boost = Math.min(18, signals.ifrcCount * 7);
+    const boost = Math.min(10, signals.ifrcCount * 4);
     dims.access = clamp(dims.access + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
     totalBoost += boost;
-    audit.push({ 
-      source: "IFRC GO", 
-      field: "access+displacement", 
-      delta: boost, 
-      reason: `${signals.ifrcCount} active IFRC operations` 
-    });
+    audit.push({ source: "IFRC GO", field: "access+displacement", delta: boost, reason: `${signals.ifrcCount} active IFRC operations` });
   }
 
   if (signals.maxTempC >= 35) {
-    const boost = Math.min(25, Math.round((signals.maxTempC - 28) * 2));
-    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.7));
-    dims.health = clamp(dims.health + Math.floor(boost * 0.5));
-    dims.food = clamp(dims.food + Math.floor(boost * 0.3));
+    const boost = Math.min(12, Math.round((signals.maxTempC - 28) * 1.2));
+    dims.climate = clamp(dims.climate + Math.ceil(boost * 0.6));
+    dims.health = clamp(dims.health + Math.floor(boost * 0.4));
+    dims.food = clamp(dims.food + Math.floor(boost * 0.2));
     totalBoost += boost;
-    audit.push({ 
-      source: "Open-Meteo", 
-      field: "climate+health+food", 
-      delta: boost, 
-      reason: `${signals.maxTempC}°C extreme heat` 
-    });
+    audit.push({ source: "Open-Meteo", field: "climate+health+food", delta: boost, reason: `${signals.maxTempC}°C extreme heat` });
   }
 
   if (signals.hazards) {
     const h = signals.hazards;
     let hazardBoost = 0;
     const parts = [];
-    
-    if (h.flood_discharge > 100) { 
-      hazardBoost += 8; 
-      parts.push(`${h.flood_discharge.toFixed(0)}m³/s river discharge`); 
-    }
-    if (h.wind_speed > 30) { 
-      hazardBoost += 6; 
-      parts.push(`${h.wind_speed.toFixed(0)}km/h winds`); 
-    }
-    if (h.precip_total > 10) { 
-      hazardBoost += 5; 
-      parts.push(`${h.precip_total.toFixed(0)}mm precipitation`); 
-    }
-    if (h.uv_max > 8) { 
-      hazardBoost += 4; 
-      parts.push(`UV ${h.uv_max.toFixed(1)}`); 
-    }
-    if (h.cloud_avg > 70) { 
-      hazardBoost += 3; 
-      parts.push(`${h.cloud_avg.toFixed(0)}% cloud cover`); 
-    }
-    if (h.lightning_max > 100) { 
-      hazardBoost += 5; 
-      parts.push(`${h.lightning_max.toFixed(0)}J/kg lightning potential`); 
-    }
-    
+    if (h.flood_discharge > 100) { hazardBoost += 5; parts.push(`${h.flood_discharge.toFixed(0)}m³/s river discharge`); }
+    if (h.wind_speed > 30) { hazardBoost += 4; parts.push(`${h.wind_speed.toFixed(0)}km/h winds`); }
+    if (h.precip_total > 10) { hazardBoost += 3; parts.push(`${h.precip_total.toFixed(0)}mm precipitation`); }
+    if (h.uv_max > 8) { hazardBoost += 2; parts.push(`UV ${h.uv_max.toFixed(1)}`); }
+    if (h.cloud_avg > 70) { hazardBoost += 2; parts.push(`${h.cloud_avg.toFixed(0)}% cloud cover`); }
+    if (h.lightning_max > 100) { hazardBoost += 3; parts.push(`${h.lightning_max.toFixed(0)}J/kg lightning potential`); }
     if (hazardBoost > 0) {
       dims.climate = clamp(dims.climate + hazardBoost);
-      dims.displacement = clamp(dims.displacement + Math.floor(hazardBoost * 0.3));
+      dims.displacement = clamp(dims.displacement + Math.floor(hazardBoost * 0.25));
       totalBoost += hazardBoost;
-      audit.push({ 
-        source: "Open-Meteo Hazards", 
-        field: "climate+displacement", 
-        delta: hazardBoost, 
-        reason: parts.join(", ") 
-      });
+      audit.push({ source: "Open-Meteo Hazards", field: "climate+displacement", delta: hazardBoost, reason: parts.join(", ") });
     }
   }
 
   if (signals.aq && signals.aq.pm25 >= 35) {
-    const boost = Math.min(15, Math.round((signals.aq.pm25 - 25) / 8));
+    const boost = Math.min(8, Math.round((signals.aq.pm25 - 25) / 10));
     if (boost > 0) {
       dims.health = clamp(dims.health + boost);
       totalBoost += boost;
-      audit.push({ 
-        source: "Open-Meteo AQ", 
-        field: "health", 
-        delta: boost, 
-        reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³ in ${signals.aq.city}` 
-      });
+      audit.push({ source: "Open-Meteo AQ", field: "health", delta: boost, reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}µg/m³` });
     }
   }
 
   if (signals.diseaseActive > 1000) {
     const m = signals.diseaseActive / 1000;
-    const boost = Math.min(25, Math.round(Math.log10(m + 1) * 10));
+    const boost = Math.min(12, Math.round(Math.log10(m + 1) * 5));
     dims.health = clamp(dims.health + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
+    dims.food = clamp(dims.food + Math.floor(boost * 0.3));
     totalBoost += boost;
-    audit.push({ 
-      source: "disease.sh", 
-      field: "health+food", 
-      delta: boost, 
-      reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` 
-    });
+    audit.push({ source: "disease.sh", field: "health+food", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active COVID-19 cases` });
   }
 
   if (signals.whoOutbreaks && signals.whoOutbreaks.length > 0) {
-    const boost = Math.min(20, signals.whoOutbreaks.length * 8);
+    const boost = Math.min(10, signals.whoOutbreaks.length * 4);
     dims.health = clamp(dims.health + boost);
-    dims.access = clamp(dims.access + Math.floor(boost * 0.3));
+    dims.access = clamp(dims.access + Math.floor(boost * 0.25));
     totalBoost += boost;
-    audit.push({ 
-      source: "WHO", 
-      field: "health+access", 
-      delta: boost, 
-      reason: `${signals.whoOutbreaks.length} disease outbreaks detected` 
-    });
+    audit.push({ source: "WHO", field: "health+access", delta: boost, reason: `${signals.whoOutbreaks.length} disease outbreaks detected` });
   }
 
   if (signals.wbInflation && signals.wbInflation.value > 5) {
-    const boost = Math.min(20, Math.round(signals.wbInflation.value / 3));
+    const boost = Math.min(10, Math.round(signals.wbInflation.value / 5));
     dims.economic = clamp(dims.economic + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
+    dims.food = clamp(dims.food + Math.floor(boost * 0.3));
     totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+food", 
-      delta: boost, 
-      reason: `Inflation ${signals.wbInflation.value.toFixed(1)}%` 
-    });
+    audit.push({ source: "World Bank", field: "economic+food", delta: boost, reason: `Inflation ${signals.wbInflation.value.toFixed(1)}%` });
   }
 
   if (signals.wbGdpGrowth && signals.wbGdpGrowth.value < 0) {
-    const boost = Math.min(18, Math.round(Math.abs(signals.wbGdpGrowth.value) * 2.5));
+    const boost = Math.min(10, Math.round(Math.abs(signals.wbGdpGrowth.value) * 1.5));
     dims.economic = clamp(dims.economic + boost);
-    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+    dims.political = clamp(dims.political + Math.floor(boost * 0.2));
     totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+political", 
-      delta: boost, 
-      reason: `GDP growth ${signals.wbGdpGrowth.value.toFixed(1)}% (contraction)` 
-    });
+    audit.push({ source: "World Bank", field: "economic+political", delta: boost, reason: `GDP growth ${signals.wbGdpGrowth.value.toFixed(1)}%` });
   }
 
   if (signals.wbUnemployment && signals.wbUnemployment.value > 10) {
-    const boost = Math.min(15, Math.round(signals.wbUnemployment.value / 4));
+    const boost = Math.min(8, Math.round(signals.wbUnemployment.value / 6));
     dims.economic = clamp(dims.economic + boost);
-    dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+    dims.political = clamp(dims.political + Math.floor(boost * 0.2));
     totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+political", 
-      delta: boost, 
-      reason: `Unemployment ${signals.wbUnemployment.value.toFixed(1)}%` 
-    });
+    audit.push({ source: "World Bank", field: "economic+political", delta: boost, reason: `Unemployment ${signals.wbUnemployment.value.toFixed(1)}%` });
   }
 
   if (signals.wbPoverty && signals.wbPoverty.value > 5) {
-    const boost = Math.min(18, Math.round(signals.wbPoverty.value / 3));
+    const boost = Math.min(10, Math.round(signals.wbPoverty.value / 5));
     dims.economic = clamp(dims.economic + boost);
-    dims.food = clamp(dims.food + Math.floor(boost * 0.5));
+    dims.food = clamp(dims.food + Math.floor(boost * 0.4));
     totalBoost += boost;
-    audit.push({ 
-      source: "World Bank", 
-      field: "economic+food", 
-      delta: boost, 
-      reason: `${signals.wbPoverty.value.toFixed(1)}% living in extreme poverty` 
-    });
+    audit.push({ source: "World Bank", field: "economic+food", delta: boost, reason: `${signals.wbPoverty.value.toFixed(1)}% in extreme poverty` });
   }
 
   if (signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
-    const boost = m >= 10 ? 45 
-                : m >= 5 ? 35 
-                : m >= 3 ? 28 
-                : m >= 1.5 ? 20 
-                : m >= 0.5 ? 12 
-                : m >= 0.1 ? 6 
-                : 0;
+    const boost = m >= 10 ? 25 : m >= 5 ? 18 : m >= 3 ? 14 : m >= 1.5 ? 10 : m >= 0.5 ? 6 : m >= 0.1 ? 3 : 0;
     if (boost > 0) {
       dims.displacement = clamp(dims.displacement + boost);
-      dims.political = clamp(dims.political + Math.floor(boost * 0.4));
-      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
-      dims.access = clamp(dims.access + Math.floor(boost * 0.2));
+      dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+      dims.economic = clamp(dims.economic + Math.floor(boost * 0.2));
+      dims.access = clamp(dims.access + Math.floor(boost * 0.15));
       totalBoost += boost;
-      audit.push({ 
-        source: "UNHCR", 
-        field: "displacement+political+economic+access", 
-        delta: boost, 
-        reason: `${m.toFixed(1)}M displaced — massive humanitarian crisis` 
-      });
+      audit.push({ source: "UNHCR", field: "displacement+political+economic+access", delta: boost, reason: `${m.toFixed(1)}M displaced` });
     }
   }
 
   if (signals.unhcrEmergency) {
-    const boost = signals.unhcrEmergency.level === "critical" ? 18 
-                : signals.unhcrEmergency.level === "high" ? 12 
-                : 6;
+    const boost = signals.unhcrEmergency.level === "critical" ? 10 : signals.unhcrEmergency.level === "high" ? 6 : 3;
     dims.political = clamp(dims.political + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.6));
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.5));
     totalBoost += boost;
-    audit.push({ 
-      source: "UNHCR Emergency", 
-      field: "political+displacement", 
-      delta: boost, 
-      reason: `Active emergency: ${signals.unhcrEmergency.name} (${signals.unhcrEmergency.level})` 
-    });
+    audit.push({ source: "UNHCR Emergency", field: "political+displacement", delta: boost, reason: `Active emergency: ${signals.unhcrEmergency.level}` });
   }
 
   if (signals.noaa) {
-    const boost = Math.min(15, (signals.noaa.extreme_alerts + signals.noaa.storm_alerts) * 3);
+    const boost = Math.min(8, (signals.noaa.extreme_alerts + signals.noaa.storm_alerts) * 2);
     if (boost > 0) {
       dims.climate = clamp(dims.climate + boost);
       totalBoost += boost;
-      audit.push({ 
-        source: "NOAA", 
-        field: "climate", 
-        delta: boost, 
-        reason: `${signals.noaa.extreme_alerts} extreme + ${signals.noaa.storm_alerts} severe storm alerts active` 
-      });
+      audit.push({ source: "NOAA", field: "climate", delta: boost, reason: `${signals.noaa.extreme_alerts} extreme + ${signals.noaa.storm_alerts} storm alerts` });
     }
   }
 
   if (signals.ipcPhase >= 3) {
-    const phaseBoosts = { 3: 20, 4: 35, 5: 50 };
+    const phaseBoosts = { 3: 12, 4: 20, 5: 28 };
     const boost = phaseBoosts[signals.ipcPhase] || 0;
     if (boost > 0) {
       dims.food = clamp(dims.food + boost);
-      dims.health = clamp(dims.health + Math.floor(boost * 0.6));
-      dims.economic = clamp(dims.economic + Math.floor(boost * 0.3));
+      dims.health = clamp(dims.health + Math.floor(boost * 0.5));
+      dims.economic = clamp(dims.economic + Math.floor(boost * 0.2));
       totalBoost += boost;
-      audit.push({ 
-        source: "IPC/FEWS NET", 
-        field: "food+health+economic", 
-        delta: boost, 
-        reason: `IPC Phase ${signals.ipcPhase} food insecurity ${signals.ipcPhase >= 4 ? '— EMERGENCY' : ''}` 
-      });
+      audit.push({ source: "IPC/FEWS NET", field: "food+health+economic", delta: boost, reason: `IPC Phase ${signals.ipcPhase} food insecurity` });
     }
   }
 
   if (signals.acledEvents && signals.acledEvents > 0) {
-    const boost = Math.min(25, Math.round(signals.acledEvents * 0.8 + signals.acledFatalities * 0.05));
+    const boost = Math.min(14, Math.round(signals.acledEvents * 0.5 + signals.acledFatalities * 0.03));
     if (boost > 0) {
       dims.conflict = clamp(dims.conflict + boost);
-      dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.4));
-      dims.political = clamp(dims.political + Math.floor(boost * 0.3));
+      dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+      dims.political = clamp(dims.political + Math.floor(boost * 0.2));
       totalBoost += boost;
-      audit.push({ 
-        source: "ACLED", 
-        field: "conflict+displacement+political", 
-        delta: boost, 
-        reason: `${signals.acledEvents} conflict events, ${signals.acledFatalities || 0} fatalities` 
-      });
+      audit.push({ source: "ACLED", field: "conflict+displacement+political", delta: boost, reason: `${signals.acledEvents} conflict events, ${signals.acledFatalities || 0} fatalities` });
     }
   }
 
   if (signals.reliefwebCount && signals.reliefwebCount > 0) {
-    const boost = Math.min(15, signals.reliefwebCount * 5);
+    const boost = Math.min(8, signals.reliefwebCount * 3);
     dims.access = clamp(dims.access + boost);
-    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.3));
+    dims.displacement = clamp(dims.displacement + Math.floor(boost * 0.25));
     totalBoost += boost;
-    audit.push({ 
-      source: "ReliefWeb", 
-      field: "access+displacement", 
-      delta: boost, 
-      reason: `${signals.reliefwebCount} active humanitarian reports` 
-    });
+    audit.push({ source: "ReliefWeb", field: "access+displacement", delta: boost, reason: `${signals.reliefwebCount} active humanitarian reports` });
   }
 
   if (signals.wbRefugees && signals.wbRefugees.value > 1000) {
     const m = signals.wbRefugees.value / 1_000_000;
-    const boost = m >= 2 ? 15 : m >= 0.5 ? 10 : m >= 0.1 ? 5 : 0;
+    const boost = m >= 2 ? 8 : m >= 0.5 ? 5 : m >= 0.1 ? 3 : 0;
     if (boost > 0) {
       dims.displacement = clamp(dims.displacement + boost);
       totalBoost += boost;
-      audit.push({ 
-        source: "World Bank Refugees", 
-        field: "displacement", 
-        delta: boost, 
-        reason: `${m.toFixed(1)}M refugees (WB cross-check)` 
-      });
+      audit.push({ source: "World Bank Refugees", field: "displacement", delta: boost, reason: `${m.toFixed(1)}M refugees` });
     }
   }
 
   if (CFG.ML_ENABLED && store) {
     const mlForecast = mlEnhancedForecast(iso, clamp(composite(dims)), store);
     if (mlForecast.anomaly_probability > 0.6) {
-      const mlBoost = Math.round(mlForecast.anomaly_probability * 12);
-      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.4));
-      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.3));
-      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.2));
+      const mlBoost = Math.round(mlForecast.anomaly_probability * 6);
+      dims.political = clamp(dims.political + Math.floor(mlBoost * 0.3));
+      dims.economic = clamp(dims.economic + Math.floor(mlBoost * 0.2));
+      dims.conflict = clamp(dims.conflict + Math.floor(mlBoost * 0.15));
       totalBoost += mlBoost;
-      audit.push({ 
-        source: "ML Anomaly", 
-        field: "political+economic+conflict", 
-        delta: mlBoost, 
-        reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` 
-      });
+      audit.push({ source: "ML Anomaly", field: "political+economic+conflict", delta: mlBoost, reason: `ML anomaly probability ${(mlForecast.anomaly_probability * 100).toFixed(0)}%` });
     }
   }
 
+  // ─── CRITICAL FIX: CAP TOTAL BOOST BASED ON FSI ──────────────────────
+  const maxAllowedBoost = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
+  const totalBoostCapped = Math.min(totalBoost, maxAllowedBoost);
+  
+  // Recalculate dims with capped boost
+  const boostRatio = totalBoost > 0 ? totalBoostCapped / totalBoost : 1;
+  for (const key of Object.keys(dims)) {
+    const originalDelta = dims[key] - priorDims[key];
+    if (originalDelta > 0) {
+      dims[key] = clamp(Math.round(priorDims[key] + originalDelta * boostRatio));
+    }
+  }
+  
+  const finalScore = clamp(composite(dims));
+
   if (totalBoost > 0) {
-    console.log(`📈 ${iso} live boost: +${totalBoost} (${audit.length} sources)`);
+    console.log(`📈 ${iso} live boost: +${totalBoost} → capped to +${totalBoostCapped} (${audit.length} sources, FSI cap: ${maxAllowedBoost})`);
   }
 
-  return { dims, score: clamp(composite(dims)), audit };
+  return { 
+    dims, 
+    score: finalScore, 
+    audit,
+    totalBoostRaw: totalBoost,
+    totalBoostCapped,
+    boostRatio,
+    maxAllowedBoost
+  };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2547,28 +2137,33 @@ function buildStore(liveData) {
     };
   }
   
+  // ── SPILLOVER WITH DIMINISHING RETURNS ──────────────────────────────
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
     const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE).toFixed(1);
+    const rawSpillover = Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE;
+    // Diminishing returns: spillover reduces if country already has high score
+    const diminishingFactor = Math.max(0.3, 1 - (store[iso].score - 30) / 100);
+    store[iso].spillover = +(rawSpillover * diminishingFactor).toFixed(1);
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
   }
   
-  // ── APPLY TIME-SENSITIVE SCORING ───────────────────────────────────────
+  // ── APPLY TIME-SENSITIVE SCORING WITH FSI ANCHORING ──────────────────
   if (CFG.WST_ENABLED) {
     for (const iso in store) {
       const timeSensitive = computeTimeSensitiveScore(iso, store[iso].score, store, store[iso].dims);
       store[iso].__time_sensitive = timeSensitive;
       
-      // Blend the adjusted score with the original for stability
-      const blendWeight = 0.7; // 70% time-sensitive, 30% original
+      // Blend with strong anchor to FSI baseline
+      const fsiBase = store[iso].fsi_score || 50;
+      const fsiScore = Math.round((fsiBase / 120) * 100);
+      const blendWeight = 0.5; // 50% time-sensitive, 50% anchored
       store[iso].score = clamp(Math.round(
         timeSensitive.adjustedScore * blendWeight + 
-        store[iso].score * (1 - blendWeight)
+        (fsiScore + Math.min(15, store[iso].score - fsiScore) * 0.3) * (1 - blendWeight)
       ));
       
-      // Store the time-sensitive metrics
       store[iso].time_metrics = {
         momentum: timeSensitive.momentum,
         velocity: timeSensitive.velocity,
@@ -2583,28 +2178,24 @@ function buildStore(liveData) {
         acceleration_adjust: timeSensitive.accelerationAdjust,
         time_decay_adjust: timeSensitive.timeDecayAdjust,
         recovery_adjust: timeSensitive.recoveryAdjust,
+        volatility: timeSensitive.volatility,
+        fsi_anchor: timeSensitive.fsi_anchor,
+        max_allowed: timeSensitive.max_allowed,
+        min_allowed: timeSensitive.min_allowed,
       };
     }
   }
   
-  if (CFG.ML_ENABLED) {
-    trainMLModel(store);
-  }
+  if (CFG.ML_ENABLED) trainMLModel(store);
   
   for (const iso in store) {
-    if (CFG.ML_ENABLED) {
-      store[iso].ml_forecast = mlEnhancedForecast(iso, store[iso].score, store);
-    }
-    if (CFG.SENTIMENT_ENABLED) {
-      store[iso].sentiment = analyzeCountrySentiment(iso, store);
-    }
+    if (CFG.ML_ENABLED) store[iso].ml_forecast = mlEnhancedForecast(iso, store[iso].score, store);
+    if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
     if (CFG.HISTORY_ENABLED) {
       store[iso].historical_trend = historyStore.getTrend(iso, 30);
       storeHistoricalData(iso, store);
     }
-    if (CFG.GEO_FENCING_ENABLED) {
-      alertManager.checkAlerts(iso, store);
-    }
+    if (CFG.GEO_FENCING_ENABLED) alertManager.checkAlerts(iso, store);
   }
   
   return store;
@@ -2640,7 +2231,7 @@ function detectChangepoint(arr) {
   if (arr.length < CFG.CHANGEPOINT_MIN_SEG * 2) return { detected: false, type:"changepoint", stat:0, direction: "stable" };
   const n = arr.length, mid = Math.floor(n / 2);
   const muA = mean(arr.slice(0, mid)), sdA = stddev(arr.slice(0, mid));
-  const muB = mean(arr.slice(mid)),   sdB = stddev(arr.slice(mid));
+  const muB = mean(arr.slice(mid)), sdB = stddev(arr.slice(mid));
   const kl = Math.log(sdB / sdA) + (sdA ** 2 + (muA - muB) ** 2) / (2 * sdB ** 2) - 0.5;
   return { detected: kl > 1.5, type:"changepoint", stat:+kl.toFixed(3), direction: muB > muA ? "up" : "down" };
 }
@@ -2687,63 +2278,49 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
 
   const delta7 = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
   if (Math.abs(delta7) >= 2) {
-    const v = Math.min(30, Math.abs(delta7) * 2.2);
+    const v = Math.min(20, Math.abs(delta7) * 1.5);
     heat += v;
     drivers.push({ driver: "velocity", points: +v.toFixed(1), detail: `${delta7 > 0 ? "+" : ""}${delta7.toFixed(0)} pts in 7 days` });
   }
 
   if (anom.detected) {
-    const sevPts = { WATCH: 6, MODERATE: 14, HIGH: 20, CRITICAL: 25, EXTREME: 28 };
-    const v = sevPts[anom.severity] || 8;
+    const sevPts = { WATCH: 4, MODERATE: 8, HIGH: 12, CRITICAL: 16, EXTREME: 18 };
+    const v = sevPts[anom.severity] || 5;
     heat += v;
     drivers.push({ driver: "anomaly", points: v, detail: `${anom.methods_fired}/4 methods — ${anom.severity}` });
   }
 
   if (mlForecast?.anomaly_probability > 0.4) {
-    const v = Math.min(18, mlForecast.anomaly_probability * 22);
+    const v = Math.min(10, mlForecast.anomaly_probability * 14);
     heat += v;
     drivers.push({ driver: "ml_forecast", points: +v.toFixed(1), detail: `${(mlForecast.anomaly_probability * 100).toFixed(0)}% anomaly probability` });
   }
 
   const evidenceCount = s.liveEvidenceCount || 0;
   if (evidenceCount >= 2) {
-    const v = Math.min(16, evidenceCount * 2.5);
+    const v = Math.min(10, evidenceCount * 1.5);
     heat += v;
     drivers.push({ driver: "evidence_breadth", points: +v.toFixed(1), detail: `${evidenceCount} independent live sources` });
   }
 
-  // ── Time-sensitive momentum boost ──────────────────────────────────────
   if (c.time_metrics && Math.abs(c.time_metrics.momentum) > 0.3) {
-    const momentumHeat = Math.min(12, Math.abs(c.time_metrics.momentum) * 8);
+    const momentumHeat = Math.min(8, Math.abs(c.time_metrics.momentum) * 5);
     heat += momentumHeat;
-    drivers.push({ 
-      driver: "temporal_momentum", 
-      points: +momentumHeat.toFixed(1), 
-      detail: `${c.time_metrics.momentum > 0 ? '↑' : '↓'} ${Math.abs(c.time_metrics.momentum).toFixed(2)} pts/day momentum` 
-    });
+    drivers.push({ driver: "temporal_momentum", points: +momentumHeat.toFixed(1), detail: `${c.time_metrics.momentum > 0 ? '↑' : '↓'} ${Math.abs(c.time_metrics.momentum).toFixed(2)} pts/day` });
   }
 
-  if (s.ipcPhase >= 4) {
-    heat += 20;
-    drivers.push({ driver: "ipc_threshold", points: 20, detail: `IPC Phase ${s.ipcPhase}` });
-  } else if (s.quakeMag >= 6.0) {
-    heat += 18;
-    drivers.push({ driver: "major_quake", points: 18, detail: `M${s.quakeMag.toFixed(1)}` });
-  } else if (s.gdacsAlert === "red") {
-    heat += 16;
-    drivers.push({ driver: "gdacs_red", points: 16, detail: "Red alert active" });
-  } else if (s.acledFatalities > 100) {
-    heat += 14;
-    drivers.push({ driver: "conflict_spike", points: 14, detail: `${s.acledFatalities} fatalities` });
-  }
+  if (s.ipcPhase >= 4) heat += 12, drivers.push({ driver: "ipc_threshold", points: 12, detail: `IPC Phase ${s.ipcPhase}` });
+  else if (s.quakeMag >= 6.0) heat += 10, drivers.push({ driver: "major_quake", points: 10, detail: `M${s.quakeMag.toFixed(1)}` });
+  else if (s.gdacsAlert === "red") heat += 9, drivers.push({ driver: "gdacs_red", points: 9, detail: "Red alert active" });
+  else if (s.acledFatalities > 100) heat += 8, drivers.push({ driver: "conflict_spike", points: 8, detail: `${s.acledFatalities} fatalities` });
 
   heat = Math.min(100, Math.round(heat));
   drivers.sort((a, b) => b.points - a.points);
 
   return {
     score: heat,
-    is_breaking: heat >= 55,
-    tier: heat >= 75 ? "BREAKING" : heat >= 55 ? "DEVELOPING" : heat >= 30 ? "NOTABLE" : "ROUTINE",
+    is_breaking: heat >= 45,
+    tier: heat >= 65 ? "BREAKING" : heat >= 45 ? "DEVELOPING" : heat >= 25 ? "NOTABLE" : "ROUTINE",
     top_drivers: drivers.slice(0, 3),
   };
 }
@@ -2758,13 +2335,7 @@ function trendForecast(hist, current) {
   const fc = clamp(current + slope * 7);
   const residual = w.map((y, i) => y - (yBar + slope * (i - xBar)));
   const r2 = 1 - (residual.reduce((s, r) => s + r * r, 0) / w.reduce((s, y) => s + (y - yBar) ** 2, 0) || 1);
-  return {
-    fc,
-    slope,
-    trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable",
-    esc: fc > current + 5,
-    confidence: Math.max(0.3, Math.min(0.95, r2)),
-  };
+  return { fc, slope, trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable", esc: fc > current + 5, confidence: Math.max(0.3, Math.min(0.95, r2)) };
 }
 
 function seedHistory(iso, current) {
@@ -2785,11 +2356,11 @@ function buildPriorDims(base, types) {
   return {
     conflict:     cl(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
     displacement: cl(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food:         cl(base * ((has("FN")||has("DR"))             ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health:       cl(base * ((has("EP")||has("FN"))             ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
+    food:         cl(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
+    health:       cl(base * ((has("EP")||has("FN")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
     economic:     cl(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("ECO")) ? 0.85 : 0.42) + 10),
-    climate:      cl(base * ((has("HEAT")||has("DR"))           ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access:       cl(base * ((has("CW")||has("CE"))             ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
+    climate:      cl(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
+    access:       cl(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
     political:    cl(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
   };
 }
@@ -2809,10 +2380,10 @@ function severityColor(score) {
 function recommendation(score, anomaly) {
   const an = anomaly?.detected ? ` Statistical anomaly detected (${anomaly.severity}).` : "";
   if (score >= 85) return { tier:"IMMEDIATE", text:`Immediate humanitarian response required. All agencies mobilise.${an}` };
-  if (score >= 75) return { tier:"URGENT",    text:`Urgent response needed. Mobilise resources now.${an}` };
-  if (score >= 60) return { tier:"HIGH",      text:`Elevated concern. Prepare response and monitor daily.${an}` };
-  if (score >= 40) return { tier:"MONITOR",   text:`Monitor situation. Maintain readiness.${an}` };
-  return               { tier:"WATCH",     text:`Routine monitoring. No immediate action required.${an}` };
+  if (score >= 75) return { tier:"URGENT", text:`Urgent response needed. Mobilise resources now.${an}` };
+  if (score >= 60) return { tier:"HIGH", text:`Elevated concern. Prepare response and monitor daily.${an}` };
+  if (score >= 40) return { tier:"MONITOR", text:`Monitor situation. Maintain readiness.${an}` };
+  return { tier:"WATCH", text:`Routine monitoring. No immediate action required.${an}` };
 }
 
 function generatePDFReport(iso, store) {
@@ -2820,7 +2391,6 @@ function generatePDFReport(iso, store) {
   const hist = seedHistory(iso, c.score);
   const fc = trendForecast(hist, c.score);
   const anom = runAnomalyDetection(hist);
-  
   return {
     title: `${c.name} Crisis Report`,
     generated: new Date().toISOString(),
@@ -2846,7 +2416,6 @@ function generateExportData(iso, store, format = 'json') {
     time_metrics: store[iso].time_metrics,
     historical: historyStore.getHistory(iso, 30),
   };
-
   if (format === 'csv') {
     let csv = 'timestamp,score,displacement,economic,food,health,momentum,velocity,acceleration\n';
     for (const d of data.historical) {
@@ -3089,13 +2658,11 @@ function buildMetaDescription(iso, store) {
   const s = c.signals || {};
   const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
   const severity = severityLabel(c.score);
-  
   let parts = [`${c.name} humanitarian crisis update: urgency score ${c.score}/100 (${severity}), ranked #${rank} globally`];
   if (s.totalDisplaced > 0) parts.push(`${fmtPop(s.totalDisplaced)} displaced`);
   if (s.diseaseActive > 1000) parts.push(`${s.diseaseActive.toLocaleString()} COVID-19 cases`);
   if (s.ipcPhase >= 3) parts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
   if (s.quakeMag >= 4.5) parts.push(`M${s.quakeMag.toFixed(1)} earthquake`);
-  
   return parts.slice(0, 3).join('. ') + '.';
 }
 
@@ -4075,6 +3642,7 @@ export default async function handler(req, res) {
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
         score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
+        score_normalization: "Scores are anchored to FSI baseline with a maximum boost of 25 points. This prevents artificial inflation while still reflecting real-time crisis dynamics.",
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
@@ -4088,7 +3656,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v10.0]", err);
+    console.error("[top-story v10.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
