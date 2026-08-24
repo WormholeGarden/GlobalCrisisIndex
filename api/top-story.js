@@ -521,7 +521,7 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
 // ─── MATH UTILITIES ──────────────────────────────────────────────────────────
 
 function lcg(seed) {
-  return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x10000000;
+  return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000;
 }
 function strHash(str) {
   return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0;
@@ -2422,24 +2422,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
-  
-  // ── First pass: collect population data from liveData ──────────────────
-  const populationMap = {};
-  if (liveData && liveData.wb && liveData.wb.population && liveData.wb.population.data) {
-    for (const [iso, popData] of Object.entries(liveData.wb.population.data)) {
-      if (popData && popData.value > 0) {
-        populationMap[iso] = popData.value;
-      }
-    }
-  }
-  
-  // ── Compute global population for weighting ────────────────────────────
-  let globalPopulation = 0;
-  for (const [iso, pop] of Object.entries(populationMap)) {
-    globalPopulation += pop;
-  }
-  
-  // ── Build initial country entries ──────────────────────────────────────
   for (const [iso, country] of Object.entries(COUNTRIES)) {
     const fsiScore = country.fsi_score || country.prior || 50;
     const base = Math.round((fsiScore / 120) * 100);
@@ -2481,79 +2463,28 @@ function buildStore(liveData) {
     };
   }
   
-  // ── Second pass: apply population-weighted spillover and adjustments ──
-  
-  // ── Spillover with population weighting ────────────────────────────────
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
-    
-    // Get populations for weighted spillover
-    const neighbourData = neighbours.map(n => ({
-      iso: n,
-      score: store[n].score,
-      pop: populationMap[n] || 0,
-    }));
-    
-    // Calculate weighted average score of neighbours
-    let totalWeightedScore = 0;
-    let totalWeight = 0;
-    for (const nb of neighbourData) {
-      // Use population as weight, but ensure small countries still matter
-      const weight = Math.max(1, nb.pop / 1_000_000); // minimum weight 1
-      totalWeightedScore += nb.score * weight;
-      totalWeight += weight;
-    }
-    const avgNb = totalWeight > 0 ? totalWeightedScore / totalWeight : neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    
-    // Population-weighted spillover
-    const popWeight = Math.min(2, Math.max(0.5, (populationMap[iso] || 0) / 10_000_000));
-    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE * popWeight).toFixed(1);
+    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
+    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE).toFixed(1);
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
   }
   
-  // ── Population-weighted WST Recovery Rate adjustments ──────────────────
+  // ── APPLY TIME-SENSITIVE SCORING ───────────────────────────────────────
   if (CFG.WST_ENABLED) {
-    // First, compute weighted global average for reference
-    let weightedGlobalAvg = 0;
-    let totalPopWeight = 0;
-    for (const iso in store) {
-      const pop = populationMap[iso] || 0;
-      if (pop > 0) {
-        weightedGlobalAvg += store[iso].score * pop;
-        totalPopWeight += pop;
-      }
-    }
-    weightedGlobalAvg = totalPopWeight > 0 ? weightedGlobalAvg / totalPopWeight : 50;
-    
     for (const iso in store) {
       const timeSensitive = computeTimeSensitiveScore(iso, store[iso].score, store, store[iso].dims);
       store[iso].__time_sensitive = timeSensitive;
       
-      // Population-weighted blend: larger populations get slightly more stability
-      const pop = populationMap[iso] || 0;
-      const popStabilityFactor = Math.min(0.15, Math.max(0.05, pop / 100_000_000 * 0.1));
-      const blendWeight = 0.7 - popStabilityFactor; // 0.55 to 0.65 range
-      
-      // Additional population adjustment: very large countries have more structural inertia
-      let popAdjustment = 0;
-      if (pop > 500_000_000) {
-        popAdjustment = -2; // Massive populations are more stable
-      } else if (pop > 100_000_000) {
-        popAdjustment = -1;
-      } else if (pop < 1_000_000) {
-        popAdjustment = 1; // Small populations are more volatile
-      }
-      
-      const blendedScore = clamp(Math.round(
+      // Blend the adjusted score with the original for stability
+      const blendWeight = 0.7; // 70% time-sensitive, 30% original
+      store[iso].score = clamp(Math.round(
         timeSensitive.adjustedScore * blendWeight + 
-        store[iso].score * (1 - blendWeight) +
-        popAdjustment
+        store[iso].score * (1 - blendWeight)
       ));
       
-      store[iso].score = blendedScore;
-      
-      // Store time metrics with population context
+      // Store the time-sensitive metrics
       store[iso].time_metrics = {
         momentum: timeSensitive.momentum,
         velocity: timeSensitive.velocity,
@@ -2568,11 +2499,6 @@ function buildStore(liveData) {
         acceleration_adjust: timeSensitive.accelerationAdjust,
         time_decay_adjust: timeSensitive.timeDecayAdjust,
         recovery_adjust: timeSensitive.recoveryAdjust,
-        population_weighted_global_avg: weightedGlobalAvg,
-        population: pop,
-        pop_stability_factor: popStabilityFactor,
-        pop_adjustment: popAdjustment,
-        blend_weight: blendWeight,
       };
     }
   }
@@ -2995,13 +2921,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
         acceleration: c.time_metrics.acceleration_adjust,
         time_decay: c.time_metrics.time_decay_adjust,
         recovery: c.time_metrics.recovery_adjust,
-      },
-      population_context: {
-        population: c.time_metrics.population,
-        pop_stability_factor: c.time_metrics.pop_stability_factor,
-        pop_adjustment: c.time_metrics.pop_adjustment,
-        blend_weight: c.time_metrics.blend_weight,
-        weighted_global_avg: c.time_metrics.population_weighted_global_avg,
       }
     } : null,
     export: {
@@ -3351,7 +3270,7 @@ function buildSEOArticle(iso, store, ranked) {
   }
 
   if (c.time_metrics) {
-    paragraphs.push(`## Time-Sensitive Analysis\n\nMomentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)} pts/day | Velocity: ${c.time_metrics.velocity.toFixed(2)} | Acceleration: ${c.time_metrics.acceleration.toFixed(2)}\n\nStructural weight: ${(c.time_metrics.structural_weight * 100).toFixed(0)}% persistence | Recovery factor: ${(c.time_metrics.recovery_factor * 100).toFixed(0)}%\n\nPopulation-weighted global average: ${(c.time_metrics.population_weighted_global_avg || 50).toFixed(1)} | Population adjustment: ${c.time_metrics.pop_adjustment > 0 ? '+' : ''}${c.time_metrics.pop_adjustment}`);
+    paragraphs.push(`## Time-Sensitive Analysis\n\nMomentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)} pts/day | Velocity: ${c.time_metrics.velocity.toFixed(2)} | Acceleration: ${c.time_metrics.acceleration.toFixed(2)}\n\nStructural weight: ${(c.time_metrics.structural_weight * 100).toFixed(0)}% persistence | Recovery factor: ${(c.time_metrics.recovery_factor * 100).toFixed(0)}%`);
   }
 
   if (s.totalDisplaced > 0) {
@@ -3477,7 +3396,6 @@ function buildSEOArticle(iso, store, ranked) {
         <span>📈 Velocity: ${c.time_metrics.velocity.toFixed(2)}</span>
         <span>🚀 Acceleration: ${c.time_metrics.acceleration.toFixed(2)}</span>
         <span>⏳ Decay: ${(c.time_metrics.time_decay * 100).toFixed(0)}%</span>
-        <span>👥 Pop. adj: ${c.time_metrics.pop_adjustment > 0 ? '+' : ''}${c.time_metrics.pop_adjustment}</span>
       </div>` : ''}
       <div class="urgency-score">
         <span class="score-number">${c.score}</span><span class="score-denom">/100</span>
@@ -3506,7 +3424,7 @@ function buildSEOArticle(iso, store, ranked) {
     <footer class="article-footer">
       <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
       <p><strong>FSI 2024 Baseline:</strong> Fund for Peace, Fragile States Index 2024.</p>
-      <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with time-sensitive scoring and population-weighted adjustments.</p>
+      <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with time-sensitive scoring.</p>
       <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
     </footer>
   </article>
@@ -3824,7 +3742,7 @@ export default async function handler(req, res) {
           elapsed_ms: Date.now() - start,
           wst_enabled: CFG.WST_ENABLED,
           global_interest_rate: CFG.WST_GLOBAL_INTEREST_RATE,
-          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) with Time-Sensitive Scoring and Population Weighting",
+          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) with Time-Sensitive Scoring",
           classification_count: wstSummary.length,
           temporal_metrics: {
             momentum_weight: CFG.WST_MOMENTUM_WEIGHT,
@@ -3836,7 +3754,7 @@ export default async function handler(req, res) {
         summary: wstStats,
         countries: wstSummary,
         insights: {
-          structural_inequality: `Core countries average ${Math.round(wstStats.Core.avgScore)} vs Periphery ${Math.round(wstStats.Periphery.avgScore)} — ${Math.round(wstStats.Periphery.avgScore - wstStats.Core.avgScore)} point structural penalty gap (population-weighted)`,
+          structural_inequality: `Core countries average ${Math.round(wstStats.Core.avgScore)} vs Periphery ${Math.round(wstStats.Periphery.avgScore)} — ${Math.round(wstStats.Periphery.avgScore - wstStats.Core.avgScore)} point structural penalty gap`,
           vulnerability_ratio: `Periphery countries are ${(wstStats.Periphery.avgScore / wstStats.Core.avgScore).toFixed(1)}x more fragile than Core nations`,
           fastest_deteriorating: wstSummary.filter(w => w.momentum > 0.5).sort((a,b) => b.momentum - a.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: +${w.momentum.toFixed(2)} pts/day`),
           fastest_improving: wstSummary.filter(w => w.momentum < -0.5).sort((a,b) => a.momentum - b.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: ${w.momentum.toFixed(2)} pts/day`),
@@ -3862,7 +3780,6 @@ export default async function handler(req, res) {
           fsi_rank: p.fsi?.rank,
           fsi_band: p.fsi?.band,
           momentum: p.time_metrics?.momentum || 0,
-          population_context: p.time_metrics?.population_context || null,
         };
       });
 
@@ -3874,7 +3791,7 @@ export default async function handler(req, res) {
           mode: "breaking",
           methodology: "Story Heat = velocity + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings + temporal momentum.",
           fsi_source: "Fund for Peace, Fragile States Index 2024",
-          wst_source: "World Systems Theory with Time-Sensitive Scoring and Population Weighting",
+          wst_source: "World Systems Theory with Time-Sensitive Scoring",
         },
         breaking: feed,
       }, null, 2));
@@ -3938,7 +3855,6 @@ export default async function handler(req, res) {
           sentiment: c.sentiment,
           momentum: c.time_metrics?.momentum || 0,
           velocity: c.time_metrics?.velocity || 0,
-          population: c.time_metrics?.population || 0,
         };
       });
       comparison = {
@@ -3950,7 +3866,6 @@ export default async function handler(req, res) {
         verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})`,
         ml_insight: a.ml_forecast && b.ml_forecast ? `${a.name} ML anomaly: ${(a.ml_forecast.anomaly_probability * 100).toFixed(0)}% vs ${b.name}: ${(b.ml_forecast.anomaly_probability * 100).toFixed(0)}%` : null,
         momentum_comparison: `${a.name} momentum: ${a.momentum > 0 ? '+' : ''}${a.momentum.toFixed(2)} vs ${b.name}: ${b.momentum > 0 ? '+' : ''}${b.momentum.toFixed(2)}`,
-        population_comparison: `${a.name}: ${fmtPop(a.population)} vs ${b.name}: ${fmtPop(b.population)}`,
       };
     }
 
@@ -3976,12 +3891,11 @@ export default async function handler(req, res) {
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         data_policy: {
-          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring + Population Weighting",
+          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring",
           min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
           fsi_source: "Fund for Peace, Fragile States Index 2024",
           fsi_scale: "0-120 (higher = more fragile)",
           wst_source: "Immanuel Wallerstein, World Systems Theory (1974)",
-          population_weighting: "Countries with larger populations receive slightly more stability adjustment. Spillover effects are weighted by neighbour populations.",
           temporal_metrics: {
             momentum: "Rate of change over 7 days (pts/day)",
             velocity: "Speed of change (1st derivative)",
@@ -4011,7 +3925,7 @@ export default async function handler(req, res) {
           },
           world_systems_theory: {
             enabled: CFG.WST_ENABLED,
-            description: "Structural vulnerability scoring based on Wallerstein's World Systems Theory with population weighting",
+            description: "Structural vulnerability scoring based on Wallerstein's World Systems Theory",
             classifications: {
               Core: "High-income, diversified economies, reserve currencies",
               Semi: "Industrializing, middle-income, debt-vulnerable",
@@ -4076,7 +3990,7 @@ export default async function handler(req, res) {
           time_series: "GET /api/top-story?iso=SOM&format=timeseries",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + population-weighted regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
+        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
