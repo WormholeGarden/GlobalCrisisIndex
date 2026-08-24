@@ -2463,12 +2463,95 @@ function buildStore(liveData) {
     };
   }
   
+  // ── POPULATION-WEIGHTED SPILLOVER AND SCORE ADJUSTMENT ──────────────────
+  // Weight each country's score adjustments by its World Bank population to improve accuracy
+  // Larger populations have greater regional influence and humanitarian impact
+  const popWeights = {};
+  let totalPop = 0;
+  let maxPop = 0;
+  
+  // First pass: collect population data
+  for (const iso in store) {
+    const pop = store[iso].signals?.population || 0;
+    // If no population data, use FSI rank as proxy (higher rank = more weight)
+    // Use exponential decay to avoid extreme weights for very populous countries
+    const fallbackWeight = Math.max(1, 179 - (store[iso].fsi_rank || 100));
+    // Apply log transformation to prevent population from dominating (e.g., India/China)
+    const rawWeight = pop > 0 ? Math.log1p(pop) : Math.log1p(fallbackWeight * 1000000);
+    popWeights[iso] = rawWeight;
+    totalPop += rawWeight;
+    if (rawWeight > maxPop) maxPop = rawWeight;
+  }
+  
+  // Normalize weights with softmax-like scaling to prevent outliers from dominating
+  for (const iso in store) {
+    // Apply a soft cap: weights beyond 3x the mean get dampened
+    const meanWeight = totalPop / Object.keys(store).length;
+    const raw = popWeights[iso];
+    const capped = raw > meanWeight * 3 ? meanWeight * 3 + (raw - meanWeight * 3) * 0.5 : raw;
+    popWeights[iso] = capped / totalPop;
+  }
+  
+  // ── APPLY POPULATION-WEIGHTED SPILLOVER ──────────────────────────────────
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) continue;
-    const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
-    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE).toFixed(1);
+    
+    // Weighted average of neighbour scores (population-weighted)
+    let weightedSum = 0;
+    let weightSum = 0;
+    for (const n of neighbours) {
+      const w = popWeights[n] || 0;
+      weightedSum += store[n].score * w;
+      weightSum += w;
+    }
+    const avgNb = weightSum > 0 ? weightedSum / weightSum : neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
+    
+    // Population-weighted spillover: larger populations amplify regional crisis impact
+    // Use square root scaling to dampen the effect of extremely large populations
+    const popFactor = Math.sqrt(popWeights[iso] * Object.keys(store).length);
+    const spilloverRate = CFG.SPILLOVER_RATE * (1 + popFactor * 0.5);
+    
+    store[iso].spillover = +(Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * Math.min(spilloverRate, CFG.SPILLOVER_RATE * 3)).toFixed(1);
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
+  }
+  
+  // ── POPULATION-WEIGHTED FINAL SCORE REFINEMENT ──────────────────────────
+  // Apply a final population-weighted adjustment to improve accuracy
+  // Countries with larger populations get slightly more conservative scoring
+  // (they tend to have more diversified economies and resilience mechanisms)
+  for (const iso in store) {
+    // Only apply to countries with actual population data
+    if (store[iso].signals?.population > 0) {
+      const pop = store[iso].signals.population;
+      const popLog = Math.log10(pop + 1);
+      // For very large populations ( > 100M ), apply slight dampening to avoid over-scoring
+      // This reflects that very large countries have more internal buffers
+      let dampening = 0;
+      if (pop > 100_000_000) {
+        dampening = Math.min(3, (popLog - 8) * 0.5); // 0-3 point reduction
+      } else if (pop > 50_000_000) {
+        dampening = Math.min(1.5, (popLog - 7) * 0.3);
+      }
+      // Also apply small boost for very small populations that are highly vulnerable
+      // (less internal capacity to absorb shocks)
+      let boost = 0;
+      if (pop < 1_000_000 && pop > 0) {
+        boost = Math.min(2, (1 - pop / 1_000_000) * 2);
+      }
+      const adjustment = -dampening + boost;
+      if (Math.abs(adjustment) > 0.1) {
+        store[iso].score = clamp(store[iso].score + adjustment);
+        // Record the population adjustment in audit
+        if (!store[iso].audit) store[iso].audit = [];
+        store[iso].audit.push({
+          source: "Population Weighting",
+          field: "score",
+          delta: Math.round(adjustment * 10) / 10,
+          reason: `Population ${pop.toLocaleString()} → ${adjustment > 0 ? 'boost' : 'dampening'} of ${Math.abs(adjustment).toFixed(1)} points`
+        });
+      }
+    }
   }
   
   // ── APPLY TIME-SENSITIVE SCORING ───────────────────────────────────────
@@ -2525,7 +2608,6 @@ function buildStore(liveData) {
   
   return store;
 }
-
 // ════════════════════════════════════════════════════════════════════════════
 //  ─── ANOMALY DETECTION ────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
