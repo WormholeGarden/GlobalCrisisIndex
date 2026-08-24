@@ -574,9 +574,37 @@ function findClosestCountry(lng, lat) {
 function computeTimeSensitiveScore(iso, currentScore, store, dims) {
   if (!CFG.WST_ENABLED) return { adjustedScore: currentScore, momentum: 0, velocity: 0, acceleration: 0, timeDecay: 1 };
   
-  const hist = seedHistory(iso, currentScore);
   const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
-  const historical = store[iso]?.historical_trend || null;
+  
+  // ── USE ACTUAL HISTORICAL DATA INSTEAD OF SYNTHETIC ──────────────────
+  let hist = [];
+  
+  // Try to get real historical data from store
+  if (store && store[iso] && store[iso].historical_scores) {
+    hist = store[iso].historical_scores;
+  } else if (historyStore && historyStore.data && historyStore.data[iso]) {
+    // Get from history store
+    const rawHistory = historyStore.getHistory(iso, 30);
+    if (rawHistory && rawHistory.length > 0) {
+      hist = rawHistory.map(d => d.score);
+    }
+  }
+  
+  // Fallback to synthetic if no real data (minimum 14 points needed)
+  if (hist.length < 14) {
+    hist = seedHistory(iso, currentScore);
+    // Store the synthetic data for future use
+    if (store && store[iso]) {
+      if (!store[iso].historical_scores) store[iso].historical_scores = [];
+      store[iso].historical_scores = hist;
+    }
+  }
+  
+  // Ensure we have the current score at the end
+  if (hist.length > 0 && hist[hist.length - 1] !== currentScore) {
+    hist.push(currentScore);
+    if (hist.length > 60) hist = hist.slice(-60); // Keep last 60 days
+  }
   
   // ── 1. MOMENTUM: Rate of change over the last 7 days ──────────────────
   const recent7 = hist.slice(-7);
@@ -631,13 +659,66 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
   // Core countries recover faster, Periphery stays fragile
   const recoveryAdjust = (1 - recoveryFactor) * 8;
   
-  // ── 7. COMBINE ──────────────────────────────────────────────────────────
-  let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + timeDecayAdjust + recoveryAdjust;
+  // ── 7. VOLATILITY PENALTY ──────────────────────────────────────────────
+  // Crises with high volatility are more dangerous and unpredictable
+  const volatility = hist.length >= 10 ? stddev(hist.slice(-10)) : 0;
+  const volatilityAdjust = Math.min(8, volatility * 1.5);
+  
+  // ── 8. TREND REVERSAL DETECTION ──────────────────────────────────────
+  // Detect if crisis is accelerating after showing signs of recovery
+  let trendReversalAdjust = 0;
+  if (hist.length >= 14) {
+    const firstWeek = mean(hist.slice(-14, -7));
+    const secondWeek = mean(hist.slice(-7));
+    if (secondWeek > firstWeek && old3.length > 0 && recent3.length > 0) {
+      const oldTrend = old3[old3.length - 1] - old3[0];
+      const newTrend = recent3[recent3.length - 1] - recent3[0];
+      if (oldTrend < 0 && newTrend > 0) {
+        trendReversalAdjust = 10; // Significant reversal from improving to worsening
+      } else if (oldTrend < -0.5 && newTrend > 0.5) {
+        trendReversalAdjust = 15; // Sharp reversal
+      }
+    }
+  }
+  
+  // ── 9. COMBINE ──────────────────────────────────────────────────────────
+  let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + 
+                        timeDecayAdjust + recoveryAdjust + volatilityAdjust + 
+                        trendReversalAdjust;
   
   // Cap adjustments to prevent extreme swings
-  totalAdjustment = Math.max(-15, Math.min(25, totalAdjustment));
+  totalAdjustment = Math.max(-20, Math.min(30, totalAdjustment));
   
-  const adjustedScore = clamp(currentScore + totalAdjustment);
+  // Blend with structural persistence for stability
+  const structuralBlend = structuralPersistence * 0.3 + 0.7;
+  const adjustedScore = clamp(currentScore + (totalAdjustment * structuralBlend));
+  
+  // ── 10. STORE HISTORICAL DATA FOR FUTURE USE ──────────────────────────
+  if (store && store[iso]) {
+    if (!store[iso].historical_scores) store[iso].historical_scores = [];
+    if (store[iso].historical_scores.length === 0 || 
+        store[iso].historical_scores[store[iso].historical_scores.length - 1] !== currentScore) {
+      store[iso].historical_scores.push(currentScore);
+      if (store[iso].historical_scores.length > 60) {
+        store[iso].historical_scores = store[iso].historical_scores.slice(-60);
+      }
+    }
+    // Store time metrics for later use
+    store[iso].__temp_time_metrics = {
+      momentum,
+      velocity,
+      acceleration,
+      timeDecay,
+      volatility,
+      trendReversalAdjust,
+      totalAdjustment,
+      rawScore: currentScore,
+      structuralWeight: structuralPersistence,
+      recoveryFactor,
+      hist_length: hist.length,
+      data_source: hist.length >= 14 ? 'real' : 'synthetic'
+    };
+  }
   
   return {
     adjustedScore,
@@ -650,13 +731,17 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     accelerationAdjust,
     timeDecayAdjust,
     recoveryAdjust,
+    volatilityAdjust,
+    trendReversalAdjust,
     totalAdjustment,
     rawScore: currentScore,
     structuralWeight: structuralPersistence,
     recoveryFactor,
+    hist_length: hist.length,
+    data_source: hist.length >= 14 ? 'real' : 'synthetic',
+    volatility
   };
 }
-
 // ════════════════════════════════════════════════════════════════════════════
 //  ─── ENHANCEMENT 1: MACHINE LEARNING ENGINE ──────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
