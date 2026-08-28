@@ -5626,7 +5626,7 @@ function updateDynamicTitle(){
       events=Object.values(store).reduce((s,c)=>s+(c.events||0),0);
     }
   }catch(e){}
-  document.title=`Global Crisis Index — ${gcis} Score · Live Crisis Intelligence API · ${affected} Affected · ${anomalies} Anomalies · ${events} Events`;
+  document.title=`Global Crisis Index: ${gcis} · ${affected} Affected Regions · ${anomalies} Anomalies · ${events} Events · Live Crisis Intelligence API`;
 }
 
 // ============================================================================
