@@ -1,12 +1,12 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API  — ULTIMATE EDITION v10.1 — FIXED SCORE INFLATION
+//  TOP-STORY API  — ULTIMATE EDITION v11.0 — VIRAL MOMENTUM ALGORITHM
 //  ────────────────────────────────────────────────────────────────────────────
 //  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
 //  🌍 COVERS ALL 179 COUNTRIES WITH REAL FSI 2024 SCORES
 //  🌐 STRUCTURAL VULNERABILITY VIA WALLERSTEIN'S WORLD SYSTEMS THEORY
-//  ⏰ TIME-SENSITIVE SCORING WITH TEMPORAL DECAY AND MOMENTUM
+//  ⏰ VIRAL MOMENTUM SCORING — LIKE YOUTUBE/TIKTOK FOR CRISIS DETECTION
 //  🧠 ENSEMBLE ML WITH RECOVERY RATE ADJUSTMENTS
 //  📡 RSS FEED OPTIMIZED FOR GOOGLE NEWS
 // ════════════════════════════════════════════════════════════════════════════
@@ -17,9 +17,9 @@ const CFG = {
   SEED_INTERVAL_MS:     300_000,
   FETCH_TIMEOUT_MS:     15_000,
   MAX_TOP_N:            179,
-  SPILLOVER_RATE:       0.08,  // REDUCED from 0.13
-  SPILLOVER_FLOOR:      55,    // INCREASED from 50
-  PRIOR_JITTER:         1,     // REDUCED from 2
+  SPILLOVER_RATE:       0.08,
+  SPILLOVER_FLOOR:      55,
+  PRIOR_JITTER:         1,
   PRIOR_CAP:            99,
   MIN_LIVE_EVIDENCE_SOURCES: 1,
   ANOMALY_WINDOW:       28,
@@ -50,23 +50,34 @@ const CFG = {
   ARTICLE_LOGO:         "https://globalcrisisindex.com/logo.png",
   
   // ═══════════════════════════════════════════════════════════════════════
-  //  🌐 WORLD SYSTEMS THEORY ENGINE v2.1 — FIXED OVERLAP
+  //  🌐 VIRAL MOMENTUM ENGINE v3.0 — YOUTUBE/TIKTOK STYLE
   //  ─────────────────────────────────────────────────────────────────────
+  VIRAL_ENABLED: true,
+  VIRAL_WINDOW_HOURS: 24,           // How far back to look for "viral" spikes
+  VIRAL_ACCELERATION_WEIGHT: 2.5,   // How much acceleration matters (like view velocity)
+  VIRAL_MOMENTUM_DECAY: 0.3,        // How fast momentum decays (like video aging)
+  VIRAL_NOVELTY_BONUS: 5,           // Bonus for new crises that appear suddenly
+  VIRAL_RECENCY_WEIGHT: 0.4,        // How much recency matters in final score
+  VIRAL_SURGE_THRESHOLD: 3,         // Minimum points/day to be considered a "surge"
+  VIRAL_VIRAL_THRESHOLD: 8,         // Points/day to be considered "viral"
+  VIRAL_DIMINISHING_RETURNS: 0.7,   // How much high scores get dampened to prevent runaway
+  
+  // ── WST CONFIG (unchanged) ────────────────────────────────────────────
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
   WST_DEBT_THRESHOLD: 60,
-  WST_EXTRACTIVE_PENALTY_MAX: 15,   // REDUCED from 25
-  WST_RECOVERY_BONUS_MAX: 8,        // REDUCED from 15
+  WST_EXTRACTIVE_PENALTY_MAX: 15,
+  WST_RECOVERY_BONUS_MAX: 8,
   WST_CURRENCY_CRISIS_THRESHOLD: 20,
-  WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.08, // REDUCED from 0.15
-  WST_MOMENTUM_WEIGHT: 0.20,        // REDUCED from 0.30
-  WST_VELOCITY_WEIGHT: 0.15,        // REDUCED from 0.20
-  WST_ACCELERATION_WEIGHT: 0.10,    // REDUCED from 0.15
-  WST_TIME_DECAY_HALF_LIFE: 10,     // INCREASED from 7 (slower decay)
+  WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.08,
+  WST_MOMENTUM_WEIGHT: 0.20,
+  WST_VELOCITY_WEIGHT: 0.15,
+  WST_ACCELERATION_WEIGHT: 0.10,
+  WST_TIME_DECAY_HALF_LIFE: 10,
   WST_CRISIS_MOMENTUM_THRESHOLD: 5,
-  WST_STRUCTURAL_PERSISTENCE: 0.7,  // REDUCED from 0.8
-  WST_MAX_BOOST_ABOVE_FSI: 25,      // NEW: cap on total boost above FSI
-  WST_MIN_BOOST_BUFFER: 5,          // NEW: minimum buffer for stability
+  WST_STRUCTURAL_PERSISTENCE: 0.7,
+  WST_MAX_BOOST_ABOVE_FSI: 25,
+  WST_MIN_BOOST_BUFFER: 5,
 };
 
 const CORS = {
@@ -566,15 +577,18 @@ function findClosestCountry(lng, lat) {
   return closest;
 }
 
-// ─── TIME-SENSITIVE SCORING ENGINE ──────────────────────────────────────────
+// ─── VIRAL MOMENTUM SCORING ENGINE ──────────────────────────────────────────
 
-function computeTimeSensitiveScore(iso, currentScore, store, dims) {
-  if (!CFG.WST_ENABLED) return { adjustedScore: currentScore, momentum: 0, velocity: 0, acceleration: 0, timeDecay: 1 };
+function computeViralMomentumScore(iso, currentScore, store, dims) {
+  if (!CFG.VIRAL_ENABLED) {
+    // Fall back to legacy WST scoring
+    return computeTimeSensitiveScore(iso, currentScore, store, dims);
+  }
   
   const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
   const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
   
-  // ── USE ACTUAL HISTORICAL DATA ────────────────────────────────────────
+  // ── BUILD HISTORICAL SEQUENCE ────────────────────────────────────────
   let hist = [];
   if (store && store[iso] && store[iso].historical_scores) {
     hist = store[iso].historical_scores;
@@ -595,22 +609,15 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     hist.push(currentScore);
     if (hist.length > 60) hist = hist.slice(-60);
   }
-  
-  // ── 1. MOMENTUM ────────────────────────────────────────────────────────
-  const recent7 = hist.slice(-7);
-  const old7 = hist.slice(-14, -7);
-  const momentum = recent7.length >= 7 && old7.length >= 7 
-    ? (mean(recent7) - mean(old7)) / 7 
-    : 0;
-  
-  // ── 2. VELOCITY ──────────────────────────────────────────────────────
+
+  // ── 1. VELOCITY (like view velocity) ──────────────────────────────────
   const recent3 = hist.slice(-3);
   const old3 = hist.slice(-6, -3);
   const velocity = recent3.length >= 3 && old3.length >= 3
     ? (mean(recent3) - mean(old3)) / 3
     : 0;
-  
-  // ── 3. ACCELERATION ──────────────────────────────────────────────────
+
+  // ── 2. ACCELERATION (like view acceleration) ─────────────────────────
   const recent5 = hist.slice(-5);
   const mid5 = hist.slice(-10, -5);
   const old5 = hist.slice(-15, -10);
@@ -621,55 +628,88 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
     ? (mean(mid5) - mean(old5)) / 5
     : 0;
   const acceleration = velocityRecent - velocityOld;
+
+  // ── 3. VIRAL SURGE DETECTION ──────────────────────────────────────────
+  // Check for sudden spikes in the last 24 hours (3 data points)
+  const surgeWindow = Math.min(3, hist.length);
+  const recentWindow = hist.slice(-surgeWindow);
+  const priorWindow = hist.slice(-surgeWindow * 2, -surgeWindow);
   
-  // ── 4. TIME DECAY ─────────────────────────────────────────────────────
+  let surgeMagnitude = 0;
+  let isSurge = false;
+  if (recentWindow.length >= 2 && priorWindow.length >= 2) {
+    const recentAvg = mean(recentWindow);
+    const priorAvg = mean(priorWindow);
+    const spike = recentAvg - priorAvg;
+    if (spike > CFG.VIRAL_SURGE_THRESHOLD) {
+      surgeMagnitude = spike;
+      isSurge = true;
+    }
+  }
+
+  // ── 4. NOVELTY BONUS (like new content boost) ──────────────────────
+  // Check if this is a new crisis that suddenly appeared
+  const baselineMean = hist.length > 10 ? mean(hist.slice(0, -3)) : 50;
+  const noveltyScore = Math.max(0, currentScore - baselineMean * 0.5);
+  const noveltyBoost = noveltyScore > 15 ? CFG.VIRAL_NOVELTY_BONUS * 0.8 : 0;
+
+  // ── 5. TIME DECAY (like video aging) ─────────────────────────────────
   const maxScore = Math.max(...hist);
   const maxIndex = hist.indexOf(maxScore);
   const currentIndex = hist.length - 1;
   const daysSincePeak = currentIndex - maxIndex;
-  const timeDecay = Math.exp(-daysSincePeak / CFG.WST_TIME_DECAY_HALF_LIFE);
+  // Exponential decay - newer spikes get more weight
+  const timeDecay = Math.exp(-daysSincePeak / CFG.VIRAL_MOMENTUM_DECAY);
+
+  // ── 6. ACCELERATION WEIGHT (like going viral) ──────────────────────
+  // Crises that are accelerating get a massive boost
+  const accelBoost = acceleration > 0.5 
+    ? acceleration * CFG.VIRAL_ACCELERATION_WEIGHT 
+    : 0;
+
+  // ── 7. VIRAL STATUS ─────────────────────────────────────────────────
+  const viralStatus = velocity > CFG.VIRAL_VIRAL_THRESHOLD ? "VIRAL" 
+    : isSurge ? "SURGING" 
+    : velocity > CFG.VIRAL_SURGE_THRESHOLD ? "ACCELERATING" 
+    : "STABLE";
+
+  // ── 8. RECENCY WEIGHT ──────────────────────────────────────────────
+  // More recent data points get higher weight (like algorithm recency)
+  const recencyWeight = CFG.VIRAL_RECENCY_WEIGHT * (1 + (hist.length > 7 ? 0.5 : 0));
+
+  // ── 9. DIMINISHING RETURNS (prevent runaway scores) ──────────────
+  // High scores get dampened to prevent infinite growth
+  const diminishingFactor = currentScore > 70 
+    ? CFG.VIRAL_DIMINISHING_RETURNS + (1 - CFG.VIRAL_DIMINISHING_RETURNS) * (90 - currentScore) / 20
+    : 1;
+
+  // ── 10. COMPUTE TOTAL ADJUSTMENT ────────────────────────────────────
+  // Like YouTube/TikTok: acceleration * recency + novelty + viral bonus
+  const baseAdjustment = (accelBoost * recencyWeight) + noveltyBoost;
   
-  // ── 5. STRUCTURAL PERSISTENCE ──────────────────────────────────────
-  const structuralPersistence = wst.structural_weight || 0.5;
-  const recoveryFactor = wst.recovery_rate || 0.5;
+  // Surge bonus (like trending)
+  const surgeBonus = isSurge ? Math.min(10, surgeMagnitude * 0.8) : 0;
   
-  // ── 6. COMPUTE ADJUSTMENTS ──────────────────────────────────────────
-  const momentumAdjust = momentum * CFG.WST_MOMENTUM_WEIGHT * 8;
-  const velocityAdjust = velocity * CFG.WST_VELOCITY_WEIGHT * 10;
-  const accelerationAdjust = acceleration * CFG.WST_ACCELERATION_WEIGHT * 12;
-  const timeDecayAdjust = (1 - timeDecay) * (1 - structuralPersistence) * 3;
-  const recoveryAdjust = (1 - recoveryFactor) * 4;
-  const volatility = hist.length >= 10 ? stddev(hist.slice(-10)) : 0;
-  const volatilityAdjust = Math.min(4, volatility * 0.8);
+  // Viral velocity bonus (like exponential growth)
+  const viralVelocityBonus = velocity > 2 ? Math.min(8, velocity * 0.5) : 0;
   
-  // ── 7. TREND REVERSAL DETECTION ──────────────────────────────────────
-  let trendReversalAdjust = 0;
-  if (hist.length >= 14) {
-    const firstWeek = mean(hist.slice(-14, -7));
-    const secondWeek = mean(hist.slice(-7));
-    if (secondWeek > firstWeek && old3.length > 0 && recent3.length > 0) {
-      const oldTrend = old3[old3.length - 1] - old3[0];
-      const newTrend = recent3[recent3.length - 1] - recent3[0];
-      if (oldTrend < 0 && newTrend > 0) trendReversalAdjust = 6;
-    }
-  }
+  // Decay penalty for old crises
+  const decayPenalty = (1 - timeDecay) * 3;
+
+  let totalAdjustment = (baseAdjustment + surgeBonus + viralVelocityBonus) * diminishingFactor - decayPenalty;
   
-  // ── 8. COMBINE WITH FSI CAP ──────────────────────────────────────────
-  let totalAdjustment = momentumAdjust + velocityAdjust + accelerationAdjust + 
-                        timeDecayAdjust + recoveryAdjust + volatilityAdjust + 
-                        trendReversalAdjust;
-  
-  totalAdjustment = Math.max(-15, Math.min(20, totalAdjustment));
-  
-  // ── CRITICAL FIX: Anchor to FSI baseline ─────────────────────────────
+  // Cap the adjustment to prevent extremes
+  totalAdjustment = Math.max(-15, Math.min(25, totalAdjustment));
+
+  // ── 11. FSI ANCHORING ─────────────────────────────────────────────
   const fsiScore = Math.round((fsiBase / 120) * 100);
   const maxAllowed = Math.min(99, fsiScore + CFG.WST_MAX_BOOST_ABOVE_FSI);
   const minAllowed = Math.max(1, fsiScore - 20);
-  
+
   let adjustedScore = clamp(currentScore + totalAdjustment);
   adjustedScore = Math.max(minAllowed, Math.min(maxAllowed, adjustedScore));
-  
-  // ── STORE FOR FUTURE ──────────────────────────────────────────────────
+
+  // ── 12. VIRAL METRICS STORE ────────────────────────────────────────
   if (store && store[iso]) {
     if (!store[iso].historical_scores) store[iso].historical_scores = [];
     if (store[iso].historical_scores.length === 0 || 
@@ -679,22 +719,47 @@ function computeTimeSensitiveScore(iso, currentScore, store, dims) {
         store[iso].historical_scores = store[iso].historical_scores.slice(-60);
       }
     }
-    store[iso].__temp_time_metrics = {
-      momentum, velocity, acceleration, timeDecay, volatility,
-      totalAdjustment, rawScore: currentScore,
-      structuralWeight: structuralPersistence, recoveryFactor,
-      fsi_anchor: fsiScore, max_allowed: maxAllowed, min_allowed: minAllowed
+    store[iso].__viral_metrics = {
+      velocity,
+      acceleration,
+      surge_magnitude: surgeMagnitude,
+      is_surge: isSurge,
+      viral_status: viralStatus,
+      time_decay: timeDecay,
+      recency_weight: recencyWeight,
+      novelty_boost: noveltyBoost,
+      surge_bonus: surgeBonus,
+      viral_velocity_bonus: viralVelocityBonus,
+      decay_penalty: decayPenalty,
+      base_adjustment: baseAdjustment,
+      total_adjustment: totalAdjustment,
+      diminishing_factor: diminishingFactor,
+      raw_score: currentScore,
+      fsi_anchor: fsiScore,
+      max_allowed: maxAllowed,
+      min_allowed: minAllowed,
+      viral_score: adjustedScore,
     };
   }
-  
+
   return {
     adjustedScore,
-    momentum, velocity, acceleration, timeDecay,
-    momentumAdjust, velocityAdjust, accelerationAdjust,
-    timeDecayAdjust, recoveryAdjust, volatilityAdjust, trendReversalAdjust,
-    totalAdjustment, rawScore: currentScore,
-    structuralWeight: structuralPersistence, recoveryFactor,
-    volatility, fsi_anchor: fsiScore, max_allowed: maxAllowed, min_allowed: minAllowed
+    velocity,
+    acceleration,
+    surgeMagnitude,
+    isSurge,
+    viralStatus,
+    timeDecay,
+    recencyWeight,
+    noveltyBoost,
+    surgeBonus,
+    viralVelocityBonus,
+    decayPenalty,
+    totalAdjustment,
+    rawScore: currentScore,
+    fsi_anchor: fsiScore,
+    max_allowed: maxAllowed,
+    min_allowed: minAllowed,
   };
 }
 
@@ -2090,7 +2155,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ─── BUILD STORE WITH TIME-SENSITIVE SCORING ─────────────────────────────
+//  ─── BUILD STORE WITH VIRAL MOMENTUM SCORING ─────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 function buildStore(liveData) {
@@ -2133,7 +2198,7 @@ function buildStore(liveData) {
       fsi_rank: country.fsi_rank,
       fsi_band: country.fsi_band,
       __wst: null,
-      __time_sensitive: null,
+      __viral_metrics: null,
     };
   }
   
@@ -2143,22 +2208,56 @@ function buildStore(liveData) {
     if (!neighbours.length) continue;
     const avgNb = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
     const rawSpillover = Math.max(0, avgNb - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE;
-    // Diminishing returns: spillover reduces if country already has high score
     const diminishingFactor = Math.max(0.3, 1 - (store[iso].score - 30) / 100);
     store[iso].spillover = +(rawSpillover * diminishingFactor).toFixed(1);
     store[iso].score = clamp(store[iso].score + store[iso].spillover);
   }
   
-  // ── APPLY TIME-SENSITIVE SCORING WITH FSI ANCHORING ──────────────────
-  if (CFG.WST_ENABLED) {
+  // ── APPLY VIRAL MOMENTUM SCORING ──────────────────────────────────────
+  if (CFG.VIRAL_ENABLED) {
+    for (const iso in store) {
+      const viralResult = computeViralMomentumScore(iso, store[iso].score, store, store[iso].dims);
+      store[iso].__viral_metrics = viralResult;
+      
+      // Blend viral score with FSI anchor for stability
+      const fsiBase = store[iso].fsi_score || 50;
+      const fsiScore = Math.round((fsiBase / 120) * 100);
+      const viralWeight = Math.min(0.7, 0.3 + Math.abs(viralResult.velocity) * 0.1);
+      
+      store[iso].score = clamp(Math.round(
+        viralResult.adjustedScore * viralWeight + 
+        (fsiScore + Math.min(15, store[iso].score - fsiScore) * 0.3) * (1 - viralWeight)
+      ));
+      
+      // Store viral metrics for payload
+      store[iso].time_metrics = {
+        velocity: viralResult.velocity,
+        acceleration: viralResult.acceleration,
+        surge_magnitude: viralResult.surgeMagnitude,
+        is_surge: viralResult.isSurge,
+        viral_status: viralResult.viralStatus,
+        time_decay: viralResult.timeDecay,
+        recency_weight: viralResult.recencyWeight,
+        novelty_boost: viralResult.noveltyBoost,
+        surge_bonus: viralResult.surgeBonus,
+        viral_velocity_bonus: viralResult.viralVelocityBonus,
+        decay_penalty: viralResult.decayPenalty,
+        total_adjustment: viralResult.totalAdjustment,
+        raw_score: viralResult.rawScore,
+        fsi_anchor: viralResult.fsi_anchor,
+        max_allowed: viralResult.max_allowed,
+        min_allowed: viralResult.min_allowed,
+      };
+    }
+  } else {
+    // Fallback to legacy time-sensitive scoring
     for (const iso in store) {
       const timeSensitive = computeTimeSensitiveScore(iso, store[iso].score, store, store[iso].dims);
       store[iso].__time_sensitive = timeSensitive;
       
-      // Blend with strong anchor to FSI baseline
       const fsiBase = store[iso].fsi_score || 50;
       const fsiScore = Math.round((fsiBase / 120) * 100);
-      const blendWeight = 0.5; // 50% time-sensitive, 50% anchored
+      const blendWeight = 0.5;
       store[iso].score = clamp(Math.round(
         timeSensitive.adjustedScore * blendWeight + 
         (fsiScore + Math.min(15, store[iso].score - fsiScore) * 0.3) * (1 - blendWeight)
@@ -2273,9 +2372,30 @@ function runAnomalyDetection(arr) {
 function computeStoryHeat(iso, store, hist, anom, mlForecast) {
   const c = store[iso];
   const s = c.signals || {};
+  const vm = c.__viral_metrics || {};
   let heat = 0;
   const drivers = [];
 
+  // ── VIRAL MOMENTUM DRIVERS ──────────────────────────────────────────
+  if (vm.viral_status === "VIRAL") {
+    const v = 20 + Math.min(15, Math.abs(vm.velocity) * 2);
+    heat += v;
+    drivers.push({ driver: "viral_status", points: v, detail: `🔥 VIRAL - ${Math.abs(vm.velocity).toFixed(1)} pts/day` });
+  }
+  
+  if (vm.is_surge) {
+    const v = Math.min(15, vm.surgeMagnitude * 1.5);
+    heat += v;
+    drivers.push({ driver: "surge_detected", points: v, detail: `⚡ Surge: ${vm.surgeMagnitude.toFixed(1)} pt spike` });
+  }
+  
+  if (vm.novelty_boost > 0) {
+    const v = Math.min(10, vm.novelty_boost);
+    heat += v;
+    drivers.push({ driver: "novelty", points: v, detail: `🆕 New crisis emergence` });
+  }
+
+  // ── LEGACY DRIVERS ────────────────────────────────────────────────────
   const delta7 = hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)];
   if (Math.abs(delta7) >= 2) {
     const v = Math.min(20, Math.abs(delta7) * 1.5);
@@ -2301,12 +2421,6 @@ function computeStoryHeat(iso, store, hist, anom, mlForecast) {
     const v = Math.min(10, evidenceCount * 1.5);
     heat += v;
     drivers.push({ driver: "evidence_breadth", points: +v.toFixed(1), detail: `${evidenceCount} independent live sources` });
-  }
-
-  if (c.time_metrics && Math.abs(c.time_metrics.momentum) > 0.3) {
-    const momentumHeat = Math.min(8, Math.abs(c.time_metrics.momentum) * 5);
-    heat += momentumHeat;
-    drivers.push({ driver: "temporal_momentum", points: +momentumHeat.toFixed(1), detail: `${c.time_metrics.momentum > 0 ? '↑' : '↓'} ${Math.abs(c.time_metrics.momentum).toFixed(2)} pts/day` });
   }
 
   if (s.ipcPhase >= 4) heat += 12, drivers.push({ driver: "ipc_threshold", points: 12, detail: `IPC Phase ${s.ipcPhase}` });
@@ -2429,10 +2543,13 @@ function generateExportData(iso, store, format = 'json') {
 function generateWidget(iso, store) {
   const c = store[iso];
   const time = c.time_metrics || {};
+  const vm = c.__viral_metrics || {};
   return `<div class="gcin-widget" style="background:#0f1a30;border:1px solid #2d3a5e;border-radius:12px;padding:16px;font-family:system-ui;max-width:320px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
       <span style="font-size:20px;">${c.flag}</span>
       <span style="font-weight:600;color:#fff;font-size:16px;">${c.name}</span>
+      ${vm.viral_status === "VIRAL" ? '<span style="background:#ff375f20;color:#ff375f;padding:0 6px;border-radius:4px;font-size:10px;font-weight:700;">🔥 VIRAL</span>' : ''}
+      ${vm.is_surge ? '<span style="background:#ff8c4220;color:#ff8c42;padding:0 6px;border-radius:4px;font-size:10px;font-weight:700;">⚡ SURGE</span>' : ''}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="color:#7c9ec0;font-size:12px;">Crisis Score</span>
@@ -2441,9 +2558,10 @@ function generateWidget(iso, store) {
     <div style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:99px;margin:4px 0 8px;">
       <div style="height:100%;width:${c.score}%;background:${severityColor(c.score)};border-radius:99px;"></div>
     </div>
-    ${time.momentum ? `<div style="display:flex;gap:12px;margin:4px 0;font-size:10px;color:#5a7a9a;">
-      <span>⚡ ${time.momentum > 0 ? '+' : ''}${time.momentum.toFixed(2)}/day</span>
-      <span>📈 ${(time.velocity || 0).toFixed(2)}</span>
+    ${time.velocity ? `<div style="display:flex;gap:12px;margin:4px 0;font-size:10px;color:#5a7a9a;">
+      <span>📈 ${time.velocity > 0 ? '+' : ''}${time.velocity.toFixed(2)} pts/day</span>
+      <span>🚀 ${(time.acceleration || 0).toFixed(2)}</span>
+      ${time.viral_status ? `<span>🔥 ${time.viral_status}</span>` : ''}
     </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
       ${c.types.slice(0,3).map(t => `<span style="background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:4px;font-size:10px;color:#b8cce8;">${ARC[t]?.l || t}</span>`).join('')}
@@ -2468,6 +2586,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
   const delta7 = Math.round(hist[hist.length - 1] - hist[Math.max(0, hist.length - 8)]);
   const s = c.signals || {};
   const heat = computeStoryHeat(iso, store, hist, anom, c.ml_forecast);
+  const vm = c.__viral_metrics || {};
 
   const base = {
     iso,
@@ -2510,6 +2629,20 @@ function buildPayload(iso, store, ranked, opts = {}) {
         volatility: anom.methods[3],
       },
     },
+    viral_momentum: CFG.VIRAL_ENABLED ? {
+      velocity: vm.velocity || 0,
+      acceleration: vm.acceleration || 0,
+      surge_magnitude: vm.surgeMagnitude || 0,
+      is_surge: vm.is_surge || false,
+      viral_status: vm.viralStatus || "STABLE",
+      time_decay: vm.timeDecay || 1,
+      recency_weight: vm.recencyWeight || 0.4,
+      novelty_boost: vm.noveltyBoost || 0,
+      surge_bonus: vm.surgeBonus || 0,
+      viral_velocity_bonus: vm.viralVelocityBonus || 0,
+      decay_penalty: vm.decayPenalty || 0,
+      total_adjustment: vm.totalAdjustment || 0,
+    } : null,
     spillover: {
       value: c.spillover,
       from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })),
@@ -2560,21 +2693,14 @@ function buildPayload(iso, store, ranked, opts = {}) {
       change: c.historical_trend.change,
     } : null,
     time_metrics: c.time_metrics ? {
-      momentum: c.time_metrics.momentum,
-      velocity: c.time_metrics.velocity,
-      acceleration: c.time_metrics.acceleration,
-      time_decay: c.time_metrics.time_decay,
-      total_adjustment: c.time_metrics.total_adjustment,
-      raw_score: c.time_metrics.raw_score,
-      structural_weight: c.time_metrics.structural_weight,
-      recovery_factor: c.time_metrics.recovery_factor,
-      adjustment_breakdown: {
-        momentum: c.time_metrics.momentum_adjust,
-        velocity: c.time_metrics.velocity_adjust,
-        acceleration: c.time_metrics.acceleration_adjust,
-        time_decay: c.time_metrics.time_decay_adjust,
-        recovery: c.time_metrics.recovery_adjust,
-      }
+      velocity: c.time_metrics.velocity || 0,
+      acceleration: c.time_metrics.acceleration || 0,
+      total_adjustment: c.time_metrics.total_adjustment || 0,
+      raw_score: c.time_metrics.raw_score || c.score,
+      ...(c.time_metrics.momentum !== undefined ? { momentum: c.time_metrics.momentum } : {}),
+      ...(c.time_metrics.time_decay !== undefined ? { time_decay: c.time_metrics.time_decay } : {}),
+      ...(c.time_metrics.structural_weight !== undefined ? { structural_weight: c.time_metrics.structural_weight } : {}),
+      ...(c.time_metrics.recovery_factor !== undefined ? { recovery_factor: c.time_metrics.recovery_factor } : {}),
     } : null,
     export: {
       pdf: generatePDFReport(iso, store),
@@ -2656,9 +2782,14 @@ function buildKeywords(iso, store) {
 function buildMetaDescription(iso, store) {
   const c = store[iso];
   const s = c.signals || {};
+  const vm = c.__viral_metrics || {};
   const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
   const severity = severityLabel(c.score);
   let parts = [`${c.name} humanitarian crisis update: urgency score ${c.score}/100 (${severity}), ranked #${rank} globally`];
+  
+  if (vm.viral_status === "VIRAL") parts.push(`🔥 VIRAL momentum: ${Math.abs(vm.velocity).toFixed(1)} pts/day increase`);
+  else if (vm.is_surge) parts.push(`⚡ SURGE: ${vm.surgeMagnitude.toFixed(1)} pt spike detected`);
+  
   if (s.totalDisplaced > 0) parts.push(`${fmtPop(s.totalDisplaced)} displaced`);
   if (s.diseaseActive > 1000) parts.push(`${s.diseaseActive.toLocaleString()} COVID-19 cases`);
   if (s.ipcPhase >= 3) parts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
@@ -2740,13 +2871,14 @@ function buildJSONLD(iso, store, ranked) {
 function buildFAQs(iso, store, ranked) {
   const c = store[iso];
   const s = c.signals || {};
+  const vm = c.__viral_metrics || {};
   const rank = Object.keys(store).sort((a, b) => store[b].score - store[a].score).indexOf(iso) + 1;
   const severity = severityLabel(c.score);
   const faqs = [];
 
   faqs.push({
     q: `What is the current humanitarian situation in ${c.name}?`,
-    a: `${c.name} currently has a crisis urgency score of ${c.score}/100, rated ${severity}, ranking #${rank} of ${Object.keys(store).length} countries monitored globally. ${c.types.map(t => ARC[t]?.l).filter(Boolean).slice(0, 2).join(" and ")} are the primary crisis drivers.`,
+    a: `${c.name} currently has a crisis urgency score of ${c.score}/100, rated ${severity}, ranking #${rank} of ${Object.keys(store).length} countries monitored globally. ${c.types.map(t => ARC[t]?.l).filter(Boolean).slice(0, 2).join(" and ")} are the primary crisis drivers.${vm.viral_status === "VIRAL" ? ` The situation is VIRAL with ${Math.abs(vm.velocity).toFixed(1)} pts/day momentum.` : vm.is_surge ? ` A surge of ${vm.surgeMagnitude.toFixed(1)} points has been detected.` : ''}`,
   });
 
   if (s.totalDisplaced > 0) {
@@ -2788,6 +2920,7 @@ function buildFAQs(iso, store, ranked) {
 function buildSEOArticle(iso, store, ranked) {
   const c = store[iso];
   const s = c.signals || {};
+  const vm = c.__viral_metrics || {};
   const hist = seedHistory(iso, c.score);
   const anom = runAnomalyDetection(hist);
   const fc = trendForecast(hist, c.score);
@@ -2807,6 +2940,21 @@ function buildSEOArticle(iso, store, ranked) {
   const primaryTypes = c.types.slice(0, 2).map(t => ARC[t]?.l || t).join(" and ");
   
   const headlineCandidates = [];
+
+  // Viral momentum headlines take priority
+  if (vm.viral_status === "VIRAL") {
+    headlineCandidates.push({
+      weight: 150 + Math.min(50, Math.abs(vm.velocity) * 3),
+      text: `🔥 VIRAL CRISIS: ${c.name} Escalating at ${Math.abs(vm.velocity).toFixed(1)} Points/Day — ${severity} Alert`,
+    });
+  }
+  
+  if (vm.is_surge) {
+    headlineCandidates.push({
+      weight: 130 + Math.min(30, vm.surgeMagnitude * 2),
+      text: `⚡ SURGE ALERT: ${c.name} Crisis Spikes ${vm.surgeMagnitude.toFixed(1)} Points — What's Happening?`,
+    });
+  }
 
   if (s.totalDisplaced > 1_000_000) {
     headlineCandidates.push({
@@ -2887,6 +3035,8 @@ function buildSEOArticle(iso, store, ranked) {
   }
 
   const dekParts = [];
+  if (vm.viral_status === "VIRAL") dekParts.push(`🔥 VIRAL: ${Math.abs(vm.velocity).toFixed(1)} pts/day momentum`);
+  else if (vm.is_surge) dekParts.push(`⚡ SURGE: ${vm.surgeMagnitude.toFixed(1)} pt spike`);
   if (s.totalDisplaced > 0 && !headline.includes("Displaced")) dekParts.push(`${fmtPop(s.totalDisplaced)} displaced`);
   if (s.ipcPhase >= 3 && !headline.includes("IPC")) dekParts.push(`IPC Phase ${s.ipcPhase} food insecurity`);
   if (s.acledEvents > 0 && !headline.includes("Fatalities")) dekParts.push(`${s.acledEvents} conflict events tracked`);
@@ -2898,7 +3048,11 @@ function buildSEOArticle(iso, store, ranked) {
   
   const paragraphs = [];
 
-  const ledeHook = s.totalDisplaced > 1_000_000
+  const ledeHook = vm.viral_status === "VIRAL"
+    ? `🔥 ${c.name} is experiencing a VIRAL crisis escalation with ${Math.abs(vm.velocity).toFixed(1)} points/day momentum`
+    : vm.is_surge
+    ? `⚡ A ${vm.surgeMagnitude.toFixed(1)}-point surge has been detected in ${c.name}'s crisis trajectory`
+    : s.totalDisplaced > 1_000_000
     ? `More than ${fmtPop(s.totalDisplaced)} people have been forced from their homes in ${c.name}`
     : s.diseaseActive > 5000
     ? `Active COVID-19 case counts are stretching ${c.name}'s healthcare system`
@@ -2907,6 +3061,10 @@ function buildSEOArticle(iso, store, ranked) {
     : `The humanitarian situation in ${c.name} has reached ${severity} levels`;
 
   paragraphs.push(`## Overview\n\n${ledeHook}, according to the latest live data compiled from 20+ global sources. Crisis Monitor's real-time urgency index places ${c.name} at **${c.score} out of 100**, rated **${severity}** and ranked **#${rank} of ${Object.keys(store).length} countries** tracked globally as of ${dateStr}.`);
+
+  if (vm.viral_status || vm.is_surge) {
+    paragraphs.push(`## 🔥 Viral Momentum Analysis\n\nThis crisis is exhibiting **${vm.viral_status}** momentum characteristics with velocity of **${Math.abs(vm.velocity).toFixed(2)} pts/day** and acceleration of **${vm.acceleration.toFixed(2)}**. ${vm.is_surge ? `A surge of ${vm.surgeMagnitude.toFixed(1)} points was detected, indicating rapid deterioration.` : ''} The recency weight of ${(vm.recency_weight * 100).toFixed(0)}% ensures the most recent events dominate the score.`);
+  }
 
   if (c.ml_forecast) {
     paragraphs.push(`## Machine Learning Forecast\n\nAdvanced AI analysis predicts a ${c.ml_forecast.trend} trajectory with ${Math.round(c.ml_forecast.confidence * 100)}% confidence. The model projects the score reaching **${c.ml_forecast.fc}/100** with an anomaly probability of ${(c.ml_forecast.anomaly_probability * 100).toFixed(0)}%.`);
@@ -2918,10 +3076,6 @@ function buildSEOArticle(iso, store, ranked) {
 
   if (c.historical_trend && c.historical_trend.points >= 5) {
     paragraphs.push(`## Historical Context\n\nOver the past ${c.historical_trend.points} data points, the crisis in ${c.name} has been **${c.historical_trend.direction}** at a rate of ${Math.abs(c.historical_trend.slope).toFixed(1)} points per week.`);
-  }
-
-  if (c.time_metrics) {
-    paragraphs.push(`## Time-Sensitive Analysis\n\nMomentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)} pts/day | Velocity: ${c.time_metrics.velocity.toFixed(2)} | Acceleration: ${c.time_metrics.acceleration.toFixed(2)}\n\nStructural weight: ${(c.time_metrics.structural_weight * 100).toFixed(0)}% persistence | Recovery factor: ${(c.time_metrics.recovery_factor * 100).toFixed(0)}%`);
   }
 
   if (s.totalDisplaced > 0) {
@@ -3014,6 +3168,8 @@ function buildSEOArticle(iso, store, ranked) {
     .severity-badge.high { background: rgba(255,140,66,0.14); color: #ff8c42; border: 1px solid rgba(255,140,66,0.3); }
     .severity-badge.elevated { background: rgba(255,176,32,0.12); color: #ffb020; border: 1px solid rgba(255,176,32,0.25); }
     .severity-badge.moderate { background: rgba(0,200,255,0.1); color: #6bc8ff; border: 1px solid rgba(0,200,255,0.2); }
+    .viral-badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 99px; font-size: 0.6rem; font-weight: 700; background: rgba(255,55,95,0.2); color: #ff375f; border: 1px solid rgba(255,55,95,0.3); animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     .urgency-score { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); margin: 0.5rem 0 1rem; }
     .score-number { font-size: 2.5rem; font-weight: 800; }
     .score-denom { font-size: 1rem; color: #5a7a9a; }
@@ -3033,7 +3189,11 @@ function buildSEOArticle(iso, store, ranked) {
 <body>
   <article>
     <header>
-      <div class="severity-badge ${severity.toLowerCase()}">${severityEmoji(c.score)} ${severity}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="severity-badge ${severity.toLowerCase()}">${severityEmoji(c.score)} ${severity}</div>
+        ${vm.viral_status === "VIRAL" ? `<span class="viral-badge">🔥 VIRAL MOMENTUM</span>` : ''}
+        ${vm.is_surge ? `<span class="viral-badge" style="background:rgba(255,140,66,0.2);color:#ff8c42;border-color:rgba(255,140,66,0.3);">⚡ SURGE DETECTED</span>` : ''}
+      </div>
       <h1>${headline}</h1>
       <div class="article-meta">
         <time>${dateStr}</time>
@@ -3041,12 +3201,13 @@ function buildSEOArticle(iso, store, ranked) {
         <span>${minutes} min read</span>
         <span>${CFG.ARTICLE_AUTHOR}</span>
         ${c.ml_forecast ? `<span class="ml-tag">🧠 ML Enhanced</span>` : ''}
+        ${vm.viral_status === "VIRAL" ? `<span class="ml-tag" style="background:rgba(255,55,95,0.15);color:#ff375f;">🔥 Viral Algorithm</span>` : ''}
       </div>
       ${c.time_metrics ? `<div class="time-metrics">
-        <span>⚡ Momentum: ${c.time_metrics.momentum > 0 ? '+' : ''}${c.time_metrics.momentum.toFixed(2)}/day</span>
-        <span>📈 Velocity: ${c.time_metrics.velocity.toFixed(2)}</span>
-        <span>🚀 Acceleration: ${c.time_metrics.acceleration.toFixed(2)}</span>
-        <span>⏳ Decay: ${(c.time_metrics.time_decay * 100).toFixed(0)}%</span>
+        ${c.time_metrics.velocity !== undefined ? `<span>📈 Velocity: ${c.time_metrics.velocity > 0 ? '+' : ''}${c.time_metrics.velocity.toFixed(2)}/day</span>` : ''}
+        ${c.time_metrics.acceleration !== undefined ? `<span>🚀 Acceleration: ${c.time_metrics.acceleration.toFixed(2)}</span>` : ''}
+        ${vm.viral_status ? `<span>🔥 ${vm.viral_status}</span>` : ''}
+        ${vm.is_surge ? `<span>⚡ Surge: +${vm.surgeMagnitude.toFixed(1)}</span>` : ''}
       </div>` : ''}
       <div class="urgency-score">
         <span class="score-number">${c.score}</span><span class="score-denom">/100</span>
@@ -3075,7 +3236,8 @@ function buildSEOArticle(iso, store, ranked) {
     <footer class="article-footer">
       <p><strong>Data sources:</strong> USGS, EMSC, NASA EONET, GDACS, IFRC GO, Open-Meteo, NOAA, disease.sh, World Bank, UNHCR, IPC, FEWS NET, ACLED, ReliefWeb, WHO.</p>
       <p><strong>FSI 2024 Baseline:</strong> Fund for Peace, Fragile States Index 2024.</p>
-      <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with time-sensitive scoring.</p>
+      <p><strong>Structural Analysis:</strong> World Systems Theory (Wallerstein, 1974) — Core, Semi-Periphery, Periphery classifications with Viral Momentum scoring.</p>
+      <p><strong>Viral Momentum Engine:</strong> YouTube/TikTok-style algorithm detecting velocity, acceleration, surges, and recency-weighted crisis escalation.</p>
       <p><strong>Export:</strong> <a href="?iso=${iso}&export=csv" style="color:#6bc8ff;">CSV</a> · <a href="?iso=${iso}&export=json" style="color:#6bc8ff;">JSON</a> · <a href="?iso=${iso}&export=pdf" style="color:#6bc8ff;">PDF</a></p>
     </footer>
   </article>
@@ -3138,6 +3300,7 @@ function buildRSSFeed(finalIsos, store, ranked) {
   const items = finalIsos.slice(0, MAX_ITEMS).map(iso => {
     const article = buildSEOArticle(iso, store, ranked);
     const c = store[iso];
+    const vm = c.__viral_metrics || {};
     const categories = [...new Set(c.types.map(t => ARC[t]?.l || t))];
     const heat = c.__heat;
 
@@ -3150,6 +3313,8 @@ function buildRSSFeed(finalIsos, store, ranked) {
     <description>${escapeXml(article.dek || article.metaDescription)}</description>
     ${categories.map(cat => `<category>${escapeXml(cat)}</category>`).join("\n    ")}
     ${heat ? `<category>Story Heat: ${heat.tier}</category>` : ""}
+    ${vm.viral_status === "VIRAL" ? `<category>🔥 VIRAL CRISIS</category>` : ""}
+    ${vm.is_surge ? `<category>⚡ SURGE DETECTED</category>` : ""}
     <category>FSI 2024: ${c.fsi_band || "Not ranked"}</category>
     <category>WST: ${c.__wst ? c.__wst.class : "Unclassified"}</category>
     <media:content url="${CFG.ARTICLE_LOGO}" medium="image"/>
@@ -3166,7 +3331,7 @@ function buildRSSFeed(finalIsos, store, ranked) {
   <title>${CFG.ARTICLE_SITE_NAME}</title>
   <link>${CFG.ARTICLE_BASE_URL}</link>
   <atom:link href="${CFG.ARTICLE_BASE_URL}/api/top-story?format=rss" rel="self" type="application/rss+xml"/>
-  <description>Live, sensor-driven global humanitarian crisis intelligence — with FSI 2024 baseline, World Systems Theory structural analysis, and time-sensitive momentum scoring.</description>
+  <description>Live, sensor-driven global humanitarian crisis intelligence — with FSI 2024 baseline, World Systems Theory structural analysis, and Viral Momentum scoring (YouTube/TikTok-style algorithm).</description>
   <language>en-us</language>
   <lastBuildDate>${now.toUTCString()}</lastBuildDate>
   <ttl>5</ttl>
@@ -3363,8 +3528,10 @@ export default async function handler(req, res) {
           debt_sensitivity: store[iso].__wst.debt_sensitivity,
           reserve_currency: store[iso].__wst.reserve_currency,
           momentum_factor: store[iso].__wst.momentum_factor,
-          momentum: store[iso].time_metrics?.momentum || 0,
           velocity: store[iso].time_metrics?.velocity || 0,
+          acceleration: store[iso].time_metrics?.acceleration || 0,
+          viral_status: store[iso].__viral_metrics?.viralStatus || "STABLE",
+          is_surge: store[iso].__viral_metrics?.is_surge || false,
         }))
         .sort((a, b) => a.wst_tier - b.wst_tier || b.score - a.score);
       
@@ -3386,29 +3553,42 @@ export default async function handler(req, res) {
         delete wstStats[key].scores;
       }
       
+      const viralCountries = wstSummary.filter(w => w.viral_status === "VIRAL" || w.is_surge);
+      
       res.writeHead(200, CORS);
       res.end(JSON.stringify({
         meta: {
           generated_at: new Date().toISOString(),
           elapsed_ms: Date.now() - start,
           wst_enabled: CFG.WST_ENABLED,
+          viral_engine_enabled: CFG.VIRAL_ENABLED,
           global_interest_rate: CFG.WST_GLOBAL_INTEREST_RATE,
-          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) with Time-Sensitive Scoring",
+          theory_basis: "Immanuel Wallerstein's World Systems Theory (1974) with Viral Momentum Scoring",
+          viral_algorithm: "YouTube/TikTok-style: velocity + acceleration + surge detection + recency weighting",
           classification_count: wstSummary.length,
-          temporal_metrics: {
-            momentum_weight: CFG.WST_MOMENTUM_WEIGHT,
-            velocity_weight: CFG.WST_VELOCITY_WEIGHT,
-            acceleration_weight: CFG.WST_ACCELERATION_WEIGHT,
-            time_decay_half_life: CFG.WST_TIME_DECAY_HALF_LIFE,
+          viral_countries_detected: viralCountries.length,
+          viral_parameters: {
+            window_hours: CFG.VIRAL_WINDOW_HOURS,
+            acceleration_weight: CFG.VIRAL_ACCELERATION_WEIGHT,
+            momentum_decay: CFG.VIRAL_MOMENTUM_DECAY,
+            novelty_bonus: CFG.VIRAL_NOVELTY_BONUS,
+            recency_weight: CFG.VIRAL_RECENCY_WEIGHT,
+            surge_threshold: CFG.VIRAL_SURGE_THRESHOLD,
+            viral_threshold: CFG.VIRAL_VIRAL_THRESHOLD,
           }
         },
         summary: wstStats,
+        viral_hotspots: viralCountries.map(w => ({
+          ...w,
+          alert: w.viral_status === "VIRAL" ? "🔥 VIRAL" : "⚡ SURGE"
+        })),
         countries: wstSummary,
         insights: {
           structural_inequality: `Core countries average ${Math.round(wstStats.Core.avgScore)} vs Periphery ${Math.round(wstStats.Periphery.avgScore)} — ${Math.round(wstStats.Periphery.avgScore - wstStats.Core.avgScore)} point structural penalty gap`,
           vulnerability_ratio: `Periphery countries are ${(wstStats.Periphery.avgScore / wstStats.Core.avgScore).toFixed(1)}x more fragile than Core nations`,
-          fastest_deteriorating: wstSummary.filter(w => w.momentum > 0.5).sort((a,b) => b.momentum - a.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: +${w.momentum.toFixed(2)} pts/day`),
-          fastest_improving: wstSummary.filter(w => w.momentum < -0.5).sort((a,b) => a.momentum - b.momentum).slice(0, 5).map(w => `${w.flag} ${w.iso}: ${w.momentum.toFixed(2)} pts/day`),
+          fastest_deteriorating: wstSummary.filter(w => w.velocity > 0.5).sort((a,b) => b.velocity - a.velocity).slice(0, 5).map(w => `${w.flag} ${w.iso}: +${w.velocity.toFixed(2)} pts/day ${w.viral_status === "VIRAL" ? "🔥" : ""}`),
+          fastest_improving: wstSummary.filter(w => w.velocity < -0.5).sort((a,b) => a.velocity - b.velocity).slice(0, 5).map(w => `${w.flag} ${w.iso}: ${w.velocity.toFixed(2)} pts/day`),
+          viral_alert: viralCountries.length > 0 ? `${viralCountries.length} countries with VIRAL or SURGE momentum detected` : "No viral momentum detected",
         }
       }, null, 2));
       return;
@@ -3423,6 +3603,7 @@ export default async function handler(req, res) {
 
       const feed = heatRanked.map(({ iso, heat }) => {
         const p = buildPayload(iso, store, ranked, { summary: true });
+        const vm = store[iso].__viral_metrics || {};
         return {
           iso, name: p.name, flag: p.flag, url: p.url,
           score: p.score, severity: p.severity,
@@ -3430,7 +3611,9 @@ export default async function handler(req, res) {
           headline_hint: p.meta_description,
           fsi_rank: p.fsi?.rank,
           fsi_band: p.fsi?.band,
-          momentum: p.time_metrics?.momentum || 0,
+          velocity: p.time_metrics?.velocity || 0,
+          viral_status: vm.viralStatus || "STABLE",
+          is_surge: vm.is_surge || false,
         };
       });
 
@@ -3440,9 +3623,9 @@ export default async function handler(req, res) {
           generated_at: new Date().toISOString(),
           elapsed_ms: Date.now() - start,
           mode: "breaking",
-          methodology: "Story Heat = velocity + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings + temporal momentum.",
+          methodology: "Story Heat = viral momentum (velocity + acceleration + surge detection) + anomaly consensus + ML regime-change probability + evidence breadth + threshold crossings.",
           fsi_source: "Fund for Peace, Fragile States Index 2024",
-          wst_source: "World Systems Theory with Time-Sensitive Scoring",
+          wst_source: "World Systems Theory with Viral Momentum Scoring",
         },
         breaking: feed,
       }, null, 2));
@@ -3491,6 +3674,7 @@ export default async function handler(req, res) {
     if (mode === "comparison" && finalIsos.length === 2) {
       const [a, b] = finalIsos.map(iso => {
         const c = store[iso];
+        const vm = c.__viral_metrics || {};
         const hist = seedHistory(iso, c.score);
         const fc = trendForecast(hist, c.score);
         const anom = runAnomalyDetection(hist);
@@ -3504,8 +3688,10 @@ export default async function handler(req, res) {
           live_evidence_count: c.signals?.liveEvidenceCount || 0,
           ml_forecast: c.ml_forecast,
           sentiment: c.sentiment,
-          momentum: c.time_metrics?.momentum || 0,
           velocity: c.time_metrics?.velocity || 0,
+          acceleration: c.time_metrics?.acceleration || 0,
+          viral_status: vm.viralStatus || "STABLE",
+          is_surge: vm.is_surge || false,
         };
       });
       comparison = {
@@ -3516,11 +3702,14 @@ export default async function handler(req, res) {
         }).filter(d => Math.abs(d.difference) >= 10),
         verdict: `${a.flag} ${a.name} is more severe (${a.score} vs ${b.score})`,
         ml_insight: a.ml_forecast && b.ml_forecast ? `${a.name} ML anomaly: ${(a.ml_forecast.anomaly_probability * 100).toFixed(0)}% vs ${b.name}: ${(b.ml_forecast.anomaly_probability * 100).toFixed(0)}%` : null,
-        momentum_comparison: `${a.name} momentum: ${a.momentum > 0 ? '+' : ''}${a.momentum.toFixed(2)} vs ${b.name}: ${b.momentum > 0 ? '+' : ''}${b.momentum.toFixed(2)}`,
+        momentum_comparison: `${a.name} velocity: ${a.velocity > 0 ? '+' : ''}${a.velocity.toFixed(2)} vs ${b.name}: ${b.velocity > 0 ? '+' : ''}${b.velocity.toFixed(2)} ${a.viral_status === "VIRAL" ? "🔥" : ""}`,
+        viral_alert: a.viral_status === "VIRAL" || b.viral_status === "VIRAL" ? `⚠️ ${a.viral_status === "VIRAL" ? a.name : b.name} has VIRAL momentum` : null,
       };
     }
 
     const allAnomalies = Object.keys(store).filter(iso => runAnomalyDetection(seedHistory(iso, store[iso].score)).detected);
+    const viralCountries = Object.keys(store).filter(iso => store[iso].__viral_metrics?.viralStatus === "VIRAL");
+    const surgeCountries = Object.keys(store).filter(iso => store[iso].__viral_metrics?.is_surge);
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
     
     const mlStats = {
@@ -3539,19 +3728,32 @@ export default async function handler(req, res) {
         countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
         anomalies_detected: allAnomalies.length,
         anomaly_isos: allAnomalies.slice(0, 20),
+        viral_countries: viralCountries.length,
+        viral_isos: viralCountries.slice(0, 10),
+        surge_countries: surgeCountries.length,
+        surge_isos: surgeCountries.slice(0, 10),
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         data_policy: {
-          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Time-Sensitive Scoring",
+          type: "FSI 2024 Baseline + Live Data + World Systems Theory + Viral Momentum Scoring",
           min_live_evidence_sources: CFG.MIN_LIVE_EVIDENCE_SOURCES,
           fsi_source: "Fund for Peace, Fragile States Index 2024",
           fsi_scale: "0-120 (higher = more fragile)",
           wst_source: "Immanuel Wallerstein, World Systems Theory (1974)",
-          temporal_metrics: {
-            momentum: "Rate of change over 7 days (pts/day)",
-            velocity: "Speed of change (1st derivative)",
-            acceleration: "Rate of change of velocity (2nd derivative)",
-            time_decay: "Exponential decay since crisis peak",
+          viral_momentum: {
+            description: "YouTube/TikTok-style algorithm that prioritizes rapidly escalating crises",
+            metrics: {
+              velocity: "Rate of change (pts/day) — like view velocity",
+              acceleration: "Rate of change of velocity — like view acceleration",
+              surge_detection: "Sudden spikes in crisis score",
+              recency_weighting: "More recent events get higher weight",
+              novelty_bonus: "New crises get a boost",
+              time_decay: "Old crises lose momentum over time",
+            },
+            thresholds: {
+              surge: CFG.VIRAL_SURGE_THRESHOLD,
+              viral: CFG.VIRAL_VIRAL_THRESHOLD,
+            }
           }
         },
         enhancements: {
@@ -3597,6 +3799,18 @@ export default async function handler(req, res) {
             },
             countries_classified: Object.keys(WST_CLASSIFICATION).filter(k => k !== 'default').length,
           },
+          viral_momentum_engine: {
+            enabled: CFG.VIRAL_ENABLED,
+            description: "YouTube/TikTok-style scoring that makes the most significant recent crises rate highest",
+            window_hours: CFG.VIRAL_WINDOW_HOURS,
+            acceleration_weight: CFG.VIRAL_ACCELERATION_WEIGHT,
+            momentum_decay: CFG.VIRAL_MOMENTUM_DECAY,
+            novelty_bonus: CFG.VIRAL_NOVELTY_BONUS,
+            recency_weight: CFG.VIRAL_RECENCY_WEIGHT,
+            surge_threshold: CFG.VIRAL_SURGE_THRESHOLD,
+            viral_threshold: CFG.VIRAL_VIRAL_THRESHOLD,
+            diminishing_returns: CFG.VIRAL_DIMINISHING_RETURNS,
+          }
         },
         data_sources: {
           usgs: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0, label: "USGS" },
@@ -3641,8 +3855,8 @@ export default async function handler(req, res) {
           time_series: "GET /api/top-story?iso=SOM&format=timeseries",
         },
         anomaly_methodology: "4-method ensemble: CUSUM, Z-score, Bayesian changepoint, Volatility regime. Consensus threshold: 2/4 methods.",
-        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + time-sensitive momentum/velocity/acceleration.",
-        score_normalization: "Scores are anchored to FSI baseline with a maximum boost of 25 points. This prevents artificial inflation while still reflecting real-time crisis dynamics.",
+        score_methodology: "Weighted 8-dimension composite. FSI 2024 baseline + live signals + regional spillover + WST structural adjustments + Viral Momentum (velocity/acceleration/surge/recency).",
+        score_normalization: "Scores are anchored to FSI baseline with a maximum boost of 25 points. Viral momentum weights accelerate rapidly escalating crises.",
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
@@ -3656,7 +3870,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v10.1]", err);
+    console.error("[top-story v11.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
