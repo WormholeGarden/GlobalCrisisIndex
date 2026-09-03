@@ -154,6 +154,99 @@
     }
     .share-btn:hover { background: #2d4a6b; color: #fff; }
 
+    /* --- Article Section --- */
+    .article-section {
+      background: #0f1729;
+      border: 1px solid #1e2d45;
+      border-radius: 16px;
+      padding: 28px 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+    .article-section h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .article-section .article-meta {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      border-bottom: 1px solid #1a2740;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .article-section .article-meta .author {
+      color: #7aa9ff;
+      font-weight: 500;
+    }
+    .article-section .article-body {
+      font-size: 1rem;
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+    .article-section .article-body p {
+      margin-bottom: 14px;
+    }
+    .article-section .article-body strong {
+      color: #f1f5f9;
+    }
+    .article-section .article-body .highlight-box {
+      background: #0a111f;
+      border-left: 3px solid #dc2626;
+      padding: 14px 18px;
+      margin: 16px 0;
+      border-radius: 6px;
+    }
+    .article-section .article-body .highlight-box .label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #f87171;
+      font-weight: 700;
+    }
+    .article-section .article-body .highlight-box .text {
+      font-size: 0.95rem;
+      color: #e8edf5;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .article-section .evidence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .article-section .evidence-item {
+      background: #0a111f;
+      border-radius: 10px;
+      padding: 14px 16px;
+      border-left: 2px solid #1e2d45;
+    }
+    .article-section .evidence-item .number {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #facc15;
+      display: block;
+    }
+    .article-section .evidence-item .desc {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    @media (max-width: 640px) {
+      .article-section .evidence-grid {
+        grid-template-columns: 1fr;
+      }
+      .article-section h2 {
+        font-size: 1.4rem;
+      }
+    }
+
     /* --- Top Crisis Banner --- */
     .top-crisis-banner {
       background: linear-gradient(135deg, #1e293b, #0f1a2e);
@@ -397,6 +490,89 @@
       <button class="share-btn" onclick="navigator.share ? navigator.share({title:'Strait of Hormuz: The Top Crisis of 2026', url:window.location.href}) : navigator.clipboard.writeText(window.location.href).then(()=>alert('Link copied!'))">🔗 Share</button>
     </div>
   </header>
+
+  <!-- ============================================================ -->
+  <!-- ARTICLE SECTION: THE EVIDENCE & ARGUMENT -->
+  <!-- ============================================================ -->
+  <section class="article-section">
+    <h2>The Strait of Hormuz: The Top Crisis of 2026</h2>
+    <div class="article-meta">
+      <span class="author">Global Crisis Index Intelligence Desk</span>
+      <span>•</span>
+      <span>September 2, 2026</span>
+      <span>•</span>
+      <span>Live Intelligence Report</span>
+    </div>
+    <div class="article-body">
+      <p>
+        <strong>This is the crisis that defines 2026.</strong> Not Gaza. Not Ukraine. Not the escalating tensions in the South China Sea. 
+        The Strait of Hormuz—a 34-kilometer-wide chokepoint between Iran and Oman—has become the single most dangerous flashpoint in the world. 
+        Six months ago, this was a waterway. Today, it is a battlefield, an economic hostage-taker, and the clearest evidence that the old rules of 
+        global order no longer apply.
+      </p>
+
+      <div class="highlight-box">
+        <div class="label">⚡ The Core Argument</div>
+        <div class="text">
+          The Strait of Hormuz crisis is not just another conflict. It is a permanent rupture in the global system—a crisis with no end, 
+          no diplomatic off-ramp, and no victor. It has already reshaped energy markets, redrawn military alliances, and proven that 
+          the world's most vital chokepoint can be weaponized with impunity.
+        </div>
+      </div>
+
+      <p>
+        <strong>Here is the evidence that this is the top crisis of 2026:</strong>
+      </p>
+
+      <div class="evidence-grid">
+        <div class="evidence-item">
+          <span class="number">7 Months</span>
+          <div class="desc">The conflict has outlasted every prediction. Ceasefires are temporary pauses, not endings.</div>
+        </div>
+        <div class="evidence-item">
+          <span class="number">600+ Ships</span>
+          <div class="desc">Trapped in the Persian Gulf. The global economy is adjusting to a world without Hormuz.</div>
+        </div>
+        <div class="evidence-item">
+          <span class="number">0 Diplomatic Breakthroughs</span>
+          <div class="desc">The Iran-Oman deal is on hold. US-Iran talks are dead. Diplomacy is a tool of war, not a path to peace.</div>
+        </div>
+        <div class="evidence-item">
+          <span class="number">50,000+ Troops</span>
+          <div class="desc">US military personnel deployed with no withdrawal plan. This is not a temporary surge—it is a permanent posture.</div>
+        </div>
+        <div class="evidence-item">
+          <span class="number">$100+ Oil</span>
+          <div class="desc">Oil prices surged past $100 per barrel. The world is paying for this crisis every day.</div>
+        </div>
+        <div class="evidence-item">
+          <span class="number">6+ Nations</span>
+          <div class="desc">The conflict has expanded to Iraq, Syria, Kuwait, Bahrain, Jordan, and now East Asian shipping lanes.</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>This is not a crisis that will end. This is a new permanent state of the world.</strong>
+      </p>
+
+      <p>
+        The IRGC Unit 4000 threat to East Asian shipping lanes confirms what analysts have feared for months: the war is expanding, not contracting. 
+        The Malacca Strait, the South China Sea, the ports of Shanghai and Ningbo—these are now in the crosshairs. 
+        The world's two most vital maritime chokepoints are under threat simultaneously.
+      </p>
+
+      <p>
+        <strong>This is the top crisis of 2026 because it is the crisis that will define the next decade.</strong> 
+        It has already proven that no waterway is safe, no economy is immune, and no diplomatic solution is guaranteed. 
+        The old order is gone. This is what comes next.
+      </p>
+
+      <p style="color: #94a3b8; font-size: 0.9rem; border-top: 1px solid #1a2740; padding-top: 14px; margin-top: 16px;">
+        📡 This page is a live intelligence dashboard. The data below updates automatically every 5 minutes from multiple verified sources, 
+        including Eagle Intelligence, War-Tracker, and the Hormuz Strait Monitor.
+      </p>
+    </div>
+  </section>
 
   <!-- ============================================================ -->
   <!-- TOP CRISIS BANNER -->
