@@ -1,0 +1,1463 @@
+SPINOZA STUDIO 1.0
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinoza Studio | AI-Powered Anime Super-Resolution</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #1a1a2e;
+            --secondary-dark: #16213e;
+            --accent-gold: #d4af37;
+            --accent-gold-light: rgba(212, 175, 55, 0.2);
+            --accent-gold-lighter: rgba(212, 175, 55, 0.1);
+            --text-light: #f4f1e8;
+            --text-muted: #c7b299;
+            --border-dark: #8b7765;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary-dark) 100%);
+            color: var(--text-light);
+            line-height: 1.8;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, var(--accent-gold-light) 0%, transparent 40%);
+            z-index: 0;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            font-size: 3.5rem;
+            color: var(--accent-gold);
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            position: relative;
+            display: inline-block;
+        }
+        
+        .logo::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-gold), transparent);
+        }
+        
+        .tagline {
+            font-size: 1.5rem;
+            max-width: 700px;
+            margin-bottom: 3rem;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        
+        .tagline strong {
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+        
+        /* Main Container */
+        .container {
+            background: rgba(26, 26, 46, 0.7);
+            border-radius: 20px;
+            padding: 3rem;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--accent-gold-light);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, var(--accent-gold), transparent) border-box;
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--accent-gold);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-gold), transparent);
+        }
+        
+        /* Input Section */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .url-section {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .url-input {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(244, 241, 232, 0.05);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            font-family: 'Raleway', sans-serif;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 2px var(--accent-gold-light);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background-color: var(--accent-gold);
+            color: var(--primary-dark);
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-family: 'Raleway', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            background-color: #e8c874;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--accent-gold-light);
+        }
+        
+        /* Preview Section */
+        .preview-section {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 2rem;
+            position: relative;
+        }
+        
+        .preview-section::before {
+            content: '⇢';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: var(--accent-gold);
+            opacity: 0.7;
+        }
+        
+        .image-container {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(139, 119, 101, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--accent-gold-light);
+            transition: all 0.3s ease;
+        }
+        
+        .image-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: var(--primary-dark);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .image-container p {
+            margin-top: 1rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+            text-align: center;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Progress */
+        .progress-container {
+            margin: 2rem 0;
+            display: none;
+        }
+        
+        progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: var(--secondary-dark);
+            border: none;
+        }
+        
+        progress::-webkit-progress-bar {
+            background: var(--secondary-dark);
+            border-radius: 5px;
+        }
+        
+        progress::-webkit-progress-value {
+            background: var(--accent-gold);
+            border-radius: 5px;
+            box-shadow: 0 0 10px var(--accent-gold-light);
+        }
+        
+        progress::-moz-progress-bar {
+            background: var(--accent-gold);
+            border-radius: 5px;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 1rem 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        /* Logs */
+        .logs {
+            background: rgba(26, 26, 46, 0.8);
+            color: var(--text-light);
+            padding: 1.5rem;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 2rem;
+            border: 1px solid var(--border-dark);
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .log-entry::before {
+            content: '›';
+            position: absolute;
+            left: 0;
+            color: var(--accent-gold);
+        }
+        
+        .error {
+            color: #ff6b6b;
+        }
+        
+        .success {
+            color: #6bff6b;
+        }
+        
+        .warning {
+            color: #ffcc6b;
+        }
+        
+        .info {
+            color: #6bc2ff;
+        }
+        
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-gold);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Philosophy Section */
+        .philosophy-section {
+            max-width: 1400px;
+            margin: 5rem auto;
+            padding: 0 2rem;
+        }
+        
+        .philosophy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .philosophy-card {
+            background: rgba(26, 26, 46, 0.7);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--accent-gold-light);
+            transition: all 0.3s ease;
+        }
+        
+        .philosophy-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .philosophy-card h3 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+        }
+        
+        /* Footer */
+        footer {
+            background: rgba(22, 33, 62, 0.8);
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 5rem;
+            border-top: 1px solid var(--accent-gold-light);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--accent-gold);
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent-gold);
+        }
+        
+        .copyright {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .preview-section {
+                flex-direction: column;
+            }
+            
+            .preview-section::before {
+                content: '⇣';
+                left: 50%;
+                top: auto;
+                bottom: -20px;
+                transform: translateX(-50%) rotate(90deg);
+            }
+            
+            .hero-content {
+                padding: 3rem 1.5rem;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .tagline {
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem;
+            }
+            
+            .url-section {
+                flex-direction: column;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-content">
+            <div class="logo">SPINOZA STUDIO</div>
+            <p class="tagline">Revolutionizing image quality through <strong>AI-powered anime enhancement</strong>. Transform your visuals into stunning anime-style art.</p>
+            
+            <div class="container">
+                <h1>Anime Super-Resolution</h1>
+                
+                <div class="input-section">
+                    <div class="url-section">
+                        <input type="text" id="imageUrl" class="url-input" placeholder="Enter image URL (e.g., https://example.com/image.jpg)">
+                        <button class="btn btn-secondary" id="loadBtn">Load URL</button>
+                    </div>
+                    <div>
+                        <input type="file" id="fileInput" class="file-input" accept="image/*">
+                        <button class="btn btn-secondary" id="fileBtn">Upload Image</button>
+                    </div>
+                    <div id="loadingIndicator" style="display: none; color: var(--accent-gold);">
+                        <span class="loading"></span> Processing image...
+                    </div>
+                </div>
+                
+                <div class="preview-section">
+                    <div class="image-container">
+                        <p>Original Image</p>
+                        <img id="originalImage" src="" alt="Original Image" style="display: none;">
+                    </div>
+                    <div class="image-container">
+                        <p>Anime Enhanced</p>
+                        <img id="generatedImage" src="" alt="Generated Anime Image" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn" id="trainBtn" disabled>Train Model</button>
+                    <button class="btn" id="generateBtn" disabled>Generate Anime</button>
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <p class="status" id="statusText">Initializing neural network...</p>
+                    <progress id="trainingProgress" value="0" max="100"></progress>
+                </div>
+                
+                <div class="logs" id="logOutput">
+                    <div class="log-entry info">System initialized. Ready to transform images into anime art.</div>
+                    <div class="log-entry">Spinoza Studio SRGAN + Niji Style v1.0</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="philosophy-section">
+        <h1 style="text-align: center;">The Art of AI-Powered Anime</h1>
+        <div class="philosophy-grid">
+            <div class="philosophy-card">
+                <h3>Niji Style Filter</h3>
+                <p>Our custom filter creates beautiful anime-style artwork with vibrant colors and smooth shading, inspired by Studio Ghibli productions.</p>
+            </div>
+            <div class="philosophy-card">
+                <h3>High-Resolution Upscaling</h3>
+                <p>Our SRGAN model first enhances resolution, then applies anime styling for crisp, detailed results.</p>
+            </div>
+            <div class="philosophy-card">
+                <h3>Real-Time Preview</h3>
+                <p>Watch as your image evolves every 10 epochs, with anime styling applied at each step.</p>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">SPINOZA STUDIO</div>
+            <div class="footer-links">
+                <a href="#">Technology</a>
+                <a href="#">Niji Style</a>
+                <a href="#">Research</a>
+                <a href="#">Contact</a>
+            </div>
+            <p class="copyright">© 2023 Spinoza Studio. AI-Powered Anime Enhancement.</p>
+        </div>
+    </footer>
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+
+    <script>
+        // Global variables
+        let originalImage = null;
+        let lrImageTensor = null;
+        let hrImageTensor = null;
+        let model = null;
+        let isTraining = false;
+        
+        // Fixed dimensions for the model
+        const LR_WIDTH = 64;
+        const LR_HEIGHT = 64;
+        const HR_WIDTH = 256;
+        const HR_HEIGHT = 256;
+        
+        // DOM elements
+        const imageUrlInput = document.getElementById('imageUrl');
+        const loadBtn = document.getElementById('loadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileBtn = document.getElementById('fileBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const originalImageElement = document.getElementById('originalImage');
+        const generatedImageElement = document.getElementById('generatedImage');
+        const trainBtn = document.getElementById('trainBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const trainingProgress = document.getElementById('trainingProgress');
+        const statusText = document.getElementById('statusText');
+        const logOutput = document.getElementById('logOutput');
+        
+        // Initialize TensorFlow.js backend
+        tf.setBackend('webgl').then(() => {
+            addLog('TensorFlow initialized on WebGL backend', 'success');
+        }).catch(err => {
+            addLog('Failed to initialize TensorFlow: ' + err.message, 'error');
+        });
+        
+        // Event listeners
+        loadBtn.addEventListener('click', loadImageFromUrl);
+        imageUrlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadImageFromUrl();
+            }
+        });
+        fileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileUpload);
+        trainBtn.addEventListener('click', startTraining);
+        generateBtn.addEventListener('click', generateHighRes);
+        
+        // Logging function
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const formattedMessage = `[${timestamp}] ${message}`;
+            
+            logEntry.textContent = formattedMessage;
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        // Load image from URL
+        async function loadImageFromUrl() {
+            const imageUrl = imageUrlInput.value.trim();
+            if (!imageUrl) {
+                addLog('Please enter a valid image URL', 'error');
+                return;
+            }
+            
+            try {
+                loadBtn.disabled = true;
+                loadingIndicator.style.display = 'block';
+                addLog(`Loading image from URL: ${imageUrl}`, 'info');
+                
+                // Create a new image element
+                originalImage = new Image();
+                originalImage.crossOrigin = 'Anonymous';
+                
+                // Load the image
+                await new Promise((resolve, reject) => {
+                    originalImage.onload = resolve;
+                    originalImage.onerror = () => reject(new Error('Failed to load image'));
+                    originalImage.src = imageUrl;
+                });
+                
+                // Display the image
+                originalImageElement.src = imageUrl;
+                originalImageElement.style.display = 'block';
+                
+                // Prepare training data
+                await prepareTrainingData(originalImage);
+                
+                // Enable train button
+                trainBtn.disabled = false;
+                generateBtn.disabled = true;
+                
+                addLog(`Image loaded successfully (${originalImage.width}x${originalImage.height})`, 'success');
+                addLog('Ready to train model for anime enhancement', 'info');
+                
+            } catch (error) {
+                addLog('Error loading image: ' + error.message, 'error');
+                originalImageElement.style.display = 'none';
+                trainBtn.disabled = true;
+                generateBtn.disabled = true;
+            } finally {
+                loadBtn.disabled = false;
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
+        // Handle file upload
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                fileBtn.disabled = true;
+                loadingIndicator.style.display = 'block';
+                addLog(`Processing uploaded file: ${file.name}`, 'info');
+                
+                // Create a new image element
+                originalImage = new Image();
+                
+                // Load the image
+                await new Promise((resolve, reject) => {
+                    originalImage.onload = resolve;
+                    originalImage.onerror = () => reject(new Error('Failed to load image'));
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        originalImage.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                // Display the image
+                originalImageElement.src = URL.createObjectURL(file);
+                originalImageElement.style.display = 'block';
+                
+                // Prepare training data
+                await prepareTrainingData(originalImage);
+                
+                // Enable train button
+                trainBtn.disabled = false;
+                generateBtn.disabled = true;
+                
+                addLog(`Image processed successfully (${originalImage.width}x${originalImage.height})`, 'success');
+                addLog('Model training can now commence', 'info');
+                
+            } catch (error) {
+                addLog('Error processing image: ' + error.message, 'error');
+                originalImageElement.style.display = 'none';
+                trainBtn.disabled = true;
+                generateBtn.disabled = true;
+            } finally {
+                fileBtn.disabled = false;
+                loadingIndicator.style.display = 'none';
+                fileInput.value = ''; // Reset file input
+            }
+        }
+        
+        // Prepare training data from the image
+        async function prepareTrainingData(image) {
+            addLog('Preparing training data...', 'info');
+            
+            // Clean up previous tensors if they exist
+            if (lrImageTensor) lrImageTensor.dispose();
+            if (hrImageTensor) hrImageTensor.dispose();
+            
+            try {
+                // Create canvas for processing
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // High-res version (fixed size)
+                canvas.width = HR_WIDTH;
+                canvas.height = HR_HEIGHT;
+                ctx.drawImage(image, 0, 0, HR_WIDTH, HR_HEIGHT);
+                
+                // Convert to tensor and normalize to [0, 1]
+                hrImageTensor = tf.browser.fromPixels(canvas)
+                    .toFloat()
+                    .div(255.0)
+                    .expandDims(0); // Add batch dimension
+                
+                // Low-res version (fixed size)
+                canvas.width = LR_WIDTH;
+                canvas.height = LR_HEIGHT;
+                ctx.drawImage(image, 0, 0, LR_WIDTH, LR_HEIGHT);
+                
+                // Convert to tensor and normalize to [0, 1]
+                lrImageTensor = tf.browser.fromPixels(canvas)
+                    .toFloat()
+                    .div(255.0)
+                    .expandDims(0); // Add batch dimension
+                
+                addLog(`Training data prepared: Low-Res(${lrImageTensor.shape}) → High-Res(${hrImageTensor.shape})`, 'success');
+                
+            } catch (error) {
+                addLog('Error preparing training data: ' + error.message, 'error');
+                throw error;
+            }
+        }
+        
+        // Simple Generator Model
+        function createGenerator() {
+            const model = tf.sequential({
+                layers: [
+                    // Input convolution
+                    tf.layers.conv2d({
+                        inputShape: [LR_HEIGHT, LR_WIDTH, 3],
+                        filters: 64,
+                        kernelSize: 9,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'relu'
+                    }),
+                    
+                    // Residual blocks
+                    tf.layers.conv2d({
+                        filters: 64,
+                        kernelSize: 3,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'relu'
+                    }),
+                    
+                    tf.layers.conv2d({
+                        filters: 64,
+                        kernelSize: 3,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'relu'
+                    }),
+                    
+                    // Upsampling 1
+                    tf.layers.upSampling2d({size: [2, 2]}),
+                    tf.layers.conv2d({
+                        filters: 64,
+                        kernelSize: 3,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'relu'
+                    }),
+                    
+                    // Upsampling 2
+                    tf.layers.upSampling2d({size: [2, 2]}),
+                    tf.layers.conv2d({
+                        filters: 32,
+                        kernelSize: 3,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'relu'
+                    }),
+                    
+                    // Output layer
+                    tf.layers.conv2d({
+                        filters: 3,
+                        kernelSize: 9,
+                        strides: 1,
+                        padding: 'same',
+                        activation: 'sigmoid' // Output in [0, 1] range
+                    })
+                ]
+            });
+            
+            return model;
+        }
+        
+        // Simple Discriminator Model
+        function createDiscriminator() {
+            const model = tf.sequential({
+                layers: [
+                    // Input
+                    tf.layers.conv2d({
+                        inputShape: [HR_HEIGHT, HR_WIDTH, 3],
+                        filters: 64,
+                        kernelSize: 4,
+                        strides: 2,
+                        padding: 'same'
+                    }),
+                    tf.layers.leakyReLU({alpha: 0.2}),
+                    
+                    // Hidden layers
+                    tf.layers.conv2d({
+                        filters: 128,
+                        kernelSize: 4,
+                        strides: 2,
+                        padding: 'same'
+                    }),
+                    tf.layers.batchNormalization(),
+                    tf.layers.leakyReLU({alpha: 0.2}),
+                    
+                    tf.layers.conv2d({
+                        filters: 256,
+                        kernelSize: 4,
+                        strides: 2,
+                        padding: 'same'
+                    }),
+                    tf.layers.batchNormalization(),
+                    tf.layers.leakyReLU({alpha: 0.2}),
+                    
+                    tf.layers.conv2d({
+                        filters: 512,
+                        kernelSize: 4,
+                        strides: 2,
+                        padding: 'same'
+                    }),
+                    tf.layers.batchNormalization(),
+                    tf.layers.leakyReLU({alpha: 0.2}),
+                    
+                    // Output
+                    tf.layers.flatten(),
+                    tf.layers.dense({units: 1, activation: 'sigmoid'})
+                ]
+            });
+            
+            return model;
+        }
+        
+        // SRGAN Class with simpler training
+        class SRGAN {
+            constructor() {
+                this.generator = createGenerator();
+                this.discriminator = createDiscriminator();
+                
+                // Compile models
+                this.generator.compile({
+                    optimizer: tf.train.adam(0.0001),
+                    loss: 'meanSquaredError'
+                });
+                
+                this.discriminator.compile({
+                    optimizer: tf.train.adam(0.0001),
+                    loss: 'binaryCrossentropy',
+                    metrics: ['accuracy']
+                });
+                
+                addLog('SRGAN architecture initialized', 'success');
+                addLog(`Generator parameters: ${this.generator.countParams().toLocaleString()}`, 'info');
+                addLog(`Discriminator parameters: ${this.discriminator.countParams().toLocaleString()}`, 'info');
+            }
+            
+            async trainStep(lrImages, hrImages) {
+                const batchSize = lrImages.shape[0];
+                
+                try {
+                    // Generate fake images
+                    const generatedImages = this.generator.predict(lrImages, {batchSize: batchSize});
+                    
+                    // Prepare labels
+                    const validLabels = tf.ones([batchSize, 1]);
+                    const fakeLabels = tf.zeros([batchSize, 1]);
+                    
+                    // Train discriminator on real images
+                    const dLossReal = await this.discriminator.trainOnBatch(hrImages, validLabels);
+                    
+                    // Train discriminator on fake images
+                    const dLossFake = await this.discriminator.trainOnBatch(generatedImages, fakeLabels);
+                    
+                    // Train generator (content loss)
+                    const gLoss = await this.generator.trainOnBatch(lrImages, hrImages);
+                    
+                    // Calculate averages
+                    const dLoss = (dLossReal[0] + dLossFake[0]) / 2;
+                    const dAcc = (dLossReal[1] + dLossFake[1]) / 2;
+                    
+                    // Calculate content loss for logging
+                    const contentLoss = tf.tidy(() => {
+                        const newGenerated = this.generator.predict(lrImages, {batchSize: batchSize});
+                        const loss = tf.losses.meanSquaredError(hrImages, newGenerated);
+                        const result = tf.mean(loss).dataSync()[0];
+                        newGenerated.dispose();
+                        loss.dispose();
+                        return result;
+                    });
+                    
+                    // Clean up
+                    tf.dispose([generatedImages, validLabels, fakeLabels]);
+                    
+                    return {
+                        dLoss: dLoss,
+                        gLoss: Array.isArray(gLoss) ? gLoss[0] : gLoss,
+                        dAcc: dAcc,
+                        contentLoss: contentLoss
+                    };
+                    
+                } catch (error) {
+                    addLog('Error in training step: ' + error.message, 'error');
+                    return {
+                        dLoss: 0,
+                        gLoss: 0,
+                        dAcc: 0,
+                        contentLoss: 0
+                    };
+                }
+            }
+            
+            generate(lrImages) {
+                return this.generator.predict(lrImages);
+            }
+            
+            dispose() {
+                if (this.generator) this.generator.dispose();
+                if (this.discriminator) this.discriminator.dispose();
+            }
+        }
+        
+        // Apply Niji-style anime filter to an image element
+        async function applyAnimeFilter(imageElement) {
+    return new Promise((resolve) => {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = imageElement.naturalWidth || imageElement.width;
+            canvas.height = imageElement.naturalHeight || imageElement.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const vertexShaderSource = `
+                    attribute vec2 a_position;
+                    attribute vec2 a_texCoord;
+                    varying vec2 v_texCoord;
+                    void main() {
+                        gl_Position = vec4(a_position, 0, 1);
+                        v_texCoord = a_texCoord;
+                    }
+                `;
+
+                const fragmentShaderSource = `
+                    precision mediump float;
+                    uniform sampler2D u_image;
+                    uniform vec2 u_textureSize;
+                    varying vec2 v_texCoord;
+
+                    // Function to quantize a color component for a more distinct, flat look
+                    float quantize(float val, float levels) {
+                        return floor(val * levels) / levels;
+                    }
+
+                    void main() {
+                        vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+                        vec4 color = texture2D(u_image, v_texCoord);
+                        float brightness = (color.r * 0.3 + color.g * 0.59 + color.b * 0.11);
+
+                        // --- Enhanced Edge Detection (Sobel operator with adjusted sensitivity) ---
+                        float edgeX = 0.0;
+                        float edgeY = 0.0;
+
+                        float Gx[9] = float[](
+                            -1.0, 0.0, 1.0,
+                            -2.0, 0.0, 2.0,
+                            -1.0, 0.0, 1.0
+                        );
+                        float Gy[9] = float[](
+                            -1.0, -2.0, -1.0,
+                             0.0,  0.0,  0.0,
+                             1.0,  2.0,  1.0
+                        );
+
+                        for (int i = 0; i < 9; i++) {
+                            int x = i % 3 - 1;
+                            int y = i / 3 - 1;
+                            vec2 offset = vec2(float(x), float(y)) * onePixel;
+                            vec4 neighbor = texture2D(u_image, v_texCoord + offset);
+                            float neighborBrightness = (neighbor.r * 0.3 + neighbor.g * 0.59 + neighbor.b * 0.11);
+
+                            edgeX += neighborBrightness * Gx[i];
+                            edgeY += neighborBrightness * Gy[i];
+                        }
+
+                        float edgeStrength = sqrt(edgeX * edgeX + edgeY * edgeY);
+                        // Further reduced overall edge sensitivity and power for softer lines
+                        edgeStrength = pow(edgeStrength * 2.5, 1.0); // Reduced multiplier and power
+
+                        // --- Anime-style Color Quantization and Palette Adjustment ---
+                        vec3 animeColor = color.rgb;
+
+                        // Increased levels for smoother color transitions, less blocky
+                        float levels = 16.0; // Increased levels for more subtle quantization
+                        animeColor.r = quantize(animeColor.r, levels);
+                        animeColor.g = quantize(animeColor.g, levels);
+                        animeColor.b = quantize(animeColor.b, levels);
+
+                        // Slightly reduced saturation boost to avoid over-saturation
+                        float avg = (animeColor.r + animeColor.g + animeColor.b) / 3.0;
+                        animeColor = mix(vec3(avg), animeColor, 1.3); // Reduced saturation boost
+
+                        // Adjusted overall brightness and contrast for a more balanced look
+                        animeColor = pow(animeColor, vec3(0.95)); // Smoother brightness curve, less aggressive
+                        animeColor *= 1.05; // Overall slight brightness boost
+
+                        // Refined specific color shifts for anime aesthetic, focusing on skin tones
+                        // Aiming for warmer, more natural skin tones and less stark shadows
+                        if (brightness < 0.2) {
+                            // Deep shadows, with a subtle blue/purple tint for depth, not pure black
+                            animeColor = mix(animeColor, vec3(0.05, 0.05, 0.1), 0.15); 
+                        } else if (brightness < 0.4) {
+                            // Mid-tone shadows, subtle warm brown/peach tint
+                            animeColor = mix(animeColor, vec3(0.75, 0.55, 0.45), 0.08); // Lighter, warmer mid-shadow
+                        } else if (brightness < 0.6) {
+                            // Mid-tones, aiming for a vibrant but natural skin tone
+                            animeColor = mix(animeColor, vec3(1.0, 0.78, 0.6), 0.1); // Stronger peach influence, slightly brighter
+                        } else if (brightness < 0.8) {
+                            // Brighter mid-tones/highlights, slightly more saturated
+                            animeColor = mix(animeColor, vec3(1.0, 0.9, 0.75), 0.05); // More subtle highlight warmth
+                        } else {
+                            // Strong highlights, bright and slightly warm
+                            animeColor = mix(animeColor, vec3(1.0, 0.98, 0.95), 0.05); // Very subtle warm highlight
+                        }
+                        
+                        // Ensure colors are clamped to 0-1 range after all adjustments
+                        animeColor = clamp(animeColor, 0.0, 1.0);
+
+                        // --- Combine with edge detection ---
+                        // Reduced edge influence and made transition smoother
+                        float edgeThreshold = 0.08; // Reduced threshold for less pervasive edges
+                        float edgeFalloff = 0.12; // Smoother falloff
+                        float edgeMixFactor = smoothstep(edgeThreshold, edgeThreshold + edgeFalloff, edgeStrength);
+                        
+                        // Blend with black for the outlines. Reduced black influence significantly.
+                        vec3 finalColor = mix(animeColor, vec3(0.0), edgeMixFactor * 0.3); // Very soft black lines
+
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `;
+
+                // Compile and link the shader program (same as before)
+                const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+                gl.shaderSource(vertexShader, vertexShaderSource);
+                gl.compileShader(vertexShader);
+                if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+                    console.error('Vertex shader compile error:', gl.getShaderInfoLog(vertexShader));
+                    resolve(imageElement.src);
+                    return;
+                }
+
+                const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+                gl.shaderSource(fragmentShader, fragmentShaderSource);
+                gl.compileShader(fragmentShader);
+                if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+                    console.error('Fragment shader compile error:', gl.getShaderInfoLog(fragmentShader));
+                    resolve(imageElement.src);
+                    return;
+                }
+
+                const program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                    console.error('Shader program link error:', gl.getProgramInfoLog(program));
+                    resolve(imageElement.src);
+                    return;
+                }
+                gl.useProgram(program);
+
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageElement);
+
+                const textureSizeLocation = gl.getUniformLocation(program, "u_textureSize");
+                gl.uniform2f(textureSizeLocation, canvas.width, canvas.height);
+
+                const positionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                    -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0
+                ]), gl.STATIC_DRAW);
+
+                const positionLocation = gl.getAttribLocation(program, "a_position");
+                gl.enableVertexAttribArray(positionLocation);
+                gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+                const texCoordBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                    0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0
+                ]), gl.STATIC_DRAW);
+
+                const texCoordLocation = gl.getAttribLocation(program, "a_texCoord");
+                gl.enableVertexAttribArray(texCoordLocation);
+                gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+                const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+                gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+                const resultCanvas = document.createElement('canvas');
+                resultCanvas.width = canvas.width;
+                resultCanvas.height = canvas.height;
+                const resultCtx = resultCanvas.getContext('2d');
+                const imageData = resultCtx.createImageData(canvas.width, canvas.height);
+
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        const srcIdx = (y * canvas.width + x) * 4;
+                        const dstIdx = ((canvas.height - y - 1) * canvas.width + x) * 4;
+                        imageData.data[dstIdx] = pixels[srcIdx];
+                        imageData.data[dstIdx+1] = pixels[srcIdx+1];
+                        imageData.data[dstIdx+2] = pixels[srcIdx+2];
+                        imageData.data[dstIdx+3] = pixels[srcIdx+3];
+                    }
+                }
+
+                resultCtx.putImageData(imageData, 0, 0);
+                resolve(resultCanvas.toDataURL());
+                return;
+            }
+
+            // --- Fallback to canvas 2D operations (simplified for demonstration) ---
+            console.warn('Using canvas 2D fallback for Niji filter. WebGL not supported or failed.');
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            const quantize2D = (value, levels) => {
+                return Math.floor(value / (255 / levels)) * (255 / levels);
+            };
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+
+                const levels2D = 16; // Adjusted levels for 2D fallback
+                r = quantize2D(r, levels2D);
+                g = quantize2D(g, levels2D);
+                b = quantize2D(b, levels2D);
+
+                const avg = (r + g + b) / 3;
+                r = avg + (r - avg) * 1.3; // Stronger saturation boost
+                g = avg + (g - avg) * 1.3;
+                b = avg + (b - avg) * 1.3;
+
+                data[i] = Math.min(255, Math.max(0, r));
+                data[i+1] = Math.min(255, Math.max(0, g));
+                data[i+2] = Math.min(255, Math.max(0, b));
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Apply a strong contrast and brightness for a more "drawn" look in 2D fallback
+            ctx.globalCompositeOperation = 'source-over'; 
+            ctx.filter = 'contrast(1.2) brightness(1.05)'; // Adjusted contrast and brightness
+            ctx.drawImage(canvas, 0, 0); 
+            ctx.filter = 'none'; 
+
+            resolve(canvas.toDataURL());
+
+        } catch (error) {
+            console.error('Error applying Niji filter:', error.message);
+            resolve(imageElement.src);
+        }
+    });
+}
+        
+        // Training function
+        async function startTraining() {
+            if (!originalImage || isTraining || !lrImageTensor || !hrImageTensor) return;
+            
+            isTraining = true;
+            trainBtn.disabled = true;
+            generateBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            
+            try {
+                // Clean up previous model
+                if (model) {
+                    model.dispose();
+                }
+                
+                // Initialize SRGAN
+                model = new SRGAN();
+                addLog('Beginning anime enhancement process...', 'info');
+                
+                const epochs = 200;
+                const stepsPerEpoch = 3;
+                
+                for (let epoch = 0; epoch < epochs; epoch++) {
+                    statusText.textContent = `Epoch ${epoch + 1}/${epochs} - Enhancing anime style...`;
+                    
+                    let epochDLoss = 0;
+                    let epochGLoss = 0;
+                    let epochDAcc = 0;
+                    let epochContentLoss = 0;
+                    
+                    for (let step = 0; step < stepsPerEpoch; step++) {
+                        try {
+                            const losses = await model.trainStep(lrImageTensor, hrImageTensor);
+                            
+                            epochDLoss += losses.dLoss;
+                            epochGLoss += losses.gLoss;
+                            epochDAcc += losses.dAcc;
+                            epochContentLoss += losses.contentLoss;
+                            
+                            // Update progress
+                            const progress = ((epoch * stepsPerEpoch + step + 1) / (epochs * stepsPerEpoch)) * 100;
+                            trainingProgress.value = progress;
+                            
+                            // Allow UI to update
+                            await tf.nextFrame();
+                            
+                        } catch (stepError) {
+                            addLog(`Error in step ${step}: ${stepError.message}`, 'warning');
+                        }
+                    }
+                    
+                    // Log epoch results
+                    const avgDLoss = (epochDLoss / stepsPerEpoch).toFixed(4);
+                    const avgGLoss = (epochGLoss / stepsPerEpoch).toFixed(4);
+                    const avgDAcc = (epochDAcc / stepsPerEpoch).toFixed(4);
+                    const avgContentLoss = (epochContentLoss / stepsPerEpoch).toFixed(4);
+                    
+                    addLog(`Epoch ${epoch + 1}: D Loss: ${avgDLoss}, G Loss: ${avgGLoss}, D Acc: ${avgDAcc}, Content Loss: ${avgContentLoss}`, 'info');
+                    
+                    // Generate a test image every 10 epochs and apply anime filter
+                    if ((epoch + 1) % 1 === 0) {
+                        await generateTestImage();
+                    }
+                }
+                
+                // Training complete
+                statusText.textContent = 'Anime enhancement complete!';
+                trainingProgress.value = 100;
+                addLog('Training process completed successfully', 'success');
+                addLog('Ready to generate final anime-enhanced image', 'info');
+                generateBtn.disabled = false;
+                
+            } catch (error) {
+                addLog('Training error: ' + error.message, 'error');
+                console.error('Training error:', error);
+                statusText.textContent = 'Enhancement process failed';
+            } finally {
+                isTraining = false;
+                trainBtn.disabled = false;
+            }
+        }
+        
+        // Generate test image during training and apply anime filter
+        async function generateTestImage() {
+            if (!model || !lrImageTensor) return;
+            
+            try {
+                addLog('Generating intermediate preview...', 'info');
+                
+                const generated = model.generate(lrImageTensor);
+                
+                // Convert tensor to image (already in [0,1] range)
+                const clampedImage = tf.clipByValue(generated, 0, 1);
+                const imageData = await tf.browser.toPixels(clampedImage.squeeze());
+                
+                // Create canvas and display
+                const canvas = document.createElement('canvas');
+                canvas.width = HR_WIDTH;
+                canvas.height = HR_HEIGHT;
+                const ctx = canvas.getContext('2d');
+                const imgData = new ImageData(new Uint8ClampedArray(imageData), HR_WIDTH, HR_HEIGHT);
+                ctx.putImageData(imgData, 0, 0);
+                
+                // Create temporary image element
+                const tempImg = new Image();
+                tempImg.src = canvas.toDataURL();
+                
+                // Wait for image to load
+                await new Promise((resolve) => {
+                    tempImg.onload = resolve;
+                });
+
+                // Apply our Niji-style filter
+                addLog('Applying Niji filter to preview...', 'info');
+                const finalImageUrl = await applyAnimeFilter(tempImg);
+                
+                // Display the final version
+                generatedImageElement.src = finalImageUrl;
+                generatedImageElement.style.display = 'block';
+                
+                // Clean up
+                tf.dispose([generated, clampedImage]);
+                
+                addLog('Preview generated', 'success');
+                
+            } catch (error) {
+                addLog('Error generating preview: ' + error.message, 'error');
+                console.error('Preview generation error:', error);
+            }
+        }
+        
+        // Generate final high-resolution image
+        async function generateHighRes() {
+            if (!model || !lrImageTensor) {
+                addLog('Model not trained or no image loaded', 'error');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            statusText.textContent = 'Generating final image...';
+
+            try {
+                addLog('Creating final artwork...', 'info');
+
+                const generated = model.generate(lrImageTensor);
+
+                // Convert tensor to image (already in [0,1] range)
+                const clampedImage = tf.clipByValue(generated, 0, 1);
+                const imageData = await tf.browser.toPixels(clampedImage.squeeze());
+
+                // Create canvas with original dimensions
+                const canvas = document.createElement('canvas');
+                canvas.width = originalImage.width;
+                canvas.height = originalImage.height;
+                const ctx = canvas.getContext('2d');
+                const imgData = new ImageData(new Uint8ClampedArray(imageData), originalImage.width, originalImage.height);
+                ctx.putImageData(imgData, 0, 0);
+
+                // Create temporary image element
+                const tempImg = new Image();
+                tempImg.src = canvas.toDataURL();
+                
+                // Wait for image to load
+                await new Promise((resolve) => {
+                    tempImg.onload = resolve;
+                });
+
+                // Apply our Niji-style filter
+                addLog('Applying Niji filter to final image...', 'info');
+                const finalImageUrl = await applyAnimeFilter(tempImg);
+
+                // Display the final version
+                generatedImageElement.src = finalImageUrl;
+                generatedImageElement.style.display = 'block';
+
+                statusText.textContent = 'Niji-style artwork complete!';
+                addLog('Final image generated!', 'success');
+
+                // Clean up
+                tf.dispose([generated, clampedImage]);
+
+            } catch (error) {
+                addLog('Error generating image: ' + error.message, 'error');
+                statusText.textContent = 'Generation failed';
+                console.error('Generation error:', error);
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // Memory cleanup
+        window.addEventListener('beforeunload', () => {
+            if (lrImageTensor) lrImageTensor.dispose();
+            if (hrImageTensor) hrImageTensor.dispose();
+            if (model) {
+                model.dispose();
+            }
+        });
+    </script>
+</body>
+</html>
+
