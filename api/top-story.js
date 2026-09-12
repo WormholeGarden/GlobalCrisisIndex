@@ -1,13 +1,13 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — ULTIMATE MASTERPIECE EDITION v12.3
+//  TOP-STORY API — ULTIMATE MASTERPIECE EDITION v12.4
 //  ────────────────────────────────────────────────────────────────────────
 //  🏆 THE MOST ADVANCED CRISIS INTELLIGENCE API EVER BUILT
 //  🌍 179 COUNTRIES · REAL FSI 2024 SCORES · WST STRUCTURAL ANALYSIS
 //  ⏰ EVIDENCE-WEIGHTED VIRAL MOMENTUM · YOUTUBE/TIKTOK-STYLE DETECTION
 //  🧠 ENSEMBLE ML · SENTIMENT ANALYSIS · HISTORICAL TRACKING
-//  📡 28 LIVE APIS · RSS FEED · SEO ARTICLES · JSON-LD
+//  📡 28+ LIVE APIS · RSS FEED · SEO ARTICLES · JSON-LD
 //
 //  FIVE SCORING FIXES:
 //    FIX 1 — Dynamic boost cap by FSI tier (8 → 40)
@@ -17,6 +17,10 @@
 //  v12.3 DATA FIXES:
 //    FIX A — Real lat/lng centroids for 179 countries
 //    FIX B — Multi-proxy WHO outbreak fetcher
+//  v12.4 DATA FIXES:
+//    FIX C — Dedicated WHO DON fetcher (/emergencies/disease-outbreak-news)
+//             Both WHO sources run in parallel and merge results
+//             Extended disease keywords + region/alias matching
 // ════════════════════════════════════════════════════════════════════════════
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -1310,12 +1314,18 @@ async function fetchUNHCR() {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ═══ v12.3 FIX B ═══ WHO OUTBREAK FETCHER WITH MULTI-PROXY FALLBACK
+//  ═══ v12.4 FIX C ═══ WHO DON FETCHER + PARALLEL EXECUTION
 //  ────────────────────────────────────────────────────────────────────────
-//  The old rss2json.com proxy was rate-limited and unreliable.
-//  This version tries multiple proxies in sequence until one works.
+//  v12.3: Single general news RSS with multi-proxy fallback
+//  v12.4: Two sources fetched in parallel:
+//         1. General news RSS (/rss-feeds/news-english.xml)
+//         2. Disease Outbreak News (/emergencies/disease-outbreak-news)
+//         Results are merged by country.
 // ════════════════════════════════════════════════════════════════════════════
 
-const WHO_RSS_URL = "https://www.who.int/rss-feeds/news-english.xml";
+const WHO_GENERAL_RSS_URL = "https://www.who.int/rss-feeds/news-english.xml";
+const WHO_DON_RSS_URL = "https://www.who.int/feeds/entity/csr/don/en/rss.xml";
+
 const WHO_PROXIES = [
   // Primary: rss2json (free tier, 10k/day)
   (url) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`,
@@ -1326,6 +1336,27 @@ const WHO_PROXIES = [
   // Fallback 3: thingproxy
   (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
+
+// Extended disease keyword list (v12.4)
+const WHO_DISEASE_KEYWORDS = [
+  'cholera', 'ebola', 'mpox', 'monkeypox', 'measles', 'polio', 'dengue',
+  'malaria', 'yellow fever', 'marburg', 'lassa', 'nipah', 'mers', 'zika',
+  'hepatitis', 'tuberculosis', 'influenza', 'avian influenza', 'h5n1',
+  'h7n9', 'rift valley fever', 'crimean-congo', 'chikungunya', 'plague',
+  'anthrax', 'rabies', 'meningitis', 'diarrhoeal', 'respiratory',
+  'haemorrhagic', 'hemorrhagic', 'sars', 'covid', 'diphtheria',
+  'pertussis', 'tetanus', 'typhoid', 'shigellosis', 'legionellosis',
+];
+
+// Region/alias matching for headlines that mention regions instead of countries
+const WHO_REGION_ALIASES = {
+  'africa': ['africa', 'african', 'sub-saharan', 'west africa', 'east africa', 'central africa', 'southern africa', 'horn of africa', 'sahel'],
+  'asia': ['asia', 'asian', 'southeast asia', 'south asia', 'east asia', 'central asia', 'pacific'],
+  'europe': ['europe', 'european', 'balkans', 'caucasus'],
+  'middleeast': ['middle east', 'mena', 'gulf', 'levant', 'arab'],
+  'americas': ['americas', 'latin america', 'south america', 'central america', 'caribbean', 'north america'],
+  'oceania': ['oceania', 'pacific islands', 'polynesia', 'melanesia', 'micronesia'],
+};
 
 // Parse RSS XML manually when proxies return raw XML
 function parseWhoRssXml(xmlText) {
@@ -1353,13 +1384,11 @@ function parseWhoRssXml(xmlText) {
   return items;
 }
 
-async function fetchWHO() {
-  if (!CFG.WHO_ENABLED) return { data: {}, live: false, _source: "disabled" };
-
-  // Try each proxy in order
+// Fetch a single WHO RSS feed through proxy fallback chain
+async function fetchWhoFeed(rssUrl, sourceLabel) {
   for (let i = 0; i < WHO_PROXIES.length; i++) {
     const proxyFn = WHO_PROXIES[i];
-    const proxyUrl = proxyFn(WHO_RSS_URL);
+    const proxyUrl = proxyFn(rssUrl);
     try {
       const r = await safeFetch(fetch(proxyUrl).then(res => res.text()));
       if (!r.ok || !r.data) continue;
@@ -1382,43 +1411,12 @@ async function fetchWHO() {
       }
 
       if (items.length > 0) {
-        // Extract outbreaks from titles
-        const outbreaks = {};
-        const keywords = ['cholera', 'ebola', 'mpox', 'measles', 'polio', 'dengue', 'malaria', 'yellow fever', 'marburg', 'lassa', 'nipah', 'mers', 'zika', 'hepatitis', 'tuberculosis', 'influenza'];
-        const countryMap = Object.entries(COUNTRIES).map(([iso, c]) => ({
-          iso,
-          name: c.name.toLowerCase(),
-          aliases: [c.name.toLowerCase()],
-        }));
-
-        items.forEach(item => {
-          const title = (item.title || '').toLowerCase();
-          const matchedKeywords = keywords.filter(kw => title.includes(kw));
-          if (matchedKeywords.length === 0) return;
-
-          // Try to find a country in the title
-          for (const cm of countryMap) {
-            if (title.includes(cm.name)) {
-              if (!outbreaks[cm.iso]) outbreaks[cm.iso] = [];
-              for (const kw of matchedKeywords) {
-                outbreaks[cm.iso].push({
-                  disease: kw,
-                  title: item.title,
-                  date: item.pubDate,
-                  link: item.link,
-                  source: `proxy-${i + 1}`,
-                });
-              }
-              break;
-            }
-          }
-        });
-
         return {
-          data: outbreaks,
-          live: Object.keys(outbreaks).length > 0 || items.length > 0,
-          _source: i === 0 ? "rss2json" : `proxy-${i + 1}`,
-          _totalItems: items.length,
+          items,
+          live: true,
+          source: i === 0 ? "rss2json" : `proxy-${i + 1}`,
+          totalItems: items.length,
+          feedLabel: sourceLabel,
         };
       }
     } catch {
@@ -1427,8 +1425,144 @@ async function fetchWHO() {
     }
   }
 
-  // All proxies failed
-  return { data: {}, live: false, _source: "all-failed" };
+  // All proxies failed for this feed
+  return { items: [], live: false, source: "all-failed", totalItems: 0, feedLabel: sourceLabel };
+}
+
+// Extract outbreaks from RSS items with country + region matching
+function extractOutbreaksFromItems(items, sourceLabel) {
+  const outbreaks = {};
+  const countryMap = Object.entries(COUNTRIES).map(([iso, c]) => ({
+    iso,
+    name: c.name.toLowerCase(),
+    aliases: [c.name.toLowerCase()],
+  }));
+
+  items.forEach(item => {
+    const title = (item.title || '').toLowerCase();
+    const matchedKeywords = WHO_DISEASE_KEYWORDS.filter(kw => title.includes(kw));
+    if (matchedKeywords.length === 0) return;
+
+    let matched = false;
+
+    // First: try direct country name match
+    for (const cm of countryMap) {
+      if (title.includes(cm.name)) {
+        if (!outbreaks[cm.iso]) outbreaks[cm.iso] = [];
+        for (const kw of matchedKeywords) {
+          outbreaks[cm.iso].push({
+            disease: kw,
+            title: item.title,
+            date: item.pubDate,
+            link: item.link,
+            source: sourceLabel,
+          });
+        }
+        matched = true;
+        break;
+      }
+    }
+
+    // Second: try region/alias matching if no country matched
+    if (!matched) {
+      for (const [regionKey, aliases] of Object.entries(WHO_REGION_ALIASES)) {
+        for (const alias of aliases) {
+          if (title.includes(alias)) {
+            // Attribute to first country in that region with matching FSI context
+            const regionCountries = Object.entries(COUNTRIES)
+              .filter(([iso, c]) => c.region === regionKey)
+              .sort((a, b) => b[1].fsi_score - a[1].fsi_score);
+            if (regionCountries.length > 0) {
+              const iso = regionCountries[0][0];
+              if (!outbreaks[iso]) outbreaks[iso] = [];
+              for (const kw of matchedKeywords) {
+                outbreaks[iso].push({
+                  disease: kw,
+                  title: item.title,
+                  date: item.pubDate,
+                  link: item.link,
+                  source: sourceLabel,
+                  matched_by: "region",
+                  region: regionKey,
+                });
+              }
+            }
+            matched = true;
+            break;
+          }
+        }
+        if (matched) break;
+      }
+    }
+  });
+
+  return outbreaks;
+}
+
+// ═══ v12.4 FIX C ═══ Dual WHO fetcher — general news + DON in parallel
+async function fetchWHO() {
+  if (!CFG.WHO_ENABLED) return { data: {}, live: false, _source: "disabled" };
+
+  // Fetch both sources in parallel
+  const [generalResult, donResult] = await Promise.all([
+    fetchWhoFeed(WHO_GENERAL_RSS_URL, "WHO General News"),
+    fetchWhoFeed(WHO_DON_RSS_URL, "WHO Disease Outbreak News"),
+  ]);
+
+  // Extract outbreaks from both sources
+  const generalOutbreaks = extractOutbreaksFromItems(generalResult.items, "WHO General");
+  const donOutbreaks = extractOutbreaksFromItems(donResult.items, "WHO DON");
+
+  // Merge by country
+  const mergedOutbreaks = {};
+
+  for (const [iso, list] of Object.entries(generalOutbreaks)) {
+    if (!mergedOutbreaks[iso]) mergedOutbreaks[iso] = [];
+    mergedOutbreaks[iso].push(...list);
+  }
+
+  for (const [iso, list] of Object.entries(donOutbreaks)) {
+    if (!mergedOutbreaks[iso]) mergedOutbreaks[iso] = [];
+    mergedOutbreaks[iso].push(...list);
+  }
+
+  // Deduplicate by disease + title hash
+  const seen = new Set();
+  for (const iso of Object.keys(mergedOutbreaks)) {
+    mergedOutbreaks[iso] = mergedOutbreaks[iso].filter(o => {
+      const key = `${o.disease}|${(o.title || '').slice(0, 80)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  const totalItems = generalResult.totalItems + donResult.totalItems;
+  const anyLive = generalResult.live || donResult.live;
+
+  return {
+    data: mergedOutbreaks,
+    live: anyLive,
+    _source: [
+      generalResult.live ? `general:${generalResult.source}` : null,
+      donResult.live ? `don:${donResult.source}` : null,
+    ].filter(Boolean).join(" + ") || "all-failed",
+    _general_feed: {
+      live: generalResult.live,
+      source: generalResult.source,
+      items: generalResult.totalItems,
+      countries_with_outbreaks: Object.keys(generalOutbreaks).length,
+    },
+    _don_feed: {
+      live: donResult.live,
+      source: donResult.source,
+      items: donResult.totalItems,
+      countries_with_outbreaks: Object.keys(donOutbreaks).length,
+    },
+    _totalItems: totalItems,
+    _countries_with_outbreaks: Object.keys(mergedOutbreaks).length,
+    _fetched_at: new Date().toISOString(),
+  };
 }
 
 async function fetchAllLive(isos) {
@@ -1551,7 +1685,7 @@ function extractSignals(iso, live) {
     signals.diseaseActive = diseaseRow.active;
   }
 
-  // WHO — multi-proxy fetcher (FIX B)
+  // ═══ v12.4 FIX C ═══ WHO merged (general + DON)
   const whoData = live.who?.data || null;
   if (whoData && whoData[iso] && whoData[iso].length > 0) {
     liveEvidenceCount++; evidenceSources.push("WHO");
@@ -1795,13 +1929,13 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     audit.push({ source: "disease.sh", field: "health+food", delta: boost, reason: `${signals.diseaseActive.toLocaleString()} active cases` });
   }
 
-  // WHO — now works with multi-proxy (FIX B)
+  // WHO — now works with dual sources (FIX B + FIX C)
   if (CFG.WHO_ENABLED && signals.whoOutbreaks && signals.whoOutbreaks.length > 0) {
     const boost = Math.min(CFG.WHO_MAX_OUTBREAK_BOOST, signals.whoOutbreaks.length * CFG.WHO_OUTBREAK_BOOST);
     dims.health = clamp(dims.health + boost);
     dims.access = clamp(dims.access + Math.floor(boost * 0.25));
     totalBoost += boost;
-    audit.push({ source: "WHO", field: "health+access", delta: boost, reason: `${signals.whoOutbreaks.length} outbreaks` });
+    audit.push({ source: "WHO", field: "health+access", delta: boost, reason: `${signals.whoOutbreaks.length} outbreaks (general + DON)` });
   }
 
   // World Bank
@@ -2192,7 +2326,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       air_quality: s.aq ? { ...s.aq, source: "Open-Meteo AQ" } : null,
       noaa: s.noaa ? { ...s.noaa, source: "NOAA" } : null,
       disease: s.diseaseActive > 0 ? { active: s.diseaseActive, source: "disease.sh" } : null,
-      who_outbreaks: s.whoOutbreaks && s.whoOutbreaks.length > 0 ? { outbreaks: s.whoOutbreaks, source: "WHO" } : null,
+      who_outbreaks: s.whoOutbreaks && s.whoOutbreaks.length > 0 ? { outbreaks: s.whoOutbreaks, source: "WHO (general + DON)" } : null,
       economic: {
         inflation: s.wbInflation ? { ...s.wbInflation, source: "World Bank" } : null,
         gdp_growth: s.wbGdpGrowth ? { ...s.wbGdpGrowth, source: "World Bank" } : null,
@@ -2356,7 +2490,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        version: "v12.3-ultimate-masterpiece",
+        version: "v12.4-ultimate-masterpiece",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_evidence: Object.keys(store).filter(iso => (store[iso].signals?.liveEvidenceCount || 0) >= 1).length,
         countries_with_heat_data: heatProneWithData.length,
@@ -2380,7 +2514,8 @@ export default async function handler(req, res) {
         },
         data_fixes_applied: {
           fix_A_centroids: "Real lat/lng for 179 countries (fixes earthquake/NASA attribution + heat)",
-          fix_B_who_multiproxy: "WHO fetcher now tries 4 proxies in sequence",
+          fix_B_who_multiproxy: "WHO fetcher tries 4 proxies in sequence",
+          fix_C_who_don: "Dedicated WHO DON fetcher + parallel general news (v12.4)",
         },
         consensus_gate: {
           enabled: CFG.CONSENSUS_GATE_ENABLED,
@@ -2405,7 +2540,9 @@ export default async function handler(req, res) {
             live: liveData.who.live,
             source: liveData.who._source || "unknown",
             total_items: liveData.who._totalItems || 0,
-            countries_with_outbreaks: Object.keys(liveData.who.data || {}).length,
+            countries_with_outbreaks: liveData.who._countries_with_outbreaks || 0,
+            general_feed: liveData.who._general_feed || null,
+            don_feed: liveData.who._don_feed || null,
           },
         },
       },
@@ -2420,7 +2557,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[top-story v12.3]", err);
+    console.error("[top-story v12.4]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
