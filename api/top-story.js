@@ -1,59 +1,73 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v16.0 — ORTHOGONAL AXES MODEL
+//  TOP-STORY API — v17.0 — CORRECTED ORTHOGONAL AXES
 //  ────────────────────────────────────────────────────────────────────────────
-//  Three independent axes, combined through gated max:
+//  Three independent axes combined via gated max:
 //
-//    SCALE      — how many people are affected (population mass)
-//    INTENSITY  — how severe per-capita / per-territory (famine phase, INFORM)
-//    VOLATILITY — how fast things are changing (surge, acceleration)
+//    SCALE      = absolute population mass affected
+//    INTENSITY  = severity per capita (famine rate, displacement rate, INFORM)
+//    VOLATILITY = bounded ±12 modifier for anomalous deviation
 //
 //  Formula:
-//    base        = max(SCALE, INTENSITY)
-//    gated       = INTENSITY >= GATE ? base : base * 0.7     // no famine/severe
-//                                                             //   → dampened
-//    final       = clamp( gated + VOLATILITY_MODIFIER )
+//    base    = max(SCALE, INTENSITY)
+//    gated   = INTENSITY >= 30 ? base : base × 0.65
+//    final   = max(FSI_FLOOR, gated + VOLATILITY)
 //
-//  VOLATILITY is bounded ±12 so a spike can shift rank but not flip it.
-//  FSI is a hard floor. NO source can contribute more than its axis allows.
+//  FIXES IN v17:
+//    • COUNTRIES[iso].population is populated from World Bank at fetch time
+//    • UNHCR fetch deduplicates to most-recent year, exposes year field
+//    • FEWS NET groups by country + period, takes most recent period only
+//    • INFORM handles both array and object response shapes
+//    • No synthetic history, no FSI jitter, no event-count inflation
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
   FETCH_TIMEOUT_MS: 15_000,
   MAX_TOP_N: 179,
 
-  // ── SCALE: population mass normalizers ────────────────────────────────
-  // Each component is normalized 0..100. The axis is the max of components,
-  // weighted by the source's humanitarian scope.
-  SCALE_COMPONENTS: {
-    displaced:        { cap: 12_000_000, weight: 1.00 },  // UNHCR total
-    famine_affected:  { cap: 20_000_000, weight: 0.95 },  // IPC Phase 3+
-    conflict_affected:{ cap: 30_000_000, weight: 0.85 },  // ACLED est.
-    disaster_affected:{ cap: 15_000_000, weight: 0.70 },  // GDACS population
-    population_at_risk:{ cap: 40_000_000, weight: 0.60 }, // INFORM est.
+  // ── SCALE: absolute population mass, 0..100 normalized ────────────────
+  SCALE_CAPS: {
+    displaced:           12_000_000,
+    famine_affected:     20_000_000,
+    conflict_affected:   30_000_000,
+    disaster_affected:   15_000_000,
+    at_risk_ratio:       0.33,       // 33% of pop at risk = 100
+  },
+  SCALE_WEIGHTS: {
+    displaced:           1.00,
+    famine_affected:     0.95,
+    conflict_affected:   0.85,
+    disaster_affected:   0.70,
+    population_at_risk:  0.80,
   },
 
-  // ── INTENSITY: severity per unit ──────────────────────────────────────
-  // Highest-weighted because it encodes famine and state collapse.
-  INTENSITY_COMPONENTS: {
-    ipc_phase5:        { weight: 1.00, cap: 500_000 },    // Catastrophe pop
-    ipc_phase4:        { weight: 0.85, cap: 3_000_000 },  // Emergency pop
-    inform_severity:   { weight: 0.90, cap: 5.0 },        // INFORM 0–5
-    acled_fatalities:  { weight: 0.75, cap: 8_000 },      // 90-day deaths
-    gdacs_red:         { weight: 0.80, cap: 3 },          // # of Red alerts
-    who_epidemic:      { weight: 0.60, cap: 3 },          // outbreak count
-    acled_intensity:   { weight: 0.55, cap: 50 },         // fatalities/event
-    displacement_rate: { weight: 0.50, cap: 0.15 },       // displaced/pop
+  // ── INTENSITY: severity per capita, 0..100 normalized ────────────────
+  INTENSITY_CAPS: {
+    ipc_phase5:        500_000,
+    ipc_phase4:        3_000_000,
+    inform_severity:   5.0,
+    acled_fatalities:  8_000,
+    displacement_rate: 0.30,      // 30% displaced = 100
+    famine_rate:       0.50,      // 50% in IPC 3+ = 100
+    fatality_rate:     100,       // 100 deaths per 100k = 100
+  },
+  INTENSITY_WEIGHTS: {
+    ipc_phase5:        1.00,
+    ipc_phase4:        0.85,
+    inform_severity:   0.90,
+    acled_fatalities:  0.75,
+    displacement_rate: 0.85,
+    famine_rate:       0.95,
+    fatality_rate:     0.70,
   },
 
-  // ── VOLATILITY: bounded ±12 modifier ──────────────────────────────────
+  // ── VOLATILITY: bounded modifier ──────────────────────────────────────
   VOLATILITY_MAX_POS: 12,
   VOLATILITY_MAX_NEG: -12,
-  VOLATILITY_SURGE_THRESHOLD: 0.25,  // 25% above own rolling baseline
+  VOLATILITY_SURGE_THRESHOLD: 0.25,
 
   // ── GATING ────────────────────────────────────────────────────────────
-  // If INTENSITY is below this, the base score is dampened.
   INTENSITY_GATE: 30,
   INTENSITY_DAMPEN: 0.65,
 
@@ -66,10 +80,9 @@ const CFG = {
   SPILLOVER_RATE: 0.04,
   SPILLOVER_FLOOR: 55,
 
-  // ── SEO ───────────────────────────────────────────────────────────────
   ARTICLE_SITE_NAME: "GCIN · Global Crisis Index News",
-  ARTICLE_BASE_URL: "https://globalcrisisindex.com",
-  ARTICLE_AUTHOR: "GCIN Editorial Team",
+  ARTICLE_BASE_URL:  "https://globalcrisisindex.com",
+  ARTICLE_AUTHOR:    "GCIN Editorial Team",
 };
 
 const CORS = {
@@ -107,7 +120,7 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️" },
 ];
 
-// ─── FSI 2024 (abbreviated — full 179-country table retained in production) ─
+// ─── FSI 2024 ───────────────────────────────────────────────────────────────
 const FSI_2024 = {
   SOM:{name:"Somalia",flag:"🇸🇴",fsi_score:111.3,rank:1,region:"africa",fsi_band:"Very High Alert"},
   SDN:{name:"Sudan",flag:"🇸🇩",fsi_score:109.3,rank:2,region:"africa",fsi_band:"Very High Alert"},
@@ -257,7 +270,7 @@ const FSI_2024 = {
   NOR:{name:"Norway",flag:"🇳🇴",fsi_score:12.7,rank:179,region:"europe",fsi_band:"Sustainable"},
 };
 
-// ─── COUNTRIES ──────────────────────────────────────────────────────────────
+// ─── COUNTRIES (population hydrated at request time) ────────────────────────
 const COUNTRIES = {};
 for (const [iso, fsi] of Object.entries(FSI_2024)) {
   const types = [];
@@ -281,15 +294,15 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
     types: [...new Set(types)].slice(0, 4),
     adj: adj.slice(0, 8),
     cent: [0, 0],
+    population: 0,   // ← hydrated from World Bank
   };
 }
 
 // ─── UTILITIES ──────────────────────────────────────────────────────────────
 const clamp = (v, lo = 0, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
-const clampF = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
-const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
-const stddev = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length) || 1; };
-function fmtPop(n) { if (!n) return null; if (n >= 1e6) return `${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `${(n/1e3).toFixed(0)}K`; return `${n}`; }
+const clampF = (v, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
+const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+function fmtPop(n) { if (!n) return null; if (n >= 1e9) return `${(n/1e9).toFixed(2)}B`; if (n >= 1e6) return `${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `${(n/1e3).toFixed(0)}K`; return `${n}`; }
 function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function findIsoByName(name) {
   if (!name) return null;
@@ -299,7 +312,7 @@ function findIsoByName(name) {
   return null;
 }
 
-// ─── PERSISTENT RING BUFFER (real history) ──────────────────────────────────
+// ─── PERSISTENT RING BUFFER ────────────────────────────────────────────────
 const LIVE_HISTORY = (() => {
   const mem = new Map();
   const RING = 240;
@@ -314,17 +327,124 @@ const LIVE_HISTORY = (() => {
   };
 })();
 
-// ─── FETCHERS ───────────────────────────────────────────────────────────────
+// ─── FETCH HELPERS ─────────────────────────────────────────────────────────
 const safeFetch = p =>
   Promise.race([
     p.then(r => ({ ok: true, data: r })),
     new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS)),
   ]).catch(e => ({ ok: false, error: e.message }));
 
+// ─── FIX 1: POPULATION HYDRATION ───────────────────────────────────────────
+async function fetchPopulations() {
+  try {
+    const url = "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=400&mrv=1";
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (!r.ok || !r.data?.[1]) return { data: {}, live: false };
+    const pop = {};
+    for (const item of r.data[1]) {
+      if (item.country?.id && item.value != null) {
+        pop[item.country.id] = item.value;
+      }
+    }
+    return { data: pop, live: Object.keys(pop).length > 0 };
+  } catch {
+    return { data: {}, live: false };
+  }
+}
+
+// ─── FIX 2: UNHCR with most-recent-year dedup ──────────────────────────────
+async function fetchUNHCR() {
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const prevYear = year - 1;
+
+    const url =
+      `https://api.unhcr.org/population/v1/population/?limit=500&dataset=population` +
+      `&displayType=totals&yearFrom=${prevYear}&yearTo=${year}&coa_all=true&cfType=ISO`;
+
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (!r.ok || !r.data?.items) return { data: {}, live: false };
+
+    // Keep the MOST RECENT year per country, not the sum
+    const latestByCountry = {};
+    for (const item of r.data.items) {
+      const iso = item.coa_iso;
+      if (!iso) continue;
+      const y = parseInt(item.year || 0, 10);
+      if (!latestByCountry[iso] || y > latestByCountry[iso].year) {
+        latestByCountry[iso] = {
+          year: y,
+          refugees: item.refugees || 0,
+          idps: item.idps || 0,
+          asylum: item.asylum_seekers || 0,
+        };
+      }
+    }
+    const by = {};
+    for (const [iso, d] of Object.entries(latestByCountry)) {
+      by[iso] = {
+        refugees: d.refugees,
+        idps: d.idps,
+        asylum: d.asylum,
+        total: d.refugees + d.idps + d.asylum,
+        year: d.year,
+      };
+    }
+    return { data: by, live: Object.keys(by).length > 0 };
+  } catch {
+    return { data: {}, live: false };
+  }
+}
+
+// ─── FIX 3: FEWS NET grouped by period, most recent only ──────────────────
+async function fetchFEWSNET() {
+  try {
+    const url = "https://fdw.fews.net/api/ipcphase.csv?scenario=CS&format=json";
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (!r.ok || !Array.isArray(r.data)) return { data: {}, live: false };
+
+    // country -> period -> { p3, p4, p5 }
+    const grouped = {};
+    for (const row of r.data) {
+      const iso = row.country_code || row.country_iso3 || row.iso3;
+      if (!iso) continue;
+      const period = row.period_date || row.period || row.period_code || "";
+      const phase = parseInt(row.ipc_phase || row.phase || 0, 10);
+      const pop = parseInt(row.population || row.pop || 0, 10);
+      if (phase < 3 || pop <= 0) continue;
+
+      if (!grouped[iso]) grouped[iso] = {};
+      if (!grouped[iso][period]) grouped[iso][period] = { p3: 0, p4: 0, p5: 0 };
+      if (phase === 3) grouped[iso][period].p3 += pop;
+      else if (phase === 4) grouped[iso][period].p4 += pop;
+      else if (phase === 5) grouped[iso][period].p5 += pop;
+    }
+
+    const by = {};
+    for (const [iso, periods] of Object.entries(grouped)) {
+      const sorted = Object.keys(periods).sort();
+      const latest = sorted[sorted.length - 1];
+      if (!latest) continue;
+      const p = periods[latest];
+      by[iso] = {
+        phase3plus: p.p3 + p.p4 + p.p5,
+        phase4plus: p.p4 + p.p5,
+        phase5: p.p5,
+        period: latest,
+      };
+    }
+    return { data: by, live: Object.keys(by).length > 0 };
+  } catch {
+    return { data: {}, live: false };
+  }
+}
+
+// ─── FIX 4: ACLED ──────────────────────────────────────────────────────────
 async function fetchACLED() {
   const email = process.env.ACLED_EMAIL;
   const key = process.env.ACLED_API_KEY;
-  if (!email || !key) return { data: {}, live: false };
+  if (!email || !key) return { data: {}, live: false, configured: false };
   try {
     const end = new Date();
     const start = new Date(end.getTime() - 90 * 86400000);
@@ -332,60 +452,25 @@ async function fetchACLED() {
     const url = `https://api.acleddata.com/acled/read?key=${key}&email=${email}` +
       `&event_date=${fmt(start)}|${fmt(end)}&event_date_where=BETWEEN&limit=0`;
     const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok || !r.data?.data) return { data: {}, live: false };
+    if (!r.ok || !r.data?.data) return { data: {}, live: false, configured: true };
     const by = {};
     for (const ev of r.data.data) {
       const iso = ev.iso3;
       if (!iso) continue;
-      if (!by[iso]) by[iso] = { events: 0, fatalities: 0 };
+      if (!by[iso]) by[iso] = { events: 0, fatalities: 0, battles: 0, explosions: 0 };
       by[iso].events++;
       by[iso].fatalities += parseInt(ev.fatalities || 0, 10);
+      const type = (ev.event_type || "").toLowerCase();
+      if (type.includes("battle")) by[iso].battles++;
+      else if (type.includes("explosion")) by[iso].explosions++;
     }
-    return { data: by, live: true };
-  } catch { return { data: {}, live: false }; }
+    return { data: by, live: true, configured: true };
+  } catch {
+    return { data: {}, live: false, configured: true };
+  }
 }
 
-async function fetchFEWSNET() {
-  try {
-    const url = "https://fdw.fews.net/api/ipcphase.csv?scenario=CS&format=json";
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok || !Array.isArray(r.data)) return { data: {}, live: false };
-    const by = {};
-    for (const row of r.data) {
-      const iso = row.country_code;
-      if (!iso) continue;
-      if (!by[iso]) by[iso] = { phase3plus: 0, phase4plus: 0, phase5: 0 };
-      const pop = parseInt(row.population || 0, 10);
-      const phase = parseInt(row.ipc_phase || 0, 10);
-      if (phase >= 3) by[iso].phase3plus += pop;
-      if (phase >= 4) by[iso].phase4plus += pop;
-      if (phase >= 5) by[iso].phase5 += pop;
-    }
-    return { data: by, live: true };
-  } catch { return { data: {}, live: false }; }
-}
-
-async function fetchUNHCR() {
-  try {
-    const year = new Date().getFullYear();
-    const url = `https://api.unhcr.org/population/v1/population/?limit=200&dataset=population` +
-      `&displayType=totals&yearFrom=${year-1}&yearTo=${year}&coa_all=true&cfType=ISO`;
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok || !r.data?.items) return { data: {}, live: false };
-    const by = {};
-    for (const item of r.data.items) {
-      const iso = item.coa_iso;
-      if (!iso) continue;
-      if (!by[iso]) by[iso] = { refugees: 0, idps: 0, asylum: 0, total: 0 };
-      by[iso].refugees += item.refugees || 0;
-      by[iso].idps += item.idps || 0;
-      by[iso].asylum += item.asylum_seekers || 0;
-    }
-    for (const iso in by) by[iso].total = by[iso].refugees + by[iso].idps + by[iso].asylum;
-    return { data: by, live: true };
-  } catch { return { data: {}, live: false }; }
-}
-
+// ─── FIX 5: INFORM severity (handles both response shapes) ────────────────
 async function fetchINFORM() {
   try {
     const url = "https://drmkc.jrc.ec.europa.eu/inform-index/API/InformAPI/Crises/Score";
@@ -394,25 +479,29 @@ async function fetchINFORM() {
     const by = {};
     if (Array.isArray(r.data)) {
       for (const row of r.data) {
-        const iso = row.Country || row.ISO3;
+        const iso = row.Country || row.ISO3 || row.country;
         if (!iso) continue;
         by[iso] = {
-          severity: parseFloat(row.SeverityScore || row.Score || 0),
+          severity: parseFloat(row.SeverityScore || row.Score || row.severity || 0),
           category: row.SeverityCategory || row.Category || "Unknown",
         };
       }
     } else if (r.data && typeof r.data === "object") {
       for (const [iso, row] of Object.entries(r.data)) {
+        if (typeof row !== "object") continue;
         by[iso] = {
-          severity: parseFloat(row.severity || row.SeverityScore || 0),
+          severity: parseFloat(row.severity || row.SeverityScore || row.Score || 0),
           category: row.category || row.SeverityCategory || "Unknown",
         };
       }
     }
     return { data: by, live: Object.keys(by).length > 0 };
-  } catch { return { data: {}, live: false }; }
+  } catch {
+    return { data: {}, live: false };
+  }
 }
 
+// ─── WHO outbreaks ─────────────────────────────────────────────────────────
 async function fetchWHO() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml").then(r => r.json()));
@@ -426,33 +515,33 @@ async function fetchWHO() {
         for (const [iso, c] of Object.entries(COUNTRIES)) {
           if (t.includes(c.name.toLowerCase())) {
             if (!by[iso]) by[iso] = [];
-            by[iso].push({ disease: kw, title: item.title });
+            if (!by[iso].some(o => o.disease === kw)) {
+              by[iso].push({ disease: kw, title: item.title });
+            }
             break;
           }
         }
       }
     }
     return { data: by, live: Object.keys(by).length > 0 };
-  } catch { return { data: {}, live: false }; }
+  } catch {
+    return { data: {}, live: false };
+  }
 }
 
+// ─── GDACS ─────────────────────────────────────────────────────────────────
 async function fetchGDACS() {
   try {
     const url = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=50";
     const r = await safeFetch(fetch(url).then(r => r.json()));
     if (!r.ok || !r.data?.features) return { data: [], live: false };
     return { data: r.data.features, live: true };
-  } catch { return { data: [], live: false }; }
+  } catch {
+    return { data: [], live: false };
+  }
 }
 
-async function fetchUSGS() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json()));
-    if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true };
-  } catch {}
-  return { data: [], live: false };
-}
-
+// ─── IFRC ──────────────────────────────────────────────────────────────────
 async function fetchIFRC() {
   try {
     const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json()));
@@ -461,167 +550,170 @@ async function fetchIFRC() {
   return { data: [], live: false };
 }
 
+// ─── USGS ──────────────────────────────────────────────────────────────────
+async function fetchUSGS() {
+  try {
+    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json()));
+    if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true };
+  } catch {}
+  return { data: [], live: false };
+}
+
+// ─── AGGREGATE ALL LIVE DATA ───────────────────────────────────────────────
 async function fetchAllLive() {
-  const [acled, fews, unhcr, inform, who, gdacs, usgs, ifrc] = await Promise.all([
-    fetchACLED(), fetchFEWSNET(), fetchUNHCR(), fetchINFORM(), fetchWHO(),
-    fetchGDACS(), fetchUSGS(), fetchIFRC(),
+  const [populations, acled, fews, unhcr, inform, who, gdacs, ifrc, usgs] = await Promise.all([
+    fetchPopulations(),
+    fetchACLED(),
+    fetchFEWSNET(),
+    fetchUNHCR(),
+    fetchINFORM(),
+    fetchWHO(),
+    fetchGDACS(),
+    fetchIFRC(),
+    fetchUSGS(),
   ]);
-  return { acled, fews, unhcr, inform, who, gdacs, usgs, ifrc };
+
+  // Hydrate population into COUNTRIES
+  for (const [iso, pop] of Object.entries(populations.data)) {
+    if (COUNTRIES[iso]) COUNTRIES[iso].population = pop;
+  }
+
+  return { populations, acled, fews, unhcr, inform, who, gdacs, ifrc, usgs };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 //  AXIS COMPUTATION
 // ════════════════════════════════════════════════════════════════════════════
 
-/**
- * SCALE — population mass. How many people are affected.
- * Normalized per component to 0..100, then weighted-maxed.
- */
 function computeScaleAxis(iso, live) {
   const comps = {};
   const audit = [];
+  const pop = COUNTRIES[iso]?.population || 0;
 
-  // Displaced population
   const uh = live.unhcr.data[iso];
   const displaced = uh?.total || 0;
-  const dNorm = clampF(displaced / CFG.SCALE_COMPONENTS.displaced.cap) * 100;
-  comps.displaced = dNorm;
-  if (dNorm > 1) audit.push({ component: "displaced", value: displaced, normalized: +dNorm.toFixed(1) });
+  comps.displaced = clampF((displaced / CFG.SCALE_CAPS.displaced) * 100);
+  if (comps.displaced > 1) audit.push({
+    component: "displaced", value: displaced, normalized: +comps.displaced.toFixed(1),
+    source_year: uh?.year,
+  });
 
-  // Famine-affected
   const few = live.fews.data[iso];
   const famPop = few?.phase3plus || 0;
-  const fNorm = clampF(famPop / CFG.SCALE_COMPONENTS.famine_affected.cap) * 100;
-  comps.famine_affected = fNorm;
-  if (fNorm > 1) audit.push({ component: "famine_affected", value: famPop, normalized: +fNorm.toFixed(1) });
+  comps.famine_affected = clampF((famPop / CFG.SCALE_CAPS.famine_affected) * 100);
+  if (comps.famine_affected > 1) audit.push({
+    component: "famine_affected", value: famPop, normalized: +comps.famine_affected.toFixed(1),
+    period: few?.period,
+  });
 
-  // Conflict-affected (approximated by event × average affected per event)
   const ac = live.acled.data[iso];
   const conflictAffected = ac ? (ac.events || 0) * 5000 : 0;
-  const cNorm = clampF(conflictAffected / CFG.SCALE_COMPONENTS.conflict_affected.cap) * 100;
-  comps.conflict_affected = cNorm;
-  if (cNorm > 1) audit.push({ component: "conflict_affected", value: conflictAffected, normalized: +cNorm.toFixed(1) });
+  comps.conflict_affected = clampF((conflictAffected / CFG.SCALE_CAPS.conflict_affected) * 100);
+  if (comps.conflict_affected > 1) audit.push({
+    component: "conflict_affected", value: conflictAffected, normalized: +comps.conflict_affected.toFixed(1),
+  });
 
-  // GDACS disaster-affected
   const gdacs = (live.gdacs.data || []).filter(f =>
-    (f.properties?.affectedcountries || []).some(c => c.iso3 === iso) ||
-    findClosestCountry(f.geometry?.coordinates?.[0] || 0, f.geometry?.coordinates?.[1] || 0) === iso
+    (f.properties?.affectedcountries || []).some(c => c.iso3 === iso)
   );
   const disasterAffected = gdacs.reduce((s, g) => s + (g.properties?.population || 0), 0);
-  const diNorm = clampF(disasterAffected / CFG.SCALE_COMPONENTS.disaster_affected.cap) * 100;
-  comps.disaster_affected = diNorm;
-  if (diNorm > 1) audit.push({ component: "disaster_affected", value: disasterAffected, normalized: +diNorm.toFixed(1) });
+  comps.disaster_affected = clampF((disasterAffected / CFG.SCALE_CAPS.disaster_affected) * 100);
+  if (comps.disaster_affected > 1) audit.push({
+    component: "disaster_affected", value: disasterAffected, normalized: +comps.disaster_affected.toFixed(1),
+  });
 
-  // Population at risk (INFORM-style estimate — fallback to WB population)
-  const pop = COUNTRIES[iso]?.population || 0;
-  const popAtRisk = pop * 0.1; // proxy
-  const pNorm = clampF(popAtRisk / CFG.SCALE_COMPONENTS.population_at_risk.cap) * 100;
-  comps.population_at_risk = pNorm;
+  // Population at risk: max of displaced, famine-affected, conflict-affected
+  // as a fraction of total population
+  const atRisk = Math.max(displaced, famPop, conflictAffected);
+  const atRiskRatio = pop > 0 ? atRisk / pop : 0;
+  comps.population_at_risk = clampF((atRiskRatio / CFG.SCALE_CAPS.at_risk_ratio) * 100);
+  if (comps.population_at_risk > 1) audit.push({
+    component: "population_at_risk", value: atRisk, ratio: +atRiskRatio.toFixed(3),
+    population: pop, normalized: +comps.population_at_risk.toFixed(1),
+  });
 
-  // Weighted max: each component contributes (value × weight), take the max
-  let scale = 0;
-  for (const [k, w] of Object.entries(CFG.SCALE_COMPONENTS)) {
-    scale = Math.max(scale, (comps[k] || 0) * w.weight);
+  let scale = 0, dominant = "none";
+  for (const [k, w] of Object.entries(CFG.SCALE_WEIGHTS)) {
+    const v = (comps[k] || 0) * w;
+    if (v > scale) { scale = v; dominant = k; }
   }
 
-  return {
-    scale: clampF(scale / 100) * 100,
-    components: comps,
-    audit,
-  };
+  return { scale, components: comps, audit, dominant, population_used: pop };
 }
 
-/**
- * INTENSITY — severity per unit.
- * IPC phase, INFORM, fatalities, per-capita displacement. Highest weight on
- * famine and collapse indicators.
- */
 function computeIntensityAxis(iso, live) {
   const comps = {};
   const audit = [];
+  const pop = COUNTRIES[iso]?.population || 0;
 
-  // IPC Phase 5 (Catastrophe/Famine)
   const few = live.fews.data[iso];
   const p5 = few?.phase5 || 0;
-  const p5Norm = clampF(p5 / CFG.INTENSITY_COMPONENTS.ipc_phase5.cap) * 100;
-  comps.ipc_phase5 = p5Norm;
-  if (p5Norm > 1) audit.push({ component: "ipc_phase5", value: p5, normalized: +p5Norm.toFixed(1) });
+  comps.ipc_phase5 = clampF((p5 / CFG.INTENSITY_CAPS.ipc_phase5) * 100);
+  if (comps.ipc_phase5 > 1) audit.push({
+    component: "ipc_phase5", value: p5, normalized: +comps.ipc_phase5.toFixed(1),
+    period: few?.period,
+  });
 
-  // IPC Phase 4 (Emergency)
   const p4 = few?.phase4plus || 0;
-  const p4Norm = clampF(p4 / CFG.INTENSITY_COMPONENTS.ipc_phase4.cap) * 100;
-  comps.ipc_phase4 = p4Norm;
-  if (p4Norm > 1) audit.push({ component: "ipc_phase4", value: p4, normalized: +p4Norm.toFixed(1) });
+  comps.ipc_phase4 = clampF((p4 / CFG.INTENSITY_CAPS.ipc_phase4) * 100);
+  if (comps.ipc_phase4 > 1) audit.push({
+    component: "ipc_phase4", value: p4, normalized: +comps.ipc_phase4.toFixed(1),
+  });
 
-  // INFORM severity
   const inform = live.inform.data[iso];
   const infSev = inform?.severity || 0;
-  const iNorm = clampF(infSev / CFG.INTENSITY_COMPONENTS.inform_severity.cap) * 100;
-  comps.inform_severity = iNorm;
-  if (iNorm > 1) audit.push({ component: "inform_severity", value: infSev, normalized: +iNorm.toFixed(1) });
+  comps.inform_severity = clampF((infSev / CFG.INTENSITY_CAPS.inform_severity) * 100);
+  if (comps.inform_severity > 1) audit.push({
+    component: "inform_severity", value: infSev, normalized: +comps.inform_severity.toFixed(1),
+  });
 
-  // ACLED fatalities (90-day)
   const ac = live.acled.data[iso];
   const fat = ac?.fatalities || 0;
-  const fNorm = clampF(fat / CFG.INTENSITY_COMPONENTS.acled_fatalities.cap) * 100;
-  comps.acled_fatalities = fNorm;
-  if (fNorm > 1) audit.push({ component: "acled_fatalities", value: fat, normalized: +fNorm.toFixed(1) });
+  comps.acled_fatalities = clampF((fat / CFG.INTENSITY_CAPS.acled_fatalities) * 100);
+  if (comps.acled_fatalities > 1) audit.push({
+    component: "acled_fatalities", value: fat, normalized: +comps.acled_fatalities.toFixed(1),
+  });
 
-  // GDACS Red alerts
-  const gdacsRed = (live.gdacs.data || []).filter(f =>
-    f.properties?.alertlevel === "Red" &&
-    ((f.properties?.affectedcountries || []).some(c => c.iso3 === iso) ||
-     findClosestCountry(f.geometry?.coordinates?.[0] || 0, f.geometry?.coordinates?.[1] || 0) === iso)
-  );
-  const redNorm = clampF(gdacsRed.length / CFG.INTENSITY_COMPONENTS.gdacs_red.cap) * 100;
-  comps.gdacs_red = redNorm;
-  if (redNorm > 1) audit.push({ component: "gdacs_red", value: gdacsRed.length, normalized: +redNorm.toFixed(1) });
-
-  // WHO epidemic count
-  const who = live.who.data[iso];
-  const epiNorm = clampF((who?.length || 0) / CFG.INTENSITY_COMPONENTS.who_epidemic.cap) * 100;
-  comps.who_epidemic = epiNorm;
-
-  // ACLED intensity (fatalities per event)
-  const intensity = ac && ac.events > 0 ? fat / ac.events : 0;
-  const acNorm = clampF(intensity / CFG.INTENSITY_COMPONENTS.acled_intensity.cap) * 100;
-  comps.acled_intensity = acNorm;
-
-  // Displacement rate (displaced / population)
+  // Displacement as fraction of population
   const uh = live.unhcr.data[iso];
-  const pop = COUNTRIES[iso]?.population || 0;
-  const rate = pop > 0 ? (uh?.total || 0) / pop : 0;
-  const rNorm = clampF(rate / CFG.INTENSITY_COMPONENTS.displacement_rate.cap) * 100;
-  comps.displacement_rate = rNorm;
+  const displaced = uh?.total || 0;
+  const dispRate = pop > 0 ? displaced / pop : 0;
+  comps.displacement_rate = clampF((dispRate / CFG.INTENSITY_CAPS.displacement_rate) * 100);
+  if (comps.displacement_rate > 1) audit.push({
+    component: "displacement_rate", value: +dispRate.toFixed(3), normalized: +comps.displacement_rate.toFixed(1),
+  });
 
-  // Weighted sum for intensity (unlike scale, intensity is additive because
-  // multiple simultaneous crises = worse)
-  let intensity = 0;
-  let totalWeight = 0;
-  for (const [k, c] of Object.entries(CFG.INTENSITY_COMPONENTS)) {
-    intensity += (comps[k] || 0) * c.weight;
-    totalWeight += c.weight;
+  // Famine as fraction of population
+  const famPop = few?.phase3plus || 0;
+  const famRate = pop > 0 ? famPop / pop : 0;
+  comps.famine_rate = clampF((famRate / CFG.INTENSITY_CAPS.famine_rate) * 100);
+  if (comps.famine_rate > 1) audit.push({
+    component: "famine_rate", value: +famRate.toFixed(3), normalized: +comps.famine_rate.toFixed(1),
+  });
+
+  // Fatalities per 100k population
+  const fatRate = pop > 0 ? (fat / pop) * 100_000 : 0;
+  comps.fatality_rate = clampF((fatRate / CFG.INTENSITY_CAPS.fatality_rate) * 100);
+  if (comps.fatality_rate > 1) audit.push({
+    component: "fatality_rate", value: +fatRate.toFixed(2), normalized: +comps.fatality_rate.toFixed(1),
+  });
+
+  let total = 0, totalW = 0;
+  for (const [k, w] of Object.entries(CFG.INTENSITY_WEIGHTS)) {
+    total += (comps[k] || 0) * w;
+    totalW += w;
   }
-  intensity = totalWeight > 0 ? intensity / totalWeight : 0;
+  const intensity = totalW > 0 ? total / totalW : 0;
 
-  return {
-    intensity: clampF(intensity / 100) * 100,
-    components: comps,
-    audit,
-  };
+  return { intensity, components: comps, audit, population_used: pop };
 }
 
-/**
- * VOLATILITY — bounded ±12 modifier.
- * Deviation from own rolling baseline across key signals.
- */
-function computeVolatilityAxis(iso, live, baseScore) {
+function computeVolatilityAxis(iso, live) {
   const hist = LIVE_HISTORY.get(iso, 30);
   const signals = [];
   let volatility = 0;
 
   if (hist.length >= 5) {
-    // Fatality surge
     const ac = live.acled.data[iso];
     const fat = ac?.fatalities || 0;
     const pastFat = hist.map(h => h.fatalities || 0).filter(v => v > 0);
@@ -635,7 +727,6 @@ function computeVolatilityAxis(iso, live, baseScore) {
       }
     }
 
-    // Displacement surge
     const uh = live.unhcr.data[iso];
     const disp = uh?.total || 0;
     const pastDisp = hist.map(h => h.displaced || 0).filter(v => v > 0);
@@ -650,11 +741,9 @@ function computeVolatilityAxis(iso, live, baseScore) {
     }
   }
 
-  // Novel GDACS Red (not in history)
   const gdacsRed = (live.gdacs.data || []).filter(f =>
     f.properties?.alertlevel === "Red" &&
-    ((f.properties?.affectedcountries || []).some(c => c.iso3 === iso) ||
-     findClosestCountry(f.geometry?.coordinates?.[0] || 0, f.geometry?.coordinates?.[1] || 0) === iso)
+    (f.properties?.affectedcountries || []).some(c => c.iso3 === iso)
   );
   if (gdacsRed.length > 0) {
     const hadRed = hist.some(h => (h.gdacs_red || 0) > 0);
@@ -664,7 +753,6 @@ function computeVolatilityAxis(iso, live, baseScore) {
     }
   }
 
-  // Novel WHO outbreak
   const who = live.who.data[iso];
   if (who && who.length > 0) {
     const known = new Set();
@@ -683,42 +771,33 @@ function computeVolatilityAxis(iso, live, baseScore) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  SCORE COMBINATION — the orthogonal model
+//  SCORE COMBINATION
 // ════════════════════════════════════════════════════════════════════════════
 
-function computeFinalScore(iso, scale, intensity, volatility, hasEvidence) {
+function combineAxes(iso, scale, intensity, volatility, hasEvidence) {
   const c = COUNTRIES[iso];
   const fsiFloor = Math.round(Math.min(CFG.FSI_FLOOR_CAP, c.fsi_score) * CFG.FSI_FLOOR_FRACTION);
 
   if (!hasEvidence) {
     return {
       score: Math.max(CFG.NO_EVIDENCE_FLOOR, fsiFloor),
-      base: 0,
-      gated: false,
-      axis_dominant: "none",
-      fsi_floor: fsiFloor,
+      base: 0, gated: false, axis_dominant: "none",
+      fsi_floor: fsiFloor, gated_score: 0, with_volatility: 0,
     };
   }
 
-  // Base score = max of SCALE, INTENSITY
   const base = Math.max(scale, intensity);
   const axisDominant = scale >= intensity ? "scale" : "intensity";
 
-  // Gate: if intensity < threshold, dampen
   const gated = intensity >= CFG.INTENSITY_GATE;
   const gatedScore = gated ? base : base * CFG.INTENSITY_DAMPEN;
-
-  // Volatility applies as bounded modifier
   const withVolatility = gatedScore + volatility;
-
-  // FSI floor
   const final = Math.max(fsiFloor, withVolatility);
 
   return {
     score: clamp(final, 0, 99),
     base: +base.toFixed(1),
-    gated,
-    axis_dominant: axisDominant,
+    gated, axis_dominant: axisDominant,
     fsi_floor: fsiFloor,
     gated_score: +gatedScore.toFixed(1),
     with_volatility: +withVolatility.toFixed(1),
@@ -735,22 +814,22 @@ function buildStore(liveData) {
   for (const [iso, country] of Object.entries(COUNTRIES)) {
     const scaleAxis = computeScaleAxis(iso, liveData);
     const intensityAxis = computeIntensityAxis(iso, liveData);
-    const volatilityAxis = computeVolatilityAxis(iso, liveData, 0);
+    const volatilityAxis = computeVolatilityAxis(iso, liveData);
+
     const hasEvidence = scaleAxis.audit.length > 0 ||
                         intensityAxis.audit.length > 0 ||
                         volatilityAxis.signals.length > 0;
 
-    const result = computeFinalScore(iso, scaleAxis.scale, intensityAxis.intensity, volatilityAxis.volatility, hasEvidence);
+    const result = combineAxes(iso, scaleAxis.scale, intensityAxis.intensity, volatilityAxis.volatility, hasEvidence);
 
-    // Record for future volatility calcs
     const ac = liveData.acled.data[iso];
     const uh = liveData.unhcr.data[iso];
     const who = liveData.who.data[iso];
     const gdacsRed = (liveData.gdacs.data || []).filter(f =>
       f.properties?.alertlevel === "Red" &&
-      ((f.properties?.affectedcountries || []).some(c => c.iso3 === iso) ||
-       findClosestCountry(f.geometry?.coordinates?.[0] || 0, f.geometry?.coordinates?.[1] || 0) === iso)
+      (f.properties?.affectedcountries || []).some(c => c.iso3 === iso)
     );
+
     LIVE_HISTORY.push(iso, {
       score: result.score,
       scale: scaleAxis.scale,
@@ -770,6 +849,7 @@ function buildStore(liveData) {
     if ((liveData.inform.data[iso]?.severity || 0) > 0) activeSources.push("INFORM");
     if (who?.length > 0) activeSources.push("WHO");
     if (gdacsRed.length > 0) activeSources.push("GDACS");
+    if ((liveData.ifrc.data || []).some(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso)) activeSources.push("IFRC");
 
     store[iso] = {
       ...country,
@@ -782,6 +862,7 @@ function buildStore(liveData) {
       scale_audit: scaleAxis.audit,
       intensity_audit: intensityAxis.audit,
       volatility_signals: volatilityAxis.signals,
+      scale_dominant: scaleAxis.dominant,
       axis_dominant: result.axis_dominant,
       gated: result.gated,
       base_score: result.base,
@@ -795,7 +876,7 @@ function buildStore(liveData) {
     };
   }
 
-  // Spillover (small, evidence-gated)
+  // Spillover — only for countries with evidence, small
   for (const iso in store) {
     if (!store[iso].has_evidence) continue;
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
@@ -811,7 +892,7 @@ function buildStore(liveData) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  OUTPUT
+//  OUTPUT HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 
 function severityLabel(s) { return s >= 85 ? "CATASTROPHIC" : s >= 75 ? "CRITICAL" : s >= 60 ? "HIGH" : s >= 40 ? "ELEVATED" : "MODERATE"; }
@@ -822,17 +903,22 @@ function buildPayload(iso, store, ranked) {
   const c = store[iso];
   const rank = ranked.indexOf(iso) + 1;
   return {
-    iso, name: c.name, flag: c.flag,
+    iso,
+    name: c.name,
+    flag: c.flag,
+    population: c.population,
+    population_fmt: fmtPop(c.population),
     score: c.score,
     severity: severityLabel(c.score),
     severity_emoji: severityEmoji(c.score),
     severity_color: severityColor(c.score),
-    rank, total_countries: ranked.length,
+    rank,
+    total_countries: ranked.length,
 
-    // Orthogonal axes — full transparency
     axes: {
       scale: {
         value: +c.scale.toFixed(1),
+        dominant_component: c.scale_dominant,
         components: Object.fromEntries(Object.entries(c.scale_components).map(([k, v]) => [k, +v.toFixed(1)])),
         audit: c.scale_audit,
       },
@@ -847,7 +933,6 @@ function buildPayload(iso, store, ranked) {
       },
     },
 
-    // Combination metadata
     combination: {
       dominant_axis: c.axis_dominant,
       base: c.base_score,
@@ -917,30 +1002,29 @@ export default async function handler(req, res) {
       meta: {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
-        scoring_model: "ORTHOGONAL_AXES_v16",
+        scoring_model: "CORRECTED_ORTHOGONAL_AXES_v17",
         description:
-          "Three independent axes combined via gated max. " +
-          "SCALE captures population mass affected (displacement, famine-affected, conflict-affected). " +
-          "INTENSITY captures severity per unit (IPC phase 5, INFORM severity, fatality rate). " +
-          "VOLATILITY is a bounded ±12 modifier for anomalous deviations from own baseline. " +
-          "Formula: base = max(scale, intensity); gated = intensity >= 30 ? base : base × 0.65; " +
-          "final = max(fsi_floor, gated + volatility).",
-        scale_weights: CFG.SCALE_COMPONENTS,
-        intensity_weights: CFG.INTENSITY_COMPONENTS,
+          "Three independent axes combined via gated max. SCALE captures absolute population mass " +
+          "affected. INTENSITY captures per-capita severity (famine rate, displacement rate, INFORM). " +
+          "VOLATILITY is a bounded ±12 modifier for anomalous deviation. Population is hydrated from " +
+          "World Bank; UNHCR uses most-recent-year dedup; FEWS NET uses most-recent-period only.",
+        scale_weights: CFG.SCALE_WEIGHTS,
+        intensity_weights: CFG.INTENSITY_WEIGHTS,
         volatility_bounds: { min: CFG.VOLATILITY_MAX_NEG, max: CFG.VOLATILITY_MAX_POS },
         intensity_gate: CFG.INTENSITY_GATE,
         intensity_dampen: CFG.INTENSITY_DAMPEN,
         fsi_floor_fraction: CFG.FSI_FLOOR_FRACTION,
         fsi_floor_cap: CFG.FSI_FLOOR_CAP,
         source_status: {
-          acled: { live: liveData.acled.live, configured: !!(process.env.ACLED_API_KEY && process.env.ACLED_EMAIL) },
-          fews: { live: liveData.fews.live },
-          unhcr: { live: liveData.unhcr.live },
-          inform: { live: liveData.inform.live },
-          who: { live: liveData.who.live },
-          gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length || 0 },
-          usgs: { live: liveData.usgs.live, events: liveData.usgs.data?.length || 0 },
-          ifrc: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length || 0 },
+          populations: { live: liveData.populations.live, countries: Object.keys(liveData.populations.data).length },
+          acled:       { live: liveData.acled.live, configured: liveData.acled.configured },
+          fews:        { live: liveData.fews.live, countries: Object.keys(liveData.fews.data).length },
+          unhcr:       { live: liveData.unhcr.live, countries: Object.keys(liveData.unhcr.data).length },
+          inform:      { live: liveData.inform.live, countries: Object.keys(liveData.inform.data).length },
+          who:         { live: liveData.who.live },
+          gdacs:       { live: liveData.gdacs.live, events: liveData.gdacs.data?.length || 0 },
+          ifrc:        { live: liveData.ifrc.live, events: liveData.ifrc.data?.length || 0 },
+          usgs:        { live: liveData.usgs.live, events: liveData.usgs.data?.length || 0 },
         },
       },
       top_story: payloads[0] || null,
@@ -951,7 +1035,7 @@ export default async function handler(req, res) {
     res.end(JSON.stringify(body, null, 2));
 
   } catch (err) {
-    console.error("[v16.0]", err);
+    console.error("[v17.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
