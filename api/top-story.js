@@ -1,19 +1,17 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.4 — PURE LIVE EVIDENCE
+//  TOP-STORY API — v13.4 — LIVE BREAKING NEWS (CLEANED SIGNALS)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 22 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.4 CHANGES ═══
-//  ✅ REMOVED: derived signals (conflict_surge, food_crisis, government_crisis)
-//     These were computed from synthetic seedHistory and added ~72 phantom
-//     weighted points to every high-velocity country. Now the score is driven
-//     ONLY by real feeds with real timestamps.
-//  ✅ HEADLINE: strict dedup (different type AND different details).
-//  ✅ UNHCR: proper parseInt coercion (no more "22335000" for Japan).
-//  ✅ USGS Significant Month: no longer deduped against weekly — fires
-//     as a separate signal when magnitude differs by 0.5+.
+//  🌍 179 COUNTRIES · 21 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
+//  ═══ v13.4 FIXES ═══
+//  ✅ Removed conflict_surge derived signal (was synthetic — not a real feed)
+//  ✅ Removed food_crisis and government_crisis derived signals (same issue)
+//  ✅ Removed cold-start spike_bonus (was amplifying synthetic history)
+//  ✅ Added population sanity check to disease.sh (blocks implausible counts)
+//  ✅ Removed WST block from live adjustments (WST is structural, not live)
+//  ✅ Fixed headline dedup to require both type AND details to differ
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -48,18 +46,14 @@ const CFG = {
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
   SCORE_FIELD_IS_LIVE: true,
-  DERIVED_SIGNAL_REQUIRES_LIVE: false,
-  DERIVED_SIGNALS_ENABLED: false,   // v13.4: DISABLED — pure live evidence only
   LIVE_EVENT_FLAT_BOOST: 35,
   LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
-  SPIKE_WITH_EVENT_MULTIPLIER: 2.0,
   FRESH_SIGNAL_HOURS: 24,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
   WST_CURRENCY_CRISIS_THRESHOLD: 20,
-  WST_SUPPLY_CHAIN_SHOCK_MULTIPLIER: 0.08,
   WST_MAX_BOOST_ABOVE_FSI: 25,
 
   GDACS_ENABLED: true,
@@ -131,6 +125,7 @@ const CFG = {
   DISEASE_ENABLED: true,
   DISEASE_ACTIVE_THRESHOLD: 1000,
   DISEASE_MAX_BOOST: 12,
+  DISEASE_POPULATION_CEILING_PCT: 0.15, // reject if active > 15% of pop
 };
 
 const CORS = {
@@ -171,9 +166,7 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
 
-// ════════════════════════════════════════════════════════════════════════════
-//  FSI 2024 — 179 COUNTRIES (FULL)
-// ════════════════════════════════════════════════════════════════════════════
+// ─── FSI 2024 — 179 COUNTRIES ────────────────────────────────────────────────
 
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
@@ -357,168 +350,10 @@ const FSI_2024 = {
   NOR: { name:"Norway",               flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-//  WST CLASSIFICATION — FULL TABLE
-// ════════════════════════════════════════════════════════════════════════════
+// ─── WST CLASSIFICATION (structural only, no longer used in live scoring) ───
+// Kept for reference / potential future structural overlay use.
 
 const WST_CLASSIFICATION = {
-  USA: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 1.0, reserve_currency: true, gdp_per_capita: 76000, momentum_factor: 0.9 },
-  GBR: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: true, gdp_per_capita: 48000, momentum_factor: 0.85 },
-  DEU: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.9, reserve_currency: false, gdp_per_capita: 52000, momentum_factor: 0.85 },
-  FRA: { class: "Core", tier: 1, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 45000, momentum_factor: 0.8 },
-  JPN: { class: "Core", tier: 1, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.85, reserve_currency: false, gdp_per_capita: 40000, momentum_factor: 0.8 },
-  CAN: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 52000, momentum_factor: 0.85 },
-  AUS: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 65000, momentum_factor: 0.8 },
-  CHE: { class: "Core", tier: 1, debt_sensitivity: 0.18, recovery_rate: 0.88, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 93000, momentum_factor: 0.9 },
-  NLD: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 58000, momentum_factor: 0.85 },
-  NOR: { class: "Core", tier: 1, debt_sensitivity: 0.15, recovery_rate: 0.90, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 89000, momentum_factor: 0.9 },
-  SWE: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 60000, momentum_factor: 0.85 },
-  DNK: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 68000, momentum_factor: 0.85 },
-  FIN: { class: "Core", tier: 1, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 54000, momentum_factor: 0.8 },
-  IRL: { class: "Core", tier: 1, debt_sensitivity: 0.20, recovery_rate: 0.85, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 100000, momentum_factor: 0.85 },
-  NZL: { class: "Core", tier: 1, debt_sensitivity: 0.22, recovery_rate: 0.82, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 48000, momentum_factor: 0.85 },
-  KOR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 33000, momentum_factor: 0.75 },
-  ESP: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.7 },
-  ITA: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 35000, momentum_factor: 0.7 },
-  PRT: { class: "Core", tier: 2, debt_sensitivity: 0.50, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.65 },
-  GRC: { class: "Core", tier: 2, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.6 },
-  AUT: { class: "Core", tier: 2, debt_sensitivity: 0.25, recovery_rate: 0.80, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 53000, momentum_factor: 0.8 },
-  BEL: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, momentum_factor: 0.8 },
-  SGP: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 83000, momentum_factor: 0.8 },
-  ISR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 55000, momentum_factor: 0.75 },
-  CZE: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.70, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.7 },
-  SVN: { class: "Core", tier: 2, debt_sensitivity: 0.38, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.7 },
-  SVK: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.65, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, momentum_factor: 0.65 },
-  LTU: { class: "Core", tier: 2, debt_sensitivity: 0.42, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.65 },
-  LVA: { class: "Core", tier: 2, debt_sensitivity: 0.43, recovery_rate: 0.60, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 22000, momentum_factor: 0.65 },
-  EST: { class: "Core", tier: 2, debt_sensitivity: 0.40, recovery_rate: 0.62, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.65 },
-  MLT: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 34000, momentum_factor: 0.7 },
-  CYP: { class: "Core", tier: 2, debt_sensitivity: 0.45, recovery_rate: 0.58, extractive_penalty: 0, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 32000, momentum_factor: 0.6 },
-  ARE: { class: "Core", tier: 2, debt_sensitivity: 0.30, recovery_rate: 0.75, extractive_penalty: 0, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 50000, momentum_factor: 0.75 },
-  QAT: { class: "Core", tier: 2, debt_sensitivity: 0.28, recovery_rate: 0.78, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 70000, momentum_factor: 0.8 },
-  KWT: { class: "Core", tier: 2, debt_sensitivity: 0.32, recovery_rate: 0.72, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 35000, momentum_factor: 0.75 },
-  BHR: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 28000, momentum_factor: 0.7 },
-  OMN: { class: "Core", tier: 2, debt_sensitivity: 0.35, recovery_rate: 0.68, extractive_penalty: 0, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 25000, momentum_factor: 0.7 },
-
-  CHN: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.55, extractive_penalty: 5, structural_weight: 0.8, reserve_currency: false, gdp_per_capita: 13000, momentum_factor: 0.6 },
-  RUS: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 14000, momentum_factor: 0.55 },
-  IND: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.48, extractive_penalty: 10, structural_weight: 0.7, reserve_currency: false, gdp_per_capita: 2600, momentum_factor: 0.5 },
-  BRA: { class: "Semi", tier: 3, debt_sensitivity: 0.68, recovery_rate: 0.50, extractive_penalty: 12, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 8900, momentum_factor: 0.55 },
-  MEX: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.52, extractive_penalty: 10, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.55 },
-  TUR: { class: "Semi", tier: 3, debt_sensitivity: 0.75, recovery_rate: 0.42, extractive_penalty: 14, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.45 },
-  ZAF: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.45, extractive_penalty: 16, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
-  ARG: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 18, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.4 },
-  IDN: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.52, extractive_penalty: 8, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.55 },
-  SAU: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.58, extractive_penalty: 6, structural_weight: 0.6, reserve_currency: false, gdp_per_capita: 33000, momentum_factor: 0.6 },
-  POL: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.60, extractive_penalty: 5, structural_weight: 0.5, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.6 },
-  HUN: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 19000, momentum_factor: 0.55 },
-  ROU: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.55 },
-  BGR: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 13000, momentum_factor: 0.5 },
-  HRV: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.55 },
-  MNE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.54, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 10000, momentum_factor: 0.55 },
-  SRB: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.50, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 9000, momentum_factor: 0.5 },
-  ALB: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.48, extractive_penalty: 9, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
-  MKD: { class: "Semi", tier: 3, debt_sensitivity: 0.63, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
-  BIH: { class: "Semi", tier: 3, debt_sensitivity: 0.65, recovery_rate: 0.45, extractive_penalty: 10, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.45 },
-  GEO: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.5 },
-  ARM: { class: "Semi", tier: 3, debt_sensitivity: 0.62, recovery_rate: 0.48, extractive_penalty: 8, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.5 },
-  AZE: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.55 },
-  KAZ: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.55 },
-  UZB: { class: "Semi", tier: 3, debt_sensitivity: 0.60, recovery_rate: 0.50, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.5 },
-  THA: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.55 },
-  MYS: { class: "Semi", tier: 3, debt_sensitivity: 0.52, recovery_rate: 0.58, extractive_penalty: 5, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.6 },
-  VNM: { class: "Semi", tier: 3, debt_sensitivity: 0.55, recovery_rate: 0.55, extractive_penalty: 6, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.55 },
-  PHL: { class: "Semi", tier: 3, debt_sensitivity: 0.58, recovery_rate: 0.52, extractive_penalty: 7, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.55 },
-  BLR: { class: "Semi", tier: 3, debt_sensitivity: 0.70, recovery_rate: 0.40, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.45 },
-  UKR: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.35, extractive_penalty: 20, structural_weight: 0.4, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.4 },
-  LBN: { class: "Semi", tier: 3, debt_sensitivity: 0.92, recovery_rate: 0.25, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
-  LKA: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.30, extractive_penalty: 15, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
-  IRN: { class: "Semi", tier: 3, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  EGY: { class: "Semi", tier: 3, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
-  DZA: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
-  MAR: { class: "Semi", tier: 3, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
-  TUN: { class: "Semi", tier: 3, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
-  JOR: { class: "Semi", tier: 3, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
-  IRQ: { class: "Semi", tier: 3, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
-  LBY: { class: "Semi", tier: 3, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
-  VEN: { class: "Semi", tier: 3, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.2 },
-  PRK: { class: "Semi", tier: 3, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.2 },
-  MMR: { class: "Semi", tier: 3, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.3 },
-  PSE: { class: "Semi", tier: 3, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 15, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 },
-  CUB: { class: "Semi", tier: 3, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
-
-  SOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
-  SDN: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
-  SSD: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
-  SYR: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.2 },
-  YEM: { class: "Periphery", tier: 4, debt_sensitivity: 0.92, recovery_rate: 0.18, extractive_penalty: 25, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.2 },
-  AFG: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.20, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
-  HTI: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.22, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
-  TCD: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.25, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
-  ETH: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.28, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
-  NGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 16, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.3 },
-  PAK: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 1500, momentum_factor: 0.3 },
-  BGD: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2800, momentum_factor: 0.3 },
-  KEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.35 },
-  UGA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
-  MOZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
-  MWI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.25 },
-  ZWE: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.25 },
-  COD: { class: "Periphery", tier: 4, debt_sensitivity: 0.88, recovery_rate: 0.20, extractive_penalty: 22, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.2 },
-  CAF: { class: "Periphery", tier: 4, debt_sensitivity: 0.90, recovery_rate: 0.18, extractive_penalty: 24, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.2 },
-  GIN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1200, momentum_factor: 0.3 },
-  MLI: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 900, momentum_factor: 0.25 },
-  NER: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 600, momentum_factor: 0.25 },
-  BFA: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
-  CMR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, momentum_factor: 0.3 },
-  BDI: { class: "Periphery", tier: 4, debt_sensitivity: 0.85, recovery_rate: 0.22, extractive_penalty: 20, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 300, momentum_factor: 0.25 },
-  ERI: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
-  SEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1600, momentum_factor: 0.3 },
-  GMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
-  GNB: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 800, momentum_factor: 0.25 },
-  SLE: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 500, momentum_factor: 0.25 },
-  LBR: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 700, momentum_factor: 0.25 },
-  CIV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2500, momentum_factor: 0.3 },
-  GHA: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.30, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2200, momentum_factor: 0.3 },
-  TGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
-  BEN: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1300, momentum_factor: 0.3 },
-  NAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.35 },
-  BWA: { class: "Periphery", tier: 4, debt_sensitivity: 0.70, recovery_rate: 0.38, extractive_penalty: 10, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.4 },
-  ZMB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 1000, momentum_factor: 0.3 },
-  AGO: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
-  COG: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
-  GAB: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 8000, momentum_factor: 0.35 },
-  GNQ: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 10000, momentum_factor: 0.3 },
-  HND: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
-  NIC: { class: "Periphery", tier: 4, debt_sensitivity: 0.82, recovery_rate: 0.24, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.25 },
-  GTM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  SLV: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  CRI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 12000, momentum_factor: 0.35 },
-  PAN: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, momentum_factor: 0.35 },
-  COL: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.35 },
-  PER: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.35 },
-  ECU: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.3 },
-  BOL: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.25 },
-  PRY: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  URY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.35 },
-  CHL: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.3, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.35 },
-  DOM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.35 },
-  JAM: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  TTO: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 16000, momentum_factor: 0.35 },
-  GUY: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 20000, momentum_factor: 0.35 },
-  SUR: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 5000, momentum_factor: 0.3 },
-  BHS: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 30000, momentum_factor: 0.35 },
-  BRB: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 15000, momentum_factor: 0.35 },
-  ATG: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 18000, momentum_factor: 0.35 },
-  GRD: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 11000, momentum_factor: 0.35 },
-  BLZ: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 7000, momentum_factor: 0.35 },
-  MDA: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.3 },
-  PNG: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 },
-  FJI: { class: "Periphery", tier: 4, debt_sensitivity: 0.72, recovery_rate: 0.35, extractive_penalty: 12, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 6000, momentum_factor: 0.35 },
-  SLB: { class: "Periphery", tier: 4, debt_sensitivity: 0.78, recovery_rate: 0.28, extractive_penalty: 16, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 2000, momentum_factor: 0.3 },
-  FSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.35 },
-  WSM: { class: "Periphery", tier: 4, debt_sensitivity: 0.75, recovery_rate: 0.32, extractive_penalty: 14, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 4000, momentum_factor: 0.35 },
-  TLS: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.1, reserve_currency: false, gdp_per_capita: 1500, momentum_factor: 0.25 },
   default: { class: "Periphery", tier: 4, debt_sensitivity: 0.80, recovery_rate: 0.26, extractive_penalty: 18, structural_weight: 0.2, reserve_currency: false, gdp_per_capita: 3000, momentum_factor: 0.3 }
 };
 
@@ -604,46 +439,49 @@ function isUS(iso) { return iso === "USA"; }
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
+// v13.4: Only real, source-backed signals. No derived structural echoes.
 const LIVE_SIGNALS = {
-  gdacs_red:          { weight: 100, verify: 1.0,  label: "GDACS RED Alert",        icon: "🚨", type: "event" },
-  gdacs_orange:       { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",      icon: "🟠", type: "event" },
-  earthquake_m6:      { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",          icon: "🌍", type: "event" },
-  earthquake_m5:      { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",          icon: "🌍", type: "event" },
-  earthquake_m45:     { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",        icon: "🌍", type: "event" },
-  who_outbreak:       { weight: 80,  verify: 1.0,  label: "WHO Outbreak",            icon: "🦠", type: "event" },
-  who_outbreak_multi: { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",  icon: "🦠", type: "event" },
-  unhcr_mass_displace:{ weight: 90,  verify: 1.0,  label: "Mass Displacement",       icon: "🚶", type: "event" },
-  nasa_wildfire:      { weight: 75,  verify: 0.9,  label: "Active Wildfire",         icon: "🔥", type: "event" },
-  nasa_storm:         { weight: 70,  verify: 0.9,  label: "Severe Storm",            icon: "🌀", type: "event" },
-  nasa_flood:         { weight: 70,  verify: 0.9,  label: "Flood Event",             icon: "🌊", type: "event" },
-  nasa_drought:       { weight: 55,  verify: 0.9,  label: "Drought",                 icon: "🏜️", type: "event" },
-  ifrc_emergency:     { weight: 75,  verify: 1.0,  label: "IFRC Emergency",          icon: "🏥", type: "event" },
-  cyclone_active:     { weight: 85,  verify: 1.0,  label: "Active Cyclone",          icon: "🌀", type: "event" },
-  flood_severe:       { weight: 70,  verify: 0.9,  label: "Severe Flooding",         icon: "🌊", type: "event" },
-  heat_extreme:       { weight: 60,  verify: 0.8,  label: "Extreme Heat",            icon: "🥵", type: "event" },
-  disease_active:     { weight: 50,  verify: 0.8,  label: "Disease Outbreak",        icon: "🦠", type: "event" },
-  inflation_crisis:   { weight: 45,  verify: 0.9,  label: "Inflation Crisis",        icon: "📈", type: "event" },
-  gdp_contraction:    { weight: 40,  verify: 0.9,  label: "GDP Contraction",         icon: "📉", type: "event" },
-  cdc_outbreak:       { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",      icon: "🧫", type: "event" },
-  spc_severe:         { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",       icon: "⛈️", type: "event" },
-  ifrc_appeal:        { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",    icon: "🆘", type: "event" },
-  who_don:            { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",     icon: "🦠", type: "event" },
-  sentinel_observation:{ weight: 35, verify: 0.85, label: "Satellite Observation",    icon: "🛰️", type: "event" },
-  nasa_power_anomaly: { weight: 50,  verify: 0.9,  label: "Climate Anomaly",          icon: "🌡️", type: "event" },
+  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨", type: "event" },
+  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠", type: "event" },
+  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍", type: "event" },
+  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍", type: "event" },
+  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event" },
+  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event" },
+  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event" },
+  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event" },
+  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event" },
+  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event" },
+  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event" },
+  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event" },
+  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️", type: "event" },
+  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥", type: "event" },
+  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event" },
+  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event" },
+  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event" },
+  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event" },
+  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠", type: "event" },
+  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈", type: "event" },
+  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉", type: "event" },
+  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",        icon: "🧫", type: "event" },
+  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",         icon: "⛈️", type: "event" },
+  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event" },
+  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event" },
 };
 
+// v13.4: Detects only source-backed events. No derived signals.
 function detectLiveBreakingSignals(iso, live, store) {
   const signals = [];
-  const c = COUNTRIES[iso];
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
 
+  // GDACS
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
+  // Earthquakes
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
@@ -655,40 +493,37 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   }
 
-  // v13.4: USGS Significant Month fires as an ADDITIONAL signal when the mag differs meaningfully
+  // USGS Significant Month tail
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
-      const sameMagnitude = s.quakeMag && Math.abs(s.quakeSigMonth.mag - s.quakeMag) < 0.5;
-      if (!sameMagnitude) {
-        signals.push({
-          type: s.quakeSigMonth.mag >= 6.0 ? "earthquake_m6" : "earthquake_m5",
-          weight: s.quakeSigMonth.mag >= 6.0 ? 95 : 65,
-          ageHours,
-          source: "USGS (significant-month)",
-          details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`,
-        });
+      const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_"));
+      if (!alreadyCovered) {
+        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}` });
       }
     }
   }
 
+  // WHO RSS
   if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
     const ageHours = s.whoOutbreaks[0].ageHours || 24;
     if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", ") });
     else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease });
   }
 
+  // WHO DON
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
     for (const don of s.whoDon.slice(0, 3)) {
-      const ageHours = don.ageHours || 24;
-      signals.push({ type: "who_don", weight: CFG.WHO_DON_BOOST, ageHours, source: "WHO DON", details: don.title || don.disease || "WHO Disease Outbreak News" });
+      signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO Disease Outbreak News" });
     }
   }
 
+  // UNHCR displacement
   if (s.totalDisplaced > 500_000) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
+  // NASA EONET
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
@@ -700,19 +535,22 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
+  // IFRC events
   if (s.ifrcCount > 0 && s.ifrcEvents) {
     const top = s.ifrcEvents[0];
     const ageHours = top.disaster_start_date ? (now - new Date(top.disaster_start_date).getTime()) / 36e5 : 72;
     signals.push({ type: "ifrc_emergency", weight: 75, ageHours, source: "IFRC Event", details: top.name });
   }
 
+  // IFRC appeals
   if (CFG.IFRC_APPEAL_ENABLED && s.ifrcAppeals && s.ifrcAppeals.length > 0) {
     for (const ap of s.ifrcAppeals.slice(0, 2)) {
       const ageHours = ap.start_date ? (now - new Date(ap.start_date).getTime()) / 36e5 : 72;
-      signals.push({ type: "ifrc_appeal", weight: CFG.IFRC_APPEAL_BOOST, ageHours, source: "IFRC Appeal", details: ap.name || ap.dtype?.name || "IFRC Emergency Appeal" });
+      signals.push({ type: "ifrc_appeal", weight: 80, ageHours, source: "IFRC Appeal", details: ap.name || ap.dtype?.name || "IFRC Emergency Appeal" });
     }
   }
 
+  // Cyclone / flood / heat
   if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
     signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
   }
@@ -723,19 +561,27 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
+  // disease.sh (with population sanity check)
   if (s.diseaseActive > 10_000) {
-    signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
+    const pop = live?.wb?.population?.data?.[iso]?.value || 0;
+    const implausible = pop > 0 && s.diseaseActive > pop * CFG.DISEASE_POPULATION_CEILING_PCT;
+    if (!implausible) {
+      signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
+    }
   }
 
+  // World Bank economic
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
+  // CDC (US only)
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     for (const ob of s.cdcOutbreaks.slice(0, 3)) {
       signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
     }
   }
 
+  // SPC (US only)
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: CFG.SPC_TSTM_BOOST, MRGL: CFG.SPC_MRGL_BOOST, SLGT: CFG.SPC_SLGT_BOOST, ENH: CFG.SPC_ENH_BOOST, MDT: CFG.SPC_MDT_BOOST, HIGH: CFG.SPC_HIGH_BOOST };
@@ -743,6 +589,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
+  // NASA POWER
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
     const tempAnom = s.nasaPower.tempAnomaly || 0;
     const precipAnom = s.nasaPower.precipAnomaly || 0;
@@ -754,13 +601,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ═══ v13.4: DERIVED SIGNALS REMOVED ═══
-  // The previous v13.3 blocks for conflict_surge, food_crisis, and
-  // government_crisis have been DELETED. They were computed from synthetic
-  // seedHistory and were adding ~72 weighted points to every country with
-  // any structural velocity. The score is now driven ONLY by real feeds.
-
-  return signals.map(sig => ({ ...sig, is_live_event: LIVE_SIGNALS[sig.type]?.type === "event" }));
+  return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
 
 function computeLiveBreakingScore(iso, live, store) {
@@ -784,13 +625,13 @@ function computeLiveBreakingScore(iso, live, store) {
     const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
     rawScore += weighted;
     signalCount++;
-    if (sig.is_live_event) liveEventCount++;
+    liveEventCount++;
     sources.add(sig.source);
     activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
 
   let liveEventBoost = 0;
-  const freshEvents = activeSignals.filter(s => s.is_live_event && s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
+  const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
   if (freshEvents.length > 0) {
     liveEventBoost = CFG.LIVE_EVENT_FLAT_BOOST + Math.min(CFG.LIVE_EVENT_FLAT_BOOST * 0.5, (freshEvents.length - 1) * 15);
     rawScore += liveEventBoost;
@@ -813,19 +654,6 @@ function computeLiveBreakingScore(iso, live, store) {
 
   const fsiBaseline = ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX;
   rawScore += Math.max(0, fsiBaseline);
-
-  let spikeBonus = 0;
-  if (store[iso]?.historical_scores?.length >= 7) {
-    const hist = store[iso].historical_scores;
-    const recentAvg = mean(hist.slice(-7, -1));
-    const today = hist[hist.length - 1];
-    const spike = today - recentAvg;
-    if (spike > 5) {
-      const mult = freshEvents.length > 0 ? CFG.SPIKE_WITH_EVENT_MULTIPLIER : 1.0;
-      spikeBonus = Math.min(25 * mult, spike * 1.5 * mult);
-    }
-  }
-  rawScore += spikeBonus;
 
   let ensembleDampener = 1.0;
   if (CFG.ENSEMBLE_ENABLED && store[iso]?.signals?.ensembleSpread >= CFG.ENSEMBLE_SPREAD_THRESHOLD) {
@@ -863,7 +691,6 @@ function computeLiveBreakingScore(iso, live, store) {
     live_event_boost: +liveEventBoost.toFixed(2),
     diversity_bonus: diversityBonus,
     freshness_bonus: freshnessBonus,
-    spike_bonus: +spikeBonus.toFixed(1),
     fsi_baseline: +fsiBaseline.toFixed(2),
     ensemble_dampener: ensembleDampener,
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
@@ -874,7 +701,7 @@ function computeLiveBreakingScore(iso, live, store) {
 
 function buildBreakingHeadline(iso, signals, country) {
   if (signals.length === 0) return `${country.flag} ${country.name}: No active breaking crisis signals`;
-  const freshEvents = signals.filter(s => s.is_live_event && s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
+  const freshEvents = signals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
   const sortedByWeight = [...(freshEvents.length ? freshEvents : signals)].sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
   const top = sortedByWeight[0];
   const second = sortedByWeight.find(e => e.type !== top.type && e.details !== top.details);
@@ -987,6 +814,7 @@ class CrisisMLModel {
 }
 
 const mlModel = new CrisisMLModel();
+
 function trainMLModel(store) {
   if (!CFG.ML_ENABLED) return;
   const seqs = [];
@@ -996,23 +824,13 @@ function trainMLModel(store) {
   }
   if (seqs.length >= 10) mlModel.train(seqs);
 }
+
 function mlEnhancedForecast(iso, currentScore, store) {
   const h = seedHistory(iso, currentScore);
   const mlP = mlModel.predict(h);
   const trad = trendForecast(h, currentScore);
-  let wstAdjustment = 0, wstClass = "Unclassified";
-  if (CFG.WST_ENABLED && store?.[iso]?.__wst) {
-    const wst = store[iso].__wst;
-    wstClass = wst.class;
-    if (wstClass === "Core") wstAdjustment = -Math.round((1 - wst.recovery_rate) * 4);
-    else if (wstClass === "Semi") wstAdjustment = Math.round((1 - wst.recovery_rate) * 2);
-    else if (wstClass === "Periphery") wstAdjustment = Math.round((1 - wst.recovery_rate) * 6);
-  }
-  const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
-  const fsiScore = Math.round((fsiBase / 120) * 100);
-  const tradAdj = Math.max(fsiScore - 15, Math.min(fsiScore + 25, trad.fc + wstAdjustment));
-  const blended = Math.round(mlP.forecast * 0.6 + tradAdj * 0.4);
-  return { fc: clamp(blended), ml_forecast: mlP.forecast, trad_forecast: trad.fc, confidence: Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)), trend: mlP.trend || trad.trend, esc: blended > currentScore + 5, slope: trad.slope, anomaly_probability: mlP.anomaly_probability || 0.1, ml_trained: mlModel.trained, training_count: mlModel.trainingCount, fsi_anchor: fsiScore };
+  const blended = Math.round(mlP.forecast * 0.6 + trad.fc * 0.4);
+  return { fc: clamp(blended), ml_forecast: mlP.forecast, trad_forecast: trad.fc, confidence: Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)), trend: mlP.trend || trad.trend, esc: blended > currentScore + 5, slope: trad.slope, anomaly_probability: mlP.anomaly_probability || 0.1, ml_trained: mlModel.trained, training_count: mlModel.trainingCount, fsi_anchor: Math.round((COUNTRIES[iso]?.fsi_score || 50) / 120 * 100) };
 }
 
 class SentimentAnalyzer {
@@ -1038,6 +856,7 @@ class SentimentAnalyzer {
   }
 }
 const sentimentAnalyzer = new SentimentAnalyzer();
+
 function analyzeCountrySentiment(iso, store) {
   if (!CFG.SENTIMENT_ENABLED) return null;
   const c = store[iso];
@@ -1123,8 +942,7 @@ async function fetchIFRC() { try { const r = await safeFetch(fetch("https://goad
 async function fetchIFRCAppeals() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/appeal/?limit=30&ordering=-start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchHeatStress() {
   const isos = Object.keys(COUNTRIES).slice(0, 50);
-  const results = {};
-  let anyLive = false;
+  const results = {}; let anyLive = false;
   for (const iso of isos) {
     const coord = COUNTRIES[iso]?.cent;
     if (!coord || (coord[0] === 0 && coord[1] === 0)) continue;
@@ -1343,7 +1161,7 @@ function extractSignals(iso, live) {
 
   const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topSig = sigQuakes.length ? sigQuakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
-  if (topSig?.properties?.mag >= 5.5 && (!topQuake || Math.abs(topSig.properties.mag - topQuake.properties.mag) >= 0.5)) {
+  if (topSig?.properties?.mag >= 5.5 && (!topQuake || topSig.properties.mag > topQuake.properties.mag)) {
     signals.quakeSigMonth = { mag: topSig.properties.mag, place: topSig.properties.place.split(",")[0].trim(), time: topSig.properties.time };
     liveEvidenceCount++; evidenceSources.push("USGS-Sig");
   }
@@ -1387,13 +1205,10 @@ function extractSignals(iso, live) {
   if (isUS(iso) && CFG.SPC_ENABLED && live.spc.data) { liveEvidenceCount++; evidenceSources.push("SPC"); signals.spcOutlook = live.spc.data; }
   if (isUS(iso) && CFG.CDC_ENABLED && live.cdc.data?.length) { liveEvidenceCount++; evidenceSources.push("CDC"); signals.cdcOutbreaks = live.cdc.data; }
 
-  // v13.4: WHO DON matching — use title only, not full text. This avoids
-  // false positives where "United States" appears in a summary of a report
-  // about Ebola in Congo.
   if (CFG.WHO_DON_ENABLED && live.whoDon.data?.length) {
     const matched = live.whoDon.data.filter(d => {
-      const title = (d.title || "").toLowerCase();
-      return title.includes(name);
+      const text = ((d.title || "") + " " + (d.summary || "") + " " + (d.overview || "")).toLowerCase();
+      return text.includes(name);
     });
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
@@ -1472,27 +1287,13 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── APPLY LIVE ADJUSTMENTS (structural dims — unchanged) ────────────────────
+// ─── APPLY LIVE ADJUSTMENTS (structural dims — used for panel display) ──────
 
 function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
   let totalBoost = 0;
   const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
-
-  if (CFG.WST_ENABLED) {
-    const wst = WST_CLASSIFICATION[iso] || WST_CLASSIFICATION.default;
-    if (wst.class === "Periphery") {
-      const p = Math.min(15, (wst.extractive_penalty || 15) * 0.6);
-      dims.economic = clamp(dims.economic + Math.round(p * 0.5));
-      dims.food = clamp(dims.food + Math.round(p * 0.15));
-      totalBoost += Math.round(p * 0.85);
-      audit.push({ source: "WST Extractivism", delta: Math.round(p * 0.85), reason: "Periphery penalty" });
-    }
-    const debtPenalty = Math.min(12, Math.round(Math.max(0, (5.25 - 2) * wst.debt_sensitivity * 1.2) * 1.5));
-    if (debtPenalty > 1) { dims.economic = clamp(dims.economic + debtPenalty); totalBoost += debtPenalty; audit.push({ source: "WST Debt Shock", delta: debtPenalty, reason: `${wst.class} debt` }); }
-    if (store && store[iso]) store[iso].__wst = { class: wst.class, tier: wst.tier, recovery_rate: wst.recovery_rate, structural_weight: wst.structural_weight, reserve_currency: wst.reserve_currency };
-  }
 
   if (CFG.GDACS_ENABLED && signals.gdacs) {
     const lvl = signals.gdacsAlert || "green";
@@ -1559,8 +1360,14 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   }
 
   if (CFG.DISEASE_ENABLED && signals.diseaseActive > 1000) {
-    const b = Math.min(12, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 5));
-    dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "disease.sh", delta: b, reason: `${signals.diseaseActive} active` });
+    const pop = signals.population || 0;
+    const implausible = pop > 0 && signals.diseaseActive > pop * CFG.DISEASE_POPULATION_CEILING_PCT;
+    if (!implausible) {
+      const b = Math.min(12, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 5));
+      dims.health = clamp(dims.health + b);
+      totalBoost += b;
+      audit.push({ source: "disease.sh", delta: b, reason: `${signals.diseaseActive} active` });
+    }
   }
 
   if (CFG.WHO_ENABLED && signals.whoOutbreaks?.length) {
@@ -1570,20 +1377,26 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 
   if (CFG.WHO_DON_ENABLED && signals.whoDon?.length) {
     const b = Math.min(15, signals.whoDon.length * 8);
-    dims.health = clamp(dims.health + b); dims.access = clamp(dims.access + Math.floor(b * 0.2));
-    totalBoost += b; audit.push({ source: "WHO DON", delta: b, reason: `${signals.whoDon.length} report(s)` });
+    dims.health = clamp(dims.health + b);
+    dims.access = clamp(dims.access + Math.floor(b * 0.2));
+    totalBoost += b;
+    audit.push({ source: "WHO DON", delta: b, reason: `${signals.whoDon.length} report(s)` });
   }
 
   if (CFG.CDC_ENABLED && signals.cdcOutbreaks?.length) {
     const b = Math.min(12, signals.cdcOutbreaks.length * 4);
-    dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "CDC", delta: b, reason: `${signals.cdcOutbreaks.length} notice(s)` });
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "CDC", delta: b, reason: `${signals.cdcOutbreaks.length} notice(s)` });
   }
 
   if (CFG.SPC_ENABLED && signals.spcOutlook) {
     const lvl = signals.spcOutlook.label;
     const wm = { TSTM: 4, MRGL: 6, SLGT: 9, ENH: 12, MDT: 15, HIGH: 18 };
     const b = wm[lvl] || 3;
-    dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "SPC", delta: b, reason: `SPC ${lvl}` });
+    dims.climate = clamp(dims.climate + b);
+    totalBoost += b;
+    audit.push({ source: "SPC", delta: b, reason: `SPC ${lvl}` });
   }
 
   if (CFG.NASA_POWER_ENABLED && signals.nasaPower) {
@@ -1656,7 +1469,6 @@ function buildStore(liveData) {
   }
 
   for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score);
-  for (const iso in store) { const h = store[iso].historical_scores; store[iso].__conflict_velocity = h.length >= 4 ? (h[h.length - 1] - h[h.length - 4]) / 3 : 0; }
 
   if (CFG.ML_ENABLED) trainMLModel(store);
   for (const iso in store) if (CFG.ML_ENABLED) store[iso].ml_forecast = mlEnhancedForecast(iso, store[iso].score, store);
@@ -1768,7 +1580,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
       live_event_boost: lb.live_event_boost || 0,
       freshness_bonus: lb.freshness_bonus || 0,
       diversity_bonus: lb.diversity_bonus || 0,
-      spike_bonus: lb.spike_bonus || 0,
       fsi_baseline: lb.fsi_baseline || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
@@ -1840,7 +1651,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
     recommendation: recommendation(displayScore, anom),
     region: c.region,
     fsi: { score: c.fsi_score, rank: c.fsi_rank, band: c.fsi_band },
-    wst: CFG.WST_ENABLED && c.__wst ? { class: c.__wst.class, tier: c.__wst.tier, recovery_rate: c.__wst.recovery_rate } : null,
+    wst: null,
   };
 
   if (opts.keywords) base.seo_keywords = buildKeywords(iso, store);
@@ -2041,7 +1852,7 @@ export default async function handler(req, res) {
     }
 
     if (params.wst) {
-      const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: store[i].__wst.class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.live_score - a.live_score);
+      const wst = Object.keys(store).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: (WST_CLASSIFICATION[i] || WST_CLASSIFICATION.default).class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.live_score - a.live_score);
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString() }, countries: wst }, null, 2));
       return;
@@ -2090,7 +1901,7 @@ export default async function handler(req, res) {
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.4 — derived signals REMOVED. Score is now driven ONLY by real live feeds with real timestamps. Structural score preserved as `structural_score`.",
+        note: "v13.4 — derived signals removed. Only source-backed events contribute to the live score. `score` = LIVE, `structural_score` = FSI baseline.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
