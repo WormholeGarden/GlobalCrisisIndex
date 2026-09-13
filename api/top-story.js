@@ -903,7 +903,9 @@ function buildBreakingHeadline(iso, signals, country) {
   }
   const freshEvents = signals.filter(s => s.is_live_event && s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
   const top = freshEvents[0] || signals[0];
-  const second = freshEvents[1] || signals[1];
+  const second = freshEvents.find(e => 
+  e.type !== top.type || e.details !== top.details
+) || signals[1];
   const flag = country.flag;
   const name = country.name;
   const prefix = top.ageHours <= 6 ? "BREAKING: " : top.ageHours <= 24 ? "" : "ONGOING: ";
@@ -1835,10 +1837,10 @@ function extractSignals(iso, live) {
   if (totalDisplaced > 0) {
     liveEvidenceCount++;
     evidenceSources.push("UNHCR");
-    signals.refugees = displacement?.refugees || 0;
-    signals.idps = displacement?.idps || 0;
-    signals.asylum_seekers = displacement?.asylum_seekers || 0;
-    signals.totalDisplaced = totalDisplaced;
+    signals.refugees = parseInt(displacement?.refugees) || 0;
+signals.idps = parseInt(displacement?.idps) || 0;
+signals.asylum_seekers = parseInt(displacement?.asylum_seekers) || 0;
+signals.totalDisplaced = signals.refugees + signals.idps + signals.asylum_seekers;
   }
 
   return {
@@ -1866,9 +1868,11 @@ function extractSignals(iso, live) {
     wbInflation: signals.wbInflation || null,
     wbGdpGrowth: signals.wbGdpGrowth || null,
     wbUnemployment: signals.wbUnemployment || null,
-    wbPoverty: signals.wbPoverty || null,
+        wbPoverty: signals.wbPoverty || null,
     refugees: signals.refugees || 0,
     idps: signals.idps || 0,
+    asylum_seekers: signals.asylum_seekers || 0,
+    totalDisplaced: signals.totalDisplaced || 0,
     asylum_seekers: signals.asylum_seekers || 0,
     totalDisplaced: signals.totalDisplaced || 0,
     liveEvidenceCount,
