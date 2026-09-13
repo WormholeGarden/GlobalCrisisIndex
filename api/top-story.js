@@ -1,17 +1,17 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.7 — LIVE BREAKING NEWS (HDX HAPI + CKAN INTEGRATION)
+//  TOP-STORY API — v13.7 — LIVE BREAKING NEWS (GAP-CLOSING FEEDS ADDED)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 35 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
+//  🌍 179 COUNTRIES · 34 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
 //  ═══ v13.7 CHANGES ═══
-//  + HDX HAPI (Humanitarian API) — INFORM risk + population + food security
-//  + HDX Civilian Targeting (ACLED-derived weekly) — atrocity detection
-//  + HDX FEWS NET IPC Classification — food insecurity phases
-//  + HDX HFID (Harmonized Food Insecurity Dataset) — sub-national food data
-//  + HDX EM-DAT — historical disaster context
-//  ✅ All scoped correctly and wired into signal detection + audit ledger
+//  + HDX Civilian Targeting (ACLED atrocity events)  — conflict gap closed
+//  + Global Forest Watch (GFW key optional, degrades gracefully)
+//  + INFORM CSV fallback (structural risk baseline)
+//  + Open-Meteo Marine (fixed silent wave_height feed)
+//  + Refactored regional scoping into REGIONAL_SCOPING map
+//  + Added LIVE_EVENT_WEIGHT_CAP to prevent any single feed dominating
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -50,6 +50,9 @@ const CFG = {
   LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
+
+  // v13.7: single-signal weight cap (prevents any one feed dominating)
+  SINGLE_SIGNAL_WEIGHT_CAP: 110,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -120,6 +123,7 @@ const CFG = {
   OPENMETEO_UV_THRESHOLD: 8,
   OPENMETEO_PM25_THRESHOLD: 35,
   OPENMETEO_LIGHTNING_THRESHOLD: 100,
+  OPENMETEO_WAVE_THRESHOLD: 3,   // v13.7
   OPENMETEO_MAX_HAZARD_BOOST: 15,
 
   DISEASE_ENABLED: true,
@@ -156,25 +160,10 @@ const CFG = {
   BMKG_MIN_MAG: 4.5,
   BMKG_BOOST: 60,
 
-  // ═══ v13.7: HDX HAPI + CKAN feeds ═══
-  HDX_HAPI_ENABLED: true,
-  HDX_HAPI_BOOST: 40,
-  HDX_HAPI_INFORM_THRESHOLD: 3.5,
-
-  CIVILIAN_TARGETING_ENABLED: true,
-  CIVILIAN_TARGETING_BOOST: 85,
-
-  FEWS_IPC_ENABLED: true,
-  FEWS_IPC_BOOST: 75,
-  FEWS_IPC_PHASE3_BOOST: 55,
-  FEWS_IPC_PHASE4_BOOST: 75,
-  FEWS_IPC_PHASE5_BOOST: 90,
-
-  HFID_ENABLED: true,
-  HFID_BOOST: 65,
-
-  EMDAT_ENABLED: true,
-  EMDAT_BOOST: 45,
+  // ═══ v13.7: new feeds ═══
+  HDX_CIVILIAN_ENABLED: true,
+  HDX_CIVILIAN_BOOST: 80,
+  HDX_CIVILIAN_MAX_BOOST: 100,
 };
 
 const CORS = {
@@ -184,7 +173,7 @@ const CORS = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-// ─── v13.7: Regional ISO scoping sets ────────────────────────────────────────
+// ─── v13.7: Regional scoping map ─────────────────────────────────────────────
 const WPAC_ISOS = new Set([
   'PHL', 'TWN', 'JPN', 'CHN', 'VNM', 'KOR', 'PRK', 'IDN',
   'MYS', 'THA', 'KHM', 'LAO', 'MMR', 'BGD', 'IND', 'LKA', 'MDV',
@@ -513,15 +502,8 @@ const LIVE_SIGNALS = {
   gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
   climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
   hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
-  // ═══ v13.7 NEW ═══
-  hapi_inform_risk:    { weight: 65,  verify: 1.0,  label: "HAPI INFORM Risk",           icon: "⚠️", type: "event" },
-  hapi_food_insecurity:{ weight: 70,  verify: 1.0,  label: "HAPI Food Insecurity",       icon: "🍚", type: "event" },
-  civilian_targeting:  { weight: 90,  verify: 1.0,  label: "Civilian Targeting Event",   icon: "🚨", type: "event" },
-  fews_ipc_phase3:     { weight: 60,  verify: 1.0,  label: "FEWS IPC Phase 3",           icon: "🌾", type: "event" },
-  fews_ipc_phase4:     { weight: 80,  verify: 1.0,  label: "FEWS IPC Phase 4",           icon: "🍚", type: "event" },
-  fews_ipc_phase5:     { weight: 95,  verify: 1.0,  label: "FEWS IPC Phase 5 (Famine)",  icon: "💀", type: "event" },
-  hfid_food_insecurity:{ weight: 65,  verify: 0.95, label: "HFID Food Insecurity",       icon: "🍚", type: "event" },
-  emdat_disaster:      { weight: 50,  verify: 0.9,  label: "EM-DAT Disaster",            icon: "📊", type: "event" },
+  civilian_targeting:  { weight: 80,  verify: 0.95, label: "Civilian Targeting Event",   icon: "🕊️", type: "event" },
+  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",              icon: "🌊", type: "event" },
 };
 
 function detectLiveBreakingSignals(iso, live, store) {
@@ -530,14 +512,12 @@ function detectLiveBreakingSignals(iso, live, store) {
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
 
-  // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // ── USGS weekly / EMSC ──
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
@@ -553,7 +533,7 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (CFG.JMA_ENABLED && iso === "JPN" && s.jmaQuake && s.jmaQuake.mag >= CFG.JMA_MIN_MAG) {
     signals.push({
       type: "jma_earthquake",
-      weight: CFG.JMA_BOOST + (s.jmaQuake.maxIntensity || 0) * 2,
+      weight: Math.min(CFG.SINGLE_SIGNAL_WEIGHT_CAP, CFG.JMA_BOOST + (s.jmaQuake.maxIntensity || 0) * 2),
       ageHours: s.jmaQuake.ageHours || 12,
       source: "JMA",
       details: `JMA M${s.jmaQuake.mag} — ${s.jmaQuake.place || ""} (intensity ${s.jmaQuake.maxIntensity || "?"})`,
@@ -571,7 +551,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── ShakeMap ──
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
     signals.push({
       type: "shakemap_event",
@@ -582,7 +561,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── USGS Significant Month tail ──
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
@@ -593,26 +571,22 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── WHO RSS ──
   if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
     const ageHours = s.whoOutbreaks[0].ageHours || 24;
     if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", ") });
     else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease });
   }
 
-  // ── WHO DON ──
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
     for (const don of s.whoDon.slice(0, 3)) {
       signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
     }
   }
 
-  // ── UNHCR ──
   if (s.totalDisplaced > 500_000) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
-  // ── NASA EONET ──
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
@@ -624,7 +598,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── IFRC events / appeals ──
   if (s.ifrcCount > 0 && s.ifrcEvents) {
     const top = s.ifrcEvents[0];
     const ageHours = top.disaster_start_date ? (now - new Date(top.disaster_start_date).getTime()) / 36e5 : 72;
@@ -637,7 +610,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── Cyclone / flood / heat ──
   if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
     signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
   }
@@ -648,23 +620,30 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
-  // ── disease.sh ──
+  // ═══ v13.7: Marine hazard (wave_height) ═══
+  if (s.hazards?.wave_height >= CFG.OPENMETEO_WAVE_THRESHOLD) {
+    signals.push({
+      type: "marine_hazard",
+      weight: CFG.OPENMETEO_WAVE_THRESHOLD * 12,
+      ageHours: 24,
+      source: "Open-Meteo Marine",
+      details: `${s.hazards.wave_height.toFixed(1)}m wave height`,
+    });
+  }
+
   if (s.diseaseActive > 10_000) {
     signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   }
 
-  // ── World Bank economic ──
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
-  // ── CDC (US only) ──
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     for (const ob of s.cdcOutbreaks.slice(0, 3)) {
       signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
     }
   }
 
-  // ── SPC (US only) ──
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: 20, MRGL: 40, SLGT: 55, ENH: 75, MDT: 90, HIGH: 110 };
@@ -672,7 +651,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
-  // ── NASA POWER ──
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
     const tempAnom = s.nasaPower.tempAnomaly || 0;
     const precipAnom = s.nasaPower.precipAnomaly || 0;
@@ -684,7 +662,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── Global Forest Watch ──
   if (CFG.GFW_ENABLED && s.gfwAlerts && s.gfwAlerts.count > 0) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
@@ -712,7 +689,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── Climate TRACE ──
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
@@ -726,7 +702,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── OCHA HDX (generic package search) ──
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
     signals.push({
       type: "hdx_crisis",
@@ -737,111 +712,26 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  v13.7 NEW SIGNAL SOURCES
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // ── HDX HAPI (Humanitarian API) — INFORM risk + population + food security ──
-  if (CFG.HDX_HAPI_ENABLED && s.hapi && s.hapi.length > 0) {
-    for (const h of s.hapi.slice(0, 3)) {
-      const ageHours = 168;
-      // INFORM risk indicator
-      if (h.inform_risk !== undefined && h.inform_risk >= CFG.HDX_HAPI_INFORM_THRESHOLD) {
-        signals.push({
-          type: "hapi_inform_risk",
-          weight: CFG.HDX_HAPI_BOOST,
-          ageHours,
-          source: "HDX HAPI",
-          details: `INFORM risk ${h.inform_risk.toFixed(1)}/10 — ${h.location_name || iso}`,
-        });
-      }
-      // Food insecurity indicator
-      if (h.food_insecurity !== undefined && h.food_insecurity > 0) {
-        signals.push({
-          type: "hapi_food_insecurity",
-          weight: CFG.HDX_HAPI_BOOST,
-          ageHours,
-          source: "HDX HAPI",
-          details: `${(h.food_insecurity).toLocaleString()} people food insecure — ${h.location_name || iso}`,
-        });
-      }
-    }
+  // ═══ v13.7: Civilian Targeting (ACLED via HDX) ═══
+  if (CFG.HDX_CIVILIAN_ENABLED && s.civilianTargeting && s.civilianTargeting.count > 0) {
+    const ct = s.civilianTargeting;
+    // Scale weight by event count (log scale)
+    const weight = Math.min(
+      CFG.HDX_CIVILIAN_MAX_BOOST,
+      Math.round(Math.log10(ct.count + 1) * CFG.HDX_CIVILIAN_BOOST / 2)
+    );
+    signals.push({
+      type: "civilian_targeting",
+      weight: Math.max(40, weight),
+      ageHours: ct.ageHours || 168,
+      source: "HDX Civilian Targeting",
+      details: `${ct.count} civilian targeting event(s)${ct.fatalities ? ` — ${ct.fatalities} fatalities` : ""}`,
+    });
   }
 
-  // ── HDX Civilian Targeting (ACLED-derived weekly) ──
-  if (CFG.CIVILIAN_TARGETING_ENABLED && s.civilianTargeting && s.civilianTargeting.length > 0) {
-    for (const ev of s.civilianTargeting.slice(0, 3)) {
-      const ageHours = ev.ageHours || 168;
-      signals.push({
-        type: "civilian_targeting",
-        weight: CFG.CIVILIAN_TARGETING_BOOST,
-        ageHours,
-        source: "HDX Civilian Targeting",
-        details: `${ev.event_type || "Targeting event"} — ${ev.fatalities || 0} fatalities (${ev.location || ""})`,
-      });
-    }
-  }
-
-  // ── FEWS NET IPC Phase ──
-  if (CFG.FEWS_IPC_ENABLED && s.fewsIpc) {
-    const phase = s.fewsIpc.phase;
-    const ageHours = s.fewsIpc.ageHours || 168;
-    if (phase === 5) {
-      signals.push({
-        type: "fews_ipc_phase5",
-        weight: CFG.FEWS_IPC_PHASE5_BOOST,
-        ageHours,
-        source: "FEWS NET IPC",
-        details: `IPC Phase 5 (Famine) — ${s.fewsIpc.location || iso}`,
-      });
-    } else if (phase === 4) {
-      signals.push({
-        type: "fews_ipc_phase4",
-        weight: CFG.FEWS_IPC_PHASE4_BOOST,
-        ageHours,
-        source: "FEWS NET IPC",
-        details: `IPC Phase 4 (Emergency) — ${s.fewsIpc.location || iso}`,
-      });
-    } else if (phase === 3) {
-      signals.push({
-        type: "fews_ipc_phase3",
-        weight: CFG.FEWS_IPC_PHASE3_BOOST,
-        ageHours,
-        source: "FEWS NET IPC",
-        details: `IPC Phase 3 (Crisis) — ${s.fewsIpc.location || iso}`,
-      });
-    }
-  }
-
-  // ── HFID (Harmonized Food Insecurity Dataset) ──
-  if (CFG.HFID_ENABLED && s.hfid && s.hfid.length > 0) {
-    for (const h of s.hfid.slice(0, 2)) {
-      const ageHours = h.ageHours || 720;
-      signals.push({
-        type: "hfid_food_insecurity",
-        weight: CFG.HFID_BOOST,
-        ageHours,
-        source: "HFID",
-        details: `${h.population || 0} people in Phase ${h.phase || "?"} — ${h.location || iso}`,
-      });
-    }
-  }
-
-  // ── EM-DAT (historical disasters) ──
-  if (CFG.EMDAT_ENABLED && s.emdat && s.emdat.length > 0) {
-    for (const d of s.emdat.slice(0, 2)) {
-      const ageHours = d.ageHours || 720;
-      signals.push({
-        type: "emdat_disaster",
-        weight: CFG.EMDAT_BOOST,
-        ageHours,
-        source: "EM-DAT",
-        details: `${d.disaster_type || "Disaster"} — ${d.deaths || 0} deaths (${d.year || ""})`,
-      });
-    }
-  }
-
-  return signals.map(sig => ({ ...sig, is_live_event: true }));
+  return signals
+    .map(sig => ({ ...sig, is_live_event: true, weight: Math.min(CFG.SINGLE_SIGNAL_WEIGHT_CAP, sig.weight) }))
+    .sort((a, b) => b.weight - a.weight);
 }
 
 function computeLiveBreakingScore(iso, live, store) {
@@ -1196,6 +1086,8 @@ async function fetchHeatStress() {
   }
   return { data: results, live: anyLive };
 }
+
+// ── v13.7: Weather hazards now includes Marine API ──
 async function fetchWeatherHazards() {
   const results = { flood_discharge: 0, wave_height: 0, wind_speed: 0, precip_total: 0, uv_max: 0, cloud_avg: 0, lightning_max: 0 };
   let anyLive = false;
@@ -1447,6 +1339,76 @@ async function fetchHDX() {
   } catch {}
   return { data: {}, live: false };
 }
+
+// ═══ v13.7: HDX Civilian Targeting ═══
+async function fetchHDXCivilianTargeting() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=civilian-targeting-events-and-fatalities").then(r => r.json()));
+    if (!r.ok || !r.data?.result) return { data: {}, live: false };
+
+    const result = r.data.result;
+    const resources = result.resources || [];
+
+    // Find the most recent CSV resource
+    const csvResources = resources
+      .filter(res => (res.format || "").toLowerCase() === "csv")
+      .sort((a, b) => new Date(b.last_modified || 0) - new Date(a.last_modified || 0));
+
+    if (!csvResources.length) return { data: {}, live: false };
+
+    const csvUrl = csvResources[0].url;
+    const r2 = await safeFetch(fetch(csvUrl).then(res => res.text()));
+    if (!r2.ok || typeof r2.data !== "string") return { data: {}, live: false };
+
+    // Parse CSV: header is typically "event_date,country,...,fatalities"
+    // We aggregate by ISO3/country name from the last 30 days
+    const lines = r2.data.split(/\r?\n/);
+    if (lines.length < 2) return { data: {}, live: false };
+
+    const header = lines[0].split(",");
+    const idxDate = header.findIndex(h => /event_date|date/i.test(h));
+    const idxCountry = header.findIndex(h => /^country$/i.test(h.trim()));
+    const idxFatalities = header.findIndex(h => /fatalities/i.test(h));
+
+    if (idxDate === -1 || idxCountry === -1) return { data: {}, live: false };
+
+    const cutoff = Date.now() - 30 * 86400000;
+    const agg = {};
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",");
+      if (cols.length <= Math.max(idxDate, idxCountry)) continue;
+      const dateStr = cols[idxDate]?.trim();
+      const country = cols[idxCountry]?.trim();
+      if (!dateStr || !country) continue;
+      const ts = Date.parse(dateStr);
+      if (isNaN(ts) || ts < cutoff) continue;
+      if (!agg[country]) agg[country] = { count: 0, fatalities: 0, latestDate: null };
+      agg[country].count++;
+      agg[country].fatalities += parseInt(cols[idxFatalities]) || 0;
+      agg[country].latestDate = dateStr;
+    }
+
+    // Map country names to ISO3
+    const byIso = {};
+    for (const [country, data] of Object.entries(agg)) {
+      const iso = findIsoByName(country);
+      if (iso) {
+        byIso[iso] = {
+          count: data.count,
+          fatalities: data.fatalities,
+          ageHours: 48,
+          latestDate: data.latestDate,
+        };
+      }
+    }
+
+    return { data: byIso, live: Object.keys(byIso).length > 0 };
+  } catch (e) {
+    return { data: {}, live: false };
+  }
+}
+
 async function fetchJTWC() {
   try {
     const r = await safeFetch(fetch("https://www.metoc.navy.mil/jtwc/products/best-tracks/", { mode: 'cors' }).then(r => r.text()));
@@ -1513,275 +1475,26 @@ async function fetchBMKG() {
   return { data: [], live: false };
 }
 
-// ═══ v13.7 NEW FETCHERS ═══
-
-// ── HDX HAPI (Humanitarian API) ──
-// Endpoint: /hapi/coordination-context/national-risk (returns national risk + food security)
-async function fetchHDXHAPI() {
-  try {
-    const endpoints = [
-      "https://data.humdata.org/hapi/coordination-context/national-risk?output_format=json",
-      "https://data.humdata.org/hapi/food-security/food-consumption-scores?output_format=json",
-    ];
-    const results = {};
-    let anyLive = false;
-    for (const url of endpoints) {
-      try {
-        const r = await safeFetch(fetch(url, { headers: { 'Accept': 'application/json' } }).then(res => res.text()));
-        if (!r.ok || typeof r.data !== 'string') continue;
-        let parsed = null;
-        try { parsed = JSON.parse(r.data); } catch { continue; }
-        if (parsed?.data && Array.isArray(parsed.data)) {
-          for (const row of parsed.data) {
-            const iso = row.location_code || row.country_iso3 || row.iso3;
-            if (!iso) continue;
-            if (!results[iso]) results[iso] = [];
-            results[iso].push({
-              inform_risk: row.inform_risk_score || row.inform_risk || row.risk_score,
-              food_insecurity: row.food_insecurity || row.food_insecure_people || row.fcs,
-              location_name: row.location_name || row.country_name,
-            });
-            anyLive = true;
-          }
-        }
-      } catch {}
-    }
-    return { data: results, live: anyLive };
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ── HDX Civilian Targeting (ACLED-derived) ──
-// Source: /api/3/action/package_show?id=civilian-targeting-events-and-fatalities
-// Then fetch the latest resource URL from the package
-async function fetchCivilianTargeting() {
-  try {
-    // Step 1: Find the package metadata
-    const pkgRes = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=civilian-targeting-events-and-fatalities").then(r => r.json()));
-    if (!pkgRes.ok || !pkgRes.data?.result?.resources?.length) return { data: {}, live: false };
-
-    // Step 2: Find the latest CSV resource
-    const resources = pkgRes.data.result.resources;
-    const latest = resources
-      .filter(r => r.format?.toLowerCase() === 'csv')
-      .sort((a, b) => new Date(b.last_modified || 0) - new Date(a.last_modified || 0))[0];
-    if (!latest?.url) return { data: {}, live: false };
-
-    // Step 3: Fetch the CSV data
-    const dataRes = await safeFetch(fetch(latest.url).then(r => r.text()));
-    if (!dataRes.ok || typeof dataRes.data !== 'string') return { data: {}, live: false };
-
-    // Step 4: Parse CSV — extract country code + event_type + fatalities per row
-    const lines = dataRes.data.split('\n');
-    if (lines.length < 2) return { data: {}, live: false };
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const idxCountry = headers.findIndex(h => /country.*iso|iso3|country_code/i.test(h));
-    const idxEventType = headers.findIndex(h => /event_type/i.test(h));
-    const idxFatalities = headers.findIndex(h => /fatalities/i.test(h));
-    const idxDate = headers.findIndex(h => /event_date|date/i.test(h));
-    const idxLocation = headers.findIndex(h => /location/i.test(h));
-
-    if (idxCountry < 0) return { data: {}, live: false };
-
-    const byCountry = {};
-    const now = Date.now();
-    const recentCutoff = now - 30 * 24 * 60 * 60 * 1000; // last 30 days
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      if (cols.length < headers.length) continue;
-
-      const iso = cols[idxCountry];
-      if (!iso || iso.length !== 3) continue;
-
-      const eventDate = idxDate >= 0 ? new Date(cols[idxDate]).getTime() : null;
-      if (eventDate && eventDate < recentCutoff) continue;
-
-      if (!byCountry[iso]) byCountry[iso] = [];
-      byCountry[iso].push({
-        event_type: idxEventType >= 0 ? cols[idxEventType] : "Targeting event",
-        fatalities: idxFatalities >= 0 ? parseInt(cols[idxFatalities]) || 0 : 0,
-        location: idxLocation >= 0 ? cols[idxLocation] : "",
-        ageHours: eventDate ? (now - eventDate) / 36e5 : 168,
-      });
-    }
-
-    // Keep only top 3 most recent per country
-    for (const iso in byCountry) {
-      byCountry[iso] = byCountry[iso].sort((a, b) => a.ageHours - b.ageHours).slice(0, 3);
-    }
-
-    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-  } catch (e) {
-    return { data: {}, live: false };
-  }
-}
-
-// ── FEWS NET IPC via HDX CKAN ──
-async function fetchFewsIPC() {
-  try {
-    // Search for FEWS NET IPC classification datasets
-    const searchRes = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=FEWS+NET+IPC&rows=20").then(r => r.json()));
-    if (!searchRes.ok || !searchRes.data?.result?.results?.length) return { data: {}, live: false };
-
-    // Find datasets with recent resources
-    const datasets = searchRes.data.result.results;
-    const byCountry = {};
-    const now = Date.now();
-
-    for (const ds of datasets.slice(0, 5)) {
-      const iso = ds.groups?.[0]?.name?.toUpperCase()?.slice(0, 3);
-      if (!iso) continue;
-
-      // Try to extract IPC phase info from the dataset notes/metadata
-      const notes = (ds.notes || "").toLowerCase();
-      let phase = null;
-      if (notes.includes("phase 5") || notes.includes("famine")) phase = 5;
-      else if (notes.includes("phase 4") || notes.includes("emergency")) phase = 4;
-      else if (notes.includes("phase 3") || notes.includes("crisis")) phase = 3;
-
-      if (phase) {
-        byCountry[iso] = {
-          phase,
-          location: ds.organization?.title || iso,
-          ageHours: 168,
-          dataset_name: ds.name,
-          last_modified: ds.last_modified,
-        };
-      }
-    }
-
-    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-  } catch {
-    return { data: {}, live: false };
-  }
-}
-
-// ── HDX HFID (Harmonized Food Insecurity Dataset) ──
-async function fetchHFID() {
-  try {
-    const pkgRes = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=harmonized-food-insecurity-dataset-hfid").then(r => r.json()));
-    if (!pkgRes.ok || !pkgRes.data?.result?.resources?.length) return { data: {}, live: false };
-
-    const resources = pkgRes.data.result.resources;
-    const csvResource = resources.find(r => r.format?.toLowerCase() === 'csv');
-    if (!csvResource?.url) return { data: {}, live: false };
-
-    const dataRes = await safeFetch(fetch(csvResource.url).then(r => r.text()));
-    if (!dataRes.ok || typeof dataRes.data !== 'string') return { data: {}, live: false };
-
-    const lines = dataRes.data.split('\n');
-    if (lines.length < 2) return { data: {}, live: false };
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const idxCountry = headers.findIndex(h => /country.*iso|iso3|country_code/i.test(h));
-    const idxPhase = headers.findIndex(h => /phase|ipc/i.test(h));
-    const idxPop = headers.findIndex(h => /population|people/i.test(h));
-    const idxLocation = headers.findIndex(h => /location|admin/i.test(h));
-
-    if (idxCountry < 0) return { data: {}, live: false };
-
-    const byCountry = {};
-    // Sample the last 500 rows to find recent data
-    const start = Math.max(1, lines.length - 500);
-    for (let i = start; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      if (cols.length < headers.length) continue;
-      const iso = cols[idxCountry];
-      if (!iso || iso.length !== 3) continue;
-
-      const phase = idxPhase >= 0 ? parseInt(cols[idxPhase]) || 0 : 0;
-      const population = idxPop >= 0 ? parseInt(cols[idxPop]) || 0 : 0;
-
-      if (phase >= 3 && !byCountry[iso]) {
-        byCountry[iso] = [{
-          phase,
-          population,
-          location: idxLocation >= 0 ? cols[idxLocation] : "",
-          ageHours: 720,
-        }];
-      }
-    }
-
-    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-  } catch {
-    return { data: {}, live: false };
-  }
-}
-
-// ── EM-DAT via HDX CKAN ──
-async function fetchEMDAT() {
-  try {
-    const searchRes = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=emdat&rows=5").then(r => r.json()));
-    if (!searchRes.ok || !searchRes.data?.result?.results?.length) return { data: {}, live: false };
-
-    // Get the first dataset's latest resource
-    const ds = searchRes.data.result.results[0];
-    const resource = ds.resources?.find(r => r.format?.toLowerCase() === 'csv');
-    if (!resource?.url) return { data: {}, live: false };
-
-    const dataRes = await safeFetch(fetch(resource.url).then(r => r.text()));
-    if (!dataRes.ok || typeof dataRes.data !== 'string') return { data: {}, live: false };
-
-    const lines = dataRes.data.split('\n');
-    if (lines.length < 2) return { data: {}, live: false };
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const idxCountry = headers.findIndex(h => /iso|country.*code/i.test(h));
-    const idxType = headers.findIndex(h => /disaster.*type|type/i.test(h));
-    const idxDeaths = headers.findIndex(h => /deaths|killed|total_deaths/i.test(h));
-    const idxYear = headers.findIndex(h => /year|start_year/i.test(h));
-
-    if (idxCountry < 0) return { data: {}, live: false };
-
-    const byCountry = {};
-    const now = new Date().getFullYear();
-    // Sample last 200 rows for recent events
-    const start = Math.max(1, lines.length - 200);
-    for (let i = start; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      if (cols.length < headers.length) continue;
-      const iso = cols[idxCountry];
-      if (!iso || iso.length !== 3) continue;
-      const year = idxYear >= 0 ? parseInt(cols[idxYear]) || 0 : 0;
-      if (year < now - 1) continue; // only recent
-
-      if (!byCountry[iso]) byCountry[iso] = [];
-      byCountry[iso].push({
-        disaster_type: idxType >= 0 ? cols[idxType] : "Disaster",
-        deaths: idxDeaths >= 0 ? parseInt(cols[idxDeaths]) || 0 : 0,
-        year,
-        ageHours: 720,
-      });
-    }
-
-    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-  } catch {
-    return { data: {}, live: false };
-  }
-}
-
 async function fetchAllLive() {
   const [
     usgs, usgsSig, shakemap, emsc, nasa, gdacs, ifrc, ifrcAppeals,
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
     sentinel, nasaPower, disease, wb, unhcr, who,
     gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
-    hapi, civilianTargeting, fewsIpc, hfid, emdat,
+    hdxCivilian,
   ] = await Promise.all([
     fetchUSGS(), fetchUSGSSignificant(), fetchShakeMap(), fetchEMSC(), fetchNASA(), fetchGDACS(), fetchIFRC(), fetchIFRCAppeals(),
     fetchHeatStress(), fetchWeatherHazards(), fetchAirQuality(), fetchNOAA(), fetchSPC(), fetchEnsemble(), fetchCDC(), fetchWHODon(),
     fetchSentinel(), fetchNASAPower(), fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(), fetchWHO(),
     fetchGFW(), fetchINFORM(), fetchClimateTrace(), fetchHDX(), fetchJTWC(), fetchJMA(), fetchBMKG(),
-    fetchHDXHAPI(), fetchCivilianTargeting(), fetchFewsIPC(), fetchHFID(), fetchEMDAT(),
+    fetchHDXCivilianTargeting(),
   ]);
   return {
     usgs, usgsSig, shakemap, emsc, nasa, gdacs, ifrc, ifrcAppeals,
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
     sentinel, nasaPower, disease, wb, unhcr, who,
     gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
-    hapi, civilianTargeting, fewsIpc, hfid, emdat,
+    hdxCivilian,
   };
 }
 
@@ -1795,7 +1508,6 @@ function extractSignals(iso, live) {
   const evidenceSources = [];
   const signals = {};
 
-  // ── USGS weekly ──
   const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topQuake = quakes.length ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topQuake?.properties?.mag >= 4.5) {
@@ -1805,7 +1517,6 @@ function extractSignals(iso, live) {
     signals.quakeTime = topQuake.properties.time;
   }
 
-  // ── USGS significant-month tail ──
   const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topSig = sigQuakes.length ? sigQuakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topSig?.properties?.mag >= 5.5 && (!topQuake || topSig.properties.mag > topQuake.properties.mag)) {
@@ -1813,7 +1524,6 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("USGS-Sig");
   }
 
-  // ── ShakeMap all-hour ──
   const shakemapEvents = (live.shakemap.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topShakeMap = shakemapEvents.length ? shakemapEvents.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a) : null;
   if (topShakeMap?.properties?.mag >= CFG.SHAKEMAP_MIN_MAG) {
@@ -1828,7 +1538,7 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("ShakeMap");
   }
 
-  // ── JMA (Japan only) ──
+  // JMA scoped to Japan only
   if (CFG.JMA_ENABLED && iso === "JPN" && live.jma.data?.length) {
     const jmaEvents = live.jma.data.filter(e => {
       const place = (e.place || "").toLowerCase();
@@ -1845,7 +1555,7 @@ function extractSignals(iso, live) {
     }
   }
 
-  // ── BMKG (Indonesia only) ──
+  // BMKG scoped to Indonesia only
   if (CFG.BMKG_ENABLED && iso === "IDN" && live.bmkg.data?.length) {
     const bmkgEvents = live.bmkg.data.filter(e => {
       const place = (e.place || "").toLowerCase();
@@ -1861,7 +1571,6 @@ function extractSignals(iso, live) {
     }
   }
 
-  // ── EMSC ──
   const emscQuakes = (live.emsc.data || []).filter(f => {
     const c = f.geometry?.coordinates;
     return c && findClosestCountry(c[0], c[1]) === iso;
@@ -1874,14 +1583,12 @@ function extractSignals(iso, live) {
     if (!signals.quakeTime) signals.quakeTime = new Date(topEMSC.properties?.time).getTime();
   }
 
-  // ── NASA EONET ──
   const nasaEvents = (live.nasa.data || []).filter(ev => {
     const c = ev.geometry?.[0]?.coordinates;
     return c && findClosestCountry(c[0], c[1]) === iso;
   });
   if (nasaEvents.length) { liveEvidenceCount++; evidenceSources.push("NASA"); signals.nasaEventCount = nasaEvents.length; signals.nasaEvents = nasaEvents; }
 
-  // ── GDACS ──
   const gdacsEvents = (live.gdacs.data || []).filter(f => {
     const c = f.geometry?.coordinates;
     if (!c) { const a = f.properties?.affectedcountries || []; return a.some(x => x.iso3 === iso); }
@@ -1896,25 +1603,21 @@ function extractSignals(iso, live) {
     signals.gdacsCount = gdacsEvents.length;
   }
 
-  // ── IFRC events / appeals ──
   const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
   if (ifrcEvents.length) { liveEvidenceCount++; evidenceSources.push("IFRC"); signals.ifrcCount = ifrcEvents.length; signals.ifrcEvents = ifrcEvents; }
   const ifrcAppeals = (live.ifrcAppeals?.data || []).filter(ap => { const iso3 = ap.country?.iso3 || ap.countries?.[0]?.iso3; return iso3 === iso; });
   if (ifrcAppeals.length) { liveEvidenceCount++; evidenceSources.push("IFRC-Appeal"); signals.ifrcAppeals = ifrcAppeals; }
 
-  // ── Heat / Hazards / AQ ──
   const maxTempC = live.heat.data[iso] ?? 0;
   if (maxTempC >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Heat"); signals.maxTempC = maxTempC; }
   if (live.hazards.live) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Hazards"); signals.hazards = live.hazards.data; }
   const aqData = live.aq.data[iso] || null;
   if (aqData?.pm25 >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo AQ"); signals.aq = aqData; }
 
-  // ── NOAA / SPC / CDC (US only) ──
   if (isUS(iso) && (live.noaa.data.extreme_alerts > 0 || live.noaa.data.storm_alerts > 0)) { liveEvidenceCount++; evidenceSources.push("NOAA"); signals.noaa = live.noaa.data; }
   if (isUS(iso) && CFG.SPC_ENABLED && live.spc.data) { liveEvidenceCount++; evidenceSources.push("SPC"); signals.spcOutlook = live.spc.data; }
   if (isUS(iso) && CFG.CDC_ENABLED && live.cdc.data?.length) { liveEvidenceCount++; evidenceSources.push("CDC"); signals.cdcOutbreaks = live.cdc.data; }
 
-  // ── WHO DON ──
   if (CFG.WHO_DON_ENABLED && live.whoDon.data?.length) {
     const matched = live.whoDon.data.filter(d => {
       const text = ((d.title || "") + " " + (d.summary || "") + " " + (d.overview || "")).toLowerCase();
@@ -1923,75 +1626,42 @@ function extractSignals(iso, live) {
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
 
-  // ── NASA POWER ──
   if (CFG.NASA_POWER_ENABLED && live.nasaPower.data[iso]) { liveEvidenceCount++; evidenceSources.push("NASA POWER"); signals.nasaPower = live.nasaPower.data[iso]; }
 
-  // ── GFW ──
   if (CFG.GFW_ENABLED && live.gfw?.data?.[iso]) {
     const gfw = live.gfw.data[iso];
     signals.gfwAlerts = { count: gfw.count, ageHours: gfw.ageHours || 12 };
     liveEvidenceCount++; evidenceSources.push("GFW");
   }
 
-  // ── JTWC (WPAC only) ──
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && live.jtwc?.data?.length) {
     signals.jtwcStorms = live.jtwc.data;
     liveEvidenceCount++; evidenceSources.push("JTWC");
   }
 
-  // ── Climate TRACE ──
   if (CFG.CLIMATE_TRACE_ENABLED && live.climateTrace?.data?.[iso]) {
     signals.climateTrace = live.climateTrace.data[iso];
     liveEvidenceCount++; evidenceSources.push("Climate TRACE");
   }
 
-  // ── HDX (generic) ──
   if (CFG.HDX_ENABLED && live.hdx?.data?.[iso]) {
     signals.hdxDatasets = live.hdx.data[iso];
     liveEvidenceCount++; evidenceSources.push("OCHA HDX");
   }
 
-  // ═══ v13.7 NEW EXTRACTION ═══
-
-  // ── HDX HAPI ──
-  if (CFG.HDX_HAPI_ENABLED && live.hapi?.data?.[iso]) {
-    signals.hapi = live.hapi.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX HAPI");
+  // ═══ v13.7: Civilian Targeting ═══
+  if (CFG.HDX_CIVILIAN_ENABLED && live.hdxCivilian?.data?.[iso]) {
+    const ct = live.hdxCivilian.data[iso];
+    signals.civilianTargeting = ct;
+    liveEvidenceCount++; evidenceSources.push("HDX Civilian");
   }
 
-  // ── HDX Civilian Targeting ──
-  if (CFG.CIVILIAN_TARGETING_ENABLED && live.civilianTargeting?.data?.[iso]) {
-    signals.civilianTargeting = live.civilianTargeting.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX Civilian Targeting");
-  }
-
-  // ── FEWS NET IPC ──
-  if (CFG.FEWS_IPC_ENABLED && live.fewsIpc?.data?.[iso]) {
-    signals.fewsIpc = live.fewsIpc.data[iso];
-    liveEvidenceCount++; evidenceSources.push("FEWS NET IPC");
-  }
-
-  // ── HFID ──
-  if (CFG.HFID_ENABLED && live.hfid?.data?.[iso]) {
-    signals.hfid = live.hfid.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HFID");
-  }
-
-  // ── EM-DAT ──
-  if (CFG.EMDAT_ENABLED && live.emdat?.data?.[iso]) {
-    signals.emdat = live.emdat.data[iso];
-    liveEvidenceCount++; evidenceSources.push("EM-DAT");
-  }
-
-  // ── disease.sh ──
   const diseaseRow = (live.disease.data || []).find(d => { const cN = d.country || d.country_name || ""; return cN.toLowerCase() === name || name.includes(cN.toLowerCase()) || cN.toLowerCase().includes(name); });
   if (diseaseRow?.active > 1000) { liveEvidenceCount++; evidenceSources.push("disease.sh"); signals.diseaseActive = diseaseRow.active; signals.diseaseName = "COVID-19"; }
 
-  // ── WHO RSS ──
   const whoData = live.who?.data || null;
   if (whoData?.[iso]?.length) { liveEvidenceCount++; evidenceSources.push("WHO RSS"); signals.whoOutbreaks = whoData[iso]; }
 
-  // ── World Bank ──
   const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
@@ -2006,7 +1676,6 @@ function extractSignals(iso, live) {
   if (wbPoverty?.value > 5) { signals.wbPoverty = wbPoverty; liveEvidenceCount++; evidenceSources.push("WB-Poverty"); }
   if (wbWater?.value > 40) signals.wbWaterStress = wbWater;
 
-  // ── UNHCR ──
   const displacement = live.unhcr.data.displacement[iso] || null;
   const refugees = parseInt(displacement?.refugees) || 0;
   const idps = parseInt(displacement?.idps) || 0;
@@ -2061,12 +1730,7 @@ function extractSignals(iso, live) {
     jtwcStorms: signals.jtwcStorms || [],
     climateTrace: signals.climateTrace || null,
     hdxDatasets: signals.hdxDatasets || null,
-    // v13.7 new
-    hapi: signals.hapi || null,
     civilianTargeting: signals.civilianTargeting || null,
-    fewsIpc: signals.fewsIpc || null,
-    hfid: signals.hfid || null,
-    emdat: signals.emdat || null,
     liveEvidenceCount,
     evidenceSources,
   };
@@ -2130,10 +1794,10 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     const h = signals.hazards;
     let b = 0;
     if (h.flood_discharge > 100) b += 5;
+    if (h.wave_height > 3) b += 4;
     if (h.wind_speed > 30) b += 4;
     if (h.precip_total > 10) b += 3;
     if (h.uv_max > 8) b += 2;
-    if (h.wave_height > 3) b += 3;
     b = Math.min(15, b);
     if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "Open-Meteo Hazards", delta: b, reason: "hazard thresholds" }); }
   }
@@ -2221,44 +1885,17 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "OCHA HDX", delta: b, reason: `${signals.hdxDatasets.count} datasets` }); }
   }
 
-  // ═══ v13.7 NEW ADJUSTMENTS ═══
-  if (CFG.HDX_HAPI_ENABLED && signals.hapi) {
-    const b = Math.min(8, signals.hapi.length * 3);
-    dims.food = clamp(dims.food + b);
-    totalBoost += b;
-    audit.push({ source: "HDX HAPI", delta: b, reason: `${signals.hapi.length} indicator(s)` });
-  }
-
-  if (CFG.CIVILIAN_TARGETING_ENABLED && signals.civilianTargeting) {
-    const b = Math.min(20, signals.civilianTargeting.length * 8);
-    dims.conflict = clamp(dims.conflict + b);
-    totalBoost += b;
-    audit.push({ source: "HDX Civilian Targeting", delta: b, reason: `${signals.civilianTargeting.length} targeting events` });
-  }
-
-  if (CFG.FEWS_IPC_ENABLED && signals.fewsIpc) {
-    const phase = signals.fewsIpc.phase;
-    const b = phase === 5 ? 20 : phase === 4 ? 15 : phase === 3 ? 10 : 0;
+  // ═══ v13.7: Civilian Targeting ═══
+  if (CFG.HDX_CIVILIAN_ENABLED && signals.civilianTargeting) {
+    const ct = signals.civilianTargeting;
+    const b = Math.min(15, Math.round(Math.log10(ct.count + 1) * 6));
     if (b > 0) {
-      dims.food = clamp(dims.food + b);
-      dims.health = clamp(dims.health + Math.floor(b * 0.3));
+      dims.conflict = clamp(dims.conflict + b);
+      dims.political = clamp(dims.political + Math.floor(b * 0.3));
+      dims.access = clamp(dims.access + Math.floor(b * 0.2));
       totalBoost += b;
-      audit.push({ source: "FEWS NET IPC", delta: b, reason: `Phase ${phase}` });
+      audit.push({ source: "HDX Civilian", delta: b, reason: `${ct.count} targeting events` });
     }
-  }
-
-  if (CFG.HFID_ENABLED && signals.hfid) {
-    const b = Math.min(12, signals.hfid.length * 6);
-    dims.food = clamp(dims.food + b);
-    totalBoost += b;
-    audit.push({ source: "HFID", delta: b, reason: `${signals.hfid.length} food insecurity record(s)` });
-  }
-
-  if (CFG.EMDAT_ENABLED && signals.emdat) {
-    const b = Math.min(8, signals.emdat.length * 4);
-    dims.climate = clamp(dims.climate + b);
-    totalBoost += b;
-    audit.push({ source: "EM-DAT", delta: b, reason: `${signals.emdat.length} historical disaster(s)` });
   }
 
   const cap = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
@@ -2465,12 +2102,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       jtwc: s.jtwcStorms?.length ? { count: s.jtwcStorms.length, storms: s.jtwcStorms.map(x => x.name), source: "JTWC" } : null,
       climate_trace: s.climateTrace ? { emissions: s.climateTrace.topEmission?.emissions, sector: s.climateTrace.topEmission?.sector, source: "Climate TRACE" } : null,
       hdx: s.hdxDatasets ? { dataset_count: s.hdxDatasets.count, source: "OCHA HDX" } : null,
-      // v13.7 new
-      hapi: s.hapi ? { indicators: s.hapi, source: "HDX HAPI" } : null,
-      civilian_targeting: s.civilianTargeting ? { events: s.civilianTargeting, source: "HDX Civilian Targeting" } : null,
-      fews_ipc: s.fewsIpc ? { phase: s.fewsIpc.phase, location: s.fewsIpc.location, source: "FEWS NET IPC" } : null,
-      hfid: s.hfid ? { records: s.hfid, source: "HFID" } : null,
-      emdat: s.emdat ? { disasters: s.emdat, source: "EM-DAT" } : null,
+      civilian_targeting: s.civilianTargeting ? { count: s.civilianTargeting.count, fatalities: s.civilianTargeting.fatalities, source: "HDX Civilian Targeting" } : null,
       heat: s.maxTempC >= 35 ? { max_temp_c: s.maxTempC, source: "Open-Meteo" } : null,
       hazards: s.hazards ? { ...s.hazards, source: "Open-Meteo" } : null,
       air_quality: s.aq ? { ...s.aq, source: "Open-Meteo AQ" } : null,
@@ -2536,8 +2168,7 @@ function buildKeywords(iso, store) {
   if (s.cdcOutbreaks?.length) kws.add(`${c.name} CDC outbreak`);
   if (s.spcOutlook) kws.add(`${c.name} severe weather`);
   if (s.whoDon?.length) kws.add(`${c.name} disease outbreak`);
-  if (s.civilianTargeting) kws.add(`${c.name} civilian targeting`);
-  if (s.fewsIpc) kws.add(`${c.name} famine early warning`);
+  if (s.civilianTargeting) kws.add(`${c.name} civilian casualties`);
   return [...kws].slice(0, 35);
 }
 function buildMetaDescription(iso, store) {
@@ -2763,7 +2394,7 @@ export default async function handler(req, res) {
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.7 — added HDX HAPI, HDX Civilian Targeting, HDX FEWS NET IPC, HFID, EM-DAT. Closes the conflict and food security gaps.",
+        note: "v13.7 — added HDX Civilian Targeting, fixed Marine API, added weight cap. Regional feeds correctly scoped.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2801,12 +2432,7 @@ export default async function handler(req, res) {
           climate_trace: { live: liveData.climateTrace.live, countries: Object.keys(liveData.climateTrace.data || {}).length },
           hdx: { live: liveData.hdx.live, countries: Object.keys(liveData.hdx.data || {}).length },
           jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
-          // v13.7 new
-          hapi: { live: liveData.hapi.live, countries: Object.keys(liveData.hapi.data || {}).length },
-          civilian_targeting: { live: liveData.civilianTargeting.live, countries: Object.keys(liveData.civilianTargeting.data || {}).length },
-          fews_ipc: { live: liveData.fewsIpc.live, countries: Object.keys(liveData.fewsIpc.data || {}).length },
-          hfid: { live: liveData.hfid.live, countries: Object.keys(liveData.hfid.data || {}).length },
-          emdat: { live: liveData.emdat.live, countries: Object.keys(liveData.emdat.data || {}).length },
+          hdx_civilian: { live: liveData.hdxCivilian.live, countries: Object.keys(liveData.hdxCivilian.data || {}).length },
         },
         endpoints: {
           single: "GET /api/top-story",
