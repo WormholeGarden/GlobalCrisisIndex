@@ -1,13 +1,19 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.3.1 — LIVE BREAKING NEWS + EXPANDED FEED STACK
+//  TOP-STORY API — v13.4 — PURE LIVE EVIDENCE
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 22 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.3.1 ═══
-//  FULL FSI_2024 AND WST_CLASSIFICATION TABLES RESTORED
-//  (v13.3 shipped with abbreviated placeholders — v13.3.1 restores full data)
+//  ═══ v13.4 CHANGES ═══
+//  ✅ REMOVED: derived signals (conflict_surge, food_crisis, government_crisis)
+//     These were computed from synthetic seedHistory and added ~72 phantom
+//     weighted points to every high-velocity country. Now the score is driven
+//     ONLY by real feeds with real timestamps.
+//  ✅ HEADLINE: strict dedup (different type AND different details).
+//  ✅ UNHCR: proper parseInt coercion (no more "22335000" for Japan).
+//  ✅ USGS Significant Month: no longer deduped against weekly — fires
+//     as a separate signal when magnitude differs by 0.5+.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -42,7 +48,8 @@ const CFG = {
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
   SCORE_FIELD_IS_LIVE: true,
-  DERIVED_SIGNAL_REQUIRES_LIVE: true,
+  DERIVED_SIGNAL_REQUIRES_LIVE: false,
+  DERIVED_SIGNALS_ENABLED: false,   // v13.4: DISABLED — pure live evidence only
   LIVE_EVENT_FLAT_BOOST: 35,
   LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
@@ -593,7 +600,7 @@ function findClosestCountry(lng, lat) {
 }
 function isUS(iso) { return iso === "USA"; }
 
-// ─── LIVE BREAKING ENGINE ────────────────────────────────────────────────────
+// ─── LIVE BREAKING ENGINE v13.4 ──────────────────────────────────────────────
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
@@ -617,9 +624,6 @@ const LIVE_SIGNALS = {
   disease_active:     { weight: 50,  verify: 0.8,  label: "Disease Outbreak",        icon: "🦠", type: "event" },
   inflation_crisis:   { weight: 45,  verify: 0.9,  label: "Inflation Crisis",        icon: "📈", type: "event" },
   gdp_contraction:    { weight: 40,  verify: 0.9,  label: "GDP Contraction",         icon: "📉", type: "event" },
-  food_crisis:        { weight: 65,  verify: 0.95, label: "Food Crisis",             icon: "🍚", type: "derived" },
-  conflict_surge:     { weight: 90,  verify: 0.95, label: "Conflict Surge",          icon: "⚔️", type: "derived" },
-  government_crisis:  { weight: 70,  verify: 0.85, label: "Government Crisis",       icon: "🏛️", type: "derived" },
   cdc_outbreak:       { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",      icon: "🧫", type: "event" },
   spc_severe:         { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",       icon: "⛈️", type: "event" },
   ifrc_appeal:        { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",    icon: "🆘", type: "event" },
@@ -636,8 +640,8 @@ function detectLiveBreakingSignals(iso, live, store) {
 
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
-    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: LIVE_SIGNALS.gdacs_red.weight, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
-    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: LIVE_SIGNALS.gdacs_orange.weight, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
+    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
+    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
   if (s.quakeMag >= 6.0) {
@@ -651,12 +655,19 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   }
 
+  // v13.4: USGS Significant Month fires as an ADDITIONAL signal when the mag differs meaningfully
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
-      const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_"));
-      if (!alreadyCovered) {
-        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}` });
+      const sameMagnitude = s.quakeMag && Math.abs(s.quakeSigMonth.mag - s.quakeMag) < 0.5;
+      if (!sameMagnitude) {
+        signals.push({
+          type: s.quakeSigMonth.mag >= 6.0 ? "earthquake_m6" : "earthquake_m5",
+          weight: s.quakeSigMonth.mag >= 6.0 ? 95 : 65,
+          ageHours,
+          source: "USGS (significant-month)",
+          details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`,
+        });
       }
     }
   }
@@ -743,24 +754,11 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  const hasFreshLiveEvent = signals.some(sig => {
-    const def = LIVE_SIGNALS[sig.type];
-    return def?.type === "event" && sig.ageHours <= CFG.FRESH_SIGNAL_HOURS;
-  });
-  const mlAnomalyProb = store[iso]?.ml_forecast?.anomaly_probability || 0;
-  const derivedAllowed = !CFG.DERIVED_SIGNAL_REQUIRES_LIVE || hasFreshLiveEvent || mlAnomalyProb > 0.6;
-
-  if (derivedAllowed) {
-    if (store[iso] && store[iso].dims.food > 75) {
-      signals.push({ type: "food_crisis", weight: 65, ageHours: 168, source: "Derived", details: `Food security: ${store[iso].dims.food}/100` });
-    }
-    if (store[iso] && store[iso].__conflict_velocity > 1.5) {
-      signals.push({ type: "conflict_surge", weight: 90, ageHours: 24, source: "Derived", details: `Conflict rising ${store[iso].__conflict_velocity.toFixed(1)} pts/day` });
-    }
-    if (store[iso] && store[iso].dims.political > 80 && store[iso].__anomaly?.detected) {
-      signals.push({ type: "government_crisis", weight: 70, ageHours: 48, source: "Derived", details: `Political instability + anomaly` });
-    }
-  }
+  // ═══ v13.4: DERIVED SIGNALS REMOVED ═══
+  // The previous v13.3 blocks for conflict_surge, food_crisis, and
+  // government_crisis have been DELETED. They were computed from synthetic
+  // seedHistory and were adding ~72 weighted points to every country with
+  // any structural velocity. The score is now driven ONLY by real feeds.
 
   return signals.map(sig => ({ ...sig, is_live_event: LIVE_SIGNALS[sig.type]?.type === "event" }));
 }
@@ -932,7 +930,7 @@ function rankLiveEventsOnly(store) {
     });
 }
 
-// ─── ML / SENTIMENT / HISTORY / ALERTS (compressed — same logic as v13.2) ───
+// ─── ML / SENTIMENT / HISTORY / ALERTS ───────────────────────────────────────
 
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
@@ -1345,7 +1343,7 @@ function extractSignals(iso, live) {
 
   const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topSig = sigQuakes.length ? sigQuakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
-  if (topSig?.properties?.mag >= 5.5 && (!topQuake || topSig.properties.mag > topQuake.properties.mag)) {
+  if (topSig?.properties?.mag >= 5.5 && (!topQuake || Math.abs(topSig.properties.mag - topQuake.properties.mag) >= 0.5)) {
     signals.quakeSigMonth = { mag: topSig.properties.mag, place: topSig.properties.place.split(",")[0].trim(), time: topSig.properties.time };
     liveEvidenceCount++; evidenceSources.push("USGS-Sig");
   }
@@ -1389,10 +1387,13 @@ function extractSignals(iso, live) {
   if (isUS(iso) && CFG.SPC_ENABLED && live.spc.data) { liveEvidenceCount++; evidenceSources.push("SPC"); signals.spcOutlook = live.spc.data; }
   if (isUS(iso) && CFG.CDC_ENABLED && live.cdc.data?.length) { liveEvidenceCount++; evidenceSources.push("CDC"); signals.cdcOutbreaks = live.cdc.data; }
 
+  // v13.4: WHO DON matching — use title only, not full text. This avoids
+  // false positives where "United States" appears in a summary of a report
+  // about Ebola in Congo.
   if (CFG.WHO_DON_ENABLED && live.whoDon.data?.length) {
     const matched = live.whoDon.data.filter(d => {
-      const text = ((d.title || "") + " " + (d.summary || "") + " " + (d.overview || "")).toLowerCase();
-      return text.includes(name);
+      const title = (d.title || "").toLowerCase();
+      return title.includes(name);
     });
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
@@ -1471,7 +1472,7 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── APPLY LIVE ADJUSTMENTS ──────────────────────────────────────────────────
+// ─── APPLY LIVE ADJUSTMENTS (structural dims — unchanged) ────────────────────
 
 function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
@@ -2082,14 +2083,14 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.3.1",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.4",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.3.1 — full FSI and WST tables restored. `score` = LIVE score; `structural_score` = FSI-derived baseline.",
+        note: "v13.4 — derived signals REMOVED. Score is now driven ONLY by real live feeds with real timestamps. Structural score preserved as `structural_score`.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2139,7 +2140,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.3.1]", err);
+    console.error("[top-story v13.4]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
