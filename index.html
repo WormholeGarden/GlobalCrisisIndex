@@ -2400,20 +2400,23 @@ async function refresh(){
       }
       
       apiStore[c.iso] = {
-  name: c.name || c.iso,
-  flag: c.flag || '🌍',
-  types: (c.crisis_types || []).map(t => t.code).filter(Boolean),
-  needs: c.needs || [],
-  dims: dims,
-  score: score,                                        // keep structural for reference
-  live_score: c.live_breaking?.score ?? score,         // NEW: live breaking score
-  live_breaking: c.live_breaking || null,              // NEW: full live block
-  live_tier: c.live_breaking?.tier || 'BACKGROUND',    // NEW: tier label
-  has_fresh_live_event: c.live_breaking?.has_fresh_live_event || false,  // NEW
-  priorScore: priorScore,
-  events: evidenceCount,
-  ...
-};
+        name: c.name || c.iso,
+        flag: c.flag || '🌍',
+        types: (c.crisis_types || []).map(t => t.code).filter(Boolean),
+        needs: c.needs || [],
+        dims: dims,
+        score: score,
+        priorScore: priorScore,
+        events: evidenceCount,
+        spillover: spillover,
+        liveBoost: liveBoost,
+        evidenceCount: evidenceCount,
+        evidenceSources: c.live_evidence_sources || [],
+        evidenceLedger: c.score_audit?.adjustments || [],
+        evidenceConfidence: Math.min(1, evidenceCount / 5),
+        signals: {},
+      };
+    });
     
     for (const iso in store) {
       if (apiStore[iso]) {
@@ -2462,18 +2465,7 @@ async function refresh(){
       }
     }
     
-    ranked = Object.keys(store).sort((a, b) => {
-  const aLB = store[a];
-  const bLB = store[b];
-  // Live events always come first
-  const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
-  const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
-  if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
-  // Then sort by live score
-  const aLive = aLB.live_score ?? aLB.score ?? 0;
-  const bLive = bLB.live_score ?? bLB.score ?? 0;
-  return bLive - aLive;
-});
+    ranked = Object.keys(store).sort((a, b) => store[b].score - store[a].score);
     updateUIStatsFromApi(apiData);
   } else {
     updateUIStats();
