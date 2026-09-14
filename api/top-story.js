@@ -2325,7 +2325,7 @@ function runAnomalyDetection(a, opts = {}) {
   }
   const m = [detectCUSUM(a), detectZScore(a), detectChangepoint(a), detectVolatilityRegime(a)];
   const f = m.filter(x => x.detected);
-  return { detected: f.length >= 2, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
+return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
 }
 function trendForecast(h, cur) {
   if (h.length < 5) return { fc: cur, trend: "stable", esc: false, slope: 0, confidence: 0.3 };
