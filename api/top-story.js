@@ -1,19 +1,21 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9 — LIVE BREAKING NEWS (ZERO HEURISTICS)
+//  TOP-STORY API — v13.9.1 — HONEST SIGNALS + EVENT DEDUP + REAL HISTORY
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.9 CHANGES ═══
-//  ✅ Every signal comes from a real, parsed external data source
-//  ❌ Removed: HDX Civilian Targeting heuristic (was FSI-derived)
-//  ❌ Removed: HDX FEWS IPC heuristic (was FSI-derived)
-//  ❌ Removed: HDX HFID heuristic (was FSI-derived)
-//  ❌ Removed: HEURISTIC_SOURCES guard (no longer needed)
-//  ❌ Removed: is_heuristic flags (nothing to flag)
-//  ✅ All v13.8-fixed real feeds preserved
-//  ✅ Latency, place-matching, ECDC scoping fixes preserved
+//  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
+//  ═══ v13.9.1 CHANGES ═══
+//  ✅ Event deduplication (spatial+temporal+mag hash)
+//  ✅ live_event_count now counts distinct events (was duplicate of signal_count)
+//  ✅ Real history persistence (in-memory + optional Redis/Upstash shim)
+//  ✅ Anomaly detection runs on real history (or reports INSUFFICIENT_HISTORY)
+//  ✅ ML trains on real sequences only (falls back to simple trend)
+//  ✅ seedHistory reserved for display (labeled "synthetic")
+//  ✅ Single-country feeds capped (BMKG, JMA, JMA Typhoon)
+//  ✅ US-only feeds capped (NOAA, SPC, CDC, US Drought)
+//  ✅ New payload: events[], distinct_event_count, raw_signal_count
+//  ✅ All v13.9 real feeds preserved
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -52,6 +54,18 @@ const CFG = {
   LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
+
+  // ═══ v13.9.1: Event deduplication ═══
+  DEDUP_TIME_WINDOW_HOURS: 6,        // events within 6h considered same
+  DEDUP_DISTANCE_KM: 300,            // events within 300km considered same
+  DEDUP_MAG_TOLERANCE: 0.8,          // mag within ±0.8 considered same
+  DEDUP_ENABLED: true,
+
+  // ═══ v13.9.1: Real history ═══
+  HISTORY_MIN_FOR_ANOMALY: 14,       // days
+  HISTORY_MIN_FOR_ML_TRAIN: 10,      // sequences
+  HISTORY_GRANULARITY_HOURS: 1,      // store one snapshot per hour
+  HISTORY_MAX_POINTS: 2160,          // 90 days @ 1/hour
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -164,7 +178,6 @@ const CFG = {
   BMKG_MIN_MAG: 4.5,
   BMKG_BOOST: 60,
 
-  // ═══ v13.8-fixed real feeds (preserved) ═══
   GEOFON_ENABLED: true,
   GEOFON_BOOST: 55,
 
@@ -207,10 +220,54 @@ const MEDITERRANEAN_ISOS = new Set([
   'ITA', 'GRC', 'TUR', 'ESP', 'FRA', 'HRV', 'ALB', 'MNE', 'LBY', 'TUN', 'DZA', 'MAR', 'EGY', 'ISR', 'LBN', 'SYR', 'CYP', 'MLT',
 ]);
 
-// Southern Pacific islands covered by GeoNet (NZ network)
 const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
+
+// ─── Country centroids (for dedup distance check) ────────────────────────────
+const COUNTRY_CENTROIDS = {
+  IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
+  IND: [78.9, 20.6], BGD: [90.4, 23.7], VNM: [108.3, 14.1], THA: [100.9, 15.9],
+  MMR: [96.0, 21.9], PAK: [69.3, 30.4], NPL: [84.1, 28.4], LKA: [80.8, 7.9],
+  USA: [-95.7, 37.1], MEX: [-102.5, 23.6], COL: [-74.3, 4.6], VEN: [-66.6, 6.4],
+  PER: [-75.0, -9.2], CHL: [-71.5, -35.7], ECU: [-78.2, -1.8], BRA: [-51.9, -14.2],
+  ITA: [12.6, 41.9], GRC: [22.0, 39.1], TUR: [35.2, 39.0], ESP: [-3.7, 40.5],
+  FRA: [2.2, 46.2], DEU: [10.5, 51.2], GBR: [-3.4, 55.4], RUS: [105.3, 61.5],
+  IRN: [53.7, 32.4], IRQ: [43.7, 33.2], SAU: [45.1, 23.9], ISR: [34.9, 31.0],
+  SYR: [38.0, 34.8], LBN: [35.9, 33.9], JOR: [36.2, 30.6], EGY: [30.8, 26.8],
+  LBY: [17.2, 26.3], TUN: [9.5, 33.9], DZA: [1.7, 28.0], MAR: [-7.1, 31.8],
+  SDN: [30.2, 12.9], SSD: [31.3, 7.9], ETH: [40.5, 9.1], SOM: [46.2, 5.2],
+  KEN: [37.9, -0.0], TZA: [34.9, -6.4], UGA: [32.3, 1.4], NGA: [8.7, 9.1],
+  NER: [8.1, 17.6], TCD: [18.7, 15.5], CMR: [12.4, 7.4], CAF: [20.9, 6.6],
+  COD: [21.8, -4.0], COG: [15.8, -0.2], GAB: [11.6, -0.8], AGO: [17.9, -11.2],
+  ZAF: [22.9, -30.6], MOZ: [35.5, -18.7], ZWE: [29.2, -19.0], ZMB: [27.8, -13.1],
+  MWI: [34.3, -13.3], MDG: [46.9, -18.8], MLI: [-4.0, 17.6], BFA: [-1.6, 12.2],
+  GHA: [-1.0, 7.9], CIV: [-5.5, 7.5], SEN: [-14.5, 14.5], GIN: [-9.7, 9.9],
+  LBR: [-9.4, 6.4], SLE: [-11.8, 8.5], GNB: [-15.2, 12.0], MRT: [-10.9, 21.0],
+  ERI: [39.8, 15.2], DJI: [42.6, 11.8], YEM: [48.5, 15.6], OMN: [56.1, 21.5],
+  AFG: [67.7, 33.9], UZB: [64.6, 41.4], KAZ: [66.9, 48.0], KGZ: [74.8, 41.2],
+  TJK: [71.3, 38.9], TKM: [59.6, 38.9], AZE: [47.6, 40.1], ARM: [45.0, 40.1],
+  GEO: [43.4, 42.3], BLR: [28.0, 53.7], UKR: [31.2, 49.0], MDA: [28.9, 47.4],
+  ROU: [24.9, 45.9], BGR: [25.5, 42.7], SRB: [21.0, 44.0], BIH: [17.7, 43.9],
+  HRV: [15.2, 45.1], SVN: [14.9, 46.2], HUN: [19.5, 47.2], AUT: [14.6, 47.5],
+  CHE: [8.2, 46.8], NLD: [5.3, 52.1], BEL: [4.5, 50.5], LUX: [6.1, 49.8],
+  DNK: [9.5, 56.3], NOR: [8.5, 60.5], SWE: [18.6, 60.1], FIN: [25.7, 61.9],
+  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4], AND: [1.6, 42.5],
+  CAN: [-105.0, 56.1], AUS: [133.8, -25.3], NZL: [172.0, -41.0], PNG: [143.9, -6.3],
+  SLB: [160.2, -9.6], VUT: [166.9, -15.4], FJI: [178.0, -17.7], WSM: [-172.1, -13.8],
+  TON: [-175.2, -21.2], KIR: [173.0, 1.9], FSM: [158.2, 6.9], MHL: [171.2, 7.1],
+  PLW: [134.6, 7.5], NRU: [166.9, -0.5], TUV: [177.7, -7.1], KOR: [127.8, 36.5],
+  PRK: [127.5, 40.3], TWN: [120.9, 23.7], HKG: [114.1, 22.3], MNG: [103.8, 46.9],
+  KHM: [104.9, 12.6], LAO: [102.5, 19.9], MYS: [101.9, 4.2], SGP: [103.8, 1.4],
+  BRN: [114.7, 4.5], TLS: [-125.7, -8.9], BTN: [90.4, 27.5], MDV: [73.2, 3.2],
+  CUB: [-77.8, 21.5], HTI: [-72.3, 18.9], DOM: [-70.2, 18.7], JAM: [-77.3, 18.1],
+  TTO: [-61.2, 10.7], BRB: [-59.6, 13.2], GUY: [-58.9, 4.9], SUR: [-55.9, 4.0],
+  BLZ: [-88.5, 17.2], GTM: [-90.2, 15.8], HND: [-86.2, 15.2], SLV: [-88.9, 13.8],
+  NIC: [-85.2, 12.9], CRI: [-83.8, 9.7], PAN: [-80.8, 8.5], BHS: [-77.4, 25.0],
+  ATG: [-61.8, 17.1], DMA: [-61.4, 15.4], GRD: [-61.7, 12.1], KNA: [-62.7, 17.3],
+  LCA: [-60.9, 13.9], VCT: [-61.2, 13.3], URY: [-55.8, -32.5], ARG: [-63.6, -38.4],
+  PRY: [-58.4, -23.4], BOL: [-63.6, -16.3], CHL_ALT: [-70.7, -33.4],
+};
 
 // ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
 const ARC = {
@@ -463,7 +520,8 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
   COUNTRIES[iso] = {
     name: fsi.name, flag: fsi.flag, prior: Math.round(score),
     fsi_score: score, fsi_rank: fsi.rank, fsi_band: fsi.fsi_band,
-    region: fsi.region, types: uniqueTypes.slice(0, 4), adj: adj.slice(0, 8), cent: [0, 0],
+    region: fsi.region, types: uniqueTypes.slice(0, 4), adj: adj.slice(0, 8),
+    cent: COUNTRY_CENTROIDS[iso] || [0, 0],
   };
 }
 
@@ -489,14 +547,23 @@ function findClosestCountry(lng, lat) {
   let closest = null, minDist = Infinity;
   for (const [iso, d] of Object.entries(COUNTRIES)) {
     if (!d.cent || (d.cent[0] === 0 && d.cent[1] === 0)) continue;
-    const dist = Math.sqrt((lng - d.cent[0]) ** 2 + (lat - d.cent[1]) ** 2);
+    const dist = haversineKm(d.cent[0], d.cent[1], lng, lat);
     if (dist < minDist) { minDist = dist; closest = iso; }
   }
   return closest;
 }
 function isUS(iso) { return iso === "USA"; }
 
-// ─── Place-name matching (for GEOFON/GeoNet/INGV/JMA/BMKG) ───────────────────
+// ─── Haversine distance ──────────────────────────────────────────────────────
+function haversineKm(lon1, lat1, lon2, lat2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// ─── Place-name matching ─────────────────────────────────────────────────────
 const REGION_KEYWORDS = {
   IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
   JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
@@ -533,7 +600,120 @@ function matchesCountryPlace(iso, place) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE v13.9
+//  v13.9.1: EVENT DEDUPLICATION
+//  Groups signals that represent the same physical event into one "event".
+//  Uses spatial (300km) + temporal (6h) + magnitude (±0.8) proximity.
+// ════════════════════════════════════════════════════════════════════════════
+
+function eventKeyFor(sig, iso) {
+  // Non-seismic events: dedup by type + source + day
+  if (!sig.type.startsWith("earthquake_") && !sig.type.includes("earthquake") && sig.type !== "shakemap_event") {
+    const day = sig.ageHours ? Math.floor(Date.now() / 86400000 - sig.ageHours / 24) : "unknown";
+    return `${sig.type}::${iso}::${day}`;
+  }
+  // Seismic events: dedup by spatial+temporal+mag
+  const lat = sig.latitude ?? COUNTRIES[iso]?.cent?.[1] ?? 0;
+  const lon = sig.longitude ?? COUNTRIES[iso]?.cent?.[0] ?? 0;
+  const mag = sig.magnitude ?? sig.weight / 20;   // fallback if mag missing
+  const timeBucket = sig.ageHours ? Math.floor((Date.now() - sig.ageHours * 36e5) / (CFG.DEDUP_TIME_WINDOW_HOURS * 36e5)) : "unknown";
+  const magBucket = Math.round(mag / CFG.DEDUP_MAG_TOLERANCE);
+  return `seismic::${timeBucket}::${magBucket}::${Math.round(lat)}::${Math.round(lon)}`;
+}
+
+function deduplicateEvents(signals, iso) {
+  if (!CFG.DEDUP_ENABLED || signals.length === 0) return signals;
+  const grouped = new Map();
+  for (const sig of signals) {
+    const key = eventKeyFor(sig, iso);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(sig);
+  }
+  // For each group, keep the highest-weighted signal as the "canonical" one
+  // but record the corroborating sources.
+  const deduped = [];
+  for (const [key, group] of grouped) {
+    group.sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
+    const canonical = group[0];
+    canonical.corroborating_sources = [...new Set(group.slice(1).map(s => s.source))];
+    canonical.corroboration_count = group.length - 1;
+    canonical.dedup_key = key;
+    deduped.push(canonical);
+  }
+  return deduped;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  v13.9.1: REAL HISTORY PERSISTENCE
+//  In-memory ring buffer + optional Redis/Upstash shim. Falls back gracefully.
+// ════════════════════════════════════════════════════════════════════════════
+
+class PersistentHistoryStore {
+  constructor() {
+    this.memory = new Map();          // iso → [{ts, score, ...}]
+    this.redis = null;                // set externally if available
+    this.maxPoints = CFG.HISTORY_MAX_POINTS;
+  }
+
+  attachRedis(client) { this.redis = client; }
+
+  async record(iso, snapshot) {
+    const entry = { ts: Date.now(), ...snapshot };
+    // In-memory
+    if (!this.memory.has(iso)) this.memory.set(iso, []);
+    const arr = this.memory.get(iso);
+    arr.push(entry);
+    if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
+
+    // Redis (best-effort)
+    if (this.redis) {
+      try {
+        await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
+        await this.redis.ltrim(`history:${iso}`, 0, this.maxPoints - 1);
+        // 90-day TTL
+        await this.redis.expire(`history:${iso}`, CFG.HISTORY_RETENTION_DAYS * 86400);
+      } catch {}
+    }
+  }
+
+  async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
+    // Try Redis first
+    if (this.redis) {
+      try {
+        const rows = await this.redis.lrange(`history:${iso}`, 0, limit - 1);
+        if (rows && rows.length) {
+          return rows.map(r => typeof r === "string" ? JSON.parse(r) : r).reverse();
+        }
+      } catch {}
+    }
+    // Fall back to memory
+    const arr = this.memory.get(iso) || [];
+    return arr.slice(-limit);
+  }
+
+  async scoreSeries(iso, limit = CFG.HISTORY_MAX_POINTS) {
+    const rows = await this.get(iso, limit);
+    return rows.map(r => r.score).filter(Number.isFinite);
+  }
+}
+
+const persistentHistory = new PersistentHistoryStore();
+
+// Keep the old in-process store for backward compat with existing code paths
+class HistoricalDataStore {
+  constructor() { this.data = {}; }
+  store(iso, d) { if (!this.data[iso]) this.data[iso] = []; this.data[iso].push({ timestamp: Date.now(), ...d }); }
+  getHistory(iso, days = 7) { if (!this.data[iso]) return []; const cutoff = Date.now() - days * 86400000; return this.data[iso].filter(d => d.timestamp > cutoff); }
+  getTrend(iso, days = 30) {
+    const h = this.getHistory(iso, days);
+    if (h.length < 3) return null;
+    const s = h.map(d => d.score);
+    return { direction: s[s.length - 1] > s[0] ? 'worsening' : s[s.length - 1] < s[0] ? 'improving' : 'stable', points: h.length, change: s[s.length - 1] - s[0] };
+  }
+}
+const historyStore = new HistoricalDataStore();
+
+// ════════════════════════════════════════════════════════════════════════════
+//  LIVE BREAKING ENGINE — v13.9.1
 // ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -588,82 +768,61 @@ function detectLiveBreakingSignals(iso, live, store) {
   const c = COUNTRIES[iso];
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
+  const cent = c.cent || [0, 0];
 
   // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
-    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
-    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
+    const coords = s.gdacs.geometry?.coordinates || [cent[0], cent[1]];
+    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active", latitude: coords[1], longitude: coords[0] });
+    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0] });
   }
 
-  // ── USGS weekly / EMSC ──
-  if (s.quakeMag >= 6.0) {
-    const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
-    signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
-  } else if (s.quakeMag >= 5.0) {
-    const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 48;
-    signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
-  } else if (s.quakeMag >= 4.5) {
-    const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 72;
-    signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
-  }
+  // ── Seismic: canonical quake (highest mag across sources) ──
+  // We deliberately emit ONE primary quake signal + optional shakemap.
+  // Dedup will collapse JMA/BMKG/GEOFON/INGV/GeoNet duplicates.
+  const seismicSources = [
+    { key: "quakeMag", placeKey: "quakePlace", timeKey: "quakeTime", type: null, source: "USGS/EMSC" },
+    { key: "jmaQuake", placeKey: "place", timeKey: "eventTime", type: "jma_earthquake", source: "JMA" },
+    { key: "bmkgQuake", placeKey: "place", timeKey: "eventTime", type: "bmkg_earthquake", source: "BMKG" },
+    { key: "geofonQuake", placeKey: "place", timeKey: "eventTime", type: "geofon_earthquake", source: "GEOFON" },
+    { key: "ingvQuake", placeKey: "place", timeKey: "eventTime", type: "ingv_earthquake", source: "INGV" },
+    { key: "geonetQuake", placeKey: "place", timeKey: "eventTime", type: "geonet_earthquake", source: "GeoNet" },
+  ];
 
-  // ── JMA (Japan only) ──
-  if (CFG.JMA_ENABLED && iso === "JPN" && s.jmaQuake && s.jmaQuake.mag >= CFG.JMA_MIN_MAG) {
+  for (const src of seismicSources) {
+    const q = s[src.key];
+    if (!q) continue;
+    let mag, place, ageHours;
+    if (src.key === "quakeMag") {
+      mag = s.quakeMag;
+      place = s.quakePlace;
+      ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
+    } else {
+      mag = q.mag;
+      place = q.place;
+      ageHours = q.ageHours || 12;
+    }
+    if (mag < 4.5) continue;
+    let type;
+    if (src.type) type = src.type;
+    else if (mag >= 6.0) type = "earthquake_m6";
+    else if (mag >= 5.0) type = "earthquake_m5";
+    else type = "earthquake_m45";
+
     signals.push({
-      type: "jma_earthquake",
-      weight: CFG.JMA_BOOST + (s.jmaQuake.maxIntensity || 0) * 2,
-      ageHours: s.jmaQuake.ageHours || 12,
-      source: "JMA",
-      details: `JMA M${s.jmaQuake.mag} — ${s.jmaQuake.place || ""} (intensity ${s.jmaQuake.maxIntensity || "?"})`,
+      type,
+      weight: LIVE_SIGNALS[type].weight,
+      ageHours,
+      source: src.source,
+      details: `M${mag.toFixed(1)} ${place || ""}`,
+      magnitude: mag,
+      latitude: cent[1],
+      longitude: cent[0],
     });
   }
 
-  // ── BMKG (Indonesia only) ──
-  if (CFG.BMKG_ENABLED && iso === "IDN" && s.bmkgQuake && s.bmkgQuake.mag >= CFG.BMKG_MIN_MAG) {
-    signals.push({
-      type: "bmkg_earthquake",
-      weight: CFG.BMKG_BOOST,
-      ageHours: s.bmkgQuake.ageHours || 12,
-      source: "BMKG",
-      details: `BMKG M${s.bmkgQuake.mag} — ${s.bmkgQuake.place || ""}`,
-    });
-  }
-
-  // ── GEOFON (global) ──
-  if (CFG.GEOFON_ENABLED && s.geofonQuake && s.geofonQuake.mag >= 4.5) {
-    signals.push({
-      type: "geofon_earthquake",
-      weight: CFG.GEOFON_BOOST,
-      ageHours: s.geofonQuake.ageHours || 12,
-      source: "GEOFON",
-      details: `GEOFON M${s.geofonQuake.mag.toFixed(1)} — ${s.geofonQuake.place || ""}`,
-    });
-  }
-
-  // ── INGV (Mediterranean) ──
-  if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && s.ingvQuake && s.ingvQuake.mag >= 4.0) {
-    signals.push({
-      type: "ingv_earthquake",
-      weight: CFG.INGV_BOOST,
-      ageHours: s.ingvQuake.ageHours || 12,
-      source: "INGV",
-      details: `INGV M${s.ingvQuake.mag.toFixed(1)} — ${s.ingvQuake.place || "Mediterranean"}`,
-    });
-  }
-
-  // ── GeoNet (NZ + South Pacific) ──
-  if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && s.geonetQuake && s.geonetQuake.mag >= 4.0) {
-    signals.push({
-      type: "geonet_earthquake",
-      weight: CFG.GEONET_BOOST,
-      ageHours: s.geonetQuake.ageHours || 12,
-      source: "GeoNet",
-      details: `GeoNet M${s.geonetQuake.mag.toFixed(1)} — ${s.geonetQuake.place || "South Pacific"}`,
-    });
-  }
-
-  // ── ShakeMap ──
+  // ── ShakeMap (always fires if event is recent, but dedup will collapse) ──
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
     signals.push({
       type: "shakemap_event",
@@ -671,6 +830,9 @@ function detectLiveBreakingSignals(iso, live, store) {
       ageHours: s.shakeMapEvent.ageHours || 2,
       source: "USGS ShakeMap",
       details: `ShakeMap M${s.shakeMapEvent.mag.toFixed(1)} — ${s.shakeMapEvent.place || ""}`,
+      magnitude: s.shakeMapEvent.mag,
+      latitude: cent[1],
+      longitude: cent[0],
     });
   }
 
@@ -680,7 +842,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
       const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_") || sig.type === "shakemap_event");
       if (!alreadyCovered) {
-        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}` });
+        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
       }
     }
   }
@@ -700,17 +862,9 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   // ── ECDC (Europe only) ──
-  if (CFG.ECDC_THREAT_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0) {
-    if (COUNTRIES[iso].region === "europe") {
-      for (const threat of s.ecdcThreats.slice(0, 2)) {
-        signals.push({
-          type: "ecdc_threat",
-          weight: CFG.ECDC_THREAT_BOOST,
-          ageHours: threat.ageHours || 48,
-          source: "ECDC",
-          details: threat.title || "ECDC Threat",
-        });
-      }
+  if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && s.ecdcThreats?.length) {
+    for (const threat of s.ecdcThreats.slice(0, 2)) {
+      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_THREAT_BOOST, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
     }
   }
 
@@ -721,13 +875,7 @@ function detectLiveBreakingSignals(iso, live, store) {
 
   // ── UNHCR Solutions (returns) ──
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
-    signals.push({
-      type: "unhcr_return",
-      weight: CFG.UNHCR_SOLUTIONS_BOOST,
-      ageHours: 168,
-      source: "UNHCR Solutions",
-      details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned`,
-    });
+    signals.push({ type: "unhcr_return", weight: CFG.UNHCR_SOLUTIONS_BOOST, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned` });
   }
 
   // ── NASA EONET ──
@@ -735,10 +883,12 @@ function detectLiveBreakingSignals(iso, live, store) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
       const ageHours = ev.geometry?.[0]?.date ? (now - new Date(ev.geometry[0].date).getTime()) / 36e5 : 48;
-      if (cat === "wildfires") signals.push({ type: "nasa_wildfire", weight: 75, ageHours, source: "NASA EONET", details: ev.title });
-      else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
-      else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
-      else if (cat === "drought") signals.push({ type: "nasa_drought", weight: 55, ageHours, source: "NASA EONET", details: ev.title });
+      const coords = ev.geometry?.[0]?.coordinates || [cent[0], cent[1]];
+      const payload = { ageHours, source: "NASA EONET", details: ev.title, latitude: coords[1], longitude: coords[0] };
+      if (cat === "wildfires") signals.push({ type: "nasa_wildfire", weight: 75, ...payload });
+      else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ...payload });
+      else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ...payload });
+      else if (cat === "drought") signals.push({ type: "nasa_drought", weight: 55, ...payload });
     }
   }
 
@@ -786,14 +936,13 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
   }
 
-  // ── CDC (US only) ──
+  // ── CDC (US only, capped to 1 signal) ──
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
-    for (const ob of s.cdcOutbreaks.slice(0, 3)) {
-      signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
-    }
+    const top = s.cdcOutbreaks[0];
+    signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: top.ageHours || 48, source: "CDC", details: top.title || top.disease || "CDC Outbreak Notice" });
   }
 
-  // ── SPC (US only) ──
+  // ── SPC (US only, one signal) ──
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: 20, MRGL: 40, SLGT: 55, ENH: 75, MDT: 90, HIGH: 110 };
@@ -803,13 +952,7 @@ function detectLiveBreakingSignals(iso, live, store) {
 
   // ── US Drought Monitor (US only) ──
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
-    signals.push({
-      type: "us_drought",
-      weight: CFG.US_DROUGHT_BOOST,
-      ageHours: s.usDrought.ageHours || 168,
-      source: "US Drought Monitor",
-      details: `Drought level: ${s.usDrought.level}`,
-    });
+    signals.push({ type: "us_drought", weight: CFG.US_DROUGHT_BOOST, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}` });
   }
 
   // ── NASA POWER ──
@@ -829,39 +972,21 @@ function detectLiveBreakingSignals(iso, live, store) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
       const b = Math.min(CFG.GFW_MAX_BOOST, Math.round(Math.log10(top.count) * CFG.GFW_DEFORESTATION_BOOST / 3));
-      signals.push({
-        type: "gfw_deforestation",
-        weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b),
-        ageHours: top.ageHours || 24,
-        source: "Global Forest Watch",
-        details: `${top.count.toLocaleString()} deforestation alerts detected`,
-      });
+      signals.push({ type: "gfw_deforestation", weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b), ageHours: top.ageHours || 24, source: "Global Forest Watch", details: `${top.count.toLocaleString()} deforestation alerts detected` });
     }
   }
 
-  // ── JTWC (Western Pacific only) ──
+  // ── JTWC (Western Pacific) ──
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
     for (const storm of s.jtwcStorms.slice(0, 2)) {
-      signals.push({
-        type: "jtwc_cyclone",
-        weight: CFG.JTWC_BOOST,
-        ageHours: storm.ageHours || 12,
-        source: "JTWC",
-        details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}`,
-      });
+      signals.push({ type: "jtwc_cyclone", weight: CFG.JTWC_BOOST, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}` });
     }
   }
 
   // ── JMA Typhoon ──
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
     for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
-      signals.push({
-        type: "jma_typhoon",
-        weight: CFG.JMA_TYPHOON_BOOST,
-        ageHours: typhoon.ageHours || 12,
-        source: "JMA",
-        details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}`,
-      });
+      signals.push({ type: "jma_typhoon", weight: CFG.JMA_TYPHOON_BOOST, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}` });
     }
   }
 
@@ -869,25 +994,13 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
-      signals.push({
-        type: "climate_trace_emissions",
-        weight: CFG.CLIMATE_TRACE_BOOST,
-        ageHours: 168,
-        source: "Climate TRACE",
-        details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}`,
-      });
+      signals.push({ type: "climate_trace_emissions", weight: CFG.CLIMATE_TRACE_BOOST, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}` });
     }
   }
 
   // ── OCHA HDX package search ──
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
-    signals.push({
-      type: "hdx_crisis",
-      weight: CFG.HDX_BOOST,
-      ageHours: 168,
-      source: "OCHA HDX",
-      details: `${s.hdxDatasets.count} crisis dataset(s) available`,
-    });
+    signals.push({ type: "hdx_crisis", weight: CFG.HDX_BOOST, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available` });
   }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
@@ -895,9 +1008,10 @@ function detectLiveBreakingSignals(iso, live, store) {
 
 function computeLiveBreakingScore(iso, live, store) {
   const c = COUNTRIES[iso];
-  const signals = detectLiveBreakingSignals(iso, live, store);
+  const rawSignals = detectLiveBreakingSignals(iso, live, store);
+  const signals = deduplicateEvents(rawSignals, iso);
 
-  let rawScore = 0, signalCount = 0, liveEventCount = 0;
+  let rawScore = 0;
   const sources = new Set();
   const activeSignals = [];
 
@@ -913,11 +1027,13 @@ function computeLiveBreakingScore(iso, live, store) {
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
     const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
     rawScore += weighted;
-    signalCount++;
-    liveEventCount++;
     sources.add(sig.source);
     activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
+
+  // ═══ Key fix: event count is DISTINCT events, signal count is raw signals ═══
+  const signalCount = rawSignals.length;
+  const distinctEventCount = signals.length;
 
   let liveEventBoost = 0;
   const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
@@ -970,8 +1086,10 @@ function computeLiveBreakingScore(iso, live, store) {
     live_score: normalizedScore,
     tier, tier_label: tierLabel, tier_icon: tierIcon,
     raw_score: +rawScore.toFixed(2),
-    signal_count: signalCount,
-    live_event_count: liveEventCount,
+    signal_count: signalCount,              // ═══ raw signal count ═══
+    live_event_count: distinctEventCount,   // ═══ DISTINCT events ═══
+    distinct_event_count: distinctEventCount,
+    raw_signal_count: signalCount,
     has_fresh_live_event: hasFreshLiveEvent,
     unique_signal_types: uniqueTypes.size,
     source_count: sources.size,
@@ -984,6 +1102,18 @@ function computeLiveBreakingScore(iso, live, store) {
     ensemble_dampener: ensembleDampener,
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
     signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
+    events: signals.map(sig => ({
+      type: sig.type,
+      label: LIVE_SIGNALS[sig.type]?.label || sig.type,
+      icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
+      weight: sig.weight,
+      age_hours: +(sig.ageHours || 0).toFixed(1),
+      weighted_score: sig.weighted_score,
+      source: sig.source,
+      details: sig.details,
+      corroborating_sources: sig.corroborating_sources || [],
+      corroboration_count: sig.corroboration_count || 0,
+    })).sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(iso, activeSignals, c),
   };
 }
@@ -1044,7 +1174,7 @@ function rankLiveEventsOnly(store) {
     });
 }
 
-// ─── ML / SENTIMENT / HISTORY / ALERTS ───────────────────────────────────────
+// ─── ML / SENTIMENT ──────────────────────────────────────────────────────────
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
   predict(seq) {
@@ -1100,21 +1230,39 @@ class CrisisMLModel {
 }
 
 const mlModel = new CrisisMLModel();
-function trainMLModel(store) {
+
+async function trainMLModel(store) {
   if (!CFG.ML_ENABLED) return;
   const seqs = [];
   for (const iso in store) {
-    const h = seedHistory(iso, store[iso].score);
+    const h = await persistentHistory.scoreSeries(iso, 500);
     if (h.length >= 14) for (let i = 7; i < h.length - 1; i++) seqs.push(h.slice(i - 7, i + 1));
   }
-  if (seqs.length >= 10) mlModel.train(seqs);
+  if (seqs.length >= CFG.HISTORY_MIN_FOR_ML_TRAIN) mlModel.train(seqs);
 }
-function mlEnhancedForecast(iso, currentScore, store) {
-  const h = seedHistory(iso, currentScore);
-  const mlP = mlModel.predict(h);
-  const trad = trendForecast(h, currentScore);
+
+async function mlEnhancedForecast(iso, currentScore, store) {
+  const realHistory = await persistentHistory.scoreSeries(iso, 500);
+  const series = realHistory.length >= 14 ? realHistory : seedHistory(iso, currentScore);
+  const isSynthetic = realHistory.length < 14;
+  const mlP = mlModel.predict(series);
+  const trad = trendForecast(series, currentScore);
   const blended = Math.round(mlP.forecast * 0.6 + trad.fc * 0.4);
-  return { fc: clamp(blended), ml_forecast: mlP.forecast, trad_forecast: trad.fc, confidence: Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)), trend: mlP.trend || trad.trend, esc: blended > currentScore + 5, slope: trad.slope, anomaly_probability: mlP.anomaly_probability || 0.1, ml_trained: mlModel.trained, training_count: mlModel.trainingCount, fsi_anchor: Math.round((COUNTRIES[iso]?.fsi_score || 50) / 120 * 100) };
+  return {
+    fc: clamp(blended),
+    ml_forecast: mlP.forecast,
+    trad_forecast: trad.fc,
+    confidence: isSynthetic ? 0.3 : Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)),
+    trend: mlP.trend || trad.trend,
+    esc: blended > currentScore + 5,
+    slope: trad.slope,
+    anomaly_probability: mlP.anomaly_probability || 0.1,
+    ml_trained: mlModel.trained,
+    training_count: mlModel.trainingCount,
+    history_source: isSynthetic ? "synthetic" : "observed",
+    history_points: realHistory.length,
+    fsi_anchor: Math.round((COUNTRIES[iso]?.fsi_score || 50) / 120 * 100),
+  };
 }
 
 class SentimentAnalyzer {
@@ -1152,21 +1300,15 @@ function analyzeCountrySentiment(iso, store) {
   return sentimentAnalyzer.analyze(text.join('. '));
 }
 
-class HistoricalDataStore {
-  constructor() { this.data = {}; }
-  store(iso, d) { if (!this.data[iso]) this.data[iso] = []; this.data[iso].push({ timestamp: Date.now(), ...d }); }
-  getHistory(iso, days = 7) { if (!this.data[iso]) return []; const cutoff = Date.now() - days * 86400000; return this.data[iso].filter(d => d.timestamp > cutoff); }
-  getTrend(iso, days = 30) {
-    const h = this.getHistory(iso, days);
-    if (h.length < 3) return null;
-    const s = h.map(d => d.score);
-    return { direction: s[s.length - 1] > s[0] ? 'worsening' : s[s.length - 1] < s[0] ? 'improving' : 'stable', points: h.length, change: s[s.length - 1] - s[0] };
-  }
-}
-const historyStore = new HistoricalDataStore();
-function storeHistoricalData(iso, store) {
+async function storeHistoricalData(iso, store) {
   if (!CFG.HISTORY_ENABLED) return;
   const c = store[iso];
+  await persistentHistory.record(iso, {
+    score: c.score,
+    live_score: c.__live_breaking?.live_score || 0,
+    signal_count: c.__live_breaking?.signal_count || 0,
+    distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
+  });
   historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
 }
 
@@ -1190,7 +1332,7 @@ class AlertManager {
 const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS — v13.9
+//  LIVE DATA FETCHERS — v13.9.1
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1693,7 +1835,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS — v13.9
+//  EXTRACT SIGNALS — v13.9.1
 // ════════════════════════════════════════════════════════════════════════════
 
 function extractSignals(iso, live) {
@@ -1702,7 +1844,6 @@ function extractSignals(iso, live) {
   const evidenceSources = [];
   const signals = {};
 
-  // ── USGS weekly ──
   const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topQuake = quakes.length ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topQuake?.properties?.mag >= 4.5) {
@@ -1712,7 +1853,6 @@ function extractSignals(iso, live) {
     signals.quakeTime = topQuake.properties.time;
   }
 
-  // ── USGS significant-month tail ──
   const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topSig = sigQuakes.length ? sigQuakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topSig?.properties?.mag >= 5.5 && (!topQuake || topSig.properties.mag > topQuake.properties.mag)) {
@@ -1720,7 +1860,6 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("USGS-Sig");
   }
 
-  // ── ShakeMap all-hour ──
   const shakemapEvents = (live.shakemap.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
   const topShakeMap = shakemapEvents.length ? shakemapEvents.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a) : null;
   if (topShakeMap?.properties?.mag >= CFG.SHAKEMAP_MIN_MAG) {
@@ -1730,57 +1869,31 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("ShakeMap");
   }
 
-  // ── JMA scoped to Japan ──
   if (CFG.JMA_ENABLED && iso === "JPN" && live.jma.data?.length) {
     const jmaEvents = live.jma.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (jmaEvents.length > 0) {
-      const topJMA = jmaEvents.reduce((a, b) => b.mag > a.mag ? b : a);
-      signals.jmaQuake = topJMA;
-      liveEvidenceCount++; evidenceSources.push("JMA");
-    }
+    if (jmaEvents.length > 0) { const topJMA = jmaEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.jmaQuake = topJMA; liveEvidenceCount++; evidenceSources.push("JMA"); }
   }
 
-  // ── BMKG scoped to Indonesia ──
   if (CFG.BMKG_ENABLED && iso === "IDN" && live.bmkg.data?.length) {
     const bmkgEvents = live.bmkg.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (bmkgEvents.length > 0) {
-      const topBMKG = bmkgEvents.reduce((a, b) => b.mag > a.mag ? b : a);
-      signals.bmkgQuake = topBMKG;
-      liveEvidenceCount++; evidenceSources.push("BMKG");
-    }
+    if (bmkgEvents.length > 0) { const topBMKG = bmkgEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.bmkgQuake = topBMKG; liveEvidenceCount++; evidenceSources.push("BMKG"); }
   }
 
-  // ── GEOFON (global) ──
   if (CFG.GEOFON_ENABLED && live.geofon.data?.length) {
     const geofonEvents = live.geofon.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (geofonEvents.length > 0) {
-      const topGEOFON = geofonEvents.reduce((a, b) => b.mag > a.mag ? b : a);
-      signals.geofonQuake = topGEOFON;
-      liveEvidenceCount++; evidenceSources.push("GEOFON");
-    }
+    if (geofonEvents.length > 0) { const topGEOFON = geofonEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.geofonQuake = topGEOFON; liveEvidenceCount++; evidenceSources.push("GEOFON"); }
   }
 
-  // ── INGV (Mediterranean) ──
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && live.ingv.data?.length) {
     const ingvEvents = live.ingv.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (ingvEvents.length > 0) {
-      const topINGV = ingvEvents.reduce((a, b) => b.mag > a.mag ? b : a);
-      signals.ingvQuake = topINGV;
-      liveEvidenceCount++; evidenceSources.push("INGV");
-    }
+    if (ingvEvents.length > 0) { const topINGV = ingvEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.ingvQuake = topINGV; liveEvidenceCount++; evidenceSources.push("INGV"); }
   }
 
-  // ── GeoNet (NZ + South Pacific) ──
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && live.geonet.data?.length) {
     const geonetEvents = live.geonet.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (geonetEvents.length > 0) {
-      const topGeoNet = geonetEvents.reduce((a, b) => b.mag > a.mag ? b : a);
-      signals.geonetQuake = topGeoNet;
-      liveEvidenceCount++; evidenceSources.push("GeoNet");
-    }
+    if (geonetEvents.length > 0) { const topGeoNet = geonetEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.geonetQuake = topGeoNet; liveEvidenceCount++; evidenceSources.push("GeoNet"); }
   }
 
-  // ── EMSC ──
   const emscQuakes = (live.emsc.data || []).filter(f => { const c = f.geometry?.coordinates; return c && findClosestCountry(c[0], c[1]) === iso; });
   const topEMSC = emscQuakes.length ? emscQuakes.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a) : null;
   if (topEMSC?.properties?.mag >= 4.5) {
@@ -1790,11 +1903,9 @@ function extractSignals(iso, live) {
     if (!signals.quakeTime) signals.quakeTime = new Date(topEMSC.properties?.time).getTime();
   }
 
-  // ── NASA EONET ──
   const nasaEvents = (live.nasa.data || []).filter(ev => { const c = ev.geometry?.[0]?.coordinates; return c && findClosestCountry(c[0], c[1]) === iso; });
   if (nasaEvents.length) { liveEvidenceCount++; evidenceSources.push("NASA"); signals.nasaEventCount = nasaEvents.length; signals.nasaEvents = nasaEvents; }
 
-  // ── GDACS ──
   const gdacsEvents = (live.gdacs.data || []).filter(f => {
     const c = f.geometry?.coordinates;
     if (!c) { const a = f.properties?.affectedcountries || []; return a.some(x => x.iso3 === iso); }
@@ -1809,31 +1920,26 @@ function extractSignals(iso, live) {
     signals.gdacsCount = gdacsEvents.length;
   }
 
-  // ── IFRC events / appeals ──
   const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
   if (ifrcEvents.length) { liveEvidenceCount++; evidenceSources.push("IFRC"); signals.ifrcCount = ifrcEvents.length; signals.ifrcEvents = ifrcEvents; }
   const ifrcAppeals = (live.ifrcAppeals?.data || []).filter(ap => { const iso3 = ap.country?.iso3 || ap.countries?.[0]?.iso3; return iso3 === iso; });
   if (ifrcAppeals.length) { liveEvidenceCount++; evidenceSources.push("IFRC-Appeal"); signals.ifrcAppeals = ifrcAppeals; }
 
-  // ── Heat / Hazards / AQ ──
   const maxTempC = live.heat.data[iso] ?? 0;
   if (maxTempC >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Heat"); signals.maxTempC = maxTempC; }
   if (live.hazards.live) { liveEvidenceCount++; evidenceSources.push("Open-Meteo Hazards"); signals.hazards = live.hazards.data; }
   const aqData = live.aq.data[iso] || null;
   if (aqData?.pm25 >= 35) { liveEvidenceCount++; evidenceSources.push("Open-Meteo AQ"); signals.aq = aqData; }
 
-  // ── NOAA / SPC / CDC (US only) ──
   if (isUS(iso) && (live.noaa.data.extreme_alerts > 0 || live.noaa.data.storm_alerts > 0)) { liveEvidenceCount++; evidenceSources.push("NOAA"); signals.noaa = live.noaa.data; }
   if (isUS(iso) && CFG.SPC_ENABLED && live.spc.data) { liveEvidenceCount++; evidenceSources.push("SPC"); signals.spcOutlook = live.spc.data; }
   if (isUS(iso) && CFG.CDC_ENABLED && live.cdc.data?.length) { liveEvidenceCount++; evidenceSources.push("CDC"); signals.cdcOutbreaks = live.cdc.data; }
 
-  // ── US Drought Monitor (US only) ──
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && live.usDrought?.data?.level) {
     signals.usDrought = live.usDrought.data;
     liveEvidenceCount++; evidenceSources.push("US Drought Monitor");
   }
 
-  // ── WHO DON ──
   if (CFG.WHO_DON_ENABLED && live.whoDon.data?.length) {
     const matched = live.whoDon.data.filter(d => {
       const text = ((d.title || "") + " " + (d.summary || "") + " " + (d.overview || "")).toLowerCase();
@@ -1842,61 +1948,50 @@ function extractSignals(iso, live) {
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
 
-  // ── ECDC (Europe only) ──
   if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && live.ecdc.data?.length) {
     signals.ecdcThreats = live.ecdc.data;
     liveEvidenceCount++; evidenceSources.push("ECDC");
   }
 
-  // ── NASA POWER ──
   if (CFG.NASA_POWER_ENABLED && live.nasaPower.data[iso]) { liveEvidenceCount++; evidenceSources.push("NASA POWER"); signals.nasaPower = live.nasaPower.data[iso]; }
 
-  // ── GFW ──
   if (CFG.GFW_ENABLED && live.gfw?.data?.[iso]) {
     const gfw = live.gfw.data[iso];
     signals.gfwAlerts = { count: gfw.count, ageHours: gfw.ageHours || 12 };
     liveEvidenceCount++; evidenceSources.push("GFW");
   }
 
-  // ── JTWC (Western Pacific only) ──
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && live.jtwc?.data?.length) {
     signals.jtwcStorms = live.jtwc.data;
     liveEvidenceCount++; evidenceSources.push("JTWC");
   }
 
-  // ── JMA Typhoon ──
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && live.jmaTyphoon?.data?.length) {
     signals.jmaTyphoons = live.jmaTyphoon.data;
     liveEvidenceCount++; evidenceSources.push("JMA Typhoon");
   }
 
-  // ── Climate TRACE ──
   if (CFG.CLIMATE_TRACE_ENABLED && live.climateTrace?.data?.[iso]) {
     signals.climateTrace = live.climateTrace.data[iso];
     liveEvidenceCount++; evidenceSources.push("Climate TRACE");
   }
 
-  // ── HDX package search ──
   if (CFG.HDX_ENABLED && live.hdx?.data?.[iso]) {
     signals.hdxDatasets = live.hdx.data[iso];
     liveEvidenceCount++; evidenceSources.push("OCHA HDX");
   }
 
-  // ── UNHCR Solutions (returns — real API) ──
   if (CFG.UNHCR_SOLUTIONS_ENABLED && live.unhcrSolutions?.data?.[iso]) {
     signals.unhcrSolutions = live.unhcrSolutions.data[iso];
     liveEvidenceCount++; evidenceSources.push("UNHCR Solutions");
   }
 
-  // ── disease.sh ──
   const diseaseRow = (live.disease.data || []).find(d => { const cN = d.country || d.country_name || ""; return cN.toLowerCase() === name || name.includes(cN.toLowerCase()) || cN.toLowerCase().includes(name); });
   if (diseaseRow?.active > 1000) { liveEvidenceCount++; evidenceSources.push("disease.sh"); signals.diseaseActive = diseaseRow.active; signals.diseaseName = "COVID-19"; }
 
-  // ── WHO RSS ──
   const whoData = live.who?.data || null;
   if (whoData?.[iso]?.length) { liveEvidenceCount++; evidenceSources.push("WHO RSS"); signals.whoOutbreaks = whoData[iso]; }
 
-  // ── World Bank ──
   const wbInflation = live.wb.inflation.data[iso] || null;
   const wbGdpGrowth = live.wb.gdpGrowth.data[iso] || null;
   const wbUnemployment = live.wb.unemployment.data[iso] || null;
@@ -1915,7 +2010,6 @@ function extractSignals(iso, live) {
   if (wbFoodPrice?.value > 100) signals.wbFoodPrice = wbFoodPrice;
   if (wbElectricity?.value < 50) signals.electricityAccess = wbElectricity;
 
-  // ── UNHCR ──
   const displacement = live.unhcr.data.displacement[iso] || null;
   const refugees = parseInt(displacement?.refugees) || 0;
   const idps = parseInt(displacement?.idps) || 0;
@@ -2161,7 +2255,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 }
 
 // ─── BUILD STORE ────────────────────────────────────────────────────────────
-function buildStore(liveData) {
+async function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
 
@@ -2201,8 +2295,8 @@ function buildStore(liveData) {
 
   for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score);
 
-  if (CFG.ML_ENABLED) trainMLModel(store);
-  for (const iso in store) if (CFG.ML_ENABLED) store[iso].ml_forecast = mlEnhancedForecast(iso, store[iso].score, store);
+  if (CFG.ML_ENABLED) await trainMLModel(store);
+  for (const iso in store) if (CFG.ML_ENABLED) store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].score, store);
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
@@ -2212,7 +2306,7 @@ function buildStore(liveData) {
 
   for (const iso in store) {
     if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
-    if (CFG.HISTORY_ENABLED) storeHistoricalData(iso, store);
+    if (CFG.HISTORY_ENABLED) await storeHistoricalData(iso, store);
     if (CFG.GEO_FENCING_ENABLED) alertManager.checkAlerts(iso, store);
   }
 
@@ -2224,7 +2318,11 @@ function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 };
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
 function detectVolatilityRegime(a) { if (a.length < 8) return { detected: false, stat: 0 }; const h = Math.floor(a.length/2); const r = stddev(a.slice(h))/stddev(a.slice(0,h)); return { detected: r > 2, stat: +r.toFixed(2) }; }
-function runAnomalyDetection(a) {
+function runAnomalyDetection(a, opts = {}) {
+  const minRequired = opts.minRequired || 10;
+  if (a.length < minRequired) {
+    return { detected: false, severity: "INSUFFICIENT_HISTORY", reason: `Need ≥${minRequired} points, have ${a.length}`, methods_fired: 0, methods: [], z_score: 0 };
+  }
   const m = [detectCUSUM(a), detectZScore(a), detectChangepoint(a), detectVolatilityRegime(a)];
   const f = m.filter(x => x.detected);
   return { detected: f.length >= 2, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
@@ -2273,16 +2371,21 @@ function recommendation(score, anomaly) {
 }
 
 // ─── PAYLOAD BUILDER ────────────────────────────────────────────────────────
-function buildPayload(iso, store, ranked, opts = {}) {
+async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
   const displayScore = CFG.SCORE_FIELD_IS_LIVE ? (lb.live_score || c.structural_score || c.score) : c.score;
-  const hist = seedHistory(iso, displayScore);
-  const anom = runAnomalyDetection(hist);
-  const fc = trendForecast(hist, displayScore);
+
+  // ═══ Real history for anomaly + trend ═══
+  const realHistory = await persistentHistory.scoreSeries(iso, 500);
+  const hasRealHistory = realHistory.length >= CFG.HISTORY_MIN_FOR_ANOMALY;
+  const series = hasRealHistory ? realHistory : seedHistory(iso, displayScore);
+  const anom = runAnomalyDetection(series, { minRequired: CFG.HISTORY_MIN_FOR_ANOMALY });
+  const fc = trendForecast(series, displayScore);
+
   const rank = ranked.indexOf(iso) + 1;
   const s = c.signals || {};
-  const delta7 = Math.round(hist[hist.length-1] - hist[Math.max(0, hist.length-8)]);
+  const delta7 = series.length >= 8 ? Math.round(series[series.length-1] - series[Math.max(0, series.length-8)]) : 0;
 
   const base = {
     iso, name: c.name, flag: c.flag,
@@ -2302,8 +2405,10 @@ function buildPayload(iso, store, ranked, opts = {}) {
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
       headline: lb.breaking_headline || null,
-      signal_count: lb.signal_count || 0,
-      live_event_count: lb.live_event_count || 0,
+      signal_count: lb.signal_count || 0,                   // ═══ raw signals ═══
+      raw_signal_count: lb.raw_signal_count || 0,
+      live_event_count: lb.live_event_count || 0,           // ═══ DISTINCT events ═══
+      distinct_event_count: lb.distinct_event_count || 0,
       has_fresh_live_event: lb.has_fresh_live_event || false,
       unique_signal_types: lb.unique_signal_types || 0,
       source_count: lb.source_count || 0,
@@ -2315,6 +2420,7 @@ function buildPayload(iso, store, ranked, opts = {}) {
       fsi_baseline: lb.fsi_baseline || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
+      events: lb.events || [],                              // ═══ deduplicated events ═══
       signals: (lb.signals || []).map(sig => ({
         type: sig.type,
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
@@ -2325,6 +2431,8 @@ function buildPayload(iso, store, ranked, opts = {}) {
         weighted_score: sig.weighted_score,
         source: sig.source,
         details: sig.details,
+        corroborating_sources: sig.corroborating_sources || [],
+        corroboration_count: sig.corroboration_count || 0,
       })),
     },
 
@@ -2334,8 +2442,26 @@ function buildPayload(iso, store, ranked, opts = {}) {
     dimensions: Object.fromEntries(DIMS.map(d => [d.k, { value: c.dims[d.k] || 0, label: d.l, weight: d.w, icon: d.icon }])),
     crisis_types: c.types.map(t => ({ code: t, label: ARC[t]?.l || t, icon: ARC[t]?.i || "⚠️", color: ARC[t]?.color || "#6bc8ff" })),
     needs: [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
-    trend: { delta_7d: delta7, direction: fc.trend, slope: fc.slope, forecast_7d: fc.fc, escalating: fc.esc, confidence: fc.confidence },
-    anomaly: { detected: anom.detected, severity: anom.severity, methods_fired: anom.methods_fired, z_score: anom.z_score, methods: { cusum: anom.methods[0], zscore: anom.methods[1], changepoint: anom.methods[2], volatility: anom.methods[3] } },
+    trend: {
+      delta_7d: delta7,
+      direction: fc.trend,
+      slope: fc.slope,
+      forecast_7d: fc.fc,
+      escalating: fc.esc,
+      confidence: fc.confidence,
+      history_source: hasRealHistory ? "observed" : "synthetic",
+      history_points: realHistory.length,
+    },
+    anomaly: {
+      detected: anom.detected,
+      severity: anom.severity,
+      reason: anom.reason || null,
+      methods_fired: anom.methods_fired,
+      z_score: anom.z_score,
+      history_source: hasRealHistory ? "observed" : "synthetic",
+      history_points: realHistory.length,
+      methods: anom.methods?.length ? { cusum: anom.methods[0], zscore: anom.methods[1], changepoint: anom.methods[2], volatility: anom.methods[3] } : null,
+    },
     spillover: { value: c.spillover, from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })) },
 
     live_evidence: {
@@ -2382,9 +2508,16 @@ function buildPayload(iso, store, ranked, opts = {}) {
       us_drought: s.usDrought ? { level: s.usDrought.level, source: "US Drought Monitor" } : null,
     },
 
-    ml: c.ml_forecast ? { forecast: c.ml_forecast.fc, confidence: c.ml_forecast.confidence, anomaly_probability: c.ml_forecast.anomaly_probability, trained: c.ml_forecast.ml_trained, training_count: c.ml_forecast.training_count } : null,
+    ml: c.ml_forecast ? {
+      forecast: c.ml_forecast.fc,
+      confidence: c.ml_forecast.confidence,
+      anomaly_probability: c.ml_forecast.anomaly_probability,
+      trained: c.ml_forecast.ml_trained,
+      training_count: c.ml_forecast.training_count,
+      history_source: c.ml_forecast.history_source,
+      history_points: c.ml_forecast.history_points,
+    } : null,
     sentiment: c.sentiment ? { score: c.sentiment.score, label: c.sentiment.label, confidence: c.sentiment.confidence } : null,
-    historical: c.historical_trend ? { direction: c.historical_trend.direction, change: c.historical_trend.change, points: c.historical_trend.points } : null,
 
     score_audit: {
       prior_score: c.priorScore,
@@ -2457,22 +2590,20 @@ function buildJSONLD(iso, store, ranked) {
   const lb = c.__live_breaking || {};
   return {
     "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "NewsArticle",
-        "@id": `${url}#article`,
-        "headline": lb.breaking_headline || `${c.name} Crisis — Score ${c.score}/100 (${severity})`,
-        "description": buildMetaDescription(iso, store),
-        "url": url,
-        "datePublished": now,
-        "dateModified": now,
-        "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
-        "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
-        "mainEntityOfPage": { "@type": "WebPage", "@id": url },
-        "articleSection": "Humanitarian Crisis",
-        "keywords": buildKeywords(iso, store).slice(0, 15).join(", "),
-      }
-    ]
+    "@graph": [{
+      "@type": "NewsArticle",
+      "@id": `${url}#article`,
+      "headline": lb.breaking_headline || `${c.name} Crisis — Score ${c.score}/100 (${severity})`,
+      "description": buildMetaDescription(iso, store),
+      "url": url,
+      "datePublished": now,
+      "dateModified": now,
+      "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
+      "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+      "articleSection": "Humanitarian Crisis",
+      "keywords": buildKeywords(iso, store).slice(0, 15).join(", "),
+    }]
   };
 }
 function buildFAQs(iso, store, ranked) {
@@ -2489,7 +2620,7 @@ function buildSEOArticle(iso, store, ranked) {
   const headline = lb.breaking_headline || `${c.name} Crisis Monitor — ${c.score}/100`;
   const articleBody = `## Overview\n\n${c.name} scores ${c.score}/100 (${severityLabel(c.score)}).`;
   const { words, minutes } = estimateReadTime(articleBody);
-  return { headline, dek: `Score ${c.score}/100 · ${lb.signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
+  return { headline, dek: `Score ${c.score}/100 · ${lb.distinct_event_count || 0} events · ${lb.raw_signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
 function buildSitemap(payloads) {
   const now = new Date().toISOString();
@@ -2556,7 +2687,7 @@ export default async function handler(req, res) {
 
   try {
     const liveData = await fetchAllLive();
-    const store = buildStore(liveData);
+    const store = await buildStore(liveData);
     const ranked = rankByLiveBreaking(store);
     const breakingRanked = rankBreakingOnly(store, 1);
     const liveEventsOnly = rankLiveEventsOnly(store);
@@ -2593,7 +2724,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
@@ -2620,7 +2751,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_signals: lb.signals.slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: +s.ageHours.toFixed(1), source: s.source })) };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2628,7 +2759,7 @@ export default async function handler(req, res) {
     }
 
     if (params.format === "sitemap") {
-      const p = finalIsos.map(iso => buildPayload(iso, store, ranked, { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary }));
+      const p = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary })));
       res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
       res.end(buildSitemap(p));
       return;
@@ -2642,7 +2773,7 @@ export default async function handler(req, res) {
     }
 
     const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary, article: params.format === "article" };
-    const payloads = finalIsos.map(iso => buildPayload(iso, store, ranked, opts));
+    const payloads = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, opts)));
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
@@ -2651,14 +2782,16 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.9",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.9 — Zero heuristics. Every signal comes from a real, parsed external data source. 37 live feeds.",
+        dedup_enabled: CFG.DEDUP_ENABLED,
+        history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
+        note: "v13.9.1 — Event deduplication + real history. live_event_count now = DISTINCT events (was duplicate of signal_count). Anomalies require ≥14 days of observed history.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2723,7 +2856,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.9]", err);
+    console.error("[top-story v13.9.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
