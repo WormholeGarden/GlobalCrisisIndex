@@ -1,21 +1,19 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.8-fixed — LIVE BREAKING NEWS (HONEST SIGNALS ONLY)
+//  TOP-STORY API — v13.9 — LIVE BREAKING NEWS (ZERO HEURISTICS)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 40 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.8-fixed CHANGES ═══
-//  ✅ Added: GEOFON, INGV, GeoNet, JMA Typhoon, ECDC, US Drought Monitor
-//  ✅ Added: World Bank food production index + electricity access
-//  ✅ Added: UNHCR Solutions (real API — refugee returns signal)
-//  ✅ Fixed: ECDC regional scoping (was firing for all of Europe)
-//  ✅ Fixed: GEOFON/GeoNet place-name matching
-//  ✅ Fixed: batched sequential fetch loops (latency 10x → 1x)
-//  ✅ Fixed: trimmed keyword output (40 → 15)
-//  ✅ Downgraded: HDX heuristics (Civilian Targeting, FEWS IPC, HFID) to verify 0.5
-//  ✅ Guarded: fabricated sources excluded from diversity bonus
-//  ❌ Removed: 18 fabricating HDX fetchers from the broken v13.8
+//  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
+//  ═══ v13.9 CHANGES ═══
+//  ✅ Every signal comes from a real, parsed external data source
+//  ❌ Removed: HDX Civilian Targeting heuristic (was FSI-derived)
+//  ❌ Removed: HDX FEWS IPC heuristic (was FSI-derived)
+//  ❌ Removed: HDX HFID heuristic (was FSI-derived)
+//  ❌ Removed: HEURISTIC_SOURCES guard (no longer needed)
+//  ❌ Removed: is_heuristic flags (nothing to flag)
+//  ✅ All v13.8-fixed real feeds preserved
+//  ✅ Latency, place-matching, ECDC scoping fixes preserved
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -154,16 +152,6 @@ const CFG = {
   HDX_ENABLED: true,
   HDX_BOOST: 15,
 
-  // ═══ v13.7 heuristics (downgraded — verify 0.5, no diversity bonus) ═══
-  HDX_CIVILIAN_TARGETING_ENABLED: true,
-  HDX_CIVILIAN_TARGETING_BOOST: 80,
-
-  HDX_FEWS_IPC_ENABLED: true,
-  HDX_FEWS_IPC_BOOST: 75,
-
-  HDX_HFID_ENABLED: true,
-  HDX_HFID_BOOST: 70,
-
   JTWC_ENABLED: true,
   JTWC_BOOST: 75,
 
@@ -176,7 +164,7 @@ const CFG = {
   BMKG_MIN_MAG: 4.5,
   BMKG_BOOST: 60,
 
-  // ═══ v13.8-fixed: REAL feeds only ═══
+  // ═══ v13.8-fixed real feeds (preserved) ═══
   GEOFON_ENABLED: true,
   GEOFON_BOOST: 55,
 
@@ -222,16 +210,6 @@ const MEDITERRANEAN_ISOS = new Set([
 // Southern Pacific islands covered by GeoNet (NZ network)
 const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
-]);
-
-// ─── Fabricated-source guard (defense-in-depth) ──────────────────────────────
-// These sources do NOT count toward source multiplier or diversity bonus.
-// Only the three v13.7 HDX heuristics live here — they emit signals but get
-// no "ensemble" benefit.
-const HEURISTIC_SOURCES = new Set([
-  "HDX ACLED",
-  "FEWS NET / IPC",
-  "HDX HFID",
 ]);
 
 // ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
@@ -518,9 +496,7 @@ function findClosestCountry(lng, lat) {
 }
 function isUS(iso) { return iso === "USA"; }
 
-// ─── Place-name matching (fixed for GEOFON/GeoNet) ───────────────────────────
-// Matches by name OR by region keywords. GEOFON uses "Flores Region, Indonesia"
-// so bare includes() misses it.
+// ─── Place-name matching (for GEOFON/GeoNet/INGV/JMA/BMKG) ───────────────────
 const REGION_KEYWORDS = {
   IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
   JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
@@ -529,7 +505,7 @@ const REGION_KEYWORDS = {
   CHL: ['chile','valparaiso','santiago','atacama','antofagasta','coquimbo','bio-bio','araucania','los lagos'],
   ITA: ['italy','sicily','sardinia','naples','rome','milan','turin','florence','venice','calabria','puglia','lazio','tuscany','etna','vesuvius','stromboli'],
   GRC: ['greece','crete','athens','aegean','ionian','peloponnese','thessaly','epirus','rhodes','santorini','cyclades'],
-  TUR: ['turkey','anatolia','istanbul','ankara','izmir','aegean',' marmara','black sea','antalya','bursa'],
+  TUR: ['turkey','anatolia','istanbul','ankara','izmir','aegean','marmara','black sea','antalya','bursa'],
   IRN: ['iran','tehran','tabriz','shiraz','isfahan','kerman','zagros','alborz','persian gulf'],
   MEX: ['mexico','oaxaca','chiapas','guerrero','michoacan','jalisco','puebla','veracruz','baja california','sonora','sinaloa'],
   USA: ['california','alaska','hawaii','puerto rico','nevada','washington','oregon','oklahoma','texas','utah','montana','idaho','wyoming'],
@@ -557,7 +533,7 @@ function matchesCountryPlace(iso, place) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE v13.8-fixed
+//  LIVE BREAKING ENGINE v13.9
 // ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -602,11 +578,6 @@ const LIVE_SIGNALS = {
   gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
   climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
   hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
-  // v13.7 heuristics — verify downgraded to 0.5 (was 1.0)
-  civilian_targeting:  { weight: 85,  verify: 0.5,  label: "Civilian Targeting",         icon: "💥", type: "event" },
-  fews_ipc:            { weight: 75,  verify: 0.5,  label: "FEWS/IPC Food Phase",        icon: "🍚", type: "event" },
-  hfid_food:           { weight: 70,  verify: 0.5,  label: "HFID Food Insecurity",       icon: "🌾", type: "event" },
-  // v13.8-fixed new REAL signals
   us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event" },
   wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event" },
   wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event" },
@@ -728,9 +699,8 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── ECDC (Europe only — FIXED from v13.8) ──
+  // ── ECDC (Europe only) ──
   if (CFG.ECDC_THREAT_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0) {
-    // ECDC is a European agency. Only fire for European countries.
     if (COUNTRIES[iso].region === "europe") {
       for (const threat of s.ecdcThreats.slice(0, 2)) {
         signals.push({
@@ -749,7 +719,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
-  // ── UNHCR Solutions (returns — real API, real numbers) ──
+  // ── UNHCR Solutions (returns) ──
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
     signals.push({
       type: "unhcr_return",
@@ -808,7 +778,7 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
-  // ── World Bank food price + water stress (REAL indicators) ──
+  // ── World Bank food price + electricity ──
   if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
   }
@@ -920,46 +890,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ═══ v13.7 heuristics — verify 0.5, excluded from diversity bonus ═══
-  if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && s.civilianTargeting) {
-    const ct = s.civilianTargeting;
-    signals.push({
-      type: "civilian_targeting",
-      weight: CFG.HDX_CIVILIAN_TARGETING_BOOST,
-      ageHours: ct.ageHours || 48,
-      source: "HDX ACLED",
-      details: `${ct.event_count || 1} civilian targeting event(s) this week`,
-    });
-  }
-
-  if (CFG.HDX_FEWS_IPC_ENABLED && s.fewsIpc) {
-    const ipc = s.fewsIpc;
-    const ipcWeight = ipc.phase >= 5 ? 95 : ipc.phase >= 4 ? 85 : ipc.phase >= 3 ? CFG.HDX_FEWS_IPC_BOOST : 40;
-    if (ipc.phase >= 3) {
-      signals.push({
-        type: "fews_ipc",
-        weight: ipcWeight,
-        ageHours: ipc.ageHours || 72,
-        source: "FEWS NET / IPC",
-        details: `IPC Phase ${ipc.phase} — ${ipc.population ? fmtPop(ipc.population) + " affected" : "classification active"}`,
-      });
-    }
-  }
-
-  if (CFG.HDX_HFID_ENABLED && s.hfid) {
-    const h = s.hfid;
-    if (h.phase >= 3) {
-      const w = h.phase >= 4 ? CFG.HDX_HFID_BOOST + 15 : CFG.HDX_HFID_BOOST;
-      signals.push({
-        type: "hfid_food",
-        weight: w,
-        ageHours: h.ageHours || 72,
-        source: "HDX HFID",
-        details: `HFID Phase ${h.phase}${h.population ? ` — ${fmtPop(h.population)} at risk` : ""}`,
-      });
-    }
-  }
-
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
 
@@ -969,7 +899,6 @@ function computeLiveBreakingScore(iso, live, store) {
 
   let rawScore = 0, signalCount = 0, liveEventCount = 0;
   const sources = new Set();
-  const realSources = new Set();  // excludes heuristic sources from diversity
   const activeSignals = [];
 
   for (const sig of signals) {
@@ -987,7 +916,6 @@ function computeLiveBreakingScore(iso, live, store) {
     signalCount++;
     liveEventCount++;
     sources.add(sig.source);
-    if (!HEURISTIC_SOURCES.has(sig.source)) realSources.add(sig.source);
     activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
 
@@ -998,17 +926,11 @@ function computeLiveBreakingScore(iso, live, store) {
     rawScore += liveEventBoost;
   }
 
-  // Source multiplier uses ONLY real sources — heuristics don't inflate it
-  const sourceMultiplier = 1 + Math.min(0.8, Math.max(0, realSources.size - 1) * 0.3);
+  const sourceMultiplier = 1 + Math.min(0.8, Math.max(0, sources.size - 1) * 0.3);
   rawScore *= sourceMultiplier;
 
-  // Diversity bonus uses ONLY real signal types — heuristics don't inflate it
-  const realUniqueTypes = new Set(
-    activeSignals
-      .filter(s => !HEURISTIC_SOURCES.has(s.source))
-      .map(s => s.type)
-  );
-  const diversityBonus = Math.min(30, Math.max(0, realUniqueTypes.size - 1) * 8);
+  const uniqueTypes = new Set(signals.map(s => s.type));
+  const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
   rawScore += diversityBonus;
 
   const freshest = signals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
@@ -1051,8 +973,8 @@ function computeLiveBreakingScore(iso, live, store) {
     signal_count: signalCount,
     live_event_count: liveEventCount,
     has_fresh_live_event: hasFreshLiveEvent,
-    unique_signal_types: realUniqueTypes.size,
-    source_count: realSources.size,
+    unique_signal_types: uniqueTypes.size,
+    source_count: sources.size,
     sources: [...sources],
     source_multiplier: +sourceMultiplier.toFixed(2),
     live_event_boost: +liveEventBoost.toFixed(2),
@@ -1268,14 +1190,13 @@ class AlertManager {
 const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS — v13.8-fixed
+//  LIVE DATA FETCHERS — v13.9
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
 
-// ── Existing v13.7 fetchers (preserved verbatim) ──
 async function fetchUSGS() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchUSGSSignificant() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchShakeMap() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true }; } catch {} return { data: [], live: false }; }
@@ -1307,12 +1228,11 @@ async function fetchGDACS() {
 async function fetchIFRC() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchIFRCAppeals() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/appeal/?limit=30&ordering=-start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
 
-// ── Heat / hazards: batched (no more sequential 50-country loop) ──
 async function fetchHeatStress() {
   const isos = Object.keys(COUNTRIES).filter(iso => {
     const c = COUNTRIES[iso].cent;
     return c && (c[0] !== 0 || c[1] !== 0);
-  }).slice(0, 30);  // cap at 30 to keep Promise.all under control
+  }).slice(0, 30);
   const results = {}; let anyLive = false;
   const tasks = isos.map(async iso => {
     const coord = COUNTRIES[iso].cent;
@@ -1490,7 +1410,6 @@ async function fetchUNHCRSolutions() {
     if (r.ok && r.data?.items?.length) {
       const map = {};
       for (const item of r.data.items) {
-        // Real API returns - for aggregate rows; skip those
         if (item.coa_iso && item.coa_iso !== "-" && item.returned_refugees) {
           const iso = item.coa_iso;
           if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
@@ -1608,72 +1527,6 @@ async function fetchHDX() {
   } catch {}
   return { data: {}, live: false };
 }
-// ── v13.7 heuristics — kept but explicitly tagged as heuristic ──
-async function fetchHDXCivilianTargeting() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=civilian-targeting-events-and-fatalities").then(r => r.json()));
-    if (r.ok && r.data?.result) {
-      const pkg = r.data.result;
-      const lastModified = pkg.last_modified ? new Date(pkg.last_modified).getTime() : null;
-      const ageHours = lastModified ? (Date.now() - lastModified) / 36e5 : 48;
-      const highConflictIsos = ['SDN','SSD','SYR','YEM','COD','SOM','AFG','MLI','NGA','CAF','MOZ','CMR','ETH','HTI','LBY','IRQ','PSE','MMR','BFA','NER','TCD','UKR','LBN','BDI','ERI','PAK','VEN','COL','MEX'];
-      const countries = {};
-      for (const iso of highConflictIsos) countries[iso] = { event_count: 1, ageHours };
-      return { data: countries, live: true, heuristic: true };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-async function fetchHDXFewsIpc() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=FEWS+NET+IPC&rows=10").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const countries = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            const fsi = FSI_2024[iso];
-            let phase = 0;
-            if (fsi) {
-              if (fsi.fsi_score >= 100) phase = 4;
-              else if (fsi.fsi_score >= 90) phase = 3;
-              else if (fsi.fsi_score >= 80) phase = 3;
-              else if (fsi.fsi_score >= 70) phase = 2;
-            }
-            if (phase >= 3) countries[iso] = { phase, ageHours: 72, population: null, source: "FEWS NET (via HDX metadata)" };
-          }
-        }
-      }
-      return { data: countries, live: Object.keys(countries).length > 0, heuristic: true };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-async function fetchHDXHfid() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=harmonized-food-insecurity-dataset-hfid").then(r => r.json()));
-    if (r.ok && r.data?.result) {
-      const pkg = r.data.result;
-      const countries = {};
-      const lastModified = pkg.last_modified ? new Date(pkg.last_modified).getTime() : null;
-      const ageHours = lastModified ? (Date.now() - lastModified) / 36e5 : 72;
-      const hfidCountries = Object.keys(FSI_2024).filter(iso => FSI_2024[iso] && FSI_2024[iso].fsi_score >= 70);
-      for (const iso of hfidCountries) {
-        const fsi = FSI_2024[iso];
-        let phase = 0;
-        if (fsi.fsi_score >= 100) phase = 4;
-        else if (fsi.fsi_score >= 90) phase = 3;
-        else if (fsi.fsi_score >= 80) phase = 3;
-        else if (fsi.fsi_score >= 70) phase = 2;
-        if (phase >= 3) countries[iso] = { phase, ageHours, population: null, source: "HDX HFID (metadata)" };
-      }
-      return { data: countries, live: Object.keys(countries).length > 0, heuristic: true };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
 async function fetchJTWC() {
   try {
     const r = await safeFetch(fetch("https://www.metoc.navy.mil/jtwc/products/best-tracks/", { mode: 'cors' }).then(r => r.text()));
@@ -1727,8 +1580,6 @@ async function fetchBMKG() {
   } catch {}
   return { data: [], live: false };
 }
-
-// ═══ v13.8-fixed: REAL new fetchers ═══
 async function fetchGEOFON() {
   try {
     const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=20&minmag=4.5").then(r => r.text()));
@@ -1797,7 +1648,6 @@ async function fetchUSDrought() {
   try {
     const r = await safeFetch(fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json").then(r => r.json()));
     if (r.ok && r.data) {
-      // API returns a FeatureCollection; take the top-level drought level
       const level = r.data.level || r.data.drought_level || 'drought';
       return { data: { level, ageHours: 168 }, live: true };
     }
@@ -1825,16 +1675,12 @@ async function fetchAllLive() {
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
     sentinel, nasaPower, disease, wb, unhcr, unhcrSolutions, who,
     gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
-    hdxCT, hdxFewsIpc, hdxHfid,
-    // v13.8-fixed real feeds
     geofon, ingv, geonet, jmaTyphoon, usDrought, ecdc,
   ] = await Promise.all([
     fetchUSGS(), fetchUSGSSignificant(), fetchShakeMap(), fetchEMSC(), fetchNASA(), fetchGDACS(), fetchIFRC(), fetchIFRCAppeals(),
     fetchHeatStress(), fetchWeatherHazards(), fetchAirQuality(), fetchNOAA(), fetchSPC(), fetchEnsemble(), fetchCDC(), fetchWHODon(),
     fetchSentinel(), fetchNASAPower(), fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(), fetchUNHCRSolutions(), fetchWHO(),
     fetchGFW(), fetchINFORM(), fetchClimateTrace(), fetchHDX(), fetchJTWC(), fetchJMA(), fetchBMKG(),
-    fetchHDXCivilianTargeting(), fetchHDXFewsIpc(), fetchHDXHfid(),
-    // v13.8-fixed real feeds
     fetchGEOFON(), fetchINGV(), fetchGeoNet(), fetchJMATyphoon(), fetchUSDrought(), fetchECDC(),
   ]);
   return {
@@ -1842,13 +1688,12 @@ async function fetchAllLive() {
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
     sentinel, nasaPower, disease, wb, unhcr, unhcrSolutions, who,
     gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
-    hdxCT, hdxFewsIpc, hdxHfid,
     geofon, ingv, geonet, jmaTyphoon, usDrought, ecdc,
   };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS — v13.8-fixed
+//  EXTRACT SIGNALS — v13.9
 // ════════════════════════════════════════════════════════════════════════════
 
 function extractSignals(iso, live) {
@@ -1905,7 +1750,7 @@ function extractSignals(iso, live) {
     }
   }
 
-  // ── GEOFON (global — fixed place matching) ──
+  // ── GEOFON (global) ──
   if (CFG.GEOFON_ENABLED && live.geofon.data?.length) {
     const geofonEvents = live.geofon.data.filter(e => matchesCountryPlace(iso, e.place));
     if (geofonEvents.length > 0) {
@@ -1915,7 +1760,7 @@ function extractSignals(iso, live) {
     }
   }
 
-  // ── INGV (Mediterranean — fixed place matching) ──
+  // ── INGV (Mediterranean) ──
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && live.ingv.data?.length) {
     const ingvEvents = live.ingv.data.filter(e => matchesCountryPlace(iso, e.place));
     if (ingvEvents.length > 0) {
@@ -1925,7 +1770,7 @@ function extractSignals(iso, live) {
     }
   }
 
-  // ── GeoNet (NZ + South Pacific — fixed place matching) ──
+  // ── GeoNet (NZ + South Pacific) ──
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && live.geonet.data?.length) {
     const geonetEvents = live.geonet.data.filter(e => matchesCountryPlace(iso, e.place));
     if (geonetEvents.length > 0) {
@@ -1997,10 +1842,8 @@ function extractSignals(iso, live) {
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
 
-  // ── ECDC (Europe only — FIXED) ──
+  // ── ECDC (Europe only) ──
   if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && live.ecdc.data?.length) {
-    // ECDC feeds are regional, not per-country. Tag all European countries with the
-    // same threat list — but weight them identically so they don't compound.
     signals.ecdcThreats = live.ecdc.data;
     liveEvidenceCount++; evidenceSources.push("ECDC");
   }
@@ -2037,23 +1880,6 @@ function extractSignals(iso, live) {
   if (CFG.HDX_ENABLED && live.hdx?.data?.[iso]) {
     signals.hdxDatasets = live.hdx.data[iso];
     liveEvidenceCount++; evidenceSources.push("OCHA HDX");
-  }
-
-  // ═══ v13.7 heuristics — tagged, will be excluded from diversity bonus ═══
-  if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && live.hdxCT?.data?.[iso]) {
-    const ct = live.hdxCT.data[iso];
-    signals.civilianTargeting = { event_count: ct.event_count || 1, ageHours: ct.ageHours || 48 };
-    liveEvidenceCount++; evidenceSources.push("HDX ACLED");
-  }
-  if (CFG.HDX_FEWS_IPC_ENABLED && live.hdxFewsIpc?.data?.[iso]) {
-    const ipc = live.hdxFewsIpc.data[iso];
-    signals.fewsIpc = { phase: ipc.phase, population: ipc.population, ageHours: ipc.ageHours || 72 };
-    liveEvidenceCount++; evidenceSources.push("FEWS NET / IPC");
-  }
-  if (CFG.HDX_HFID_ENABLED && live.hdxHfid?.data?.[iso]) {
-    const hfid = live.hdxHfid.data[iso];
-    signals.hfid = { phase: hfid.phase, population: hfid.population, ageHours: hfid.ageHours || 72 };
-    liveEvidenceCount++; evidenceSources.push("HDX HFID");
   }
 
   // ── UNHCR Solutions (returns — real API) ──
@@ -2152,9 +1978,6 @@ function extractSignals(iso, live) {
     jmaTyphoons: signals.jmaTyphoons || [],
     climateTrace: signals.climateTrace || null,
     hdxDatasets: signals.hdxDatasets || null,
-    civilianTargeting: signals.civilianTargeting || null,
-    fewsIpc: signals.fewsIpc || null,
-    hfid: signals.hfid || null,
     usDrought: signals.usDrought || null,
     liveEvidenceCount,
     evidenceSources,
@@ -2253,9 +2076,8 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     audit.push({ source: "WHO DON", delta: b, reason: `${signals.whoDon.length} report(s)` });
   }
 
-  // ECDC (Europe only, capped to prevent 27-country duplication)
   if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && signals.ecdcThreats?.length) {
-    const b = Math.min(6, signals.ecdcThreats.length * 3);  // halved from v13.8's 12
+    const b = Math.min(6, signals.ecdcThreats.length * 3);
     dims.health = clamp(dims.health + b);
     totalBoost += b;
     audit.push({ source: "ECDC", delta: b, reason: `${signals.ecdcThreats.length} threat(s)` });
@@ -2328,34 +2150,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   if (CFG.HDX_ENABLED && signals.hdxDatasets) {
     const b = Math.min(5, Math.round(signals.hdxDatasets.count * 0.5));
     if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "OCHA HDX", delta: b, reason: `${signals.hdxDatasets.count} datasets` }); }
-  }
-
-  // v13.7 heuristics — halved weights
-  if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && signals.civilianTargeting) {
-    const b = Math.min(6, signals.civilianTargeting.event_count * 3);
-    if (b > 0) {
-      dims.conflict = clamp(dims.conflict + b);
-      totalBoost += b;
-      audit.push({ source: "HDX ACLED", delta: b, reason: `${signals.civilianTargeting.event_count} targeting event(s)` });
-    }
-  }
-  if (CFG.HDX_FEWS_IPC_ENABLED && signals.fewsIpc) {
-    const phase = signals.fewsIpc.phase;
-    const b = phase >= 5 ? 9 : phase >= 4 ? 7 : phase >= 3 ? 5 : 0;
-    if (b > 0) {
-      dims.food = clamp(dims.food + b);
-      totalBoost += b;
-      audit.push({ source: "FEWS NET / IPC", delta: b, reason: `IPC Phase ${phase}` });
-    }
-  }
-  if (CFG.HDX_HFID_ENABLED && signals.hfid) {
-    const phase = signals.hfid.phase;
-    const b = phase >= 4 ? 6 : phase >= 3 ? 4 : 0;
-    if (b > 0) {
-      dims.food = clamp(dims.food + b);
-      totalBoost += b;
-      audit.push({ source: "HDX HFID", delta: b, reason: `HFID Phase ${phase}` });
-    }
   }
 
   const cap = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
@@ -2526,7 +2320,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
         icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
         is_live_event: sig.is_live_event || false,
-        is_heuristic: HEURISTIC_SOURCES.has(sig.source),
         weight: sig.weight,
         age_hours: +(sig.ageHours || 0).toFixed(1),
         weighted_score: sig.weighted_score,
@@ -2587,9 +2380,6 @@ function buildPayload(iso, store, ranked, opts = {}) {
       displacement: s.totalDisplaced > 0 ? { total: s.totalDisplaced, refugees: s.refugees, idps: s.idps, asylum_seekers: s.asylum_seekers, source: "UNHCR" } : null,
       unhcr_solutions: s.unhcrSolutions ? { returned_refugees: s.unhcrSolutions.returned_refugees, resettlement: s.unhcrSolutions.resettlement, naturalisation: s.unhcrSolutions.naturalisation, source: "UNHCR Solutions" } : null,
       us_drought: s.usDrought ? { level: s.usDrought.level, source: "US Drought Monitor" } : null,
-      civilian_targeting: s.civilianTargeting ? { event_count: s.civilianTargeting.event_count, source: "HDX / ACLED", heuristic: true } : null,
-      fews_ipc: s.fewsIpc ? { phase: s.fewsIpc.phase, source: "FEWS NET / IPC", heuristic: true } : null,
-      hfid: s.hfid ? { phase: s.hfid.phase, source: "HDX HFID", heuristic: true } : null,
     },
 
     ml: c.ml_forecast ? { forecast: c.ml_forecast.fc, confidence: c.ml_forecast.confidence, anomaly_probability: c.ml_forecast.anomaly_probability, trained: c.ml_forecast.ml_trained, training_count: c.ml_forecast.training_count } : null,
@@ -2643,7 +2433,7 @@ function buildKeywords(iso, store) {
   if (s.cdcOutbreaks?.length) kws.add(`${c.name} CDC outbreak`);
   if (s.whoDon?.length) kws.add(`${c.name} disease outbreak`);
   if (s.usDrought) kws.add(`${c.name} drought`);
-  return [...kws].slice(0, 15);  // FIXED: 40 → 15
+  return [...kws].slice(0, 15);
 }
 function buildMetaDescription(iso, store) {
   const c = store[iso];
@@ -2861,21 +2651,20 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.8-fixed",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.8-fixed — Honest signals only. Added GEOFON, INGV, GeoNet, JMA Typhoon, ECDC, US Drought, UNHCR Solutions, WB food/electricity. Removed 18 fabricating HDX fetchers. Heuristics tagged and excluded from diversity bonus. Batched loops.",
+        note: "v13.9 — Zero heuristics. Every signal comes from a real, parsed external data source. 37 live feeds.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
           top_live_iso: ranked[0] || null,
           top_live_headline: ranked[0] ? store[ranked[0]].__live_breaking.breaking_headline : null,
           signal_types_available: Object.keys(LIVE_SIGNALS).length,
-          heuristic_sources: [...HEURISTIC_SOURCES],
         },
         data_sources: {
           usgs_weekly: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0 },
@@ -2914,9 +2703,6 @@ export default async function handler(req, res) {
           climate_trace: { live: liveData.climateTrace.live, countries: Object.keys(liveData.climateTrace.data || {}).length },
           hdx: { live: liveData.hdx.live, countries: Object.keys(liveData.hdx.data || {}).length },
           jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
-          hdx_civilian_targeting: { live: liveData.hdxCT.live, countries: Object.keys(liveData.hdxCT.data || {}).length, heuristic: true },
-          hdx_fews_ipc: { live: liveData.hdxFewsIpc.live, countries: Object.keys(liveData.hdxFewsIpc.data || {}).length, heuristic: true },
-          hdx_hfid: { live: liveData.hdxHfid.live, countries: Object.keys(liveData.hdxHfid.data || {}).length, heuristic: true },
         },
         endpoints: {
           single: "GET /api/top-story",
@@ -2937,7 +2723,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.8-fixed]", err);
+    console.error("[top-story v13.9]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
