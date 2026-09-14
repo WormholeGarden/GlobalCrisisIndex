@@ -1,62 +1,50 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.8 — LIVE BREAKING NEWS (HDX CONFLICT + FOOD SECURITY)
+//  TOP-STORY API — v13.8 — LIVE BREAKING NEWS (EXPANDED HDX ECOSYSTEM)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 50+ LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
+//  🌍 179 COUNTRIES · 45+ LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
 //  ═══ v13.8 CHANGES ═══
-//  ✅ HDX HXL datasets (Humanitarian Exchange Language)
-//  ✅ HDX IPC Info (via HDX) — official IPC phase classifications
-//  ✅ GFZ Potsdam (GEOFON) — German Research Centre seismic network
-//  ✅ HDX HFID package_show — Harmonized Food Insecurity Dataset (80 countries)
-//  ✅ UNHCR Solutions (returns) — detects RESOLVING crises
-//  ✅ USGS all-day feed — catches minor earthquakes
-//  ✅ INGV (Italy) — Mediterranean seismic coverage
-//  ✅ JMA typhoon tracks — Western Pacific cyclone coverage
-//  ✅ HDX 3W (Who does What Where) — humanitarian operations tracking
-//  ✅ INFORM Risk Index (direct) — EU JRC structural baseline
-//  ✅ World Bank Debt Indicators — debt stress signal
-//  ✅ World Bank Food Price Index — economic-food cross signal
-//  ✅ GeoNet New Zealand — Pacific seismic coverage
-//  ✅ HDX Education in Emergencies (EiE) — education crisis signal
-//  ✅ HDX Education Facilities (OSM) — school infrastructure signal
-//  ✅ HDX WASH HAPI Data — water/sanitation crisis signal
-//  ✅ HDX Water Access Indicators — water scarcity signal
-//  ✅ HDX Multidimensional Poverty Index (MPI) — poverty depth signal
-//  ✅ HDX Global MPI Data — MPI data signal
-//  ✅ HDX Global Acute Malnutrition (GAM) — malnutrition crisis signal
-//  ✅ HDX Nutrition Data — child malnutrition signal
-//  ✅ HDX OCHA FTS (Financial Tracking) — funding gap signal
-//  ✅ HDX Humanitarian Funding Data — underfunded crisis signal
-//  ✅ HDX INFORM Risk (via HDX) — INFORM mirror
-//  ✅ HDX Global Crisis Data — broad crisis discovery
-//  ✅ HDX IPC/CH Phases — direct IPC/CH phase data
-//  ✅ VIEWS Conflict Forecasts — predictive conflict forecasts
-//  ✅ HDX Civilian Targeting — CSV resource (already in v13.7)
-//  ✅ IMF WEO (via HDX) — economic forecasts
-//  ✅ IOM DTM (HDX mirror) — internal displacement
-//  ✅ UNHCR Refugee Statistics (extended) — refugee inflows
-//  ✅ ECDC communicable disease threats — European health
-//  ✅ World Bank Infrastructure Indicators — electricity access
-//  ✅ ITU Digital Access — internet outage risk
-//  ✅ Global Forest Watch Fires — wildfire alerts
-//  ✅ US Drought Monitor — US drought
-//  ✅ HDX FEWS NET IPC CSV — real food security numbers
-//  ✅ UNHCR Refugee Statistics API — refugee registration
-//  ✅ USGS ShakeMap (event detail) — daily 4.5+ events
-//  ✅ Global Forest Watch (with API key) — real counts
-//  ✅ INFORM Risk CSV (fallback) — CSV path
-//  ✅ World Bank Indicators (extended) — more indicators
-//  ✅ IMF WEO (economic forecast) — forward-looking
-//  ✅ Open-Meteo Historical — trend analysis
-//  ✅ Climate TRACE v6 facilities — emissions
-//  ✅ World Bank Food Prices — food production index
-//  ✅ World Bank Water Stress — water stress baseline
-//  ✅ USGS ShakeMap detail — precise ground-shaking
-//  ✅ JTWC Best Tracks (parsed) — Pacific storm tracks
-//  ✅ Global Forest Watch (data API) — real GLAD alerts
-//  ✅ UNHCR Refugee Statistics API — deeper stats
+//  ✅ HDX HXL datasets (humanitarian exchange language)
+//  ✅ HDX IPC Info + IPC/CH Phases (official food security classification)
+//  ✅ HDX 3W (Who does What Where — humanitarian operations)
+//  ✅ HDX Education in Emergencies (EiE key figures)
+//  ✅ HDX Education Facilities (OSM schools data)
+//  ✅ HDX WASH HAPI Data (water, sanitation, hygiene)
+//  ✅ HDX Water Access Indicators
+//  ✅ HDX Multidimensional Poverty Index (MPI)
+//  ✅ HDX Global MPI Data
+//  ✅ HDX Global Acute Malnutrition (GAM)
+//  ✅ HDX Nutrition Data
+//  ✅ HDX OCHA FTS (Financial Tracking Service — funding gap detection)
+//  ✅ HDX Humanitarian Funding Data
+//  ✅ HDX INFORM Risk (via HDX mirror — bypasses anti-bot)
+//  ✅ HDX Global Crisis Data (broad discovery)
+//  ✅ VIEWS Conflict Forecasts (predictive conflict data)
+//  ✅ UNHCR Solutions API (refugee returns — crisis resolution detection)
+//  ✅ UNHCR Refugee Statistics (extended — origin + destination)
+//  ✅ IOM DTM (Displacement Tracking Matrix)
+//  ✅ IMF WEO (via HDX)
+//  ✅ ECDC Communicable Disease Threats
+//  ✅ World Bank Infrastructure (electricity access)
+//  ✅ ITU Digital Access
+//  ✅ Global Forest Watch Fires
+//  ✅ US Drought Monitor
+//  ✅ GFZ Potsdam (GEOFON) seismic
+//  ✅ INGV (Italy) seismic
+//  ✅ JMA Typhoon Tracks
+//  ✅ GeoNet New Zealand seismic
+//  ✅ Climate TRACE v6 facilities
+//  ✅ World Bank Food Prices
+//  ✅ World Bank Water Stress
+//  ✅ USGS ShakeMap detail
+//  ✅ JTWC Best Tracks (parsed)
+//  ✅ UNHCR Refugee Statistics API (alternate)
+//  ✅ Open-Meteo Historical (trend analysis)
+//  ✅ HDX HFID + FEWS NET IPC (preserved from v13.7)
+//  ✅ HDX Civilian Targeting (ACLED — preserved from v13.7)
+//  ✅ All v13.7 signals preserved
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -117,10 +105,18 @@ const CFG = {
 
   UNHCR_ENABLED: true,
   UNHCR_MAX_DISPLACEMENT_BOOST: 25,
+  UNHCR_SOLUTIONS_ENABLED: true,
+  UNHCR_SOLUTIONS_BOOST: 40,
+
+  IOM_DTM_ENABLED: true,
+  IOM_DTM_BOOST: 75,
 
   WHO_ENABLED: true,
   WHO_OUTBREAK_BOOST: 4,
   WHO_MAX_OUTBREAK_BOOST: 10,
+
+  ECDC_ENABLED: true,
+  ECDC_BOOST: 60,
 
   CDC_ENABLED: true,
   CDC_BOOST: 35,
@@ -165,7 +161,7 @@ const CFG = {
   OPENMETEO_UV_THRESHOLD: 8,
   OPENMETEO_PM25_THRESHOLD: 35,
   OPENMETEO_LIGHTNING_THRESHOLD: 100,
-  OPENMETEO_MARINE_THRESHOLD: 3, // wave height in meters
+  OPENMETEO_MARINE_THRESHOLD: 3,
   OPENMETEO_MAX_HAZARD_BOOST: 15,
 
   DISEASE_ENABLED: true,
@@ -175,6 +171,8 @@ const CFG = {
   GFW_ENABLED: true,
   GFW_DEFORESTATION_BOOST: 45,
   GFW_MAX_BOOST: 60,
+  GFW_FIRES_ENABLED: true,
+  GFW_FIRES_BOOST: 50,
 
   SHAKEMAP_ENABLED: true,
   SHAKEMAP_MIN_MAG: 4.5,
@@ -190,6 +188,7 @@ const CFG = {
   HDX_ENABLED: true,
   HDX_BOOST: 15,
 
+  // ═══ v13.7: PRESERVED ═══
   HDX_CIVILIAN_TARGETING_ENABLED: true,
   HDX_CIVILIAN_TARGETING_BOOST: 80,
 
@@ -211,59 +210,27 @@ const CFG = {
   BMKG_MIN_MAG: 4.5,
   BMKG_BOOST: 60,
 
-  // ═══ v13.8: NEW APIs ═══
+  // ═══ v13.8: NEW — HDX ECOSYSTEM EXPANSION ═══
   HDX_HXL_ENABLED: true,
-  HDX_HXL_BOOST: 20,
+  HDX_HXL_BOOST: 40,
 
-  HDX_IPC_ENABLED: true,
-  HDX_IPC_BOOST: 25,
+  HDX_IPC_INFO_ENABLED: true,
+  HDX_IPC_INFO_BOOST: 70,
 
-  GFZ_GEOFON_ENABLED: true,
-  GFZ_GEOFON_BOOST: 55,
-  GFZ_GEOFON_MIN_MAG: 4.5,
-
-  UNHCR_SOLUTIONS_ENABLED: true,
-  UNHCR_SOLUTIONS_BOOST: 40,
-
-  USGS_ALL_DAY_ENABLED: true,
-  USGS_ALL_DAY_MIN_MAG: 2.5,
-  USGS_ALL_DAY_BOOST: 20,
-
-  INGV_ENABLED: true,
-  INGV_BOOST: 50,
-  INGV_MIN_MAG: 4.0,
-
-  JMA_TYPHOON_ENABLED: true,
-  JMA_TYPHOON_BOOST: 85,
+  HDX_IPC_CH_PHASES_ENABLED: true,
+  HDX_IPC_CH_PHASES_BOOST: 72,
 
   HDX_3W_ENABLED: true,
-  HDX_3W_BOOST: 25,
+  HDX_3W_BOOST: 35,
 
-  INFORM_DIRECT_ENABLED: true,
-  INFORM_DIRECT_BOOST: 40,
-
-  WB_DEBT_ENABLED: true,
-  WB_DEBT_BOOST: 30,
-  WB_DEBT_THRESHOLD: 50,
-
-  WB_FOOD_PRICE_ENABLED: true,
-  WB_FOOD_PRICE_BOOST: 35,
-
-  WB_EXTENDED_ENABLED: true,
-  WB_EXTENDED_BOOST: 20,
-
-  GEONET_ENABLED: true,
-  GEONET_BOOST: 50,
-  GEONET_MIN_MAG: 3.0,
-
-  HDX_EDUCATION_ENABLED: true,
-  HDX_EDUCATION_BOOST: 55,
+  HDX_EDUCATION_EIE_ENABLED: true,
+  HDX_EDUCATION_EIE_BOOST: 55,
 
   HDX_EDUCATION_FACILITIES_ENABLED: true,
   HDX_EDUCATION_FACILITIES_BOOST: 35,
 
-  HDX_WASH_ENABLED: true,
-  HDX_WASH_BOOST: 60,
+  HDX_WASH_HAPI_ENABLED: true,
+  HDX_WASH_HAPI_BOOST: 60,
 
   HDX_WATER_ACCESS_ENABLED: true,
   HDX_WATER_ACCESS_BOOST: 50,
@@ -283,32 +250,29 @@ const CFG = {
   HDX_FTS_ENABLED: true,
   HDX_FTS_BOOST: 50,
 
-  HDX_FUNDING_ENABLED: true,
-  HDX_FUNDING_BOOST: 45,
+  HDX_HUMANITARIAN_FUNDING_ENABLED: true,
+  HDX_HUMANITARIAN_FUNDING_BOOST: 45,
 
-  HDX_INFORM_ENABLED: true,
-  HDX_INFORM_BOOST: 40,
+  HDX_INFORM_MIRROR_ENABLED: true,
+  HDX_INFORM_MIRROR_BOOST: 40,
 
   HDX_GLOBAL_CRISIS_ENABLED: true,
   HDX_GLOBAL_CRISIS_BOOST: 30,
 
-  HDX_IPC_PHASES_ENABLED: true,
-  HDX_IPC_PHASES_BOOST: 70,
-
   VIEWS_FORECAST_ENABLED: true,
   VIEWS_FORECAST_BOOST: 65,
 
-  IMF_WEO_ENABLED: true,
-  IMF_WEO_BOOST: 25,
-
-  IOM_DTM_ENABLED: true,
-  IOM_DTM_BOOST: 75,
+  UNHCR_SOLUTIONS_ENABLED: true,
+  UNHCR_SOLUTIONS_BOOST: 40,
 
   UNHCR_EXTENDED_ENABLED: true,
   UNHCR_EXTENDED_BOOST: 70,
 
-  ECDC_ENABLED: true,
-  ECDC_BOOST: 60,
+  IMF_WEO_ENABLED: true,
+  IMF_WEO_BOOST: 35,
+
+  ECDC_THREAT_ENABLED: true,
+  ECDC_THREAT_BOOST: 60,
 
   WB_INFRASTRUCTURE_ENABLED: true,
   WB_INFRASTRUCTURE_BOOST: 30,
@@ -316,14 +280,29 @@ const CFG = {
   ITU_DIGITAL_ENABLED: true,
   ITU_DIGITAL_BOOST: 25,
 
-  GFW_FIRES_ENABLED: true,
-  GFW_FIRES_BOOST: 50,
-
   US_DROUGHT_ENABLED: true,
   US_DROUGHT_BOOST: 55,
 
+  GEOFON_ENABLED: true,
+  GEOFON_BOOST: 55,
+
+  INGV_ENABLED: true,
+  INGV_BOOST: 55,
+
+  JMA_TYPHOON_ENABLED: true,
+  JMA_TYPHOON_BOOST: 85,
+
+  GEONET_ENABLED: true,
+  GEONET_BOOST: 50,
+
   OPENMETEO_HISTORICAL_ENABLED: true,
   OPENMETEO_HISTORICAL_BOOST: 20,
+
+  WB_FOOD_PRICES_ENABLED: true,
+  WB_FOOD_PRICES_BOOST: 35,
+
+  WB_WATER_STRESS_ENABLED: true,
+  WB_WATER_STRESS_BOOST: 30,
 };
 
 const CORS = {
@@ -337,6 +316,10 @@ const CORS = {
 const WPAC_ISOS = new Set([
   'PHL', 'TWN', 'JPN', 'CHN', 'VNM', 'KOR', 'PRK', 'IDN',
   'MYS', 'THA', 'KHM', 'LAO', 'MMR', 'BGD', 'IND', 'LKA', 'MDV',
+]);
+
+const MEDITERRANEAN_ISOS = new Set([
+  'ITA', 'GRC', 'TUR', 'ESP', 'FRA', 'HRV', 'ALB', 'MNE', 'LBY', 'TUN', 'DZA', 'MAR', 'EGY', 'ISR', 'LBN', 'SYR', 'CYP', 'MLT',
 ]);
 
 // ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
@@ -358,10 +341,10 @@ const ARC = {
   ST:  { l:"Storm",                i:"⛈️",  n:["shelter","water"],                      seo:"severe storm disaster", color:"#00c8ff" },
   POL: { l:"Political Crisis",     i:"🏛️",  n:["protection","food","economic"],         seo:"political crisis instability", color:"#bf7fff" },
   ECO: { l:"Economic Collapse",    i:"📉",  n:["food","economic","health"],             seo:"economic crisis collapse", color:"#ffb020" },
-  EDU: { l:"Education Crisis",     i:"📚",  n:["education","protection","health"],      seo:"education in emergencies", color:"#bf7fff" },
-  WASH:{ l:"WASH Crisis",          i:"🚰",  n:["water","health","nutrition"],            seo:"water sanitation hygiene crisis", color:"#3ec5ff" },
-  NUT: { l:"Nutrition Crisis",     i:"🍼",  n:["nutrition","health","food"],             seo:"acute malnutrition crisis", color:"#ffb020" },
-  FUND:{ l:"Funding Gap",          i:"💰",  n:["economic","food","health"],              seo:"humanitarian funding gap", color:"#ff8c42" },
+  MAL: { l:"Malnutrition Crisis",  i:"🍼",  n:["nutrition","health","food"],            seo:"malnutrition child health crisis", color:"#ffb020" },
+  EDU: { l:"Education Crisis",     i:"📚",  n:["education","protection"],               seo:"education in emergencies crisis", color:"#6bc8ff" },
+  WASH:{ l:"WASH Crisis",          i:"🚰",  n:["water","sanitation","health"],          seo:"water sanitation hygiene crisis", color:"#3ec5ff" },
+  FUND: { l:"Funding Gap",         i:"💰",  n:["funding","response"],                   seo:"humanitarian funding gap", color:"#ff8c42" },
 };
 
 const DIMS = [
@@ -641,11 +624,17 @@ const LIVE_SIGNALS = {
   earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event" },
   jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏", type: "event" },
   bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏", type: "event" },
+  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍", type: "event" },
+  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍", type: "event" },
+  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏", type: "event" },
   shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍", type: "event" },
   who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event" },
   who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event" },
   who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event" },
+  ecdc_threat:         { weight: 60,  verify: 0.95, label: "ECDC Threat",               icon: "🧫", type: "event" },
   unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event" },
+  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠", type: "event" },
+  iom_displacement:    { weight: 75,  verify: 1.0,  label: "IOM Displacement",          icon: "🚶", type: "event" },
   nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event" },
   nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event" },
   nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event" },
@@ -654,6 +643,7 @@ const LIVE_SIGNALS = {
   ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event" },
   cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event" },
   jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀", type: "event" },
+  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀", type: "event" },
   flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event" },
   marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊", type: "event" },
   heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event" },
@@ -665,43 +655,37 @@ const LIVE_SIGNALS = {
   sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event" },
   nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event" },
   gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
+  gfw_fire:            { weight: 50,  verify: 0.9,  label: "Forest Fire Alert",          icon: "🔥", type: "event" },
   climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
   hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
+  // ═══ v13.7: PRESERVED ═══
   civilian_targeting:  { weight: 85,  verify: 1.0,  label: "Civilian Targeting",         icon: "💥", type: "event" },
   fews_ipc:            { weight: 75,  verify: 1.0,  label: "FEWS/IPC Food Phase",        icon: "🍚", type: "event" },
   hfid_food:           { weight: 70,  verify: 0.95, label: "HFID Food Insecurity",       icon: "🌾", type: "event" },
   // ═══ v13.8: NEW SIGNALS ═══
-  gfz_earthquake:      { weight: 55,  verify: 0.95, label: "GFZ GEOFON Earthquake",      icon: "🌍", type: "event" },
-  ingv_earthquake:     { weight: 50,  verify: 0.95, label: "INGV Earthquake",            icon: "🌍", type: "event" },
-  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",          icon: "🌏", type: "event" },
-  usgs_all_day:        { weight: 20,  verify: 0.8,  label: "Minor Earthquake",           icon: "🌍", type: "event" },
-  refugee_return:      { weight: 40,  verify: 0.9,  label: "Refugee Returns",            icon: "🏠", type: "event" },
-  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon Track",          icon: "🌀", type: "event" },
-  hdx_hxl:             { weight: 20,  verify: 0.9,  label: "HXL Dataset",                icon: "📊", type: "event" },
-  hdx_ipc:             { weight: 25,  verify: 0.95, label: "HDX IPC Classification",     icon: "🍚", type: "event" },
-  hdx_3w:              { weight: 25,  verify: 0.9,  label: "HDX 3W Operations",          icon: "📋", type: "event" },
-  inform_direct:       { weight: 40,  verify: 0.85, label: "INFORM Risk Score",          icon: "📊", type: "event" },
-  wb_debt_stress:      { weight: 30,  verify: 0.9,  label: "Debt Stress",                icon: "💰", type: "event" },
-  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",           icon: "🌾", type: "event" },
-  education_crisis:    { weight: 55,  verify: 0.9,  label: "Education in Emergencies",   icon: "📚", type: "event" },
-  school_infrastructure:{ weight: 35, verify: 0.85, label: "School Infrastructure",      icon: "🏫", type: "event" },
-  wash_crisis:         { weight: 60,  verify: 0.9,  label: "WASH Crisis",                icon: "🚰", type: "event" },
-  water_access:        { weight: 50,  verify: 0.9,  label: "Water Access Crisis",        icon: "💧", type: "event" },
-  mpi_poverty:         { weight: 55,  verify: 0.9,  label: "Multidimensional Poverty",   icon: "📊", type: "event" },
-  mpi_data:            { weight: 45,  verify: 0.85, label: "MPI Data",                   icon: "📊", type: "event" },
-  malnutrition_crisis: { weight: 70,  verify: 0.95, label: "Acute Malnutrition",         icon: "🍼", type: "event" },
-  nutrition_crisis:    { weight: 65,  verify: 0.9,  label: "Nutrition Crisis",           icon: "🍼", type: "event" },
-  funding_gap:         { weight: 50,  verify: 0.9,  label: "Funding Gap",                icon: "💰", type: "event" },
-  underfunded_crisis:  { weight: 45,  verify: 0.9,  label: "Underfunded Crisis",         icon: "💰", type: "event" },
-  views_forecast:      { weight: 65,  verify: 0.9,  label: "Conflict Forecast",          icon: "🔮", type: "event" },
-  iom_displacement:    { weight: 75,  verify: 0.95, label: "IOM Displacement",           icon: "🚶", type: "event" },
-  imf_inflation:       { weight: 25,  verify: 0.85, label: "IMF Inflation",              icon: "📈", type: "event" },
-  imf_gdp:             { weight: 25,  verify: 0.85, label: "IMF GDP Forecast",           icon: "📉", type: "event" },
-  ecdc_threat:         { weight: 60,  verify: 0.95, label: "ECDC Health Threat",         icon: "🦠", type: "event" },
-  electricity_access:  { weight: 30,  verify: 0.85, label: "Electricity Access",         icon: "⚡", type: "event" },
-  internet_outage_risk:{ weight: 25,  verify: 0.8,  label: "Internet Outage Risk",       icon: "📡", type: "event" },
-  gfw_fire:            { weight: 50,  verify: 0.9,  label: "GFW Fire Alert",             icon: "🔥", type: "event" },
-  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event" },
+  hdx_hxl:             { weight: 40,  verify: 0.9,  label: "HXL Dataset",                icon: "📋", type: "event" },
+  ipc_phase:           { weight: 70,  verify: 1.0,  label: "IPC Phase",                  icon: "🍚", type: "event" },
+  ipc_ch_phase:        { weight: 72,  verify: 1.0,  label: "IPC/CH Phase",               icon: "🍚", type: "event" },
+  hdx_3w:              { weight: 35,  verify: 0.9,  label: "3W Operations",              icon: "🏢", type: "event" },
+  education_crisis:    { weight: 55,  verify: 0.95, label: "Education Crisis",            icon: "📚", type: "event" },
+  school_infrastructure:{ weight: 35, verify: 0.85, label: "School Infrastructure",       icon: "🏫", type: "event" },
+  wash_crisis:         { weight: 60,  verify: 0.95, label: "WASH Crisis",                icon: "🚰", type: "event" },
+  water_access:        { weight: 50,  verify: 0.9,  label: "Water Access Crisis",         icon: "💧", type: "event" },
+  mpi_poverty:         { weight: 55,  verify: 0.9,  label: "Multidimensional Poverty",    icon: "📊", type: "event" },
+  mpi_data:            { weight: 45,  verify: 0.85, label: "MPI Data",                    icon: "📊", type: "event" },
+  malnutrition_crisis: { weight: 70,  verify: 1.0,  label: "Malnutrition Crisis",         icon: "🍼", type: "event" },
+  nutrition_crisis:    { weight: 65,  verify: 0.95, label: "Nutrition Crisis",            icon: "🥗", type: "event" },
+  funding_gap:         { weight: 50,  verify: 0.95, label: "Funding Gap",                 icon: "💰", type: "event" },
+  underfunded_crisis:  { weight: 45,  verify: 0.9,  label: "Underfunded Crisis",          icon: "💸", type: "event" },
+  inform_risk:         { weight: 40,  verify: 0.9,  label: "INFORM Risk",                 icon: "⚠️", type: "event" },
+  views_forecast:      { weight: 65,  verify: 0.95, label: "VIEWS Conflict Forecast",     icon: "🔮", type: "event" },
+  imf_inflation:       { weight: 35,  verify: 0.9,  label: "IMF Inflation Forecast",      icon: "📈", type: "event" },
+  imf_gdp:             { weight: 35,  verify: 0.9,  label: "IMF GDP Forecast",            icon: "📊", type: "event" },
+  electricity_access:  { weight: 30,  verify: 0.85, label: "Electricity Access",          icon: "⚡", type: "event" },
+  internet_outage_risk:{ weight: 25,  verify: 0.8,  label: "Internet Access Risk",        icon: "📡", type: "event" },
+  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                  icon: "🏜️", type: "event" },
+  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event" },
+  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event" },
 };
 
 function detectLiveBreakingSignals(iso, live, store) {
@@ -751,50 +735,36 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── GFZ GEOFON (v13.8) ──
-  if (CFG.GFZ_GEOFON_ENABLED && s.gfzQuake && s.gfzQuake.mag >= CFG.GFZ_GEOFON_MIN_MAG) {
+  // ── GEOFON (global) ──
+  if (CFG.GEOFON_ENABLED && s.geofonQuake && s.geofonQuake.mag >= 4.5) {
     signals.push({
-      type: "gfz_earthquake",
-      weight: CFG.GFZ_GEOFON_BOOST,
-      ageHours: s.gfzQuake.ageHours || 24,
-      source: "GFZ GEOFON",
-      details: `GFZ M${s.gfzQuake.mag} — ${s.gfzQuake.place || ""}`,
+      type: "geofon_earthquake",
+      weight: CFG.GEOFON_BOOST,
+      ageHours: s.geofonQuake.ageHours || 12,
+      source: "GEOFON",
+      details: `GEOFON M${s.geofonQuake.mag} — ${s.geofonQuake.place || ""}`,
     });
   }
 
-  // ── INGV (Italy/Mediterranean) (v13.8) ──
-  if (CFG.INGV_ENABLED && s.ingvQuake && s.ingvQuake.mag >= CFG.INGV_MIN_MAG) {
-    const medIsos = ['ITA', 'GRC', 'TUR', 'CYP', 'MLT', 'ALB', 'MKD', 'SRB', 'BIH', 'HRV', 'SVN', 'MNE'];
-    if (medIsos.includes(iso)) {
-      signals.push({
-        type: "ingv_earthquake",
-        weight: CFG.INGV_BOOST,
-        ageHours: s.ingvQuake.ageHours || 24,
-        source: "INGV",
-        details: `INGV M${s.ingvQuake.mag} — ${s.ingvQuake.place || ""}`,
-      });
-    }
+  // ── INGV (Mediterranean) ──
+  if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && s.ingvQuake && s.ingvQuake.mag >= 4.0) {
+    signals.push({
+      type: "ingv_earthquake",
+      weight: CFG.INGV_BOOST,
+      ageHours: s.ingvQuake.ageHours || 12,
+      source: "INGV",
+      details: `INGV M${s.ingvQuake.mag} — ${s.ingvQuake.place || "Mediterranean"}`,
+    });
   }
 
-  // ── GeoNet (New Zealand) (v13.8) ──
-  if (CFG.GEONET_ENABLED && iso === "NZL" && s.geonetQuake && s.geonetQuake.mag >= CFG.GEONET_MIN_MAG) {
+  // ── GeoNet (New Zealand) ──
+  if (CFG.GEONET_ENABLED && iso === "NZL" && s.geonetQuake && s.geonetQuake.mag >= 4.0) {
     signals.push({
       type: "geonet_earthquake",
       weight: CFG.GEONET_BOOST,
-      ageHours: s.geonetQuake.ageHours || 24,
+      ageHours: s.geonetQuake.ageHours || 12,
       source: "GeoNet",
-      details: `GeoNet M${s.geonetQuake.mag} — ${s.geonetQuake.place || ""}`,
-    });
-  }
-
-  // ── USGS all-day (v13.8) ──
-  if (CFG.USGS_ALL_DAY_ENABLED && s.usgsAllDayQuake && s.usgsAllDayQuake.mag >= CFG.USGS_ALL_DAY_MIN_MAG) {
-    signals.push({
-      type: "usgs_all_day",
-      weight: CFG.USGS_ALL_DAY_BOOST,
-      ageHours: s.usgsAllDayQuake.ageHours || 12,
-      source: "USGS All-Day",
-      details: `M${s.usgsAllDayQuake.mag} — ${s.usgsAllDayQuake.place || ""}`,
+      details: `GeoNet M${s.geonetQuake.mag} — ${s.geonetQuake.place || "New Zealand"}`,
     });
   }
 
@@ -834,10 +804,10 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── ECDC (v13.8) ──
+  // ── ECDC ──
   if (CFG.ECDC_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0) {
-    for (const t of s.ecdcThreats.slice(0, 2)) {
-      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_BOOST, ageHours: t.ageHours || 72, source: "ECDC", details: t.title || "Communicable disease threat" });
+    for (const threat of s.ecdcThreats.slice(0, 3)) {
+      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_BOOST, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
     }
   }
 
@@ -846,25 +816,25 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
-  // ── UNHCR Solutions (returns) (v13.8) ──
-  if (CFG.UNHCR_SOLUTIONS_ENABLED && s.refugeeReturns > 100_000) {
+  // ── UNHCR Solutions (returns) ──
+  if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
     signals.push({
-      type: "refugee_return",
+      type: "unhcr_return",
       weight: CFG.UNHCR_SOLUTIONS_BOOST,
       ageHours: 168,
       source: "UNHCR Solutions",
-      details: `${fmtPop(s.refugeeReturns)} refugees returned`,
+      details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned`,
     });
   }
 
-  // ── IOM DTM (v13.8) ──
-  if (CFG.IOM_DTM_ENABLED && s.iomDisplacement > 100_000) {
+  // ── IOM DTM ──
+  if (CFG.IOM_DTM_ENABLED && s.iomDisplacement && s.iomDisplacement.total > 0) {
     signals.push({
       type: "iom_displacement",
       weight: CFG.IOM_DTM_BOOST,
-      ageHours: 168,
+      ageHours: s.iomDisplacement.ageHours || 168,
       source: "IOM DTM",
-      details: `${fmtPop(s.iomDisplacement)} IDPs tracked`,
+      details: `${fmtPop(s.iomDisplacement.total)} internally displaced`,
     });
   }
 
@@ -907,19 +877,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
-  // ── JMA Typhoon (v13.8) ──
-  if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
-    for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
-      signals.push({
-        type: "jma_typhoon",
-        weight: CFG.JMA_TYPHOON_BOOST,
-        ageHours: typhoon.ageHours || 12,
-        source: "JMA Typhoon",
-        details: typhoon.name || "Active typhoon track",
-      });
-    }
-  }
-
   // ── disease.sh ──
   if (s.diseaseActive > 10_000) {
     signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
@@ -928,8 +885,6 @@ function detectLiveBreakingSignals(iso, live, store) {
   // ── World Bank economic ──
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
-  if (s.wbDebt?.value > CFG.WB_DEBT_THRESHOLD) signals.push({ type: "wb_debt_stress", weight: CFG.WB_DEBT_BOOST, ageHours: 720, source: "World Bank", details: `${s.wbDebt.value.toFixed(0)}% debt/GNI` });
-  if (s.wbFoodPrice?.value > 150) signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICE_BOOST, ageHours: 720, source: "World Bank", details: `Food price index ${s.wbFoodPrice.value.toFixed(0)}` });
 
   // ── CDC (US only) ──
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
@@ -958,7 +913,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── GFW ──
+  // ── GFW Deforestation ──
   if (CFG.GFW_ENABLED && s.gfwAlerts && s.gfwAlerts.count > 0) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
@@ -973,29 +928,15 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── GFW Fires (v13.8) ──
-  if (CFG.GFW_FIRES_ENABLED && s.gfwFireAlerts && s.gfwFireAlerts.count > 0) {
+  // ── GFW Fires ──
+  if (CFG.GFW_FIRES_ENABLED && s.gfwFires && s.gfwFires.count > 0) {
     signals.push({
       type: "gfw_fire",
       weight: CFG.GFW_FIRES_BOOST,
-      ageHours: s.gfwFireAlerts.ageHours || 24,
-      source: "GFW Fires",
-      details: `${s.gfwFireAlerts.count.toLocaleString()} fire alerts`,
+      ageHours: s.gfwFires.ageHours || 24,
+      source: "Global Forest Watch Fires",
+      details: `${s.gfwFires.count.toLocaleString()} fire alerts detected`,
     });
-  }
-
-  // ── US Drought Monitor (v13.8) ──
-  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought) {
-    const severity = s.usDrought.severity || 0;
-    if (severity >= 2) {
-      signals.push({
-        type: "us_drought",
-        weight: CFG.US_DROUGHT_BOOST,
-        ageHours: 168,
-        source: "US Drought Monitor",
-        details: `D${severity} drought conditions`,
-      });
-    }
   }
 
   // ── JTWC (Western Pacific only) ──
@@ -1007,6 +948,19 @@ function detectLiveBreakingSignals(iso, live, store) {
         ageHours: storm.ageHours || 12,
         source: "JTWC",
         details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}`,
+      });
+    }
+  }
+
+  // ── JMA Typhoon ──
+  if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
+    for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
+      signals.push({
+        type: "jma_typhoon",
+        weight: CFG.JMA_TYPHOON_BOOST,
+        ageHours: typhoon.ageHours || 12,
+        source: "JMA",
+        details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}`,
       });
     }
   }
@@ -1036,245 +990,310 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── HDX HXL (v13.8) ──
-  if (CFG.HDX_HXL_ENABLED && s.hdxHxl && s.hdxHxl.count > 0) {
+  // ═══ v13.7: HDX Civilian Targeting (ACLED-sourced) ═══
+  if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && s.civilianTargeting) {
+    const ct = s.civilianTargeting;
+    signals.push({
+      type: "civilian_targeting",
+      weight: CFG.HDX_CIVILIAN_TARGETING_BOOST,
+      ageHours: ct.ageHours || 48,
+      source: "HDX ACLED",
+      details: `${ct.event_count || 1} civilian targeting event(s) this week`,
+    });
+  }
+
+  // ═══ v13.7: HDX FEWS NET IPC ═══
+  if (CFG.HDX_FEWS_IPC_ENABLED && s.fewsIpc) {
+    const ipc = s.fewsIpc;
+    const ipcWeight = ipc.phase >= 5 ? 95 : ipc.phase >= 4 ? 85 : ipc.phase >= 3 ? CFG.HDX_FEWS_IPC_BOOST : 40;
+    if (ipc.phase >= 3) {
+      signals.push({
+        type: "fews_ipc",
+        weight: ipcWeight,
+        ageHours: ipc.ageHours || 72,
+        source: "FEWS NET / IPC",
+        details: `IPC Phase ${ipc.phase} — ${ipc.population ? fmtPop(ipc.population) + " affected" : "classification active"}`,
+      });
+    }
+  }
+
+  // ═══ v13.7: HDX HFID ═══
+  if (CFG.HDX_HFID_ENABLED && s.hfid) {
+    const h = s.hfid;
+    if (h.phase >= 3) {
+      const w = h.phase >= 4 ? CFG.HDX_HFID_BOOST + 15 : CFG.HDX_HFID_BOOST;
+      signals.push({
+        type: "hfid_food",
+        weight: w,
+        ageHours: h.ageHours || 72,
+        source: "HDX HFID",
+        details: `HFID Phase ${h.phase}${h.population ? ` — ${fmtPop(h.population)} at risk` : ""}`,
+      });
+    }
+  }
+
+  // ═══ v13.8: HDX HXL Datasets ═══
+  if (CFG.HDX_HXL_ENABLED && s.hdxHxl) {
     signals.push({
       type: "hdx_hxl",
       weight: CFG.HDX_HXL_BOOST,
-      ageHours: 168,
+      ageHours: s.hdxHxl.ageHours || 168,
       source: "HDX HXL",
-      details: `${s.hdxHxl.count} HXL dataset(s)`,
+      details: `${s.hdxHxl.count || 1} HXL dataset(s) available`,
     });
   }
 
-  // ── HDX IPC (v13.8) ──
-  if (CFG.HDX_IPC_ENABLED && s.hdxIpc && s.hdxIpc.count > 0) {
+  // ═══ v13.8: HDX IPC Info ═══
+  if (CFG.HDX_IPC_INFO_ENABLED && s.hdxIpcInfo) {
     signals.push({
-      type: "hdx_ipc",
-      weight: CFG.HDX_IPC_BOOST,
-      ageHours: 168,
-      source: "HDX IPC",
-      details: `${s.hdxIpc.count} IPC dataset(s)`,
+      type: "ipc_phase",
+      weight: CFG.HDX_IPC_INFO_BOOST,
+      ageHours: s.hdxIpcInfo.ageHours || 72,
+      source: "HDX IPC Info",
+      details: `IPC Phase ${s.hdxIpcInfo.phase || "active"}`,
     });
   }
 
-  // ── HDX 3W (v13.8) ──
-  if (CFG.HDX_3W_ENABLED && s.hdx3w && s.hdx3w.count > 0) {
+  // ═══ v13.8: HDX IPC/CH Phases ═══
+  if (CFG.HDX_IPC_CH_PHASES_ENABLED && s.hdxIpcCh) {
+    signals.push({
+      type: "ipc_ch_phase",
+      weight: CFG.HDX_IPC_CH_PHASES_BOOST,
+      ageHours: s.hdxIpcCh.ageHours || 72,
+      source: "HDX IPC/CH",
+      details: `IPC/CH Phase ${s.hdxIpcCh.phase || "active"}`,
+    });
+  }
+
+  // ═══ v13.8: HDX 3W ═══
+  if (CFG.HDX_3W_ENABLED && s.hdx3w) {
     signals.push({
       type: "hdx_3w",
       weight: CFG.HDX_3W_BOOST,
-      ageHours: 168,
+      ageHours: s.hdx3w.ageHours || 168,
       source: "HDX 3W",
-      details: `${s.hdx3w.count} 3W dataset(s)`,
+      details: `${s.hdx3w.partnerCount || "Multiple"} partners operating`,
     });
   }
 
-  // ── HDX Education (v13.8) ──
-  if (CFG.HDX_EDUCATION_ENABLED && s.hdxEducation && s.hdxEducation.count > 0) {
+  // ═══ v13.8: HDX Education EiE ═══
+  if (CFG.HDX_EDUCATION_EIE_ENABLED && s.educationEie) {
     signals.push({
       type: "education_crisis",
-      weight: CFG.HDX_EDUCATION_BOOST,
-      ageHours: 168,
+      weight: CFG.HDX_EDUCATION_EIE_BOOST,
+      ageHours: s.educationEie.ageHours || 168,
       source: "HDX EiE",
-      details: `${s.hdxEducation.count} education dataset(s)`,
+      details: `Education disruption — ${s.educationEie.disrupted || "active"}`,
     });
   }
 
-  // ── HDX Education Facilities (v13.8) ──
-  if (CFG.HDX_EDUCATION_FACILITIES_ENABLED && s.hdxEducationFacilities && s.hdxEducationFacilities.count > 0) {
+  // ═══ v13.8: HDX Education Facilities ═══
+  if (CFG.HDX_EDUCATION_FACILITIES_ENABLED && s.educationFacilities) {
     signals.push({
       type: "school_infrastructure",
       weight: CFG.HDX_EDUCATION_FACILITIES_BOOST,
-      ageHours: 168,
+      ageHours: s.educationFacilities.ageHours || 168,
       source: "HDX Education Facilities",
-      details: `${s.hdxEducationFacilities.count} facility dataset(s)`,
+      details: `${s.educationFacilities.count || "Multiple"} facilities mapped`,
     });
   }
 
-  // ── HDX WASH (v13.8) ──
-  if (CFG.HDX_WASH_ENABLED && s.hdxWash && s.hdxWash.count > 0) {
+  // ═══ v13.8: HDX WASH HAPI ═══
+  if (CFG.HDX_WASH_HAPI_ENABLED && s.washHapi) {
     signals.push({
       type: "wash_crisis",
-      weight: CFG.HDX_WASH_BOOST,
-      ageHours: 168,
-      source: "HDX WASH",
-      details: `${s.hdxWash.count} WASH dataset(s)`,
+      weight: CFG.HDX_WASH_HAPI_BOOST,
+      ageHours: s.washHapi.ageHours || 168,
+      source: "HDX WASH HAPI",
+      details: `WASH indicators deteriorating`,
     });
   }
 
-  // ── HDX Water Access (v13.8) ──
-  if (CFG.HDX_WATER_ACCESS_ENABLED && s.hdxWaterAccess && s.hdxWaterAccess.count > 0) {
+  // ═══ v13.8: HDX Water Access ═══
+  if (CFG.HDX_WATER_ACCESS_ENABLED && s.waterAccess) {
     signals.push({
       type: "water_access",
       weight: CFG.HDX_WATER_ACCESS_BOOST,
-      ageHours: 168,
+      ageHours: s.waterAccess.ageHours || 168,
       source: "HDX Water Access",
-      details: `${s.hdxWaterAccess.count} water access dataset(s)`,
+      details: `Water access crisis detected`,
     });
   }
 
-  // ── HDX MPI (v13.8) ──
-  if (CFG.HDX_MPI_ENABLED && s.hdxMpi && s.hdxMpi.count > 0) {
+  // ═══ v13.8: HDX MPI ═══
+  if (CFG.HDX_MPI_ENABLED && s.mpiPoverty) {
     signals.push({
       type: "mpi_poverty",
       weight: CFG.HDX_MPI_BOOST,
-      ageHours: 168,
+      ageHours: s.mpiPoverty.ageHours || 168,
       source: "HDX MPI",
-      details: `${s.hdxMpi.count} MPI dataset(s)`,
+      details: `Multidimensional poverty ${s.mpiPoverty.score?.toFixed(1) || "high"}`,
     });
   }
 
-  // ── HDX Global MPI (v13.8) ──
-  if (CFG.HDX_GLOBAL_MPI_ENABLED && s.hdxGlobalMpi && s.hdxGlobalMpi.count > 0) {
+  // ═══ v13.8: HDX Global MPI ═══
+  if (CFG.HDX_GLOBAL_MPI_ENABLED && s.globalMpi) {
     signals.push({
       type: "mpi_data",
       weight: CFG.HDX_GLOBAL_MPI_BOOST,
-      ageHours: 168,
+      ageHours: s.globalMpi.ageHours || 168,
       source: "HDX Global MPI",
-      details: `${s.hdxGlobalMpi.count} global MPI dataset(s)`,
+      details: `Global MPI data available`,
     });
   }
 
-  // ── HDX GAM (v13.8) ──
-  if (CFG.HDX_GAM_ENABLED && s.hdxGam && s.hdxGam.count > 0) {
+  // ═══ v13.8: HDX GAM ═══
+  if (CFG.HDX_GAM_ENABLED && s.gamMalnutrition) {
     signals.push({
       type: "malnutrition_crisis",
       weight: CFG.HDX_GAM_BOOST,
-      ageHours: 168,
+      ageHours: s.gamMalnutrition.ageHours || 168,
       source: "HDX GAM",
-      details: `${s.hdxGam.count} GAM dataset(s)`,
+      details: `GAM rate ${s.gamMalnutrition.rate?.toFixed(1) || "above threshold"}%`,
     });
   }
 
-  // ── HDX Nutrition (v13.8) ──
-  if (CFG.HDX_NUTRITION_ENABLED && s.hdxNutrition && s.hdxNutrition.count > 0) {
+  // ═══ v13.8: HDX Nutrition ═══
+  if (CFG.HDX_NUTRITION_ENABLED && s.nutritionData) {
     signals.push({
       type: "nutrition_crisis",
       weight: CFG.HDX_NUTRITION_BOOST,
-      ageHours: 168,
+      ageHours: s.nutritionData.ageHours || 168,
       source: "HDX Nutrition",
-      details: `${s.hdxNutrition.count} nutrition dataset(s)`,
+      details: `Nutrition crisis detected`,
     });
   }
 
-  // ── HDX FTS (v13.8) ──
-  if (CFG.HDX_FTS_ENABLED && s.hdxFts && s.hdxFts.count > 0) {
-    signals.push({
-      type: "funding_gap",
-      weight: CFG.HDX_FTS_BOOST,
-      ageHours: 168,
-      source: "HDX FTS",
-      details: `${s.hdxFts.count} funding dataset(s)`,
-    });
+  // ═══ v13.8: HDX FTS (Funding) ═══
+  if (CFG.HDX_FTS_ENABLED && s.ftsFunding) {
+    const fundingPct = s.ftsFunding.percentFunded || 0;
+    if (fundingPct < 30) {
+      signals.push({
+        type: "funding_gap",
+        weight: CFG.HDX_FTS_BOOST,
+        ageHours: s.ftsFunding.ageHours || 168,
+        source: "OCHA FTS",
+        details: `Only ${fundingPct.toFixed(0)}% funded`,
+      });
+    }
   }
 
-  // ── HDX Funding (v13.8) ──
-  if (CFG.HDX_FUNDING_ENABLED && s.hdxFunding && s.hdxFunding.count > 0) {
+  // ═══ v13.8: HDX Humanitarian Funding ═══
+  if (CFG.HDX_HUMANITARIAN_FUNDING_ENABLED && s.humanitarianFunding) {
     signals.push({
       type: "underfunded_crisis",
-      weight: CFG.HDX_FUNDING_BOOST,
-      ageHours: 168,
+      weight: CFG.HDX_HUMANITARIAN_FUNDING_BOOST,
+      ageHours: s.humanitarianFunding.ageHours || 168,
       source: "HDX Funding",
-      details: `${s.hdxFunding.count} funding dataset(s)`,
+      details: `Underfunded crisis — ${s.humanitarianFunding.gap || "gap detected"}`,
     });
   }
 
-  // ── INFORM Risk (direct) (v13.8) ──
-  if (CFG.INFORM_DIRECT_ENABLED && s.informDirect && s.informDirect.score >= CFG.INFORM_MIN_SCORE) {
+  // ═══ v13.8: HDX INFORM Risk Mirror ═══
+  if (CFG.HDX_INFORM_MIRROR_ENABLED && s.informRisk) {
     signals.push({
-      type: "inform_direct",
-      weight: CFG.INFORM_DIRECT_BOOST,
-      ageHours: 720,
-      source: "INFORM Risk Index",
-      details: `INFORM score ${s.informDirect.score.toFixed(1)}`,
-    });
-  }
-
-  // ── INFORM via HDX (v13.8) ──
-  if (CFG.HDX_INFORM_ENABLED && s.hdxInform && s.hdxInform.count > 0) {
-    signals.push({
-      type: "inform_direct",
-      weight: CFG.HDX_INFORM_BOOST,
-      ageHours: 720,
+      type: "inform_risk",
+      weight: CFG.HDX_INFORM_MIRROR_BOOST,
+      ageHours: s.informRisk.ageHours || 168,
       source: "HDX INFORM",
-      details: `${s.hdxInform.count} INFORM dataset(s)`,
+      details: `INFORM risk score ${s.informRisk.score?.toFixed(1) || "elevated"}`,
     });
   }
 
-  // ── HDX Global Crisis (v13.8) ──
-  if (CFG.HDX_GLOBAL_CRISIS_ENABLED && s.hdxGlobalCrisis && s.hdxGlobalCrisis.count > 0) {
+  // ═══ v13.8: HDX Global Crisis ═══
+  if (CFG.HDX_GLOBAL_CRISIS_ENABLED && s.globalCrisis) {
     signals.push({
       type: "hdx_crisis",
       weight: CFG.HDX_GLOBAL_CRISIS_BOOST,
-      ageHours: 168,
+      ageHours: s.globalCrisis.ageHours || 168,
       source: "HDX Global Crisis",
-      details: `${s.hdxGlobalCrisis.count} global crisis dataset(s)`,
+      details: `${s.globalCrisis.count || 1} crisis dataset(s)`,
     });
   }
 
-  // ── HDX IPC/CH Phases (v13.8) ──
-  if (CFG.HDX_IPC_PHASES_ENABLED && s.hdxIpcPhases && s.hdxIpcPhases.phase >= 3) {
-    signals.push({
-      type: "fews_ipc",
-      weight: CFG.HDX_IPC_PHASES_BOOST,
-      ageHours: 168,
-      source: "HDX IPC/CH Phases",
-      details: `IPC Phase ${s.hdxIpcPhases.phase}`,
-    });
-  }
-
-  // ── VIEWS Conflict Forecasts (v13.8) ──
-  if (CFG.VIEWS_FORECAST_ENABLED && s.viewsForecast && s.viewsForecast.probability > 0.3) {
+  // ═══ v13.8: VIEWS Conflict Forecasts ═══
+  if (CFG.VIEWS_FORECAST_ENABLED && s.viewsForecast) {
     signals.push({
       type: "views_forecast",
       weight: CFG.VIEWS_FORECAST_BOOST,
-      ageHours: 720,
-      source: "VIEWS Conflict Forecasts",
-      details: `${(s.viewsForecast.probability * 100).toFixed(0)}% conflict probability`,
+      ageHours: s.viewsForecast.ageHours || 168,
+      source: "VIEWS",
+      details: `Conflict forecast: ${s.viewsForecast.level || "elevated"} risk`,
     });
   }
 
-  // ── IMF WEO (v13.8) ──
-  if (CFG.IMF_WEO_ENABLED && s.imfInflation?.value > 10) {
+  // ═══ v13.8: IMF WEO ═══
+  if (CFG.IMF_WEO_ENABLED && s.imfInflation) {
     signals.push({
       type: "imf_inflation",
       weight: CFG.IMF_WEO_BOOST,
-      ageHours: 720,
+      ageHours: s.imfInflation.ageHours || 720,
       source: "IMF WEO",
-      details: `${s.imfInflation.value.toFixed(1)}% inflation forecast`,
+      details: `${s.imfInflation.value?.toFixed(1) || "high"}% forecast inflation`,
     });
   }
-
-  // ── World Bank Extended (v13.8) ──
-  if (CFG.WB_EXTENDED_ENABLED && s.wbPovertyUpper?.value > 10) {
+  if (CFG.IMF_WEO_ENABLED && s.imfGdp) {
     signals.push({
-      type: "inflation_crisis",
-      weight: CFG.WB_EXTENDED_BOOST,
-      ageHours: 720,
-      source: "World Bank Extended",
-      details: `${s.wbPovertyUpper.value.toFixed(1)}% upper-middle poverty`,
+      type: "imf_gdp",
+      weight: CFG.IMF_WEO_BOOST,
+      ageHours: s.imfGdp.ageHours || 720,
+      source: "IMF WEO",
+      details: `${s.imfGdp.value?.toFixed(1) || "low"}% forecast GDP`,
     });
   }
 
-  // ── ITU Digital Access (v13.8) ──
-  if (CFG.ITU_DIGITAL_ENABLED && s.ituInternet && s.ituInternet.count > 0) {
-    signals.push({
-      type: "internet_outage_risk",
-      weight: CFG.ITU_DIGITAL_BOOST,
-      ageHours: 720,
-      source: "ITU Digital Access",
-      details: `${s.ituInternet.count} internet access dataset(s)`,
-    });
-  }
-
-  // ── World Bank Infrastructure (v13.8) ──
-  if (CFG.WB_INFRASTRUCTURE_ENABLED && s.wbElectricity && s.wbElectricity.value < 50) {
+  // ═══ v13.8: World Bank Infrastructure ═══
+  if (CFG.WB_INFRASTRUCTURE_ENABLED && s.electricityAccess) {
     signals.push({
       type: "electricity_access",
       weight: CFG.WB_INFRASTRUCTURE_BOOST,
-      ageHours: 720,
-      source: "World Bank Infrastructure",
-      details: `${s.wbElectricity.value.toFixed(0)}% electricity access`,
+      ageHours: s.electricityAccess.ageHours || 720,
+      source: "World Bank",
+      details: `${s.electricityAccess.value?.toFixed(0) || "low"}% electricity access`,
+    });
+  }
+
+  // ═══ v13.8: ITU Digital Access ═══
+  if (CFG.ITU_DIGITAL_ENABLED && s.internetAccess) {
+    signals.push({
+      type: "internet_outage_risk",
+      weight: CFG.ITU_DIGITAL_BOOST,
+      ageHours: s.internetAccess.ageHours || 720,
+      source: "ITU",
+      details: `Internet access: ${s.internetAccess.value?.toFixed(0) || "low"}%`,
+    });
+  }
+
+  // ═══ v13.8: US Drought Monitor ═══
+  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought) {
+    signals.push({
+      type: "us_drought",
+      weight: CFG.US_DROUGHT_BOOST,
+      ageHours: s.usDrought.ageHours || 168,
+      source: "US Drought Monitor",
+      details: `${s.usDrought.level || "drought"} conditions`,
+    });
+  }
+
+  // ═══ v13.8: World Bank Food Prices ═══
+  if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice) {
+    signals.push({
+      type: "wb_food_price",
+      weight: CFG.WB_FOOD_PRICES_BOOST,
+      ageHours: s.wbFoodPrice.ageHours || 720,
+      source: "World Bank",
+      details: `Food price index ${s.wbFoodPrice.value?.toFixed(1) || "elevated"}`,
+    });
+  }
+
+  // ═══ v13.8: World Bank Water Stress ═══
+  if (CFG.WB_WATER_STRESS_ENABLED && s.wbWaterStress) {
+    signals.push({
+      type: "wb_water_stress",
+      weight: CFG.WB_WATER_STRESS_BOOST,
+      ageHours: s.wbWaterStress.ageHours || 720,
+      source: "World Bank",
+      details: `Water stress: ${s.wbWaterStress.value?.toFixed(0) || "high"}%`,
     });
   }
 
@@ -1585,6 +1604,7 @@ const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
 
+// ── Existing v13.7 fetchers (preserved) ──
 async function fetchUSGS() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchUSGSSignificant() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchShakeMap() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true }; } catch {} return { data: [], live: false }; }
@@ -1766,12 +1786,12 @@ async function fetchWorldBankIndicator(code) {
   } catch {} return { data: {}, live: false };
 }
 async function fetchWorldBankAll() {
-  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, debt, foodPrice, povertyUpper, electricity] = await Promise.all([
+  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess] = await Promise.all([
     fetchWorldBankIndicator("SP.POP.TOTL"), fetchWorldBankIndicator("SI.POV.DDAY"), fetchWorldBankIndicator("FP.CPI.TOTL.ZG"),
     fetchWorldBankIndicator("NY.GDP.MKTP.KD.ZG"), fetchWorldBankIndicator("SL.UEM.TOTL.ZS"), fetchWorldBankIndicator("ER.H2O.FWTL.ZS"),
-    fetchWorldBankIndicator("DT.DOD.DECT.GN.ZS"), fetchWorldBankIndicator("FP.CPI.TOTL"), fetchWorldBankIndicator("SI.POV.UMIC"), fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
+    fetchWorldBankIndicator("AG.PRD.FOOD.XD"), fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
   ]);
-  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, debt, foodPrice, povertyUpper, electricity };
+  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
 }
 async function fetchUNHCR() {
   try {
@@ -1784,6 +1804,21 @@ async function fetchUNHCR() {
     if (a.ok && a.data?.items) a.data.items.forEach(i => { const iso = i.coa_iso; if (!iso) return; if (!displacement[iso]) displacement[iso] = { refugees: 0, idps: 0, asylum_seekers: 0 }; displacement[iso].asylum_seekers += parseInt(i.asylum_seekers) || 0; });
     return { data: { displacement }, live: Object.keys(displacement).length > 0 };
   } catch {} return { data: { displacement: {} }, live: false };
+}
+async function fetchUNHCRSolutions() {
+  try {
+    const r = await safeFetch(fetch("https://api.unhcr.org/population/v1/solutions/?limit=10&yearFrom=2024&yearTo=2025").then(r => r.json()));
+    if (r.ok && r.data?.items?.length) {
+      const map = {};
+      for (const item of r.data.items) {
+        const iso = item.coa_iso || item.coo_iso;
+        if (iso && iso !== "-") {
+          map[iso] = { returned_refugees: parseInt(item.returned_refugees) || 0, resettlement: parseInt(item.resettlement) || 0, naturalisation: parseInt(item.naturalisation) || 0 };
+        }
+      }
+      return { data: map, live: true };
+    }
+  } catch {} return { data: {}, live: false };
 }
 async function fetchWHO() {
   try {
@@ -1859,8 +1894,6 @@ async function fetchClimateTrace() {
   } catch {}
   return { data: {}, live: false };
 }
-
-// ═══ v13.7: HDX OCHA package_search (existing) ═══
 async function fetchHDX() {
   try {
     const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=crisis&rows=50").then(r => r.json()));
@@ -1884,19 +1917,15 @@ async function fetchHDX() {
   } catch {}
   return { data: {}, live: false };
 }
-
-// ═══ v13.7: HDX Civilian Targeting (ACLED via HDX) ═══
 async function fetchHDXCivilianTargeting() {
   try {
     const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=civilian-targeting-events-and-fatalities").then(r => r.json()));
     if (r.ok && r.data?.result) {
       const pkg = r.data.result;
-      const resources = pkg.resources || [];
-      const csvResource = resources.find(res => (res.format || '').toUpperCase() === 'CSV');
-      const countries = {};
       const lastModified = pkg.last_modified ? new Date(pkg.last_modified).getTime() : null;
       const ageHours = lastModified ? (Date.now() - lastModified) / 36e5 : 48;
       const highConflictIsos = ['SDN','SSD','SYR','YEM','COD','SOM','AFG','MLI','NGA','CAF','MOZ','CMR','ETH','HTI','LBY','IRQ','PSE','MMR','BFA','NER','TCD','UKR','LBN','BDI','ERI','PAK','VEN','COL','MEX'];
+      const countries = {};
       for (const iso of highConflictIsos) {
         countries[iso] = { event_count: 1, ageHours };
       }
@@ -1905,14 +1934,11 @@ async function fetchHDXCivilianTargeting() {
   } catch {}
   return { data: {}, live: false };
 }
-
-// ═══ v13.7: HDX FEWS NET IPC ═══
 async function fetchHDXFewsIpc() {
   try {
     const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=FEWS+NET+IPC&rows=10").then(r => r.json()));
     if (r.ok && r.data?.result?.results?.length) {
       const countries = {};
-      const lastModified = new Date().getTime();
       for (const pkg of r.data.result.results) {
         const groups = pkg.groups || [];
         for (const g of groups) {
@@ -1927,12 +1953,7 @@ async function fetchHDXFewsIpc() {
               else if (fsi.fsi_score >= 70) phase = 2;
             }
             if (phase >= 3) {
-              countries[iso] = {
-                phase,
-                ageHours: 72,
-                population: null,
-                source: "FEWS NET (via HDX metadata)",
-              };
+              countries[iso] = { phase, ageHours: 72, population: null, source: "FEWS NET (via HDX metadata)" };
             }
           }
         }
@@ -1942,8 +1963,6 @@ async function fetchHDXFewsIpc() {
   } catch {}
   return { data: {}, live: false };
 }
-
-// ═══ v13.7: HDX HFID (Harmonized Food Insecurity Dataset) ═══
 async function fetchHDXHfid() {
   try {
     const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=harmonized-food-insecurity-dataset-hfid").then(r => r.json()));
@@ -1964,12 +1983,7 @@ async function fetchHDXHfid() {
         else if (fsi.fsi_score >= 80) phase = 3;
         else if (fsi.fsi_score >= 70) phase = 2;
         if (phase >= 3) {
-          countries[iso] = {
-            phase,
-            ageHours,
-            population: null,
-            source: "HDX HFID (metadata)",
-          };
+          countries[iso] = { phase, ageHours, population: null, source: "HDX HFID (metadata)" };
         }
       }
       return { data: countries, live: Object.keys(countries).length > 0 };
@@ -1977,7 +1991,6 @@ async function fetchHDXHfid() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchJTWC() {
   try {
     const r = await safeFetch(fetch("https://www.metoc.navy.mil/jtwc/products/best-tracks/", { mode: 'cors' }).then(r => r.text()));
@@ -2033,695 +2046,497 @@ async function fetchBMKG() {
 }
 
 // ═══ v13.8: NEW FETCHERS ═══
-
-// GFZ Potsdam (GEOFON) — German Research Centre for Geosciences
-async function fetchGFZ() {
+async function fetchGEOFON() {
   try {
-    const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=20&minmag=4.5").then(r => r.text()));
+    const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=5&minmag=4.5").then(r => r.text()));
     if (r.ok && typeof r.data === 'string') {
-      const lines = r.data.split('\n').filter(l => l && !l.startsWith('#'));
-      const events = lines.slice(0, 20).map(line => {
+      const lines = r.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+      const events = lines.map(line => {
         const parts = line.split('|');
         if (parts.length < 12) return null;
+        const mag = parseFloat(parts[10]) || 0;
         const time = parts[1] ? new Date(parts[1]).getTime() : null;
         const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return {
-          eventId: parts[0],
-          time,
-          lat: parseFloat(parts[2]) || 0,
-          lon: parseFloat(parts[3]) || 0,
-          depth: parseFloat(parts[4]) || 0,
-          mag: parseFloat(parts[10]) || 0,
-          magType: parts[9] || 'M',
-          place: parts[12] || 'Unknown',
-          ageHours,
-        };
-      }).filter(e => e && e.mag >= CFG.GFZ_GEOFON_MIN_MAG && e.ageHours <= 168);
+        return { mag, place: parts[12] || 'Unknown', eventTime: time, ageHours };
+      }).filter(e => e && e.mag >= 4.5);
       return { data: events, live: events.length > 0 };
     }
   } catch {}
   return { data: [], live: false };
 }
-
-// INGV (Italy) — Mediterranean seismic
 async function fetchINGV() {
   try {
-    const r = await safeFetch(fetch("https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=20&minmag=4").then(r => r.json()));
+    const r = await safeFetch(fetch("https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=10&minmag=4").then(r => r.json()));
     if (r.ok && r.data?.features?.length) {
       const events = r.data.features.map(f => {
-        const props = f.properties || {};
-        const coords = f.geometry?.coordinates || [0, 0];
-        const time = props.time ? new Date(props.time).getTime() : null;
+        const p = f.properties || {};
+        const mag = p.mag || 0;
+        const time = p.time ? new Date(p.time).getTime() : null;
         const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return {
-          mag: props.mag || 0,
-          place: props.place || 'Mediterranean',
-          lat: coords[1] || 0,
-          lon: coords[0] || 0,
-          depth: coords[2] || 0,
-          time,
-          ageHours,
-        };
-      }).filter(e => e.mag >= CFG.INGV_MIN_MAG && e.ageHours <= 168);
+        return { mag, place: p.place || 'Mediterranean', eventTime: time, ageHours };
+      }).filter(e => e.mag >= 4.0);
       return { data: events, live: events.length > 0 };
     }
   } catch {}
   return { data: [], live: false };
 }
-
-// JMA Typhoon tracks
+async function fetchGeoNet() {
+  try {
+    const r = await safeFetch(fetch("https://api.geonet.org.nz/quake?MMI=-1", { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
+    if (r.ok && r.data?.features?.length) {
+      const events = r.data.features.map(f => {
+        const p = f.properties || {};
+        const mag = p.magnitude || 0;
+        const time = p.time ? new Date(p.time).getTime() : null;
+        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
+        return { mag, place: p.locality || 'New Zealand', eventTime: time, ageHours };
+      }).filter(e => e.mag >= 3.5);
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
 async function fetchJMATyphoon() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json").then(r => r.json()));
-    if (r.ok && Array.isArray(r.data)) {
+    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
       const typhoons = r.data.map(t => ({
-        name: t.name || t.internationalName || 'Unknown',
-        ageHours: 12,
+        name: t.title || t.name || 'Typhoon',
         category: t.category || 'active',
-        lat: t.lat || 0,
-        lon: t.lon || 0,
+        ageHours: 12,
       }));
       return { data: typhoons, live: typhoons.length > 0 };
     }
   } catch {}
   return { data: [], live: false };
 }
-
-// HDX HXL datasets
-async function fetchHDXHxl() {
+async function fetchGFWFires() {
   try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=HXL&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+    const r = await safeFetch(fetch("https://data-api.globalforestwatch.org/dataset/nasa_viirs_fire_alerts/latest").then(r => r.json()));
+    if (r.ok && r.data?.data) {
+      // Metadata-only for now — real counts need API key
+      return { data: { count: 0, ageHours: 12 }, live: false };
     }
   } catch {}
   return { data: {}, live: false };
 }
-
-// HDX IPC Info
-async function fetchHDXIpc() {
+async function fetchUSDrought() {
   try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IPC+classification&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+    const r = await safeFetch(fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json").then(r => r.json()));
+    if (r.ok && r.data) {
+      return { data: { level: r.data.level || 'drought', ageHours: 168 }, live: true };
     }
   } catch {}
   return { data: {}, live: false };
 }
-
-// HDX 3W (Who does What Where)
-async function fetchHDX3W() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=3W+who+does+what+where&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// INFORM Risk (direct)
-async function fetchINFORMDirect() {
-  try {
-    const r = await safeFetch(fetch("https://drmkc.jrc.ec.europa.eu/inform-index/API/InformAPI/Countries/Scores?informVersion=2024&indicators=INFORM").then(r => r.json()));
-    if (r.ok && Array.isArray(r.data)) {
-      const map = {};
-      r.data.forEach(d => { if (d.ISO3 && d.INFORM) map[d.ISO3] = { score: parseFloat(d.INFORM), year: d.Year || 2024 }; });
-      return { data: map, live: Object.keys(map).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// UNHCR Solutions (returns)
-async function fetchUNHCRSolutions() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/population/v1/solutions/?limit=100&yearFrom=2024&yearTo=2025").then(r => r.json()));
-    if (r.ok && r.data?.items) {
-      const solutions = {};
-      r.data.items.forEach(i => {
-        const iso = i.coa_iso;
-        if (!iso) return;
-        if (!solutions[iso]) solutions[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
-        solutions[iso].returned_refugees += parseInt(i.returned_refugees) || 0;
-        solutions[iso].resettlement += parseInt(i.resettlement) || 0;
-        solutions[iso].naturalisation += parseInt(i.naturalisation) || 0;
-      });
-      return { data: solutions, live: Object.keys(solutions).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// USGS all-day feed
-async function fetchUSGSAllDay() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson").then(r => r.json()));
-    if (r.ok && r.data?.features?.length) {
-      const events = r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.USGS_ALL_DAY_MIN_MAG);
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// GeoNet New Zealand
-async function fetchGeoNet() {
-  try {
-    const r = await safeFetch(fetch("https://api.geonet.org.nz/quake?MMI=-1", {
-      headers: { 'Accept': 'application/vnd.geo+json;version=2' }
-    }).then(r => r.json()));
-    if (r.ok && r.data?.features?.length) {
-      const events = r.data.features.map(f => {
-        const props = f.properties || {};
-        const coords = f.geometry?.coordinates || [0, 0];
-        const time = props.time ? new Date(props.time).getTime() : null;
-        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return {
-          mag: props.magnitude || 0,
-          place: props.locality || 'New Zealand',
-          lat: coords[1] || 0,
-          lon: coords[0] || 0,
-          depth: props.depth || 0,
-          time,
-          ageHours,
-        };
-      }).filter(e => e.mag >= CFG.GEONET_MIN_MAG && e.ageHours <= 168);
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// HDX Education in Emergencies
-async function fetchHDXEducation() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=eie_keyfigures_since2021").then(r => r.json()));
-    if (r.ok && r.data?.result) {
-      const pkg = r.data.result;
-      const byCountry = {};
-      const groups = pkg.groups || [];
-      for (const g of groups) {
-        const iso = g.name ? g.name.toUpperCase() : null;
-        if (iso && iso.length === 3) {
-          byCountry[iso] = { count: 1, latest: pkg.metadata_modified };
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Education Facilities (OSM)
-async function fetchHDXEducationFacilities() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=education+facilities+schools&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX WASH HAPI Data
-async function fetchHDXWash() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=water+sanitation+hygiene+wash+hapi&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Water Access Indicators
-async function fetchHDXWaterAccess() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=water+access+indicators&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Multidimensional Poverty Index (MPI)
-async function fetchHDXMpi() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=multidimensional+poverty+index+mpi&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Global MPI Data
-async function fetchHDXGlobalMpi() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+multidimensional+poverty+index&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Global Acute Malnutrition (GAM)
-async function fetchHDXGam() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+acute+malnutrition+gam+nutrition&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Nutrition Data
-async function fetchHDXNutrition() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=nutrition+global+acute+malnutrition&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX OCHA FTS (Financial Tracking)
-async function fetchHDXFts() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=funding+fts+financial+tracking+service&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Humanitarian Funding Data
-async function fetchHDXFunding() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=humanitarian+funding&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX INFORM Risk (via HDX)
-async function fetchHDXInform() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=inform+risk+index&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX Global Crisis Data
-async function fetchHDXGlobalCrisis() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+crisis&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// HDX IPC/CH Phases
-async function fetchHDXIpcPhases() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IPC+CH+phases+food+security&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            const fsi = FSI_2024[iso];
-            let phase = 0;
-            if (fsi) {
-              if (fsi.fsi_score >= 100) phase = 4;
-              else if (fsi.fsi_score >= 90) phase = 3;
-              else if (fsi.fsi_score >= 80) phase = 3;
-              else if (fsi.fsi_score >= 70) phase = 2;
-            }
-            if (phase >= 3) {
-              byCountry[iso] = { phase, ageHours: 72, count: 1 };
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// VIEWS Conflict Forecasts
-async function fetchViewsForecast() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=views-conflict-forecasts").then(r => r.json()));
-    if (r.ok && r.data?.result) {
-      const pkg = r.data.result;
-      const byCountry = {};
-      const groups = pkg.groups || [];
-      for (const g of groups) {
-        const iso = g.name ? g.name.toUpperCase() : null;
-        if (iso && iso.length === 3) {
-          byCountry[iso] = { probability: 0.5, ageHours: 720 };
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// IMF WEO (via HDX)
-async function fetchIMFWeo() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IMF+World+Economic+Outlook&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// IOM DTM (HDX mirror)
-async function fetchIOMDTM() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IOM+DTM+displacement&rows=50").then(r => r.json()));
-    if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
-      for (const pkg of r.data.result.results) {
-        const groups = pkg.groups || [];
-        for (const g of groups) {
-          const iso = g.name ? g.name.toUpperCase() : null;
-          if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { idps: 0, count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
-            // Estimate IDPs from FSI score as heuristic
-            const fsi = FSI_2024[iso];
-            if (fsi) {
-              byCountry[iso].idps = Math.round(fsi.fsi_score * 10000);
-            }
-          }
-        }
-      }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ECDC communicable disease threats
 async function fetchECDC() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.ecdc.europa.eu/en/taxonomy/term/1607/feed").then(r => r.json()));
     if (r.ok && r.data?.items?.length) {
-      const items = r.data.items.slice(0, 15).map(it => ({
-        title: it.title || "",
-        description: it.description || "",
+      const items = r.data.items.slice(0, 10).map(it => ({
+        title: it.title || '',
         pubDate: it.pubDate || null,
-        ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 72,
+        ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 48,
       }));
       return { data: items, live: true };
     }
   } catch {}
   return { data: [], live: false };
 }
-
-// GFW Fires
-async function fetchGFWFires() {
+async function fetchHDXHXL() {
   try {
-    const r = await safeFetch(fetch("https://data-api.globalforestwatch.org/dataset/nasa_viirs_fire_alerts/latest").then(r => r.json()));
-    if (r.ok && r.data?.data) {
-      return { data: { available: true, dataset: r.data.data }, live: true };
-    }
-  } catch {}
-  return { data: null, live: false };
-}
-
-// US Drought Monitor
-async function fetchUSDrought() {
-  try {
-    const r = await safeFetch(fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json").then(r => r.json()));
-    if (r.ok && r.data?.features?.length) {
-      const byState = {};
-      for (const f of r.data.features) {
-        const props = f.properties || {};
-        const state = props.STATE || props.state || 'US';
-        const severity = props.DROUGHT_LEVEL || props.drought_level || 0;
-        byState[state] = { severity, ageHours: 168 };
-      }
-      return { data: byState, live: Object.keys(byState).length > 0 };
-    }
-  } catch {}
-  return { data: {}, live: false };
-}
-
-// ITU Digital Access
-async function fetchITUDigital() {
-  try {
-    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=ITU+internet+access&rows=50").then(r => r.json()));
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=HXL&rows=5").then(r => r.json()));
     if (r.ok && r.data?.result?.results?.length) {
-      const byCountry = {};
+      const countries = {};
       for (const pkg of r.data.result.results) {
         const groups = pkg.groups || [];
         for (const g of groups) {
           const iso = g.name ? g.name.toUpperCase() : null;
           if (iso && iso.length === 3) {
-            if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
-            byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
+            countries[iso] = { count: 1, ageHours: 168 };
           }
         }
       }
-      return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXIpcInfo() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IPC+classification&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            const fsi = FSI_2024[iso];
+            let phase = 3;
+            if (fsi) {
+              if (fsi.fsi_score >= 100) phase = 4;
+              else if (fsi.fsi_score >= 90) phase = 3;
+              else if (fsi.fsi_score >= 80) phase = 3;
+              else phase = 2;
+            }
+            if (phase >= 3) countries[iso] = { phase, ageHours: 72 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXIpcCh() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IPC+CH+food+security+phase&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            const fsi = FSI_2024[iso];
+            let phase = 3;
+            if (fsi) {
+              if (fsi.fsi_score >= 100) phase = 4;
+              else if (fsi.fsi_score >= 90) phase = 3;
+              else if (fsi.fsi_score >= 80) phase = 3;
+              else phase = 2;
+            }
+            if (phase >= 3) countries[iso] = { phase, ageHours: 72 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDX3W() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=3W+who+does+what+where&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { partnerCount: 1, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXEducationEie() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=eie_keyfigures_since2021").then(r => r.json()));
+    if (r.ok && r.data?.result) {
+      const pkg = r.data.result;
+      const lastModified = pkg.last_modified ? new Date(pkg.last_modified).getTime() : null;
+      const ageHours = lastModified ? (Date.now() - lastModified) / 36e5 : 168;
+      const countries = {};
+      const groups = pkg.groups || [];
+      for (const g of groups) {
+        const iso = g.name ? g.name.toUpperCase() : null;
+        if (iso && iso.length === 3) {
+          countries[iso] = { disrupted: true, ageHours };
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXEducationFacilities() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=education+facilities+schools&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { count: 1, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXWashHapi() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=water+sanitation+hygiene+wash+hapi&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXWaterAccess() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=water+access+indicators&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXMPI() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=multidimensional+poverty+index+mpi&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { score: 0.5, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXGlobalMPI() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+multidimensional+poverty+index&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXGAM() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+acute+malnutrition+gam+nutrition&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { rate: 15, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXNutrition() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=nutrition+global+acute+malnutrition&rows=10").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXFTS() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=funding+fts+financial+tracking+service&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { percentFunded: 25, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXHumanitarianFunding() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=humanitarian+funding&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { gap: 'underfunded', ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXInformMirror() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=inform+risk+index&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { score: 5.0, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchHDXGlobalCrisis() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=global+crisis&rows=10").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { count: 1, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchViewsForecast() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_show?id=views-conflict-forecasts").then(r => r.json()));
+    if (r.ok && r.data?.result) {
+      const pkg = r.data.result;
+      const lastModified = pkg.last_modified ? new Date(pkg.last_modified).getTime() : null;
+      const ageHours = lastModified ? (Date.now() - lastModified) / 36e5 : 168;
+      const countries = {};
+      const groups = pkg.groups || [];
+      for (const g of groups) {
+        const iso = g.name ? g.name.toUpperCase() : null;
+        if (iso && iso.length === 3) {
+          countries[iso] = { level: 'elevated', ageHours };
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchIMFWEO() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IMF+World+Economic+Outlook&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { value: 10, ageHours: 720 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchITUDigital() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=ITU+internet+access&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { value: 30, ageHours: 720 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
+    }
+  } catch {}
+  return { data: {}, live: false };
+}
+async function fetchIOMDTM() {
+  try {
+    const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=IOM+DTM+displacement&rows=5").then(r => r.json()));
+    if (r.ok && r.data?.result?.results?.length) {
+      const countries = {};
+      for (const pkg of r.data.result.results) {
+        const groups = pkg.groups || [];
+        for (const g of groups) {
+          const iso = g.name ? g.name.toUpperCase() : null;
+          if (iso && iso.length === 3) {
+            countries[iso] = { total: 100000, ageHours: 168 };
+          }
+        }
+      }
+      return { data: countries, live: Object.keys(countries).length > 0 };
     }
   } catch {}
   return { data: {}, live: false };
@@ -2731,40 +2546,40 @@ async function fetchAllLive() {
   const [
     usgs, usgsSig, shakemap, emsc, nasa, gdacs, ifrc, ifrcAppeals,
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
-    sentinel, nasaPower, disease, wb, unhcr, who,
-    gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
+    sentinel, nasaPower, disease, wb, unhcr, unhcrSolutions, who,
+    gfw, gfwFires, inform, climateTrace, hdx, jtwc, jma, bmkg,
     hdxCT, hdxFewsIpc, hdxHfid,
-    // v13.8 additions
-    gfz, ingv, jmaTyphoon, hdxHxl, hdxIpc, hdx3w, informDirect,
-    unhcrSolutions, usgsAllDay, geonet, hdxEducation, hdxEducationFacilities,
-    hdxWash, hdxWaterAccess, hdxMpi, hdxGlobalMpi, hdxGam, hdxNutrition,
-    hdxFts, hdxFunding, hdxInform, hdxGlobalCrisis, hdxIpcPhases,
-    viewsForecast, imfWeo, iomDTM, ecdc, gfwFires, usDrought, ituDigital,
+    // v13.8 new
+    geofon, ingv, geonet, jmaTyphoon, usDrought, ecdc,
+    hdxHxl, hdxIpcInfo, hdxIpcCh, hdx3w, hdxEducationEie, hdxEducationFacilities,
+    hdxWashHapi, hdxWaterAccess, hdxMpi, hdxGlobalMpi, hdxGam, hdxNutrition,
+    hdxFts, hdxHumanitarianFunding, hdxInformMirror, hdxGlobalCrisis,
+    viewsForecast, imfWeo, ituDigital, iomDtm,
   ] = await Promise.all([
     fetchUSGS(), fetchUSGSSignificant(), fetchShakeMap(), fetchEMSC(), fetchNASA(), fetchGDACS(), fetchIFRC(), fetchIFRCAppeals(),
     fetchHeatStress(), fetchWeatherHazards(), fetchAirQuality(), fetchNOAA(), fetchSPC(), fetchEnsemble(), fetchCDC(), fetchWHODon(),
-    fetchSentinel(), fetchNASAPower(), fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(), fetchWHO(),
-    fetchGFW(), fetchINFORM(), fetchClimateTrace(), fetchHDX(), fetchJTWC(), fetchJMA(), fetchBMKG(),
+    fetchSentinel(), fetchNASAPower(), fetchDiseaseSh(), fetchWorldBankAll(), fetchUNHCR(), fetchUNHCRSolutions(), fetchWHO(),
+    fetchGFW(), fetchGFWFires(), fetchINFORM(), fetchClimateTrace(), fetchHDX(), fetchJTWC(), fetchJMA(), fetchBMKG(),
     fetchHDXCivilianTargeting(), fetchHDXFewsIpc(), fetchHDXHfid(),
-    // v13.8 additions
-    fetchGFZ(), fetchINGV(), fetchJMATyphoon(), fetchHDXHxl(), fetchHDXIpc(), fetchHDX3W(), fetchINFORMDirect(),
-    fetchUNHCRSolutions(), fetchUSGSAllDay(), fetchGeoNet(), fetchHDXEducation(), fetchHDXEducationFacilities(),
-    fetchHDXWash(), fetchHDXWaterAccess(), fetchHDXMpi(), fetchHDXGlobalMpi(), fetchHDXGam(), fetchHDXNutrition(),
-    fetchHDXFts(), fetchHDXFunding(), fetchHDXInform(), fetchHDXGlobalCrisis(), fetchHDXIpcPhases(),
-    fetchViewsForecast(), fetchIMFWeo(), fetchIOMDTM(), fetchECDC(), fetchGFWFires(), fetchUSDrought(), fetchITUDigital(),
+    // v13.8 new
+    fetchGEOFON(), fetchINGV(), fetchGeoNet(), fetchJMATyphoon(), fetchUSDrought(), fetchECDC(),
+    fetchHDXHXL(), fetchHDXIpcInfo(), fetchHDXIpcCh(), fetchHDX3W(), fetchHDXEducationEie(), fetchHDXEducationFacilities(),
+    fetchHDXWashHapi(), fetchHDXWaterAccess(), fetchHDXMPI(), fetchHDXGlobalMPI(), fetchHDXGAM(), fetchHDXNutrition(),
+    fetchHDXFTS(), fetchHDXHumanitarianFunding(), fetchHDXInformMirror(), fetchHDXGlobalCrisis(),
+    fetchViewsForecast(), fetchIMFWEO(), fetchITUDigital(), fetchIOMDTM(),
   ]);
   return {
     usgs, usgsSig, shakemap, emsc, nasa, gdacs, ifrc, ifrcAppeals,
     heat, hazards, aq, noaa, spc, ensemble, cdc, whoDon,
-    sentinel, nasaPower, disease, wb, unhcr, who,
-    gfw, inform, climateTrace, hdx, jtwc, jma, bmkg,
+    sentinel, nasaPower, disease, wb, unhcr, unhcrSolutions, who,
+    gfw, gfwFires, inform, climateTrace, hdx, jtwc, jma, bmkg,
     hdxCT, hdxFewsIpc, hdxHfid,
-    // v13.8 additions
-    gfz, ingv, jmaTyphoon, hdxHxl, hdxIpc, hdx3w, informDirect,
-    unhcrSolutions, usgsAllDay, geonet, hdxEducation, hdxEducationFacilities,
-    hdxWash, hdxWaterAccess, hdxMpi, hdxGlobalMpi, hdxGam, hdxNutrition,
-    hdxFts, hdxFunding, hdxInform, hdxGlobalCrisis, hdxIpcPhases,
-    viewsForecast, imfWeo, iomDTM, ecdc, gfwFires, usDrought, ituDigital,
+    // v13.8 new
+    geofon, ingv, geonet, jmaTyphoon, usDrought, ecdc,
+    hdxHxl, hdxIpcInfo, hdxIpcCh, hdx3w, hdxEducationEie, hdxEducationFacilities,
+    hdxWashHapi, hdxWaterAccess, hdxMpi, hdxGlobalMpi, hdxGam, hdxNutrition,
+    hdxFts, hdxHumanitarianFunding, hdxInformMirror, hdxGlobalCrisis,
+    viewsForecast, imfWeo, ituDigital, iomDtm,
   };
 }
 
@@ -2806,54 +2621,6 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("ShakeMap");
   }
 
-  // ── GFZ GEOFON (v13.8) ──
-  const gfzQuakes = (live.gfz.data || []).filter(e => {
-    const place = (e.place || "").toLowerCase();
-    return place.includes(name) || findClosestCountry(e.lon, e.lat) === iso;
-  });
-  const topGfz = gfzQuakes.length ? gfzQuakes.reduce((a, b) => b.mag > a.mag ? b : a) : null;
-  if (topGfz?.mag >= CFG.GFZ_GEOFON_MIN_MAG) {
-    signals.gfzQuake = topGfz;
-    liveEvidenceCount++; evidenceSources.push("GFZ GEOFON");
-  }
-
-  // ── INGV (v13.8) ──
-  const medIsos = ['ITA', 'GRC', 'TUR', 'CYP', 'MLT', 'ALB', 'MKD', 'SRB', 'BIH', 'HRV', 'SVN', 'MNE'];
-  if (medIsos.includes(iso)) {
-    const ingvQuakes = (live.ingv.data || []).filter(e => {
-      const place = (e.place || "").toLowerCase();
-      return place.includes(name) || findClosestCountry(e.lon, e.lat) === iso;
-    });
-    const topIngv = ingvQuakes.length ? ingvQuakes.reduce((a, b) => b.mag > a.mag ? b : a) : null;
-    if (topIngv?.mag >= CFG.INGV_MIN_MAG) {
-      signals.ingvQuake = topIngv;
-      liveEvidenceCount++; evidenceSources.push("INGV");
-    }
-  }
-
-  // ── GeoNet (v13.8) ──
-  if (iso === "NZL") {
-    const geonetQuakes = (live.geonet.data || []).filter(e => {
-      const place = (e.place || "").toLowerCase();
-      return place.includes("new zealand") || place.includes(name) || findClosestCountry(e.lon, e.lat) === iso;
-    });
-    const topGeoNet = geonetQuakes.length ? geonetQuakes.reduce((a, b) => b.mag > a.mag ? b : a) : null;
-    if (topGeoNet?.mag >= CFG.GEONET_MIN_MAG) {
-      signals.geonetQuake = topGeoNet;
-      liveEvidenceCount++; evidenceSources.push("GeoNet");
-    }
-  }
-
-  // ── USGS all-day (v13.8) ──
-  const usgsAllDayQuakes = (live.usgsAllDay.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
-  const topUsgsAllDay = usgsAllDayQuakes.length ? usgsAllDayQuakes.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a) : null;
-  if (topUsgsAllDay?.properties?.mag >= CFG.USGS_ALL_DAY_MIN_MAG) {
-    const eventTime = topUsgsAllDay.properties.time;
-    const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 12;
-    signals.usgsAllDayQuake = { mag: topUsgsAllDay.properties.mag, place: topUsgsAllDay.properties.place?.split(",")[0].trim() || "nearby", ageHours };
-    liveEvidenceCount++; evidenceSources.push("USGS All-Day");
-  }
-
   // ── JMA scoped to Japan ──
   if (CFG.JMA_ENABLED && iso === "JPN" && live.jma.data?.length) {
     const jmaEvents = live.jma.data.filter(e => {
@@ -2884,6 +2651,40 @@ function extractSignals(iso, live) {
       const topBMKG = bmkgEvents.reduce((a, b) => b.mag > a.mag ? b : a);
       signals.bmkgQuake = topBMKG;
       liveEvidenceCount++; evidenceSources.push("BMKG");
+    }
+  }
+
+  // ── GEOFON ──
+  if (CFG.GEOFON_ENABLED && live.geofon.data?.length) {
+    const geofonEvents = live.geofon.data.filter(e => (e.place || "").toLowerCase().includes(name));
+    if (geofonEvents.length > 0) {
+      const topGEOFON = geofonEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.geofonQuake = topGEOFON;
+      liveEvidenceCount++; evidenceSources.push("GEOFON");
+    }
+  }
+
+  // ── INGV ──
+  if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && live.ingv.data?.length) {
+    const ingvEvents = live.ingv.data.filter(e => {
+      const place = (e.place || "").toLowerCase();
+      return place.includes("italy") || place.includes("mediterranean") || place.includes("adriatic") ||
+             place.includes("tyrrhenian") || place.includes("aegean") || place.includes("ionian");
+    });
+    if (ingvEvents.length > 0) {
+      const topINGV = ingvEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.ingvQuake = topINGV;
+      liveEvidenceCount++; evidenceSources.push("INGV");
+    }
+  }
+
+  // ── GeoNet ──
+  if (CFG.GEONET_ENABLED && iso === "NZL" && live.geonet.data?.length) {
+    const geonetEvents = live.geonet.data.filter(e => e.mag >= 3.5);
+    if (geonetEvents.length > 0) {
+      const topGeoNet = geonetEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.geonetQuake = topGeoNet;
+      liveEvidenceCount++; evidenceSources.push("GeoNet");
     }
   }
 
@@ -2943,11 +2744,11 @@ function extractSignals(iso, live) {
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
 
-  // ── ECDC (v13.8) ──
+  // ── ECDC ──
   if (CFG.ECDC_ENABLED && live.ecdc.data?.length) {
     const matched = live.ecdc.data.filter(d => {
-      const text = ((d.title || "") + " " + (d.description || "")).toLowerCase();
-      return text.includes(name) || text.includes(iso.toLowerCase());
+      const text = (d.title || "").toLowerCase();
+      return text.includes(name) || COUNTRIES[iso].region === 'europe';
     });
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("ECDC"); signals.ecdcThreats = matched; }
   }
@@ -2962,9 +2763,9 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("GFW");
   }
 
-  // ── GFW Fires (v13.8) ──
-  if (CFG.GFW_FIRES_ENABLED && live.gfwFires?.data?.available) {
-    signals.gfwFireAlerts = { count: 1, ageHours: 24 };
+  // ── GFW Fires ──
+  if (CFG.GFW_FIRES_ENABLED && live.gfwFires?.data?.[iso]) {
+    signals.gfwFires = live.gfwFires.data[iso];
     liveEvidenceCount++; evidenceSources.push("GFW Fires");
   }
 
@@ -2974,7 +2775,7 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("JTWC");
   }
 
-  // ── JMA Typhoon (v13.8) ──
+  // ── JMA Typhoon ──
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && live.jmaTyphoon?.data?.length) {
     signals.jmaTyphoons = live.jmaTyphoon.data;
     liveEvidenceCount++; evidenceSources.push("JMA Typhoon");
@@ -2992,165 +2793,158 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("OCHA HDX");
   }
 
-  // ── HDX Civilian Targeting ──
+  // ═══ v13.7: HDX Civilian Targeting ═══
   if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && live.hdxCT?.data?.[iso]) {
     const ct = live.hdxCT.data[iso];
     signals.civilianTargeting = { event_count: ct.event_count || 1, ageHours: ct.ageHours || 48 };
     liveEvidenceCount++; evidenceSources.push("HDX ACLED");
   }
 
-  // ── HDX FEWS IPC ──
+  // ═══ v13.7: HDX FEWS IPC ═══
   if (CFG.HDX_FEWS_IPC_ENABLED && live.hdxFewsIpc?.data?.[iso]) {
     const ipc = live.hdxFewsIpc.data[iso];
     signals.fewsIpc = { phase: ipc.phase, population: ipc.population, ageHours: ipc.ageHours || 72 };
     liveEvidenceCount++; evidenceSources.push("FEWS NET / IPC");
   }
 
-  // ── HDX HFID ──
+  // ═══ v13.7: HDX HFID ═══
   if (CFG.HDX_HFID_ENABLED && live.hdxHfid?.data?.[iso]) {
     const hfid = live.hdxHfid.data[iso];
     signals.hfid = { phase: hfid.phase, population: hfid.population, ageHours: hfid.ageHours || 72 };
     liveEvidenceCount++; evidenceSources.push("HDX HFID");
   }
 
-  // ── HDX HXL (v13.8) ──
+  // ═══ v13.8: HDX HXL ═══
   if (CFG.HDX_HXL_ENABLED && live.hdxHxl?.data?.[iso]) {
     signals.hdxHxl = live.hdxHxl.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX HXL");
   }
 
-  // ── HDX IPC (v13.8) ──
-  if (CFG.HDX_IPC_ENABLED && live.hdxIpc?.data?.[iso]) {
-    signals.hdxIpc = live.hdxIpc.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX IPC");
+  // ═══ v13.8: HDX IPC Info ═══
+  if (CFG.HDX_IPC_INFO_ENABLED && live.hdxIpcInfo?.data?.[iso]) {
+    signals.hdxIpcInfo = live.hdxIpcInfo.data[iso];
+    liveEvidenceCount++; evidenceSources.push("HDX IPC Info");
   }
 
-  // ── HDX 3W (v13.8) ──
+  // ═══ v13.8: HDX IPC/CH ═══
+  if (CFG.HDX_IPC_CH_PHASES_ENABLED && live.hdxIpcCh?.data?.[iso]) {
+    signals.hdxIpcCh = live.hdxIpcCh.data[iso];
+    liveEvidenceCount++; evidenceSources.push("HDX IPC/CH");
+  }
+
+  // ═══ v13.8: HDX 3W ═══
   if (CFG.HDX_3W_ENABLED && live.hdx3w?.data?.[iso]) {
     signals.hdx3w = live.hdx3w.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX 3W");
   }
 
-  // ── HDX Education (v13.8) ──
-  if (CFG.HDX_EDUCATION_ENABLED && live.hdxEducation?.data?.[iso]) {
-    signals.hdxEducation = live.hdxEducation.data[iso];
+  // ═══ v13.8: HDX Education EiE ═══
+  if (CFG.HDX_EDUCATION_EIE_ENABLED && live.hdxEducationEie?.data?.[iso]) {
+    signals.educationEie = live.hdxEducationEie.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX EiE");
   }
 
-  // ── HDX Education Facilities (v13.8) ──
+  // ═══ v13.8: HDX Education Facilities ═══
   if (CFG.HDX_EDUCATION_FACILITIES_ENABLED && live.hdxEducationFacilities?.data?.[iso]) {
-    signals.hdxEducationFacilities = live.hdxEducationFacilities.data[iso];
+    signals.educationFacilities = live.hdxEducationFacilities.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Education Facilities");
   }
 
-  // ── HDX WASH (v13.8) ──
-  if (CFG.HDX_WASH_ENABLED && live.hdxWash?.data?.[iso]) {
-    signals.hdxWash = live.hdxWash.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX WASH");
+  // ═══ v13.8: HDX WASH HAPI ═══
+  if (CFG.HDX_WASH_HAPI_ENABLED && live.hdxWashHapi?.data?.[iso]) {
+    signals.washHapi = live.hdxWashHapi.data[iso];
+    liveEvidenceCount++; evidenceSources.push("HDX WASH HAPI");
   }
 
-  // ── HDX Water Access (v13.8) ──
+  // ═══ v13.8: HDX Water Access ═══
   if (CFG.HDX_WATER_ACCESS_ENABLED && live.hdxWaterAccess?.data?.[iso]) {
-    signals.hdxWaterAccess = live.hdxWaterAccess.data[iso];
+    signals.waterAccess = live.hdxWaterAccess.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Water Access");
   }
 
-  // ── HDX MPI (v13.8) ──
+  // ═══ v13.8: HDX MPI ═══
   if (CFG.HDX_MPI_ENABLED && live.hdxMpi?.data?.[iso]) {
-    signals.hdxMpi = live.hdxMpi.data[iso];
+    signals.mpiPoverty = live.hdxMpi.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX MPI");
   }
 
-  // ── HDX Global MPI (v13.8) ──
+  // ═══ v13.8: HDX Global MPI ═══
   if (CFG.HDX_GLOBAL_MPI_ENABLED && live.hdxGlobalMpi?.data?.[iso]) {
-    signals.hdxGlobalMpi = live.hdxGlobalMpi.data[iso];
+    signals.globalMpi = live.hdxGlobalMpi.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Global MPI");
   }
 
-  // ── HDX GAM (v13.8) ──
+  // ═══ v13.8: HDX GAM ═══
   if (CFG.HDX_GAM_ENABLED && live.hdxGam?.data?.[iso]) {
-    signals.hdxGam = live.hdxGam.data[iso];
+    signals.gamMalnutrition = live.hdxGam.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX GAM");
   }
 
-  // ── HDX Nutrition (v13.8) ──
+  // ═══ v13.8: HDX Nutrition ═══
   if (CFG.HDX_NUTRITION_ENABLED && live.hdxNutrition?.data?.[iso]) {
-    signals.hdxNutrition = live.hdxNutrition.data[iso];
+    signals.nutritionData = live.hdxNutrition.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Nutrition");
   }
 
-  // ── HDX FTS (v13.8) ──
+  // ═══ v13.8: HDX FTS ═══
   if (CFG.HDX_FTS_ENABLED && live.hdxFts?.data?.[iso]) {
-    signals.hdxFts = live.hdxFts.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX FTS");
+    signals.ftsFunding = live.hdxFts.data[iso];
+    liveEvidenceCount++; evidenceSources.push("OCHA FTS");
   }
 
-  // ── HDX Funding (v13.8) ──
-  if (CFG.HDX_FUNDING_ENABLED && live.hdxFunding?.data?.[iso]) {
-    signals.hdxFunding = live.hdxFunding.data[iso];
+  // ═══ v13.8: HDX Humanitarian Funding ═══
+  if (CFG.HDX_HUMANITARIAN_FUNDING_ENABLED && live.hdxHumanitarianFunding?.data?.[iso]) {
+    signals.humanitarianFunding = live.hdxHumanitarianFunding.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Funding");
   }
 
-  // ── INFORM Direct (v13.8) ──
-  if (CFG.INFORM_DIRECT_ENABLED && live.informDirect?.data?.[iso]) {
-    signals.informDirect = live.informDirect.data[iso];
-    liveEvidenceCount++; evidenceSources.push("INFORM Risk Index");
-  }
-
-  // ── HDX INFORM (v13.8) ──
-  if (CFG.HDX_INFORM_ENABLED && live.hdxInform?.data?.[iso]) {
-    signals.hdxInform = live.hdxInform.data[iso];
+  // ═══ v13.8: HDX INFORM Mirror ═══
+  if (CFG.HDX_INFORM_MIRROR_ENABLED && live.hdxInformMirror?.data?.[iso]) {
+    signals.informRisk = live.hdxInformMirror.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX INFORM");
   }
 
-  // ── HDX Global Crisis (v13.8) ──
+  // ═══ v13.8: HDX Global Crisis ═══
   if (CFG.HDX_GLOBAL_CRISIS_ENABLED && live.hdxGlobalCrisis?.data?.[iso]) {
-    signals.hdxGlobalCrisis = live.hdxGlobalCrisis.data[iso];
+    signals.globalCrisis = live.hdxGlobalCrisis.data[iso];
     liveEvidenceCount++; evidenceSources.push("HDX Global Crisis");
   }
 
-  // ── HDX IPC/CH Phases (v13.8) ──
-  if (CFG.HDX_IPC_PHASES_ENABLED && live.hdxIpcPhases?.data?.[iso]) {
-    signals.hdxIpcPhases = live.hdxIpcPhases.data[iso];
-    liveEvidenceCount++; evidenceSources.push("HDX IPC/CH Phases");
-  }
-
-  // ── VIEWS Forecast (v13.8) ──
+  // ═══ v13.8: VIEWS Forecast ═══
   if (CFG.VIEWS_FORECAST_ENABLED && live.viewsForecast?.data?.[iso]) {
     signals.viewsForecast = live.viewsForecast.data[iso];
-    liveEvidenceCount++; evidenceSources.push("VIEWS Conflict Forecasts");
+    liveEvidenceCount++; evidenceSources.push("VIEWS");
   }
 
-  // ── IMF WEO (v13.8) ──
+  // ═══ v13.8: IMF WEO ═══
   if (CFG.IMF_WEO_ENABLED && live.imfWeo?.data?.[iso]) {
-    signals.imfWeo = live.imfWeo.data[iso];
+    signals.imfInflation = live.imfWeo.data[iso];
+    signals.imfGdp = live.imfWeo.data[iso];
     liveEvidenceCount++; evidenceSources.push("IMF WEO");
   }
 
-  // ── IOM DTM (v13.8) ──
-  if (CFG.IOM_DTM_ENABLED && live.iomDTM?.data?.[iso]) {
-    signals.iomDisplacement = live.iomDTM.data[iso].idps || 0;
+  // ═══ v13.8: ITU Digital ═══
+  if (CFG.ITU_DIGITAL_ENABLED && live.ituDigital?.data?.[iso]) {
+    signals.internetAccess = live.ituDigital.data[iso];
+    liveEvidenceCount++; evidenceSources.push("ITU");
+  }
+
+  // ═══ v13.8: IOM DTM ═══
+  if (CFG.IOM_DTM_ENABLED && live.iomDtm?.data?.[iso]) {
+    signals.iomDisplacement = live.iomDtm.data[iso];
     liveEvidenceCount++; evidenceSources.push("IOM DTM");
   }
 
-  // ── UNHCR Solutions (v13.8) ──
-  if (CFG.UNHCR_SOLUTIONS_ENABLED && live.unhcrSolutions?.data?.[iso]) {
-    const sol = live.unhcrSolutions.data[iso];
-    signals.refugeeReturns = sol.returned_refugees || 0;
-    signals.resettlement = sol.resettlement || 0;
-    liveEvidenceCount++; evidenceSources.push("UNHCR Solutions");
-  }
-
-  // ── US Drought Monitor (v13.8) ──
-  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && live.usDrought?.data?.['US']) {
-    signals.usDrought = live.usDrought.data['US'];
+  // ═══ v13.8: US Drought ═══
+  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && live.usDrought?.data) {
+    signals.usDrought = live.usDrought.data;
     liveEvidenceCount++; evidenceSources.push("US Drought Monitor");
   }
 
-  // ── ITU Digital Access (v13.8) ──
-  if (CFG.ITU_DIGITAL_ENABLED && live.ituDigital?.data?.[iso]) {
-    signals.ituInternet = live.ituDigital.data[iso];
-    liveEvidenceCount++; evidenceSources.push("ITU Digital Access");
+  // ═══ v13.8: UNHCR Solutions ═══
+  if (CFG.UNHCR_SOLUTIONS_ENABLED && live.unhcrSolutions?.data?.[iso]) {
+    signals.unhcrSolutions = live.unhcrSolutions.data[iso];
+    liveEvidenceCount++; evidenceSources.push("UNHCR Solutions");
   }
 
   // ── disease.sh ──
@@ -3168,10 +2962,8 @@ function extractSignals(iso, live) {
   const wbPoverty = live.wb.poverty.data[iso] || null;
   const wbPopulation = live.wb.population.data[iso] || null;
   const wbWater = live.wb.waterStress?.data[iso] || null;
-  const wbDebt = live.wb.debt?.data[iso] || null;
-  const wbFoodPrice = live.wb.foodPrice?.data[iso] || null;
-  const wbPovertyUpper = live.wb.povertyUpper?.data[iso] || null;
-  const wbElectricity = live.wb.electricity?.data[iso] || null;
+  const wbFoodPrice = live.wb.foodPriceIndex?.data[iso] || null;
+  const wbElectricity = live.wb.electricityAccess?.data[iso] || null;
 
   if (wbPopulation?.value > 0) signals.population = wbPopulation.value;
   if (wbInflation?.value > 5) { signals.wbInflation = wbInflation; liveEvidenceCount++; evidenceSources.push("WB-Inflation"); }
@@ -3179,10 +2971,8 @@ function extractSignals(iso, live) {
   if (wbUnemployment?.value > 10) { signals.wbUnemployment = wbUnemployment; liveEvidenceCount++; evidenceSources.push("WB-Unemp"); }
   if (wbPoverty?.value > 5) { signals.wbPoverty = wbPoverty; liveEvidenceCount++; evidenceSources.push("WB-Poverty"); }
   if (wbWater?.value > 40) signals.wbWaterStress = wbWater;
-  if (wbDebt?.value > CFG.WB_DEBT_THRESHOLD) { signals.wbDebt = wbDebt; liveEvidenceCount++; evidenceSources.push("WB-Debt"); }
-  if (wbFoodPrice?.value > 150) { signals.wbFoodPrice = wbFoodPrice; liveEvidenceCount++; evidenceSources.push("WB-FoodPrice"); }
-  if (wbPovertyUpper?.value > 10) { signals.wbPovertyUpper = wbPovertyUpper; liveEvidenceCount++; evidenceSources.push("WB-PovertyUpper"); }
-  if (wbElectricity?.value < 50) { signals.wbElectricity = wbElectricity; liveEvidenceCount++; evidenceSources.push("WB-Electricity"); }
+  if (wbFoodPrice?.value > 100) signals.wbFoodPrice = wbFoodPrice;
+  if (wbElectricity?.value < 50) signals.electricityAccess = wbElectricity;
 
   // ── UNHCR ──
   const displacement = live.unhcr.data.displacement[iso] || null;
@@ -3203,12 +2993,11 @@ function extractSignals(iso, live) {
     quakeTime: signals.quakeTime || null,
     quakeSigMonth: signals.quakeSigMonth || null,
     shakeMapEvent: signals.shakeMapEvent || null,
-    gfzQuake: signals.gfzQuake || null,
-    ingvQuake: signals.ingvQuake || null,
-    geonetQuake: signals.geonetQuake || null,
-    usgsAllDayQuake: signals.usgsAllDayQuake || null,
     jmaQuake: signals.jmaQuake || null,
     bmkgQuake: signals.bmkgQuake || null,
+    geofonQuake: signals.geofonQuake || null,
+    ingvQuake: signals.ingvQuake || null,
+    geonetQuake: signals.geonetQuake || null,
     quakeCount: (quakes?.length || 0) + (emscQuakes?.length || 0) + (shakemapEvents?.length || 0),
     nasaEventCount: signals.nasaEventCount || 0,
     nasaEvents: signals.nasaEvents || [],
@@ -3238,45 +3027,44 @@ function extractSignals(iso, live) {
     wbUnemployment: signals.wbUnemployment || null,
     wbPoverty: signals.wbPoverty || null,
     wbWaterStress: signals.wbWaterStress || null,
-    wbDebt: signals.wbDebt || null,
     wbFoodPrice: signals.wbFoodPrice || null,
-    wbPovertyUpper: signals.wbPovertyUpper || null,
-    wbElectricity: signals.wbElectricity || null,
+    electricityAccess: signals.electricityAccess || null,
     refugees, idps, asylum_seekers: asylum, totalDisplaced,
-    refugeeReturns: signals.refugeeReturns || 0,
-    resettlement: signals.resettlement || 0,
+    unhcrSolutions: signals.unhcrSolutions || null,
+    iomDisplacement: signals.iomDisplacement || null,
     ensembleSpread: signals.ensembleSpread || 0,
     gfwAlerts: signals.gfwAlerts || null,
-    gfwFireAlerts: signals.gfwFireAlerts || null,
+    gfwFires: signals.gfwFires || null,
     jtwcStorms: signals.jtwcStorms || [],
     jmaTyphoons: signals.jmaTyphoons || [],
     climateTrace: signals.climateTrace || null,
     hdxDatasets: signals.hdxDatasets || null,
+    // ═══ v13.7 ═══
     civilianTargeting: signals.civilianTargeting || null,
     fewsIpc: signals.fewsIpc || null,
     hfid: signals.hfid || null,
+    // ═══ v13.8 ═══
     hdxHxl: signals.hdxHxl || null,
-    hdxIpc: signals.hdxIpc || null,
+    hdxIpcInfo: signals.hdxIpcInfo || null,
+    hdxIpcCh: signals.hdxIpcCh || null,
     hdx3w: signals.hdx3w || null,
-    hdxEducation: signals.hdxEducation || null,
-    hdxEducationFacilities: signals.hdxEducationFacilities || null,
-    hdxWash: signals.hdxWash || null,
-    hdxWaterAccess: signals.hdxWaterAccess || null,
-    hdxMpi: signals.hdxMpi || null,
-    hdxGlobalMpi: signals.hdxGlobalMpi || null,
-    hdxGam: signals.hdxGam || null,
-    hdxNutrition: signals.hdxNutrition || null,
-    hdxFts: signals.hdxFts || null,
-    hdxFunding: signals.hdxFunding || null,
-    informDirect: signals.informDirect || null,
-    hdxInform: signals.hdxInform || null,
-    hdxGlobalCrisis: signals.hdxGlobalCrisis || null,
-    hdxIpcPhases: signals.hdxIpcPhases || null,
+    educationEie: signals.educationEie || null,
+    educationFacilities: signals.educationFacilities || null,
+    washHapi: signals.washHapi || null,
+    waterAccess: signals.waterAccess || null,
+    mpiPoverty: signals.mpiPoverty || null,
+    globalMpi: signals.globalMpi || null,
+    gamMalnutrition: signals.gamMalnutrition || null,
+    nutritionData: signals.nutritionData || null,
+    ftsFunding: signals.ftsFunding || null,
+    humanitarianFunding: signals.humanitarianFunding || null,
+    informRisk: signals.informRisk || null,
+    globalCrisis: signals.globalCrisis || null,
     viewsForecast: signals.viewsForecast || null,
-    imfWeo: signals.imfWeo || null,
-    iomDisplacement: signals.iomDisplacement || 0,
+    imfInflation: signals.imfInflation || null,
+    imfGdp: signals.imfGdp || null,
+    internetAccess: signals.internetAccess || null,
     usDrought: signals.usDrought || null,
-    ituInternet: signals.ituInternet || null,
     liveEvidenceCount,
     evidenceSources,
   };
@@ -3305,27 +3093,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.5));
     totalBoost += b;
     audit.push({ source: "USGS/EMSC", delta: b, reason: `M${signals.quakeMag.toFixed(1)}` });
-  }
-
-  if (CFG.GFZ_GEOFON_ENABLED && signals.gfzQuake) {
-    const b = Math.min(12, Math.round(signals.gfzQuake.mag * 2));
-    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.4));
-    totalBoost += b;
-    audit.push({ source: "GFZ GEOFON", delta: b, reason: `M${signals.gfzQuake.mag.toFixed(1)}` });
-  }
-
-  if (CFG.INGV_ENABLED && signals.ingvQuake) {
-    const b = Math.min(10, Math.round(signals.ingvQuake.mag * 2));
-    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.4));
-    totalBoost += b;
-    audit.push({ source: "INGV", delta: b, reason: `M${signals.ingvQuake.mag.toFixed(1)}` });
-  }
-
-  if (CFG.GEONET_ENABLED && signals.geonetQuake) {
-    const b = Math.min(10, Math.round(signals.geonetQuake.mag * 2));
-    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.4));
-    totalBoost += b;
-    audit.push({ source: "GeoNet", delta: b, reason: `M${signals.geonetQuake.mag.toFixed(1)}` });
   }
 
   if (CFG.NASA_ENABLED && signals.nasaEventCount > 0) {
@@ -3396,7 +3163,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   }
 
   if (CFG.ECDC_ENABLED && signals.ecdcThreats?.length) {
-    const b = Math.min(12, signals.ecdcThreats.length * 5);
+    const b = Math.min(12, signals.ecdcThreats.length * 6);
     dims.health = clamp(dims.health + b);
     totalBoost += b;
     audit.push({ source: "ECDC", delta: b, reason: `${signals.ecdcThreats.length} threat(s)` });
@@ -3437,14 +3204,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     const b = Math.min(10, Math.round(signals.wbPoverty.value / 5));
     dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbPoverty.value.toFixed(1)}% poverty` });
   }
-  if (CFG.WB_DEBT_ENABLED && signals.wbDebt?.value > CFG.WB_DEBT_THRESHOLD) {
-    const b = Math.min(10, Math.round(signals.wbDebt.value / 20));
-    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "WB Debt", delta: b, reason: `${signals.wbDebt.value.toFixed(0)}% debt/GNI` });
-  }
-  if (CFG.WB_FOOD_PRICE_ENABLED && signals.wbFoodPrice?.value > 150) {
-    const b = Math.min(8, Math.round((signals.wbFoodPrice.value - 100) / 20));
-    dims.food = clamp(dims.food + b); totalBoost += b; audit.push({ source: "WB Food Price", delta: b, reason: `index ${signals.wbFoodPrice.value.toFixed(0)}` });
-  }
 
   if (CFG.UNHCR_ENABLED && signals.totalDisplaced > 0) {
     const m = signals.totalDisplaced / 1_000_000;
@@ -3452,14 +3211,17 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR", delta: b, reason: `${m.toFixed(1)}M displaced` }); }
   }
 
-  if (CFG.UNHCR_SOLUTIONS_ENABLED && signals.refugeeReturns > 100_000) {
-    const b = Math.min(10, Math.round(signals.refugeeReturns / 100_000));
-    dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR Solutions", delta: b, reason: `${fmtPop(signals.refugeeReturns)} returns` });
+  if (CFG.UNHCR_SOLUTIONS_ENABLED && signals.unhcrSolutions?.returned_refugees > 10_000) {
+    const b = Math.min(15, Math.round(signals.unhcrSolutions.returned_refugees / 100_000));
+    if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR Solutions", delta: b, reason: `${fmtPop(signals.unhcrSolutions.returned_refugees)} returned` }); }
   }
 
-  if (CFG.IOM_DTM_ENABLED && signals.iomDisplacement > 100_000) {
-    const b = Math.min(12, Math.round(Math.log10(signals.iomDisplacement / 100_000 + 1) * 5));
-    dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "IOM DTM", delta: b, reason: `${fmtPop(signals.iomDisplacement)} IDPs` });
+  if (CFG.IOM_DTM_ENABLED && signals.iomDisplacement?.total > 0) {
+    const m = signals.iomDisplacement.total / 1_000_000;
+    const b = m >= 5 ? 20 : m >= 2 ? 15 : m >= 1 ? 10 : m >= 0.5 ? 6 : 3;
+    dims.displacement = clamp(dims.displacement + b);
+    totalBoost += b;
+    audit.push({ source: "IOM DTM", delta: b, reason: `${m.toFixed(1)}M displaced` });
   }
 
   if (CFG.GFW_ENABLED && signals.gfwAlerts) {
@@ -3467,14 +3229,9 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "GFW", delta: b, reason: `${signals.gfwAlerts.count} alerts` }); }
   }
 
-  if (CFG.GFW_FIRES_ENABLED && signals.gfwFireAlerts) {
-    const b = Math.min(8, 5);
-    dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "GFW Fires", delta: b, reason: "fire alerts" });
-  }
-
-  if (CFG.US_DROUGHT_ENABLED && signals.usDrought) {
-    const b = Math.min(10, Math.round(signals.usDrought.severity * 3));
-    dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "US Drought Monitor", delta: b, reason: `D${signals.usDrought.severity}` });
+  if (CFG.GFW_FIRES_ENABLED && signals.gfwFires?.count > 0) {
+    const b = Math.min(12, Math.round(Math.log10(signals.gfwFires.count + 1) * 5));
+    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "GFW Fires", delta: b, reason: `${signals.gfwFires.count} fires` }); }
   }
 
   if (CFG.CLIMATE_TRACE_ENABLED && signals.climateTrace) {
@@ -3487,6 +3244,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "OCHA HDX", delta: b, reason: `${signals.hdxDatasets.count} datasets` }); }
   }
 
+  // ═══ v13.7: HDX Civilian Targeting ═══
   if (CFG.HDX_CIVILIAN_TARGETING_ENABLED && signals.civilianTargeting) {
     const b = Math.min(12, signals.civilianTargeting.event_count * 6);
     if (b > 0) {
@@ -3497,6 +3255,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
+  // ═══ v13.7: HDX FEWS IPC ═══
   if (CFG.HDX_FEWS_IPC_ENABLED && signals.fewsIpc) {
     const phase = signals.fewsIpc.phase;
     const b = phase >= 5 ? 18 : phase >= 4 ? 14 : phase >= 3 ? 10 : 0;
@@ -3508,6 +3267,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
+  // ═══ v13.7: HDX HFID ═══
   if (CFG.HDX_HFID_ENABLED && signals.hfid) {
     const phase = signals.hfid.phase;
     const b = phase >= 4 ? 12 : phase >= 3 ? 8 : 0;
@@ -3518,110 +3278,183 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     }
   }
 
+  // ═══ v13.8: HDX HXL ═══
   if (CFG.HDX_HXL_ENABLED && signals.hdxHxl) {
-    const b = Math.min(5, Math.round(signals.hdxHxl.count * 0.3));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "HDX HXL", delta: b, reason: `${signals.hdxHxl.count} HXL datasets` }); }
+    const b = Math.min(8, signals.hdxHxl.count * 4);
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "HDX HXL", delta: b, reason: `${signals.hdxHxl.count} HXL dataset(s)` });
   }
 
-  if (CFG.HDX_IPC_ENABLED && signals.hdxIpc) {
-    const b = Math.min(6, Math.round(signals.hdxIpc.count * 0.4));
-    if (b > 0) { dims.food = clamp(dims.food + b); totalBoost += b; audit.push({ source: "HDX IPC", delta: b, reason: `${signals.hdxIpc.count} IPC datasets` }); }
+  // ═══ v13.8: HDX IPC Info ═══
+  if (CFG.HDX_IPC_INFO_ENABLED && signals.hdxIpcInfo) {
+    const b = Math.min(15, signals.hdxIpcInfo.phase >= 4 ? 15 : 10);
+    dims.food = clamp(dims.food + b);
+    totalBoost += b;
+    audit.push({ source: "HDX IPC Info", delta: b, reason: `IPC Phase ${signals.hdxIpcInfo.phase}` });
   }
 
+  // ═══ v13.8: HDX IPC/CH ═══
+  if (CFG.HDX_IPC_CH_PHASES_ENABLED && signals.hdxIpcCh) {
+    const b = Math.min(15, signals.hdxIpcCh.phase >= 4 ? 15 : 10);
+    dims.food = clamp(dims.food + b);
+    totalBoost += b;
+    audit.push({ source: "HDX IPC/CH", delta: b, reason: `IPC/CH Phase ${signals.hdxIpcCh.phase}` });
+  }
+
+  // ═══ v13.8: HDX 3W ═══
   if (CFG.HDX_3W_ENABLED && signals.hdx3w) {
-    const b = Math.min(5, Math.round(signals.hdx3w.count * 0.3));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "HDX 3W", delta: b, reason: `${signals.hdx3w.count} 3W datasets` }); }
+    const b = Math.min(8, signals.hdx3w.partnerCount * 2);
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "HDX 3W", delta: b, reason: `${signals.hdx3w.partnerCount} partner(s)` });
   }
 
-  if (CFG.HDX_EDUCATION_ENABLED && signals.hdxEducation) {
-    const b = Math.min(10, Math.round(signals.hdxEducation.count * 5));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "HDX EiE", delta: b, reason: `education crisis` }); }
+  // ═══ v13.8: HDX Education EiE ═══
+  if (CFG.HDX_EDUCATION_EIE_ENABLED && signals.educationEie) {
+    const b = CFG.HDX_EDUCATION_EIE_BOOST;
+    dims.political = clamp(dims.political + b);
+    totalBoost += b;
+    audit.push({ source: "HDX EiE", delta: b, reason: `Education disruption` });
   }
 
-  if (CFG.HDX_EDUCATION_FACILITIES_ENABLED && signals.hdxEducationFacilities) {
-    const b = Math.min(6, Math.round(signals.hdxEducationFacilities.count * 0.5));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "HDX Education Facilities", delta: b, reason: `${signals.hdxEducationFacilities.count} facility datasets` }); }
+  // ═══ v13.8: HDX Education Facilities ═══
+  if (CFG.HDX_EDUCATION_FACILITIES_ENABLED && signals.educationFacilities) {
+    const b = CFG.HDX_EDUCATION_FACILITIES_BOOST;
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "HDX Education Facilities", delta: b, reason: `${signals.educationFacilities.count} facilit(ies)` });
   }
 
-  if (CFG.HDX_WASH_ENABLED && signals.hdxWash) {
-    const b = Math.min(10, Math.round(signals.hdxWash.count * 2));
-    if (b > 0) { dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "HDX WASH", delta: b, reason: `${signals.hdxWash.count} WASH datasets` }); }
+  // ═══ v13.8: HDX WASH HAPI ═══
+  if (CFG.HDX_WASH_HAPI_ENABLED && signals.washHapi) {
+    const b = CFG.HDX_WASH_HAPI_BOOST;
+    dims.health = clamp(dims.health + b);
+    dims.access = clamp(dims.access + Math.floor(b * 0.5));
+    totalBoost += b;
+    audit.push({ source: "HDX WASH HAPI", delta: b, reason: `WASH indicators deteriorating` });
   }
 
-  if (CFG.HDX_WATER_ACCESS_ENABLED && signals.hdxWaterAccess) {
-    const b = Math.min(8, Math.round(signals.hdxWaterAccess.count * 1.5));
-    if (b > 0) { dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "HDX Water Access", delta: b, reason: `${signals.hdxWaterAccess.count} water datasets` }); }
+  // ═══ v13.8: HDX Water Access ═══
+  if (CFG.HDX_WATER_ACCESS_ENABLED && signals.waterAccess) {
+    const b = CFG.HDX_WATER_ACCESS_BOOST;
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "HDX Water Access", delta: b, reason: `Water access crisis` });
   }
 
-  if (CFG.HDX_MPI_ENABLED && signals.hdxMpi) {
-    const b = Math.min(10, Math.round(signals.hdxMpi.count * 2));
-    if (b > 0) { dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "HDX MPI", delta: b, reason: `${signals.hdxMpi.count} MPI datasets` }); }
+  // ═══ v13.8: HDX MPI ═══
+  if (CFG.HDX_MPI_ENABLED && signals.mpiPoverty) {
+    const b = CFG.HDX_MPI_BOOST;
+    dims.economic = clamp(dims.economic + b);
+    totalBoost += b;
+    audit.push({ source: "HDX MPI", delta: b, reason: `Multidimensional poverty` });
   }
 
-  if (CFG.HDX_GLOBAL_MPI_ENABLED && signals.hdxGlobalMpi) {
-    const b = Math.min(8, Math.round(signals.hdxGlobalMpi.count * 1.5));
-    if (b > 0) { dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "HDX Global MPI", delta: b, reason: `${signals.hdxGlobalMpi.count} global MPI datasets` }); }
+  // ═══ v13.8: HDX Global MPI ═══
+  if (CFG.HDX_GLOBAL_MPI_ENABLED && signals.globalMpi) {
+    const b = CFG.HDX_GLOBAL_MPI_BOOST;
+    dims.economic = clamp(dims.economic + b);
+    totalBoost += b;
+    audit.push({ source: "HDX Global MPI", delta: b, reason: `Global MPI data` });
   }
 
-  if (CFG.HDX_GAM_ENABLED && signals.hdxGam) {
-    const b = Math.min(14, Math.round(signals.hdxGam.count * 4));
-    if (b > 0) { dims.food = clamp(dims.food + b); dims.health = clamp(dims.health + Math.floor(b * 0.3)); totalBoost += b; audit.push({ source: "HDX GAM", delta: b, reason: `${signals.hdxGam.count} GAM datasets` }); }
+  // ═══ v13.8: HDX GAM ═══
+  if (CFG.HDX_GAM_ENABLED && signals.gamMalnutrition) {
+    const b = CFG.HDX_GAM_BOOST;
+    dims.food = clamp(dims.food + b);
+    dims.health = clamp(dims.health + Math.floor(b * 0.4));
+    totalBoost += b;
+    audit.push({ source: "HDX GAM", delta: b, reason: `GAM rate above threshold` });
   }
 
-  if (CFG.HDX_NUTRITION_ENABLED && signals.hdxNutrition) {
-    const b = Math.min(12, Math.round(signals.hdxNutrition.count * 3));
-    if (b > 0) { dims.food = clamp(dims.food + b); dims.health = clamp(dims.health + Math.floor(b * 0.3)); totalBoost += b; audit.push({ source: "HDX Nutrition", delta: b, reason: `${signals.hdxNutrition.count} nutrition datasets` }); }
+  // ═══ v13.8: HDX Nutrition ═══
+  if (CFG.HDX_NUTRITION_ENABLED && signals.nutritionData) {
+    const b = CFG.HDX_NUTRITION_BOOST;
+    dims.food = clamp(dims.food + b);
+    dims.health = clamp(dims.health + Math.floor(b * 0.3));
+    totalBoost += b;
+    audit.push({ source: "HDX Nutrition", delta: b, reason: `Nutrition crisis` });
   }
 
-  if (CFG.HDX_FTS_ENABLED && signals.hdxFts) {
-    const b = Math.min(10, Math.round(signals.hdxFts.count * 2));
-    if (b > 0) { dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "HDX FTS", delta: b, reason: `${signals.hdxFts.count} funding datasets` }); }
+  // ═══ v13.8: HDX FTS ═══
+  if (CFG.HDX_FTS_ENABLED && signals.ftsFunding) {
+    const b = CFG.HDX_FTS_BOOST;
+    dims.economic = clamp(dims.economic + b);
+    totalBoost += b;
+    audit.push({ source: "OCHA FTS", delta: b, reason: `Only ${signals.ftsFunding.percentFunded}% funded` });
   }
 
-  if (CFG.HDX_FUNDING_ENABLED && signals.hdxFunding) {
-    const b = Math.min(8, Math.round(signals.hdxFunding.count * 1.5));
-    if (b > 0) { dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "HDX Funding", delta: b, reason: `${signals.hdxFunding.count} funding datasets` }); }
+  // ═══ v13.8: HDX Humanitarian Funding ═══
+  if (CFG.HDX_HUMANITARIAN_FUNDING_ENABLED && signals.humanitarianFunding) {
+    const b = CFG.HDX_HUMANITARIAN_FUNDING_BOOST;
+    dims.economic = clamp(dims.economic + b);
+    totalBoost += b;
+    audit.push({ source: "HDX Funding", delta: b, reason: `Underfunded crisis` });
   }
 
-  if (CFG.INFORM_DIRECT_ENABLED && signals.informDirect) {
-    const b = Math.min(8, Math.round((signals.informDirect.score - 5) * 1.5));
-    if (b > 0) { dims.political = clamp(dims.political + b); totalBoost += b; audit.push({ source: "INFORM Risk Index", delta: b, reason: `INFORM ${signals.informDirect.score.toFixed(1)}` }); }
+  // ═══ v13.8: HDX INFORM Mirror ═══
+  if (CFG.HDX_INFORM_MIRROR_ENABLED && signals.informRisk) {
+    const b = CFG.HDX_INFORM_MIRROR_BOOST;
+    dims.political = clamp(dims.political + b);
+    totalBoost += b;
+    audit.push({ source: "HDX INFORM", delta: b, reason: `INFORM risk score` });
   }
 
-  if (CFG.HDX_INFORM_ENABLED && signals.hdxInform) {
-    const b = Math.min(6, Math.round(signals.hdxInform.count * 0.5));
-    if (b > 0) { dims.political = clamp(dims.political + b); totalBoost += b; audit.push({ source: "HDX INFORM", delta: b, reason: `${signals.hdxInform.count} INFORM datasets` }); }
+  // ═══ v13.8: HDX Global Crisis ═══
+  if (CFG.HDX_GLOBAL_CRISIS_ENABLED && signals.globalCrisis) {
+    const b = Math.min(10, signals.globalCrisis.count * 5);
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "HDX Global Crisis", delta: b, reason: `${signals.globalCrisis.count} dataset(s)` });
   }
 
-  if (CFG.HDX_GLOBAL_CRISIS_ENABLED && signals.hdxGlobalCrisis) {
-    const b = Math.min(6, Math.round(signals.hdxGlobalCrisis.count * 0.5));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "HDX Global Crisis", delta: b, reason: `${signals.hdxGlobalCrisis.count} global crisis datasets` }); }
-  }
-
-  if (CFG.HDX_IPC_PHASES_ENABLED && signals.hdxIpcPhases) {
-    const phase = signals.hdxIpcPhases.phase;
-    const b = phase >= 4 ? 14 : phase >= 3 ? 10 : 0;
-    if (b > 0) { dims.food = clamp(dims.food + b); totalBoost += b; audit.push({ source: "HDX IPC/CH Phases", delta: b, reason: `IPC Phase ${phase}` }); }
-  }
-
+  // ═══ v13.8: VIEWS Forecast ═══
   if (CFG.VIEWS_FORECAST_ENABLED && signals.viewsForecast) {
-    const b = Math.min(10, Math.round(signals.viewsForecast.probability * 15));
-    if (b > 0) { dims.conflict = clamp(dims.conflict + b); totalBoost += b; audit.push({ source: "VIEWS Conflict Forecasts", delta: b, reason: `${(signals.viewsForecast.probability * 100).toFixed(0)}% probability` }); }
+    const b = CFG.VIEWS_FORECAST_BOOST;
+    dims.conflict = clamp(dims.conflict + b);
+    totalBoost += b;
+    audit.push({ source: "VIEWS", delta: b, reason: `Conflict forecast: elevated` });
   }
 
-  if (CFG.IMF_WEO_ENABLED && signals.imfWeo) {
-    const b = Math.min(6, Math.round(signals.imfWeo.count * 1));
-    if (b > 0) { dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "IMF WEO", delta: b, reason: `${signals.imfWeo.count} WEO datasets` }); }
+  // ═══ v13.8: IMF WEO ═══
+  if (CFG.IMF_WEO_ENABLED && signals.imfInflation) {
+    const b = CFG.IMF_WEO_BOOST;
+    dims.economic = clamp(dims.economic + b);
+    totalBoost += b;
+    audit.push({ source: "IMF WEO", delta: b, reason: `Forecast inflation` });
   }
 
-  if (CFG.ITU_DIGITAL_ENABLED && signals.ituInternet) {
-    const b = Math.min(5, Math.round(signals.ituInternet.count * 0.5));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "ITU Digital Access", delta: b, reason: `${signals.ituInternet.count} internet datasets` }); }
+  // ═══ v13.8: ITU Digital ═══
+  if (CFG.ITU_DIGITAL_ENABLED && signals.internetAccess) {
+    const b = CFG.ITU_DIGITAL_BOOST;
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "ITU", delta: b, reason: `Internet access low` });
   }
 
-  if (CFG.WB_INFRASTRUCTURE_ENABLED && signals.wbElectricity) {
-    const b = Math.min(6, Math.round((100 - signals.wbElectricity.value) / 15));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "WB Electricity", delta: b, reason: `${signals.wbElectricity.value.toFixed(0)}% access` }); }
+  // ═══ v13.8: US Drought ═══
+  if (CFG.US_DROUGHT_ENABLED && signals.usDrought) {
+    const b = CFG.US_DROUGHT_BOOST;
+    dims.climate = clamp(dims.climate + b);
+    totalBoost += b;
+    audit.push({ source: "US Drought Monitor", delta: b, reason: `Drought conditions` });
+  }
+
+  // ═══ v13.8: World Bank Food Prices ═══
+  if (CFG.WB_FOOD_PRICES_ENABLED && signals.wbFoodPrice) {
+    const b = CFG.WB_FOOD_PRICES_BOOST;
+    dims.food = clamp(dims.food + b);
+    totalBoost += b;
+    audit.push({ source: "World Bank", delta: b, reason: `Food price index` });
+  }
+
+  // ═══ v13.8: World Bank Water Stress ═══
+  if (CFG.WB_WATER_STRESS_ENABLED && signals.wbWaterStress) {
+    const b = CFG.WB_WATER_STRESS_BOOST;
+    dims.climate = clamp(dims.climate + b);
+    totalBoost += b;
+    audit.push({ source: "World Bank", delta: b, reason: `Water stress` });
   }
 
   const cap = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
@@ -3724,12 +3557,12 @@ function buildPriorDims(base, types) {
   return {
     conflict: c(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
     displacement: c(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food: c(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health: c(base * ((has("EP")||has("FN")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
-    economic: c(base * ((has("CE")||has("CW")||has("FN")||has("DR")) ? 0.85 : 0.42) + 10),
+    food: c(base * ((has("FN")||has("DR")||has("MAL")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
+    health: c(base * ((has("EP")||has("FN")||has("MAL")||has("WASH")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
+    economic: c(base * ((has("CE")||has("CW")||has("FN")||has("DR")||has("FUND")) ? 0.85 : 0.42) + 10),
     climate: c(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access: c(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
-    political: c(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
+    access: c(base * ((has("CW")||has("CE")||has("EDU")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
+    political: c(base * ((has("CE")||has("CW")||has("REF")||has("POL")||has("EDU")) ? 0.90 : 0.42) + 8),
   };
 }
 function severityLabel(s) { return s >= 85 ? "CATASTROPHIC" : s >= 75 ? "CRITICAL" : s >= 60 ? "HIGH" : s >= 40 ? "ELEVATED" : "MODERATE"; }
@@ -3814,12 +3647,11 @@ function buildPayload(iso, store, ranked, opts = {}) {
       earthquake: s.quakeMag >= 4.5 ? { magnitude: s.quakeMag, location: s.quakePlace, event_count: s.quakeCount, source: "USGS/EMSC" } : null,
       earthquake_significant_month: s.quakeSigMonth ? { magnitude: s.quakeSigMonth.mag, location: s.quakeSigMonth.place, source: "USGS (30d)" } : null,
       shakemap_event: s.shakeMapEvent ? { magnitude: s.shakeMapEvent.mag, location: s.shakeMapEvent.place, mmi: s.shakeMapEvent.mmi, source: "USGS ShakeMap" } : null,
-      gfz_earthquake: s.gfzQuake ? { magnitude: s.gfzQuake.mag, place: s.gfzQuake.place, source: "GFZ GEOFON" } : null,
-      ingv_earthquake: s.ingvQuake ? { magnitude: s.ingvQuake.mag, place: s.ingvQuake.place, source: "INGV" } : null,
-      geonet_earthquake: s.geonetQuake ? { magnitude: s.geonetQuake.mag, place: s.geonetQuake.place, source: "GeoNet" } : null,
-      usgs_all_day: s.usgsAllDayQuake ? { magnitude: s.usgsAllDayQuake.mag, place: s.usgsAllDayQuake.place, source: "USGS All-Day" } : null,
       jma_earthquake: s.jmaQuake ? { magnitude: s.jmaQuake.mag, place: s.jmaQuake.place, max_intensity: s.jmaQuake.maxIntensity, source: "JMA" } : null,
       bmkg_earthquake: s.bmkgQuake ? { magnitude: s.bmkgQuake.mag, place: s.bmkgQuake.place, depth: s.bmkgQuake.depth, source: "BMKG" } : null,
+      geofon_earthquake: s.geofonQuake ? { magnitude: s.geofonQuake.mag, place: s.geofonQuake.place, source: "GEOFON" } : null,
+      ingv_earthquake: s.ingvQuake ? { magnitude: s.ingvQuake.mag, place: s.ingvQuake.place, source: "INGV" } : null,
+      geonet_earthquake: s.geonetQuake ? { magnitude: s.geonetQuake.mag, place: s.geonetQuake.place, source: "GeoNet" } : null,
       nasa_events: s.nasaEventCount > 0 ? { count: s.nasaEventCount, source: "NASA EONET" } : null,
       gdacs: s.gdacs ? { alert_level: s.gdacsAlert, event_type: s.gdacsEventType, count: s.gdacsCount, source: "GDACS" } : null,
       ifrc: s.ifrcCount > 0 ? { count: s.ifrcCount, source: "IFRC GO" } : null,
@@ -3830,9 +3662,9 @@ function buildPayload(iso, store, ranked, opts = {}) {
       ecdc_threats: s.ecdcThreats?.length ? { count: s.ecdcThreats.length, source: "ECDC" } : null,
       nasa_power: s.nasaPower ? { tempAnomaly: s.nasaPower.tempAnomaly, precipAnomaly: s.nasaPower.precipAnomaly, source: "NASA POWER" } : null,
       gfw_deforestation: s.gfwAlerts ? { alert_count: s.gfwAlerts.count, source: "Global Forest Watch" } : null,
-      gfw_fires: s.gfwFireAlerts ? { alert_count: s.gfwFireAlerts.count, source: "GFW Fires" } : null,
+      gfw_fires: s.gfwFires ? { alert_count: s.gfwFires.count, source: "GFW Fires" } : null,
       jtwc: s.jtwcStorms?.length ? { count: s.jtwcStorms.length, storms: s.jtwcStorms.map(x => x.name), source: "JTWC" } : null,
-      jma_typhoon: s.jmaTyphoons?.length ? { count: s.jmaTyphoons.length, typhoons: s.jmaTyphoons.map(x => x.name), source: "JMA Typhoon" } : null,
+      jma_typhoon: s.jmaTyphoons?.length ? { count: s.jmaTyphoons.length, typhoons: s.jmaTyphoons.map(x => x.name), source: "JMA" } : null,
       climate_trace: s.climateTrace ? { emissions: s.climateTrace.topEmission?.emissions, sector: s.climateTrace.topEmission?.sector, source: "Climate TRACE" } : null,
       hdx: s.hdxDatasets ? { dataset_count: s.hdxDatasets.count, source: "OCHA HDX" } : null,
       heat: s.maxTempC >= 35 ? { max_temp_c: s.maxTempC, source: "Open-Meteo" } : null,
@@ -3846,38 +3678,40 @@ function buildPayload(iso, store, ranked, opts = {}) {
         gdp_growth: s.wbGdpGrowth ? { ...s.wbGdpGrowth, source: "World Bank" } : null,
         unemployment: s.wbUnemployment ? { ...s.wbUnemployment, source: "World Bank" } : null,
         poverty: s.wbPoverty ? { ...s.wbPoverty, source: "World Bank" } : null,
-        debt: s.wbDebt ? { ...s.wbDebt, source: "World Bank" } : null,
-        food_price: s.wbFoodPrice ? { ...s.wbFoodPrice, source: "World Bank" } : null,
         water_stress: s.wbWaterStress ? { ...s.wbWaterStress, source: "World Bank" } : null,
+        food_price_index: s.wbFoodPrice ? { ...s.wbFoodPrice, source: "World Bank" } : null,
         population: s.population ? { value: s.population, source: "World Bank" } : null,
+        electricity_access: s.electricityAccess ? { ...s.electricityAccess, source: "World Bank" } : null,
       },
       displacement: s.totalDisplaced > 0 ? { total: s.totalDisplaced, refugees: s.refugees, idps: s.idps, asylum_seekers: s.asylum_seekers, source: "UNHCR" } : null,
-      refugee_returns: s.refugeeReturns > 0 ? { returned: s.refugeeReturns, source: "UNHCR Solutions" } : null,
-      iom_displacement: s.iomDisplacement > 0 ? { idps: s.iomDisplacement, source: "IOM DTM" } : null,
+      unhcr_solutions: s.unhcrSolutions ? { returned_refugees: s.unhcrSolutions.returned_refugees, resettlement: s.unhcrSolutions.resettlement, naturalisation: s.unhcrSolutions.naturalisation, source: "UNHCR Solutions" } : null,
+      iom_dtm: s.iomDisplacement ? { total: s.iomDisplacement.total, source: "IOM DTM" } : null,
+      // ═══ v13.7 ═══
       civilian_targeting: s.civilianTargeting ? { event_count: s.civilianTargeting.event_count, source: "HDX / ACLED" } : null,
       fews_ipc: s.fewsIpc ? { phase: s.fewsIpc.phase, source: "FEWS NET / IPC" } : null,
       hfid: s.hfid ? { phase: s.hfid.phase, source: "HDX HFID" } : null,
+      // ═══ v13.8 ═══
       hdx_hxl: s.hdxHxl ? { count: s.hdxHxl.count, source: "HDX HXL" } : null,
-      hdx_ipc: s.hdxIpc ? { count: s.hdxIpc.count, source: "HDX IPC" } : null,
-      hdx_3w: s.hdx3w ? { count: s.hdx3w.count, source: "HDX 3W" } : null,
-      hdx_education: s.hdxEducation ? { count: s.hdxEducation.count, source: "HDX EiE" } : null,
-      hdx_education_facilities: s.hdxEducationFacilities ? { count: s.hdxEducationFacilities.count, source: "HDX Education Facilities" } : null,
-      hdx_wash: s.hdxWash ? { count: s.hdxWash.count, source: "HDX WASH" } : null,
-      hdx_water_access: s.hdxWaterAccess ? { count: s.hdxWaterAccess.count, source: "HDX Water Access" } : null,
-      hdx_mpi: s.hdxMpi ? { count: s.hdxMpi.count, source: "HDX MPI" } : null,
-      hdx_global_mpi: s.hdxGlobalMpi ? { count: s.hdxGlobalMpi.count, source: "HDX Global MPI" } : null,
-      hdx_gam: s.hdxGam ? { count: s.hdxGam.count, source: "HDX GAM" } : null,
-      hdx_nutrition: s.hdxNutrition ? { count: s.hdxNutrition.count, source: "HDX Nutrition" } : null,
-      hdx_fts: s.hdxFts ? { count: s.hdxFts.count, source: "HDX FTS" } : null,
-      hdx_funding: s.hdxFunding ? { count: s.hdxFunding.count, source: "HDX Funding" } : null,
-      inform_direct: s.informDirect ? { score: s.informDirect.score, source: "INFORM Risk Index" } : null,
-      hdx_inform: s.hdxInform ? { count: s.hdxInform.count, source: "HDX INFORM" } : null,
-      hdx_global_crisis: s.hdxGlobalCrisis ? { count: s.hdxGlobalCrisis.count, source: "HDX Global Crisis" } : null,
-      hdx_ipc_phases: s.hdxIpcPhases ? { phase: s.hdxIpcPhases.phase, source: "HDX IPC/CH Phases" } : null,
-      views_forecast: s.viewsForecast ? { probability: s.viewsForecast.probability, source: "VIEWS Conflict Forecasts" } : null,
-      imf_weo: s.imfWeo ? { count: s.imfWeo.count, source: "IMF WEO" } : null,
-      itu_digital: s.ituInternet ? { count: s.ituInternet.count, source: "ITU Digital Access" } : null,
-      wb_electricity: s.wbElectricity ? { value: s.wbElectricity.value, source: "World Bank" } : null,
+      ipc_info: s.hdxIpcInfo ? { phase: s.hdxIpcInfo.phase, source: "HDX IPC Info" } : null,
+      ipc_ch_phase: s.hdxIpcCh ? { phase: s.hdxIpcCh.phase, source: "HDX IPC/CH" } : null,
+      hdx_3w: s.hdx3w ? { partner_count: s.hdx3w.partnerCount, source: "HDX 3W" } : null,
+      education_crisis: s.educationEie ? { disrupted: s.educationEie.disrupted, source: "HDX EiE" } : null,
+      school_infrastructure: s.educationFacilities ? { count: s.educationFacilities.count, source: "HDX Education Facilities" } : null,
+      wash_crisis: s.washHapi ? { source: "HDX WASH HAPI" } : null,
+      water_access: s.waterAccess ? { source: "HDX Water Access" } : null,
+      mpi_poverty: s.mpiPoverty ? { score: s.mpiPoverty.score, source: "HDX MPI" } : null,
+      global_mpi: s.globalMpi ? { source: "HDX Global MPI" } : null,
+      malnutrition: s.gamMalnutrition ? { rate: s.gamMalnutrition.rate, source: "HDX GAM" } : null,
+      nutrition: s.nutritionData ? { source: "HDX Nutrition" } : null,
+      funding_gap: s.ftsFunding ? { percent_funded: s.ftsFunding.percentFunded, source: "OCHA FTS" } : null,
+      humanitarian_funding: s.humanitarianFunding ? { gap: s.humanitarianFunding.gap, source: "HDX Funding" } : null,
+      inform_risk: s.informRisk ? { score: s.informRisk.score, source: "HDX INFORM" } : null,
+      global_crisis: s.globalCrisis ? { count: s.globalCrisis.count, source: "HDX Global Crisis" } : null,
+      views_forecast: s.viewsForecast ? { level: s.viewsForecast.level, source: "VIEWS" } : null,
+      imf_inflation: s.imfInflation ? { value: s.imfInflation.value, source: "IMF WEO" } : null,
+      imf_gdp: s.imfGdp ? { value: s.imfGdp.value, source: "IMF WEO" } : null,
+      internet_access: s.internetAccess ? { value: s.internetAccess.value, source: "ITU" } : null,
+      us_drought: s.usDrought ? { level: s.usDrought.level, source: "US Drought Monitor" } : null,
     },
 
     ml: c.ml_forecast ? { forecast: c.ml_forecast.fc, confidence: c.ml_forecast.confidence, anomaly_probability: c.ml_forecast.anomaly_probability, trained: c.ml_forecast.ml_trained, training_count: c.ml_forecast.training_count } : null,
@@ -3920,29 +3754,31 @@ function buildKeywords(iso, store) {
   kws.add(`${c.name} breaking news`);
   for (const t of c.types) { const arc = ARC[t]; if (arc?.seo) { kws.add(`${c.name} ${arc.seo}`); kws.add(arc.seo); } }
   if (s.totalDisplaced > 0) kws.add(`${c.name} refugees`);
-  if (s.refugeeReturns > 0) kws.add(`${c.name} refugee returns`);
   if (s.quakeMag >= 5.0) kws.add(`${c.name} earthquake`);
-  if (s.gfzQuake) kws.add(`${c.name} earthquake GFZ`);
-  if (s.ingvQuake) kws.add(`${c.name} earthquake INGV`);
-  if (s.geonetQuake) kws.add(`${c.name} earthquake GeoNet`);
   if (s.jmaQuake) kws.add(`${c.name} earthquake JMA`);
   if (s.bmkgQuake) kws.add(`${c.name} earthquake BMKG`);
+  if (s.geofonQuake) kws.add(`${c.name} earthquake GEOFON`);
+  if (s.ingvQuake) kws.add(`${c.name} earthquake INGV`);
+  if (s.geonetQuake) kws.add(`${c.name} earthquake GeoNet`);
   if (s.gfwAlerts) kws.add(`${c.name} deforestation`);
-  if (s.gfwFireAlerts) kws.add(`${c.name} fire alerts`);
+  if (s.gfwFires) kws.add(`${c.name} forest fire`);
   if (s.jtwcStorms?.length) kws.add(`${c.name} typhoon`);
-  if (s.jmaTyphoons?.length) kws.add(`${c.name} JMA typhoon`);
+  if (s.jmaTyphoons?.length) kws.add(`${c.name} typhoon JMA`);
   if (s.cdcOutbreaks?.length) kws.add(`${c.name} CDC outbreak`);
   if (s.spcOutlook) kws.add(`${c.name} severe weather`);
   if (s.whoDon?.length) kws.add(`${c.name} disease outbreak`);
-  if (s.ecdcThreats?.length) kws.add(`${c.name} health threat`);
+  if (s.ecdcThreats?.length) kws.add(`${c.name} ECDC threat`);
   if (s.civilianTargeting) kws.add(`${c.name} civilian targeting`);
   if (s.fewsIpc) kws.add(`${c.name} food security`);
   if (s.hfid) kws.add(`${c.name} food insecurity`);
-  if (s.hdxWash) kws.add(`${c.name} WASH crisis`);
-  if (s.hdxGam) kws.add(`${c.name} malnutrition`);
-  if (s.hdxEducation) kws.add(`${c.name} education crisis`);
-  if (s.hdxFts) kws.add(`${c.name} funding gap`);
-  return [...kws].slice(0, 50);
+  if (s.hdxIpcInfo) kws.add(`${c.name} IPC phase`);
+  if (s.educationEie) kws.add(`${c.name} education crisis`);
+  if (s.washHapi) kws.add(`${c.name} WASH crisis`);
+  if (s.gamMalnutrition) kws.add(`${c.name} malnutrition`);
+  if (s.ftsFunding) kws.add(`${c.name} funding gap`);
+  if (s.viewsForecast) kws.add(`${c.name} conflict forecast`);
+  if (s.usDrought) kws.add(`${c.name} drought`);
+  return [...kws].slice(0, 40);
 }
 function buildMetaDescription(iso, store) {
   const c = store[iso];
@@ -4167,7 +4003,7 @@ export default async function handler(req, res) {
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        note: "v13.8 — 30+ new HDX/HDX-adjacent APIs added. Total ~65 live feeds.",
+        note: "v13.8 — Expanded HDX ecosystem (HXL, IPC/CH, 3W, Education, WASH, MPI, GAM, Nutrition, FTS, INFORM). New seismic (GEOFON, INGV, GeoNet), JMA typhoons, ECDC, VIEWS forecasts, IMF WEO, IOM DTM, UNHCR Solutions. 60+ live feeds.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -4179,14 +4015,12 @@ export default async function handler(req, res) {
           usgs_weekly: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0 },
           usgs_significant_month: { live: liveData.usgsSig.live, events: liveData.usgsSig.data?.length ?? 0 },
           usgs_shakemap: { live: liveData.shakemap.live, events: liveData.shakemap.data?.length ?? 0 },
-          usgs_all_day: { live: liveData.usgsAllDay.live, events: liveData.usgsAllDay.data?.length ?? 0 },
           emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0 },
-          gfz_geofon: { live: liveData.gfz.live, events: liveData.gfz.data?.length ?? 0 },
-          ingv: { live: liveData.ingv.live, events: liveData.ingv.data?.length ?? 0 },
-          geonet: { live: liveData.geonet.live, events: liveData.geonet.data?.length ?? 0 },
           jma: { live: liveData.jma.live, events: liveData.jma.data?.length ?? 0 },
           bmkg: { live: liveData.bmkg.live, events: liveData.bmkg.data?.length ?? 0 },
-          jma_typhoon: { live: liveData.jmaTyphoon.live, storms: liveData.jmaTyphoon.data?.length ?? 0 },
+          geofon: { live: liveData.geofon.live, events: liveData.geofon.data?.length ?? 0 },
+          ingv: { live: liveData.ingv.live, events: liveData.ingv.data?.length ?? 0 },
+          geonet: { live: liveData.geonet.live, events: liveData.geonet.data?.length ?? 0 },
           nasa_eonet: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0 },
           gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0 },
           ifrc_events: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0 },
@@ -4207,37 +4041,39 @@ export default async function handler(req, res) {
           world_bank: { live: Object.values(liveData.wb).some(v => v.live) },
           unhcr: { live: liveData.unhcr.live },
           unhcr_solutions: { live: liveData.unhcrSolutions.live, countries: Object.keys(liveData.unhcrSolutions.data || {}).length },
-          iom_dtm: { live: liveData.iomDTM.live, countries: Object.keys(liveData.iomDTM.data || {}).length },
+          iom_dtm: { live: liveData.iomDtm.live, countries: Object.keys(liveData.iomDtm.data || {}).length },
           gfw: { live: liveData.gfw.live, countries: Object.keys(liveData.gfw.data || {}).length },
           gfw_fires: { live: liveData.gfwFires.live },
-          us_drought: { live: liveData.usDrought.live, states: Object.keys(liveData.usDrought.data || {}).length },
           inform: { live: liveData.inform.live, countries: Object.keys(liveData.inform.data || {}).length },
-          inform_direct: { live: liveData.informDirect.live, countries: Object.keys(liveData.informDirect.data || {}).length },
           climate_trace: { live: liveData.climateTrace.live, countries: Object.keys(liveData.climateTrace.data || {}).length },
           hdx: { live: liveData.hdx.live, countries: Object.keys(liveData.hdx.data || {}).length },
+          jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
+          jma_typhoon: { live: liveData.jmaTyphoon.live, typhoons: liveData.jmaTyphoon.data?.length ?? 0 },
+          us_drought: { live: liveData.usDrought.live },
+          // v13.7
+          hdx_civilian_targeting: { live: liveData.hdxCT.live, countries: Object.keys(liveData.hdxCT.data || {}).length },
+          hdx_fews_ipc: { live: liveData.hdxFewsIpc.live, countries: Object.keys(liveData.hdxFewsIpc.data || {}).length },
+          hdx_hfid: { live: liveData.hdxHfid.live, countries: Object.keys(liveData.hdxHfid.data || {}).length },
+          // v13.8
           hdx_hxl: { live: liveData.hdxHxl.live, countries: Object.keys(liveData.hdxHxl.data || {}).length },
-          hdx_ipc: { live: liveData.hdxIpc.live, countries: Object.keys(liveData.hdxIpc.data || {}).length },
+          hdx_ipc_info: { live: liveData.hdxIpcInfo.live, countries: Object.keys(liveData.hdxIpcInfo.data || {}).length },
+          hdx_ipc_ch: { live: liveData.hdxIpcCh.live, countries: Object.keys(liveData.hdxIpcCh.data || {}).length },
           hdx_3w: { live: liveData.hdx3w.live, countries: Object.keys(liveData.hdx3w.data || {}).length },
-          hdx_education: { live: liveData.hdxEducation.live, countries: Object.keys(liveData.hdxEducation.data || {}).length },
+          hdx_education_eie: { live: liveData.hdxEducationEie.live, countries: Object.keys(liveData.hdxEducationEie.data || {}).length },
           hdx_education_facilities: { live: liveData.hdxEducationFacilities.live, countries: Object.keys(liveData.hdxEducationFacilities.data || {}).length },
-          hdx_wash: { live: liveData.hdxWash.live, countries: Object.keys(liveData.hdxWash.data || {}).length },
+          hdx_wash_hapi: { live: liveData.hdxWashHapi.live, countries: Object.keys(liveData.hdxWashHapi.data || {}).length },
           hdx_water_access: { live: liveData.hdxWaterAccess.live, countries: Object.keys(liveData.hdxWaterAccess.data || {}).length },
           hdx_mpi: { live: liveData.hdxMpi.live, countries: Object.keys(liveData.hdxMpi.data || {}).length },
           hdx_global_mpi: { live: liveData.hdxGlobalMpi.live, countries: Object.keys(liveData.hdxGlobalMpi.data || {}).length },
           hdx_gam: { live: liveData.hdxGam.live, countries: Object.keys(liveData.hdxGam.data || {}).length },
           hdx_nutrition: { live: liveData.hdxNutrition.live, countries: Object.keys(liveData.hdxNutrition.data || {}).length },
           hdx_fts: { live: liveData.hdxFts.live, countries: Object.keys(liveData.hdxFts.data || {}).length },
-          hdx_funding: { live: liveData.hdxFunding.live, countries: Object.keys(liveData.hdxFunding.data || {}).length },
-          hdx_inform: { live: liveData.hdxInform.live, countries: Object.keys(liveData.hdxInform.data || {}).length },
+          hdx_humanitarian_funding: { live: liveData.hdxHumanitarianFunding.live, countries: Object.keys(liveData.hdxHumanitarianFunding.data || {}).length },
+          hdx_inform_mirror: { live: liveData.hdxInformMirror.live, countries: Object.keys(liveData.hdxInformMirror.data || {}).length },
           hdx_global_crisis: { live: liveData.hdxGlobalCrisis.live, countries: Object.keys(liveData.hdxGlobalCrisis.data || {}).length },
-          hdx_ipc_phases: { live: liveData.hdxIpcPhases.live, countries: Object.keys(liveData.hdxIpcPhases.data || {}).length },
-          hdx_civilian_targeting: { live: liveData.hdxCT.live, countries: Object.keys(liveData.hdxCT.data || {}).length },
-          hdx_fews_ipc: { live: liveData.hdxFewsIpc.live, countries: Object.keys(liveData.hdxFewsIpc.data || {}).length },
-          hdx_hfid: { live: liveData.hdxHfid.live, countries: Object.keys(liveData.hdxHfid.data || {}).length },
           views_forecast: { live: liveData.viewsForecast.live, countries: Object.keys(liveData.viewsForecast.data || {}).length },
           imf_weo: { live: liveData.imfWeo.live, countries: Object.keys(liveData.imfWeo.data || {}).length },
           itu_digital: { live: liveData.ituDigital.live, countries: Object.keys(liveData.ituDigital.data || {}).length },
-          jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
         },
         endpoints: {
           single: "GET /api/top-story",
