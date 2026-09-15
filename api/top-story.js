@@ -15,7 +15,7 @@
 //  ✅ Anomaly + ML gated on real history
 //  ✅ Event signals age out at 168h; state signals at 720h
 //  ✅ Boosts capped by FSI baseline
-//  ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
   SEED_INTERVAL_MS: 300_000,
@@ -219,7 +219,6 @@ const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
 
-// ═══ v13.9.2: EVENT VS STATE CLASSIFICATION ═══
 const EVENT_SIGNAL_TYPES = new Set([
   "gdacs_red", "gdacs_orange",
   "earthquake_m6", "earthquake_m5", "earthquake_m45",
@@ -268,8 +267,6 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
 
-// ─── FSI 2024 — 179 COUNTRIES ────────────────────────────────────────────────
-// (Full table — identical to v13.9.2)
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
   SDN: { name:"Sudan",                flag:"🇸🇩", fsi_score:109.3, rank:2, region:"africa", fsi_band:"Very High Alert" },
@@ -516,7 +513,6 @@ function findClosestCountry(lng, lat) {
 }
 function isUS(iso) { return iso === "USA"; }
 
-// ═══ v13.9.3: EXPANDED NAME MATCHING (incl. Palestine) ═══
 const REGION_KEYWORDS = {
   IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
   JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
@@ -539,11 +535,8 @@ const REGION_KEYWORDS = {
   ISL: ['iceland','reykjanes','katla','bardarbunga','hekla','askja'],
   NOR: ['norway','oslo','bergen','trondheim','tromso'],
   RUS: ['russia','kamchatka','kuril','sakhalin','siberia','caucasus','baikal','ural','kola','chukotka'],
-  // ═══ v13.9.3: PALESTINE ═══
   PSE: ['palestine','palestinian','gaza','west bank','occupied palestinian','opt','gaza strip','jerusalem','ramallah','hebron','nablus','bethlehem','rafah','khan younis','jenin','tulkarm','qalqilya'],
-  // ═══ v13.9.3: ISRAEL (adjacent) ═══
   ISR: ['israel','tel aviv','haifa','beersheba','negev','galilee','golan'],
-  // ═══ v13.9.3: Other conflict zones ═══
   SDN: ['sudan','darfur','khartoum','kordofan','blue nile','south kordofan'],
   SSD: ['south sudan','juba','upper nile','unity state','bahr el ghazal','equatoria'],
   YEM: ['yemen','sanaa','aden','hodeidah','taiz','hadramaut'],
@@ -562,7 +555,7 @@ const REGION_KEYWORDS = {
 
 function matchesCountryPlace(iso, place) {
   if (!place) return false;
-  const p = place.toLowerCase();
+  const p = String(place).toLowerCase();
   const c = COUNTRIES[iso];
   if (!c) return false;
   const countryName = c.name.toLowerCase();
@@ -571,10 +564,6 @@ function matchesCountryPlace(iso, place) {
   if (kws) for (const kw of kws) if (p.includes(kw)) return true;
   return false;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  HISTORY PERSISTENCE LAYER
-// ════════════════════════════════════════════════════════════════════════════
 
 class InMemoryHistoryStore {
   constructor() {
@@ -623,10 +612,6 @@ function maxBoostForFSI(fsiScore) {
   if (fsiScore >= 40) return CFG.FSI_BOOST_CAP_MODERATE;
   return CFG.FSI_BOOST_CAP_LOW;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE v13.9.3
-// ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
@@ -982,7 +967,6 @@ function computeLiveBreakingScore(iso, live, store) {
   }
 
   const eventSignals = activeSignals.filter(s => EVENT_SIGNAL_TYPES.has(s.type));
-  const stateSignals = activeSignals.filter(s => !EVENT_SIGNAL_TYPES.has(s.type));
   const eventSources = new Set(eventSignals.map(s => s.source));
 
   let liveEventBoost = 0;
@@ -1120,7 +1104,6 @@ function rankLiveEventsOnly(store) {
     });
 }
 
-// ─── ML ──────────────────────────────────────────────────────────────────────
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
   predict(seq) {
@@ -1280,7 +1263,6 @@ class AlertManager {
 }
 const alertManager = new AlertManager();
 
-// ─── ANOMALY (v13.9.3: enforce methods_fired >= 2 AND history >= 14) ────────
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
@@ -1307,7 +1289,6 @@ function runAnomalyDetection(realHistory) {
 
   const m = [detectCUSUM(realHistory), detectZScore(realHistory), detectChangepoint(realHistory), detectVolatilityRegime(realHistory)];
   const f = m.filter(x => x.detected);
-  // ═══ v13.9.3: enforce methods_fired >= 2 for detected ═══
   const detected = f.length >= 2;
   return {
     detected,
@@ -1357,15 +1338,9 @@ function recommendation(score, anomaly) {
   return { tier: "WATCH", text: `Routine monitoring.${an}` };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS (same as v13.9.2 — abbreviated for space)
-// ════════════════════════════════════════════════════════════════════════════
-
 const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
-
-// [fetchers identical to v13.9.2 — omitting for brevity, they're unchanged]
 
 async function fetchUSGS() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchUSGSSignificant() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
@@ -1833,10 +1808,6 @@ async function fetchAllLive() {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS
-// ════════════════════════════════════════════════════════════════════════════
-
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   let liveEvidenceCount = 0;
@@ -2059,7 +2030,7 @@ function extractSignals(iso, live) {
     shakeMapEvent: signals.shakeMapEvent || null,
     jmaQuake: signals.jmaQuake || null,
     bmkgQuake: signals.bmkgQuake || null,
-        geofonQuake: signals.geofonQuake || null,
+    geofonQuake: signals.geofonQuake || null,
     ingvQuake: signals.ingvQuake || null,
     geonetQuake: signals.geonetQuake || null,
     quakeCount: (quakes?.length || 0) + (emscQuakes?.length || 0) + (shakemapEvents?.length || 0),
@@ -2107,7 +2078,6 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── APPLY LIVE ADJUSTMENTS ─────────────────────────────────────────────────
 function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
@@ -2139,7 +2109,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
     audit.push({ source: "NASA EONET", delta: b, reason: `${signals.nasaEventCount} events` });
   }
 
-  if (signals.ifrcCount > 0) {
+  if (CFG.IFRC_ENABLED && signals.ifrcCount > 0) {
     const b = Math.min(10, signals.ifrcCount * 4);
     dims.access = clamp(dims.access + b);
     totalBoost += b;
@@ -2223,7 +2193,7 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   }
 
   if (CFG.US_DROUGHT_ENABLED && signals.usDrought) {
-    const b = Math.min(10, Math.round(CFG.US_DROUGHT_BOOST * 0.2));
+    const b = Math.min(10, CFG.US_DROUGHT_BOOST * 0.2);
     dims.climate = clamp(dims.climate + b);
     totalBoost += b;
     audit.push({ source: "US Drought Monitor", delta: b, reason: signals.usDrought.level });
@@ -2283,7 +2253,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   return { dims, score: clamp(composite(dims)), audit, totalBoostRaw: totalBoost, totalBoostCapped: capped, boostRatio: ratio, maxAllowedBoost: cap };
 }
 
-// ─── BUILD STORE ────────────────────────────────────────────────────────────
 async function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
@@ -2351,15 +2320,12 @@ async function buildStore(liveData) {
   return store;
 }
 
-// ═══ v13.9.3: SINGLE-COUNTRY CONSISTENCY FIX ═══
-// The fix: buildPayload reads __live_breaking from the store that was already
-// computed by buildStore. It does NOT recompute live_breaking on a different path.
-
 async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
-  // ═══ v13.9.3: no structural fallback — always report live_score ═══
-  const displayScore = lb.live_score ?? c.structural_score ?? c.score;
+
+  const liveScore = Number.isFinite(lb.live_score) ? lb.live_score : 0;
+  const displayScore = CFG.SCORE_FIELD_IS_LIVE ? liveScore : c.score;
 
   const realHistory = await getRealHistory(iso, 90);
   const anom = runAnomalyDetection(realHistory);
@@ -2384,7 +2350,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
 
     live_breaking: {
-      score: lb.live_score || 0,
+      score: liveScore,
       tier: lb.tier || "BACKGROUND",
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
@@ -2499,7 +2465,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     score_audit: {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
-      live_breaking_score: lb.live_score,
+      live_breaking_score: liveScore,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2521,7 +2487,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   return base;
 }
 
-// ─── SEO / RSS / SITEMAP BUILDERS ───────────────────────────────────────────
 function buildKeywords(iso, store) {
   const c = store[iso];
   const s = c.signals || {};
@@ -2546,7 +2511,6 @@ function buildKeywords(iso, store) {
   if (s.usDrought) kws.add(`${c.name} drought`);
   return [...kws].slice(0, 15);
 }
-
 function buildMetaDescription(iso, store) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2556,12 +2520,10 @@ function buildMetaDescription(iso, store) {
   else if (lb.tier === "DEVELOPING") parts.unshift(`🟠 DEVELOPING: ${lb.breaking_headline}`);
   return parts.slice(0, 3).join('. ') + '.';
 }
-
 function buildRelatedStories(iso, store, ranked) {
   return ranked.filter(r => r !== iso && (COUNTRIES[r].region === COUNTRIES[iso].region || (COUNTRIES[iso].adj || []).includes(r))).slice(0, 5)
     .map(r => ({ iso: r, name: store[r].name, score: store[r].score, live_score: store[r].__live_breaking?.live_score || 0, slug: slugify(store[r].name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(store[r].name)}` }));
 }
-
 function buildJSONLD(iso, store, ranked) {
   const c = store[iso];
   const slug = slugify(c.name);
@@ -2589,7 +2551,6 @@ function buildJSONLD(iso, store, ranked) {
     ]
   };
 }
-
 function buildFAQs(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2598,7 +2559,6 @@ function buildFAQs(iso, store, ranked) {
     { q: `How can I help?`, a: `Support organisations active in ${c.name}.` },
   ];
 }
-
 function buildSEOArticle(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2607,14 +2567,11 @@ function buildSEOArticle(iso, store, ranked) {
   const { words, minutes } = estimateReadTime(articleBody);
   return { headline, dek: `Score ${c.score}/100 · ${lb.signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
-
 function buildSitemap(payloads) {
   const now = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${payloads.map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n")}\n</urlset>`;
 }
-
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
-
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   const items = isos.slice(0, 30).map(iso => {
@@ -2625,10 +2582,6 @@ function buildRSSFeed(isos, store, ranked) {
   }).join("");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  MAIN HANDLER
-// ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   const start = Date.now();
@@ -2765,19 +2718,17 @@ export default async function handler(req, res) {
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
-    // ═══ v13.9.3: data source health summary ═══
     const sourceEntries = Object.entries(liveData);
     const sourceLiveCount = sourceEntries.filter(([, v]) => v && v.live === true).length;
     const sourceTotalCount = sourceEntries.length;
 
-    // ═══ v13.9.3: cross-endpoint consistency check ═══
-    // When returning single-country, verify the score matches what the board would show.
-    const topOfBoard = ranked[0];
-    const boardTopScore = store[topOfBoard]?.__live_breaking?.live_score;
-    const singleScore = mode === "single" ? store[finalIsos[0]]?.__live_breaking?.live_score : null;
-    const consistencyCheck = mode === "single"
-      ? { single_score: singleScore, board_top_score: boardTopScore, consistent: true }
-      : null;
+    let consistencyWarning = null;
+    if (mode === "single" && payloads[0]) {
+      const expectedRank = ranked.indexOf(payloads[0].iso) + 1;
+      if (payloads[0].rank !== expectedRank) {
+        consistencyWarning = `Payload rank ${payloads[0].rank} ≠ ranked position ${expectedRank} for ${payloads[0].iso}`;
+      }
+    }
 
     const body = {
       meta: {
@@ -2794,7 +2745,8 @@ export default async function handler(req, res) {
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        note: "v13.9.3 — Single-country consistency fix. Palestine name-matching expanded. Anomaly gate enforces methods_fired>=2. Score field always reports live_score.",
+        note: "v13.9.3 — Single-country consistency fix. Name-matching expanded (Palestine/Gaza/West Bank). Anomaly enforces methods_fired >= 2. Score field is authoritative across all endpoints.",
+        consistency_warning: consistencyWarning,
         data_source_health: {
           live: sourceLiveCount,
           total: sourceTotalCount,
@@ -2808,7 +2760,6 @@ export default async function handler(req, res) {
           top_live_headline: ranked[0] ? store[ranked[0]].__live_breaking.breaking_headline : null,
           signal_types_available: Object.keys(LIVE_SIGNALS).length,
         },
-        consistency_check: consistencyCheck,
         data_sources: liveData,
         endpoints: {
           single: "GET /api/top-story",
