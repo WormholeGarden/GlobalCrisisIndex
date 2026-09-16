@@ -2602,6 +2602,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       spillover: c.spillover,
       final_score: displayScore,
       live_boost: c.liveBoost,
+      fallback_to_structural: lb.fallback_to_structural || false,
     },
 
     recommendation: recommendation(displayScore, anom),
@@ -2702,19 +2703,7 @@ function buildSEOArticle(iso, store, ranked) {
   const headline = lb.breaking_headline || `${c.name} Crisis Monitor — ${c.score}/100`;
   const articleBody = `## Overview\n\n${c.name} scores ${c.score}/100 (${severityLabel(c.score)}).`;
   const { words, minutes } = estimateReadTime(articleBody);
-  return {
-    headline,
-    dek: `Score ${c.score}/100 · ${lb.signal_count || 0} signals`,
-    slug: slugify(c.name),
-    url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
-    metaDescription: buildMetaDescription(iso, store),
-    keywords: buildKeywords(iso, store),
-    faqs: buildFAQs(iso, store, ranked),
-    body_markdown: articleBody,
-    body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`,
-    word_count: words,
-    read_time_minutes: minutes,
-  };
+  return { headline, dek: `Score ${c.score}/100 · ${lb.signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
 
 function buildSitemap(payloads) {
@@ -2722,9 +2711,7 @@ function buildSitemap(payloads) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${payloads.map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n")}\n</urlset>`;
 }
 
-function escapeXml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-}
+function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
@@ -2738,18 +2725,31 @@ function buildRSSFeed(isos, store, ranked) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  MAIN HANDLER — v13.9.3
+//  DATA SOURCE HEALTH
+// ════════════════════════════════════════════════════════════════════════════
+
+function computeSourceHealth(liveData) {
+  const entries = Object.entries(liveData || {});
+  const live = entries.filter(([, v]) => v && v.live === true).map(([k]) => k);
+  const failed = entries.filter(([, v]) => v && v.live === false).map(([k]) => k);
+  const total = entries.length;
+  return {
+    live: live.length,
+    total,
+    ratio: total > 0 ? +(live.length / total).toFixed(2) : 0,
+    failed_sources: failed,
+    live_sources: live,
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  MAIN HANDLER
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   const start = Date.now();
-
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
-  if (req.method !== "GET") {
-    res.writeHead(405, CORS);
-    res.end(JSON.stringify({ error: "Method not allowed" }));
-    return;
-  }
+  if (req.method !== "GET") { res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
 
   let params;
   try {
@@ -2772,38 +2772,23 @@ export default async function handler(req, res) {
       live: url.searchParams.get("format") === "live",
       rss: url.searchParams.get("format") === "rss",
       wst: url.searchParams.get("format") === "wst",
+      health: url.searchParams.get("format") === "health",
     };
     if (Number.isNaN(params.top)) params.top = 179;
     if (Number.isNaN(params.threshold)) params.threshold = 0;
     params.top = Math.min(CFG.MAX_TOP_N, Math.max(1, params.top));
-  } catch {
-    res.writeHead(400, CORS);
-    res.end(JSON.stringify({ error: "Bad request URL" }));
-    return;
-  }
+  } catch { res.writeHead(400, CORS); res.end(JSON.stringify({ error: "Bad request URL" })); return; }
 
-  if (params.region) {
-    for (const [canon, aliases] of Object.entries(REGION_ALIASES)) {
-      if (aliases.includes(params.region)) { params.region = canon; break; }
-    }
-  }
+  if (params.region) for (const [canon, aliases] of Object.entries(REGION_ALIASES)) if (aliases.includes(params.region)) { params.region = canon; break; }
   if (params.q && !params.iso) {
     const r = findIsoByName(params.q);
-    if (!r) {
-      res.writeHead(404, CORS);
-      res.end(JSON.stringify({ error: `Could not resolve "${params.q}"` }));
-      return;
-    }
+    if (!r) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Could not resolve "${params.q}"` })); return; }
     params.iso = r;
   }
 
   const isoList = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s]) : [];
   const invalid = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s]) : [];
-  if (invalid.length) {
-    res.writeHead(404, CORS);
-    res.end(JSON.stringify({ error: `Unknown ISO: ${invalid.join(", ")}` }));
-    return;
-  }
+  if (invalid.length) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Unknown ISO: ${invalid.join(", ")}` })); return; }
 
   try {
     const liveData = await fetchAllLive();
@@ -2811,6 +2796,21 @@ export default async function handler(req, res) {
     const ranked = rankByLiveBreaking(store);
     const breakingRanked = rankBreakingOnly(store, 1);
     const liveEventsOnly = rankLiveEventsOnly(store);
+
+    // ═══ v13.9.3: health endpoint ═══
+    if (params.health) {
+      const health = computeSourceHealth(liveData);
+      res.writeHead(200, CORS);
+      res.end(JSON.stringify({
+        meta: {
+          generated_at: new Date().toISOString(),
+          build_id: BUILD_ID,
+          elapsed_ms: Date.now() - start,
+        },
+        health,
+      }, null, 2));
+      return;
+    }
 
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
@@ -2844,37 +2844,15 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return {
-          rank: source.indexOf(iso) + 1,
-          iso, name: c.name, flag: c.flag,
-          live_score: lb.live_score,
-          tier: lb.tier,
-          headline: lb.breaking_headline,
-          signal_count: lb.signal_count,
-          live_event_count: lb.live_event_count,
-          source_count: lb.source_count,
-          sources: lb.sources,
-          structural_score: c.structural_score,
-        };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({
-        meta: {
-          generated_at: new Date().toISOString(),
-          build: BUILD_ID,
-          feed: "live-breaking-news",
-          total_with_live_events: liveEventsOnly.length,
-          total_with_any_signals: breakingRanked.length,
-        },
-        live_news: feed,
-      }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID, feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
       return;
     }
 
     if (params.rss) {
-      const isos = params.region
-        ? (liveEventsOnly.length ? liveEventsOnly : breakingRanked).filter(i => COUNTRIES[i].region === params.region).slice(0, 30)
-        : (liveEventsOnly.length ? liveEventsOnly : breakingRanked).slice(0, 30);
+      const isos = params.region ? (liveEventsOnly.length ? liveEventsOnly : breakingRanked).filter(i => COUNTRIES[i].region === params.region).slice(0, 30) : (liveEventsOnly.length ? liveEventsOnly : breakingRanked).slice(0, 30);
       const f = buildRSSFeed(isos.length ? isos : ranked.slice(0, 30), store, ranked);
       res.writeHead(200, { ...CORS, "Content-Type": "application/rss+xml; charset=utf-8" });
       res.end(f);
@@ -2882,18 +2860,9 @@ export default async function handler(req, res) {
     }
 
     if (params.wst) {
-      const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({
-        iso: i,
-        name: store[i].name,
-        flag: store[i].flag,
-        wst_class: store[i].__wst.class,
-        score: store[i].score,
-        structural_score: store[i].structural_score,
-        live_score: store[i].__live_breaking?.live_score || 0,
-        live_tier: store[i].__live_breaking?.tier,
-      })).sort((a, b) => b.live_score - a.live_score);
+      const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: store[i].__wst.class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.live_score - a.live_score);
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build: BUILD_ID }, countries: wst }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID }, countries: wst }, null, 2));
       return;
     }
 
@@ -2902,45 +2871,15 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return {
-          iso, name: c.name, flag: c.flag,
-          live_score: lb.live_score,
-          tier: lb.tier,
-          tier_label: lb.tier_label,
-          headline: lb.breaking_headline,
-          signal_count: lb.signal_count,
-          live_event_count: lb.live_event_count,
-          has_fresh_live_event: lb.has_fresh_live_event,
-          source_count: lb.source_count,
-          sources: lb.sources,
-          structural_score: c.structural_score,
-          top_signals: (lb.events || []).slice(0, 3).map(s => ({
-            icon: LIVE_SIGNALS[s.type]?.icon || "⚠️",
-            label: LIVE_SIGNALS[s.type]?.label || s.type,
-            details: s.details,
-            age_hours: +s.ageHours.toFixed(1),
-            source: s.source,
-          })),
-        };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_signals: (lb.events || []).slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: +s.ageHours.toFixed(1), source: s.source })) };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({
-        meta: {
-          generated_at: new Date().toISOString(),
-          build: BUILD_ID,
-          mode: "breaking",
-          total_with_live_events: liveEventsOnly.length,
-          total_with_any_signals: breakingRanked.length,
-        },
-        breaking: feed,
-      }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID, mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
       return;
     }
 
     if (params.format === "sitemap") {
-      const p = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, {
-        keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary,
-      })));
+      const p = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary })));
       res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
       res.end(buildSitemap(p));
       return;
@@ -2953,26 +2892,17 @@ export default async function handler(req, res) {
       return;
     }
 
-    const opts = {
-      keywords: params.keywords,
-      related: params.related,
-      schema: params.schema,
-      summary: params.summary,
-      article: params.format === "article",
-    };
+    const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary, article: params.format === "article" };
     const payloads = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, opts)));
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
-    // v13.9.3: report actual live source health
-    const sourceEntries = Object.entries(liveData);
-    const sourceLiveCount = sourceEntries.filter(([, v]) => v && v.live === true).length;
-    const sourceTotalCount = sourceEntries.length;
+    const sourceHealth = computeSourceHealth(liveData);
 
     const body = {
       meta: {
         generated_at: new Date().toISOString(),
-        build: BUILD_ID,
+        build_id: BUILD_ID,
         elapsed_ms: Date.now() - start,
         mode,
         ranking_mode: "LIVE_BREAKING_NEWS_v13.9.3",
@@ -2985,13 +2915,8 @@ export default async function handler(req, res) {
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        note: "v13.9.3 — Single-path consistency. buildPayload reads only from store. Name aliases for PSE/COD/MMR/etc. Anomaly gate enforces methods_fired>=2 AND history>=14. Empty-signal fallback guard. Deploy fingerprint in ranking_mode.",
-        data_source_health: {
-          live: sourceLiveCount,
-          total: sourceTotalCount,
-          ratio: +(sourceLiveCount / sourceTotalCount).toFixed(2),
-          failed: sourceEntries.filter(([, v]) => v && v.live === false).map(([k]) => k),
-        },
+        note: "v13.9.3 — Single-path consistency. Name aliases (Gaza, West Bank, DRC, Burma, etc.). Anomaly gate enforced (>=14 history AND >=2 methods). Empty-signal safety guard. Deploy fingerprint in build_id.",
+        data_source_health: sourceHealth,
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -3009,6 +2934,7 @@ export default async function handler(req, res) {
           region: "GET /api/top-story?region=africa",
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
+          health: "GET /api/top-story?format=health",
           structural_fallback: "GET /api/top-story?force_live=false",
         },
       },
@@ -3021,6 +2947,6 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("[top-story v13.9.3]", err);
     res.writeHead(500, CORS);
-    res.end(JSON.stringify({ error: "Internal server error", message: err.message, build: BUILD_ID }));
+    res.end(JSON.stringify({ error: "Internal server error", message: err.message, build_id: BUILD_ID }));
   }
 }
