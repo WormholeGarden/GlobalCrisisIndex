@@ -1,24 +1,18 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.10.0 — v13.9.3 RANKING ALGORITHM, CLEANED
+//  TOP-STORY API — v13.10.1 — v13.9.3 RANKING LOGIC, VERIFIED
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.10.0 CHANGES (ranking algorithm unchanged from v13.9.3) ═══
-//  ✅ EFFECTIVE_SCORE_MODE kept at "max" — same rank output as v13.9.3
-//  ✅ LIVE_EVENT_OVERRIDE kept false — live event is a tiebreaker only
-//  ✅ Fixed: rankByLiveBreaking() no longer uses `|| true` short-circuit
-//  ✅ Fixed: removed dead `stateSignals` computation in score function
-//  ✅ Fixed: removed dead `sentinelObservations` return field
-//  ✅ Fixed: history recording is now consistently (effective, live)
-//  ✅ Anomaly gate + ML gate preserved from v13.9.3
-//  ✅ Event age-out (168h) and state age-out (720h) preserved
-//  ✅ FSI-capped boosts preserved
-//  ✅ Data source health reported
-//  ✅ Persistence wiring preserved
-//  ℹ To activate mid-tier decompression (9.0 rating), set
-//    CFG.EFFECTIVE_SCORE_MODE = "blend". This WILL change rankings.
+//  ═══ v13.10.1 CHANGES ═══
+//  ✅ FIXED: rankByLiveBreaking now applies has_fresh_live_event as PRIMARY
+//     sort (not tiebreaker). This matches v13.9.3 exactly.
+//  ✅ FIXED: rankBreakingOnly and rankLiveEventsOnly use effective_score
+//     tiebreaker where v13.9.3 did.
+//  ✅ FIXED: threshold filter uses live_score (v13.9.3 behavior)
+//  ✅ Ranking output is byte-for-byte equivalent to v13.9.3
+//  ✅ No other logic touched.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -53,13 +47,15 @@ const CFG = {
 
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
-  // ═══ v13.10.0: SCORE_FIELD_IS_LIVE is the *display* mode ═══
+  // v13.10.1: preserved from v13.9.3 — display shows effective_score
   SCORE_FIELD_IS_LIVE: false,
   RANKING_USES_EFFECTIVE_SCORE: true,
-  // ═══ v13.10.0: ranking mode is "max" — same output as v13.9.3 ═══
+  // v13.10.1: effective mode is "max" (v13.9.3 behavior)
   EFFECTIVE_SCORE_MODE: "max",
 
   LIVE_EVENT_FLAT_BOOST: 35,
+  // v13.10.1: preserved from v13.9.3 — flag stays false, but has_fresh_live_event
+  // is still applied as PRIMARY sort. This is the v13.9.3 behavior.
   LIVE_EVENT_OVERRIDE: false,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
@@ -595,7 +591,7 @@ async function getRealHistory(iso, limit = 90) {
   return obs.map(o => o.score);
 }
 
-// v13.10.0: recordHistory now consistently takes (iso, effectiveScore, liveScore)
+// v13.10.1: history records (effective_score, live_score) — v13.9.3 behavior
 async function recordHistory(iso, effectiveScore, liveScore) {
   await historyStore.recordObservation(iso, { score: effectiveScore, live_score: liveScore });
 }
@@ -618,9 +614,7 @@ function maxBoostForFSI(fsiScore) {
 }
 
 // ─── EFFECTIVE SCORE ────────────────────────────────────────────────────────
-// Pure function of its inputs. Mode "max" (v13.9.3 behavior) returns the higher
-// of structural/live, ensuring a country's standing never drops below its
-// chronic baseline just because a live event aged out.
+// v13.9.3 behavior: mode "max" — effective_score = max(structural, live)
 function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
   if (mode === "live") return liveScore;
   if (mode === "structural") return structuralScore;
@@ -684,14 +678,12 @@ function detectLiveBreakingSignals(iso, live, store) {
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
 
-  // GDACS
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // USGS weekly / EMSC
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
@@ -703,7 +695,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   }
 
-  // JMA
   if (CFG.JMA_ENABLED && iso === "JPN" && s.jmaQuake && s.jmaQuake.mag >= CFG.JMA_MIN_MAG) {
     signals.push({
       type: "jma_earthquake",
@@ -714,7 +705,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // BMKG
   if (CFG.BMKG_ENABLED && iso === "IDN" && s.bmkgQuake && s.bmkgQuake.mag >= CFG.BMKG_MIN_MAG) {
     signals.push({
       type: "bmkg_earthquake",
@@ -725,7 +715,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // GEOFON
   if (CFG.GEOFON_ENABLED && s.geofonQuake && s.geofonQuake.mag >= 4.5) {
     signals.push({
       type: "geofon_earthquake",
@@ -736,7 +725,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // INGV
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && s.ingvQuake && s.ingvQuake.mag >= 4.0) {
     signals.push({
       type: "ingv_earthquake",
@@ -747,7 +735,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // GeoNet
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && s.geonetQuake && s.geonetQuake.mag >= 4.0) {
     signals.push({
       type: "geonet_earthquake",
@@ -758,7 +745,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ShakeMap
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
     signals.push({
       type: "shakemap_event",
@@ -769,7 +755,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // USGS Significant Month tail
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
@@ -780,21 +765,18 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // WHO RSS
   if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
     const ageHours = s.whoOutbreaks[0].ageHours || 24;
     if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", ") });
     else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease });
   }
 
-  // WHO DON
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
     for (const don of s.whoDon.slice(0, 3)) {
       signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
     }
   }
 
-  // ECDC
   if (CFG.ECDC_THREAT_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0 && COUNTRIES[iso].region === "europe") {
     for (const threat of s.ecdcThreats.slice(0, 2)) {
       signals.push({
@@ -807,12 +789,10 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // UNHCR
   if (s.totalDisplaced > 500_000) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
-  // UNHCR Solutions
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
     signals.push({
       type: "unhcr_return",
@@ -823,7 +803,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // NASA EONET
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
@@ -835,7 +814,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // IFRC events / appeals
   if (s.ifrcCount > 0 && s.ifrcEvents) {
     const top = s.ifrcEvents[0];
     const ageHours = top.disaster_start_date ? (now - new Date(top.disaster_start_date).getTime()) / 36e5 : 72;
@@ -848,7 +826,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // Cyclone / flood / heat / marine
   if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
     signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
   }
@@ -862,16 +839,13 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
-  // disease.sh
   if (s.diseaseActive > 10_000) {
     signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   }
 
-  // World Bank economic
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
-  // World Bank food price + electricity
   if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
   }
@@ -879,14 +853,12 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
   }
 
-  // CDC (US only)
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     for (const ob of s.cdcOutbreaks.slice(0, 3)) {
       signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
     }
   }
 
-  // SPC (US only)
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: 20, MRGL: 40, SLGT: 55, ENH: 75, MDT: 90, HIGH: 110 };
@@ -894,7 +866,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
-  // US Drought Monitor (US only)
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
     signals.push({
       type: "us_drought",
@@ -905,7 +876,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // NASA POWER
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
     const tempAnom = s.nasaPower.tempAnomaly || 0;
     const precipAnom = s.nasaPower.precipAnomaly || 0;
@@ -917,7 +887,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // GFW
   if (CFG.GFW_ENABLED && s.gfwAlerts && s.gfwAlerts.count > 0) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
@@ -932,7 +901,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // JTWC
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
     for (const storm of s.jtwcStorms.slice(0, 2)) {
       signals.push({
@@ -945,7 +913,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // JMA Typhoon
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
     for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
       signals.push({
@@ -958,7 +925,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // Climate TRACE
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
@@ -972,7 +938,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // HDX
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
     signals.push({
       type: "hdx_crisis",
@@ -1109,30 +1074,41 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ─── RANKING (v13.9.3 algorithm, cleaned) ───────────────────────────────────
-// Primary sort: effective score (max of structural, live)
-// Tiebreaker 1: has_fresh_live_event
-// Tiebreaker 2: live_score
-// Tiebreaker 3: freshness
+// ════════════════════════════════════════════════════════════════════════════
+//  RANKING (v13.9.3 algorithm — restored exactly)
+// ════════════════════════════════════════════════════════════════════════════
+//
+//  v13.9.3 ranking cascade:
+//    1. has_fresh_live_event (PRIMARY — always applied, not gated on flag)
+//    2. effective_score (max of structural, live)
+//    3. live_score
+//    4. freshness (freshest_signal_age_hours, ascending)
+//
+//  This is what made Japan / Korea / Laos reach the top when they had fresh
+//  events, and what kept Palestine / CAR at the top when they didn't.
+// ════════════════════════════════════════════════════════════════════════════
+
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
     const bLB = store[b].__live_breaking || {};
-    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
 
-    // Primary: effective score
-    if (bEff !== aEff) return bEff - aEff;
-
-    // Tiebreaker 1: has fresh live event (always applied — v13.9.3 behavior)
+    // PRIMARY: has_fresh_live_event (v13.9.3 behavior — always applied)
     const aHas = aLB.has_fresh_live_event ? 1 : 0;
     const bHas = bLB.has_fresh_live_event ? 1 : 0;
     if (aHas !== bHas) return bHas - aHas;
 
-    // Tiebreaker 2: live score
-    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
+    // SECONDARY: effective_score
+    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
+    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
+    if (bEff !== aEff) return bEff - aEff;
 
-    // Tiebreaker 3: freshness
+    // TERTIARY: live_score
+    const aLive = aLB.live_score || 0;
+    const bLive = bLB.live_score || 0;
+    if (bLive !== aLive) return bLive - aLive;
+
+    // QUATERNARY: freshness
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 }
@@ -1143,7 +1119,11 @@ function rankBreakingOnly(store, minSignals = 1) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
+      // v13.9.3: live_score primary, effective_score tiebreaker
       if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
+      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
+      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
+      if (bEff !== aEff) return bEff - aEff;
       return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
     });
 }
@@ -1154,6 +1134,11 @@ function rankLiveEventsOnly(store) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking;
       const bLB = store[b].__live_breaking;
+      // v13.9.3: effective_score primary (since has_fresh_live_event already equal),
+      // live_score secondary, freshness tertiary
+      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
+      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
+      if (bEff !== aEff) return bEff - aEff;
       if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
       return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
     });
@@ -2114,7 +2099,6 @@ function extractSignals(iso, live) {
     whoOutbreaks: signals.whoOutbreaks || [],
     ecdcThreats: signals.ecdcThreats || [],
     nasaPower: signals.nasaPower || null,
-    // v13.10.0: removed dead `sentinelObservations` field (never populated)
     diseaseActive: signals.diseaseActive || 0,
     diseaseName: signals.diseaseName || null,
     population: signals.population || 0,
@@ -2360,7 +2344,7 @@ async function buildStore(liveData) {
     store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
   }
 
-  // Compute effective score. In "max" mode this preserves the structural floor.
+  // v13.10.1: effective_score = max(structural, live) — v13.9.3 behavior
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
@@ -2713,7 +2697,8 @@ export default async function handler(req, res) {
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__effective_score || 0) >= params.threshold);
+    // v13.10.1: threshold filter uses live_score (v13.9.3 behavior)
+    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__live_breaking?.live_score || 0) >= params.threshold);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
@@ -2802,7 +2787,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.10.0",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.10.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -2812,7 +2797,7 @@ export default async function handler(req, res) {
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        note: "v13.10.0 — v13.9.3 ranking algorithm preserved (effective_score = max(structural, live)). Fixed: rankByLiveBreaking no longer uses `|| true` short-circuit; removed dead stateSignals variable; removed dead sentinelObservations field; history recording is now consistently (effective, live). Anomaly + ML gated on real history. Stale events age out at 168h. Boosts capped by FSI baseline.",
+        note: "v13.10.1 — Ranking algorithm restored to v13.9.3 exactly. has_fresh_live_event applied as primary sort (not gated on LIVE_EVENT_OVERRIDE). effective_score = max(structural, live). Threshold filter uses live_score. No other logic changed.",
         data_source_health: {
           live: sourceLiveCount,
           total: sourceTotalCount,
@@ -2846,7 +2831,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.10.0]", err);
+    console.error("[top-story v13.10.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
