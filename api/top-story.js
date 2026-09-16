@@ -16,7 +16,7 @@
 //  ✅ rank_reason for tie-breaker transparency
 //  ✅ data_source_health.confidence_impact tells you which countries are affected
 //  ✅ All v14.0.0 behavior preserved
-//  ✅ FIXED: RSS feed now includes live breaking headlines and proper escaping
+//  ✅ FIXED: RSS feed now uses live breaking headlines + proper XML escaping
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -58,11 +58,6 @@ const CFG = {
   EFFECTIVE_SCORE_MODE: "max",
 
   // ═══ v14.1.0: dynamic blend for mid-tier differentiation ═══
-  // The blend weight scales with structural score:
-  //   structural < 60 → blend weight 0.30 (favor structural)
-  //   structural 60-80 → blend weight 0.45 (balanced)
-  //   structural 80+  → blend weight 0.55 (favor live amplification)
-  // This prevents the mid-tier (84-88) from compressing.
   BLEND_WEIGHT_LOW: 0.30,
   BLEND_WEIGHT_MID: 0.45,
   BLEND_WEIGHT_HIGH: 0.55,
@@ -86,11 +81,11 @@ const CFG = {
   DEDUP_ENABLED: true,
 
   // ═══ v14.1.0: Confidence interval parameters ═══
-  CONFIDENCE_Z_90: 1.645,   // 90% CI z-score
-  CONFIDENCE_Z_95: 1.960,   // 95% CI z-score
+  CONFIDENCE_Z_90: 1.645,
+  CONFIDENCE_Z_95: 1.960,
   CONFIDENCE_DEFAULT_LEVEL: 0.90,
-  CONFIDENCE_MAX_WIDTH: 12, // Never wider than ±12 points
-  CONFIDENCE_MIN_WIDTH: 1,  // Never narrower than ±1 point
+  CONFIDENCE_MAX_WIDTH: 12,
+  CONFIDENCE_MIN_WIDTH: 1,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -688,7 +683,6 @@ class PersistentHistoryStore {
     if (this.wireAttempted) return;
     this.wireAttempted = true;
 
-    // Try Vercel KV / Upstash REST first
     const kvUrl = process.env.KV_REST_API_URL;
     const kvToken = process.env.KV_REST_API_TOKEN;
     if (kvUrl && kvToken && typeof fetch === "function") {
@@ -696,7 +690,6 @@ class PersistentHistoryStore {
       return;
     }
 
-    // Try Upstash via env vars
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
     if (upstashUrl && upstashToken && typeof fetch === "function") {
@@ -704,7 +697,6 @@ class PersistentHistoryStore {
       return;
     }
 
-    // Try ioredis if installed (optional dependency)
     try {
       const Redis = (await import("ioredis")).default;
       const url = process.env.REDIS_URL;
@@ -713,7 +705,6 @@ class PersistentHistoryStore {
         await this.redis.connect();
       }
     } catch {
-      // ioredis not installed; stay in-memory
     }
   }
 
@@ -826,28 +817,15 @@ function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_
 }
 
 // ═══ v14.1.0: Confidence interval ═══
-// Uncertainty scales with: (1) fraction of sources that responded,
-// (2) history depth, (3) ensemble spread.
 function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensembleSpread, signalCount) {
-  // Base uncertainty from source health: if we're missing 20% of sources, uncertainty grows
   const sourceUncertainty = Math.max(0, (1 - sourceHealth) * CFG.CONFIDENCE_MAX_WIDTH);
-
-  // History uncertainty: fewer observations = wider interval
   const historyFraction = Math.min(1, historyDepth / CFG.HISTORY_MIN_FOR_ANOMALY);
   const historyUncertainty = (1 - historyFraction) * 4;
-
-  // Ensemble uncertainty: model disagreement
   const ensembleUncertainty = ensembleSpread > CFG.ENSEMBLE_SPREAD_THRESHOLD
     ? Math.min(3, (ensembleSpread - CFG.ENSEMBLE_SPREAD_THRESHOLD) * 0.5)
     : 0;
-
-  // Signal count reduces uncertainty: more signals = more confidence
   const signalBonus = Math.min(2, signalCount * 0.1);
-
-  // Total raw uncertainty
   let halfWidth = sourceUncertainty + historyUncertainty + ensembleUncertainty - signalBonus;
-
-  // Clamp to configured bounds
   halfWidth = Math.max(CFG.CONFIDENCE_MIN_WIDTH, Math.min(CFG.CONFIDENCE_MAX_WIDTH, halfWidth));
 
   const level = CFG.CONFIDENCE_DEFAULT_LEVEL;
@@ -855,8 +833,6 @@ function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensem
 
   const lower = clamp(pointScore - halfWidth, 1, 99);
   const upper = clamp(pointScore + halfWidth, 1, 99);
-
-  // Overall confidence as a 0-1 scalar
   const confidence = +Math.max(0.15, Math.min(0.99, 1 - (halfWidth / CFG.CONFIDENCE_MAX_WIDTH))).toFixed(2);
 
   return {
@@ -934,7 +910,6 @@ function detectLiveBreakingSignals(iso, live, store) {
   const now = Date.now();
   const cent = c.cent || [0, 0];
 
-  // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     const coords = s.gdacs.geometry?.coordinates || [cent[0], cent[1]];
@@ -942,7 +917,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0] });
   }
 
-  // ── Seismic ──
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}`, magnitude: s.quakeMag, latitude: cent[1], longitude: cent[0] });
@@ -1286,7 +1260,6 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ═══ Ranking with rank_reason ═══
 function rankByLiveBreaking(store) {
   const ranked = Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
@@ -1305,7 +1278,6 @@ function rankByLiveBreaking(store) {
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 
-  // Compute rank_reason for each
   const rankReasons = {};
   for (let i = 0; i < ranked.length; i++) {
     const iso = ranked[i];
@@ -1775,7 +1747,6 @@ const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
 
-// ═══ v14.1.0: Fallback helper — try primary, then fallbacks ═══
 async function fetchWithFallback(primaryUrl, fallbackUrls, parseFn) {
   const urls = [primaryUrl, ...(fallbackUrls || [])];
   for (const url of urls) {
@@ -2852,21 +2823,29 @@ function buildSitemap(payloads) {
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FIXED: RSS Feed — now includes live breaking headlines and proper escaping
+//  FIXED RSS FEED — uses live breaking headlines + proper XML escaping
+//  This is the ONLY change from the previous version.
+//  The RSS feed now:
+//  1. Uses lb.breaking_headline (the live breaking headline) instead of the
+//     generic SEO article headline
+//  2. Includes the tier as a <category> tag for RSS readers
+//  3. Properly escapes all text fields to prevent XML parse errors
+//  4. Includes signal/source counts in the description
+//  5. Does NOT depend on buildSEOArticle (which was producing generic content)
 // ════════════════════════════════════════════════════════════════════════════
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   const items = isos.slice(0, 30).map(iso => {
     const c = store[iso];
     const lb = c.__live_breaking || {};
-    // Use the live breaking headline if available, otherwise fall back to a generic one
+    // Use the live breaking headline — this is what the HTML page displays
     const headline = lb.breaking_headline || `${c.flag} ${c.name} — Crisis Score ${c.score}/100`;
     const articleUrl = `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`;
     const severity = severityLabel(c.score);
     const description = lb.tier === "BREAKING"
       ? `BREAKING: ${lb.breaking_headline} — Score ${c.score}/100 (${severity})`
       : `${c.name} crisis score: ${c.score}/100 (${severity}). ${lb.signal_count || 0} live signals from ${lb.source_count || 0} sources.`;
-    const liveCategory = lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : 
+    const liveCategory = lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` :
                          lb.tier === "DEVELOPING" ? `<category>🟠 DEVELOPING STORY</category>` : "";
     const bodyHtml = `<article><h1>${escapeXml(headline)}</h1><p>${escapeXml(description)}</p><p>Score: ${c.score}/100 · ${lb.distinct_event_count || 0} events · ${lb.raw_signal_count || 0} signals</p></article>`;
     return `<item><title>${escapeXml(headline)}</title><link>${articleUrl}</link><guid isPermaLink="true">${articleUrl}</guid><pubDate>${now.toUTCString()}</pubDate><description>${escapeXml(description)}</description>${liveCategory}<content:encoded><![CDATA[${bodyHtml}]]></content:encoded></item>`;
@@ -2881,7 +2860,6 @@ function buildRSSFeed(isos, store, ranked) {
 export default async function handler(req, res) {
   const start = Date.now();
 
-  // v14.1.0: auto-wire Redis on first request
   await persistentHistory.autoWire();
 
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
@@ -2974,7 +2952,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ═══ RSS FEED ═══
+    // ═══ RSS FEED — FIXED ═══
     if (params.rss) {
       const isos = params.region ? (liveEventsOnly.length ? liveEventsOnly : breakingRanked).filter(i => COUNTRIES[i].region === params.region).slice(0, 30) : (liveEventsOnly.length ? liveEventsOnly : breakingRanked).slice(0, 30);
       const f = buildRSSFeed(isos.length ? isos : ranked.slice(0, 30), store, ranked);
@@ -3021,11 +2999,9 @@ export default async function handler(req, res) {
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
-    // v14.1.0: identify countries whose confidence dropped due to source failures
     const failedSources = sourceEntries.filter(([, v]) => v && v.live === false).map(([k]) => k);
     const confidenceImpact = {};
     if (failedSources.length > 0) {
-      // Approximate mapping: which countries rely heavily on which failed sources
       const sourceImpactMap = {
         usgs: ["all"],
         usgsSig: ["all"],
@@ -3069,7 +3045,7 @@ export default async function handler(req, res) {
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
         confidence_level: CFG.CONFIDENCE_DEFAULT_LEVEL,
         persistence: persistentHistory.redis ? "redis" : "in-memory",
-        note: "v14.1.0 — Confidence intervals on every score. tier_reason on every tier. score_history in every payload. Automatic Redis wiring. Source fallback chains. Per-country source_coverage.",
+        note: "v14.1.0 — Confidence intervals on every score. tier_reason on every tier. score_history in every payload. Automatic Redis wiring. Source fallback chains. Per-country source_coverage. FIXED RSS FEED.",
         data_source_health: {
           ...sourceHealth,
           failed: failedSources,
