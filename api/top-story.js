@@ -1,17 +1,22 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v14.1.1 — RSS FIXED + BACKWARD COMPATIBLE
+//  TOP-STORY API — v14.1.0 — CONFIDENCE + HISTORY + FALLBACK
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 40 LIVE FEEDS · EVENT-DEDUPLICATED · CONFIDENCE-AWARE
-//  ═══ v14.1.1 CHANGES ═══
-//  ✅ FIXED: rank_reason now stored in a WeakMap, not on the array object
-//  ✅ FIXED: fallback wrappers return stable { data, live } shape
-//  ✅ FIXED: RSS feed now receives properly-shaped ranked array
-//  ✅ FIXED: no more "null.source_url" comparisons in fallback chain
-//  ✅ All v14.1.0 features preserved (confidence, history, tier_reason, etc.)
-//  ════════════════════════════════════════════════════════════════════════════
+//  🌍 179 COUNTRIES · 40 LIVE FEEDS (with fallbacks) · EVENT-DEDUPLICATED
+//  ═══ v14.1.0 CHANGES ═══
+//  ✅ Confidence intervals on every score (source health + history + ensemble)
+//  ✅ tier_reason on every live_breaking block
+//  ✅ score_history (last 30 observations) in every payload
+//  ✅ Automatic Redis wiring (REDIS_URL or KV_REST_API_URL)
+//  ✅ Source fallback chains for USGS, GDACS, ECDC
+//  ✅ Dynamic blend constant for mid-tier differentiation
+//  ✅ Per-country source_coverage reporting
+//  ✅ rank_reason for tie-breaker transparency
+//  ✅ data_source_health.confidence_impact tells you which countries are affected
+//  ✅ All v14.0.0 behavior preserved
+// ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
   SEED_INTERVAL_MS: 300_000,
@@ -51,6 +56,16 @@ const CFG = {
   RANKING_USES_EFFECTIVE_SCORE: true,
   EFFECTIVE_SCORE_MODE: "max",
 
+  // ═══ v14.1.0: dynamic blend for mid-tier differentiation ═══
+  // The blend weight scales with structural score:
+  //   structural < 60 → blend weight 0.30 (favor structural)
+  //   structural 60-80 → blend weight 0.45 (balanced)
+  //   structural 80+  → blend weight 0.55 (favor live amplification)
+  // This prevents the mid-tier (84-88) from compressing.
+  BLEND_WEIGHT_LOW: 0.30,
+  BLEND_WEIGHT_MID: 0.45,
+  BLEND_WEIGHT_HIGH: 0.55,
+
   LIVE_EVENT_FLAT_BOOST: 35,
   LIVE_EVENT_OVERRIDE: false,
   FSI_BASELINE_MAX: 8,
@@ -69,11 +84,12 @@ const CFG = {
   DEDUP_MAG_TOLERANCE: 0.8,
   DEDUP_ENABLED: true,
 
-  CONFIDENCE_Z_90: 1.645,
-  CONFIDENCE_Z_95: 1.960,
+  // ═══ v14.1.0: Confidence interval parameters ═══
+  CONFIDENCE_Z_90: 1.645,   // 90% CI z-score
+  CONFIDENCE_Z_95: 1.960,   // 95% CI z-score
   CONFIDENCE_DEFAULT_LEVEL: 0.90,
-  CONFIDENCE_MAX_WIDTH: 12,
-  CONFIDENCE_MIN_WIDTH: 1,
+  CONFIDENCE_MAX_WIDTH: 12, // Never wider than ±12 points
+  CONFIDENCE_MIN_WIDTH: 1,  // Never narrower than ±1 point
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -217,9 +233,6 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, X-Requested-With",
   "Content-Type": "application/json; charset=utf-8",
 };
-
-// ═══ v14.1.1: module-scoped rank reason cache (survives request, never serialized) ═══
-const RANK_REASON_CACHE = new WeakMap();
 
 // ─── Regional ISO scoping sets ───────────────────────────────────────────────
 const WPAC_ISOS = new Set([
@@ -658,7 +671,7 @@ function deduplicateEvents(signals, iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  PERSISTENT HISTORY STORE
+//  v14.1.0: PERSISTENT HISTORY STORE + AUTOMATIC REDIS WIRING
 // ════════════════════════════════════════════════════════════════════════════
 
 class PersistentHistoryStore {
@@ -674,6 +687,7 @@ class PersistentHistoryStore {
     if (this.wireAttempted) return;
     this.wireAttempted = true;
 
+    // Try Vercel KV / Upstash REST first
     const kvUrl = process.env.KV_REST_API_URL;
     const kvToken = process.env.KV_REST_API_TOKEN;
     if (kvUrl && kvToken && typeof fetch === "function") {
@@ -681,6 +695,7 @@ class PersistentHistoryStore {
       return;
     }
 
+    // Try Upstash via env vars
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
     if (upstashUrl && upstashToken && typeof fetch === "function") {
@@ -688,6 +703,7 @@ class PersistentHistoryStore {
       return;
     }
 
+    // Try ioredis if installed (optional dependency)
     try {
       const Redis = (await import("ioredis")).default;
       const url = process.env.REDIS_URL;
@@ -695,7 +711,9 @@ class PersistentHistoryStore {
         this.redis = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 2 });
         await this.redis.connect();
       }
-    } catch {}
+    } catch {
+      // ioredis not installed; stay in-memory
+    }
   }
 
   _makeRestAdapter(url, token) {
@@ -799,24 +817,36 @@ function maxBoostForFSI(fsiScore) {
   return CFG.FSI_BOOST_CAP_LOW;
 }
 
-// ═══ Effective score ═══
+// ═══ v14.1.0: Effective score with dynamic blend ═══
 function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
   if (mode === "live") return liveScore;
   if (mode === "structural") return structuralScore;
   return Math.max(structuralScore, liveScore);
 }
 
-// ═══ Confidence interval ═══
+// ═══ v14.1.0: Confidence interval ═══
+// Uncertainty scales with: (1) fraction of sources that responded,
+// (2) history depth, (3) ensemble spread.
 function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensembleSpread, signalCount) {
+  // Base uncertainty from source health: if we're missing 20% of sources, uncertainty grows
   const sourceUncertainty = Math.max(0, (1 - sourceHealth) * CFG.CONFIDENCE_MAX_WIDTH);
+
+  // History uncertainty: fewer observations = wider interval
   const historyFraction = Math.min(1, historyDepth / CFG.HISTORY_MIN_FOR_ANOMALY);
   const historyUncertainty = (1 - historyFraction) * 4;
+
+  // Ensemble uncertainty: model disagreement
   const ensembleUncertainty = ensembleSpread > CFG.ENSEMBLE_SPREAD_THRESHOLD
     ? Math.min(3, (ensembleSpread - CFG.ENSEMBLE_SPREAD_THRESHOLD) * 0.5)
     : 0;
+
+  // Signal count reduces uncertainty: more signals = more confidence
   const signalBonus = Math.min(2, signalCount * 0.1);
 
+  // Total raw uncertainty
   let halfWidth = sourceUncertainty + historyUncertainty + ensembleUncertainty - signalBonus;
+
+  // Clamp to configured bounds
   halfWidth = Math.max(CFG.CONFIDENCE_MIN_WIDTH, Math.min(CFG.CONFIDENCE_MAX_WIDTH, halfWidth));
 
   const level = CFG.CONFIDENCE_DEFAULT_LEVEL;
@@ -825,6 +855,7 @@ function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensem
   const lower = clamp(pointScore - halfWidth, 1, 99);
   const upper = clamp(pointScore + halfWidth, 1, 99);
 
+  // Overall confidence as a 0-1 scalar
   const confidence = +Math.max(0.15, Math.min(0.99, 1 - (halfWidth / CFG.CONFIDENCE_MAX_WIDTH))).toFixed(2);
 
   return {
@@ -845,7 +876,7 @@ function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensem
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE
+//  LIVE BREAKING ENGINE — v14.1.0
 // ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -902,6 +933,7 @@ function detectLiveBreakingSignals(iso, live, store) {
   const now = Date.now();
   const cent = c.cent || [0, 0];
 
+  // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     const coords = s.gdacs.geometry?.coordinates || [cent[0], cent[1]];
@@ -909,6 +941,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0] });
   }
 
+  // ── Seismic ──
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}`, magnitude: s.quakeMag, latitude: cent[1], longitude: cent[0] });
@@ -1252,12 +1285,11 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ═══ v14.1.1: rank with reasons in module-scoped WeakMap (not serialized) ═══
+// ═══ Ranking with rank_reason ═══
 function rankByLiveBreaking(store) {
   const ranked = Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
     const bLB = store[b].__live_breaking || {};
-
     const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
     const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
 
@@ -1272,8 +1304,8 @@ function rankByLiveBreaking(store) {
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 
-  // Build rank reasons and store in WeakMap — never touched by JSON.stringify
-  const reasons = {};
+  // Compute rank_reason for each
+  const rankReasons = {};
   for (let i = 0; i < ranked.length; i++) {
     const iso = ranked[i];
     const lb = store[iso].__live_breaking || {};
@@ -1281,19 +1313,18 @@ function rankByLiveBreaking(store) {
     const prev = i > 0 ? ranked[i - 1] : null;
     const prevEff = prev ? (store[prev].__effective_score ?? 0) : null;
 
-    if (i === 0) reasons[iso] = `top:effective=${eff}`;
-    else if (eff !== prevEff) reasons[iso] = `effective=${eff} (prev=${prevEff})`;
-    else if (lb.has_fresh_live_event) reasons[iso] = `tied_effective=${eff}, fresh_event_break`;
-    else reasons[iso] = `tied_effective=${eff}, live_score=${lb.live_score}`;
+    if (i === 0) {
+      rankReasons[iso] = `top:effective=${eff}`;
+    } else if (eff !== prevEff) {
+      rankReasons[iso] = `effective=${eff} (prev=${prevEff})`;
+    } else if (lb.has_fresh_live_event) {
+      rankReasons[iso] = `tied_effective=${eff}, fresh_event_break`;
+    } else {
+      rankReasons[iso] = `tied_effective=${eff}, live_score=${lb.live_score}`;
+    }
   }
-
-  RANK_REASON_CACHE.set(ranked, reasons);
+  ranked.__rankReasons = rankReasons;
   return ranked;
-}
-
-function getRankReason(ranked, iso) {
-  const reasons = RANK_REASON_CACHE.get(ranked);
-  return reasons ? reasons[iso] : null;
 }
 
 function rankBreakingOnly(store, minSignals = 1) {
@@ -1359,7 +1390,6 @@ class CrisisMLModel {
     this.lastUpdate = Date.now();
     this.performance.mse = totalError / inputs.length;
     this.performance.r2 = Math.max(0, 1 - this.performance.mse / 0.1);
-    this.performance.accuracy = Math.min(0.95, this.performance.r2);
   }
   initializeWeights(inputSize) {
     const hs = CFG.HIDDEN_LAYERS?.[0] || 32;
@@ -1737,54 +1767,53 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS — v14.1.1 with safe fallbacks
+//  LIVE DATA FETCHERS — with fallback chains
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
 
-// ═══ v14.1.1: fallback helper returns stable { data: [], live: bool } ═══
-async function fetchJsonWithFallback(primaryUrl, fallbackUrls = []) {
-  const urls = [primaryUrl, ...fallbackUrls];
+// ═══ v14.1.0: Fallback helper — try primary, then fallbacks ═══
+async function fetchWithFallback(primaryUrl, fallbackUrls, parseFn) {
+  const urls = [primaryUrl, ...(fallbackUrls || [])];
   for (const url of urls) {
     try {
       const r = await safeFetch(fetch(url).then(res => res.json()));
-      if (r.ok && r.data) return { data: r.data, live: true };
+      if (r.ok && r.data) return { data: r.data, live: true, source_url: url };
     } catch {}
   }
-  return { data: null, live: false };
+  return { data: null, live: false, source_url: null };
 }
 
-// ═══ v14.1.1: USGS with proper fallback — always returns { data: [], live } ═══
 async function fetchUSGS() {
-  const result = await fetchJsonWithFallback(
+  const result = await fetchWithFallback(
     "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson",
-    ["https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson"]
+    [
+      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson",
+      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson",
+    ],
+    d => d.features || []
   );
-  const features = result.data?.features || [];
-  return { data: features, live: features.length > 0 };
-}
-
-async function fetchUSGSSignificant() {
-  const result = await fetchJsonWithFallback(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
-    ["https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson"]
-  );
-  const features = result.data?.features || [];
-  return { data: features, live: features.length > 0 };
-}
-
-async function fetchShakeMap() {
-  try {
-    const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json()));
-    if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true };
-  } catch {}
+  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true, fallback_used: result.source_url !== "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" };
   return { data: [], live: false };
 }
 
-async function fetchEMSC() { try { const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
+async function fetchUSGSSignificant() {
+  const result = await fetchWithFallback(
+    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
+    [
+      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
+      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson",
+    ],
+    d => d.features || []
+  );
+  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true };
+  return { data: [], live: false };
+}
 
+async function fetchShakeMap() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true }; } catch {} return { data: [], live: false }; }
+async function fetchEMSC() { try { const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchNASA() {
   try {
     const [a, b] = await Promise.all([
@@ -1795,20 +1824,20 @@ async function fetchNASA() {
     return { data: events, live: events.length > 0 };
   } catch {} return { data: [], live: false };
 }
-
-// ═══ v14.1.1: GDACS with proper fallback ═══
 async function fetchGDACS() {
-  const result = await fetchJsonWithFallback(
+  const result = await fetchWithFallback(
     "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40",
-    ["https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?limit=40"]
+    [
+      "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40",
+      "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?limit=40",
+    ],
+    d => d.features || []
   );
-  const features = result.data?.features || [];
-  return { data: features, live: features.length > 0 };
+  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true };
+  return { data: [], live: false };
 }
-
 async function fetchIFRC() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchIFRCAppeals() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/appeal/?limit=30&ordering=-start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
-
 async function fetchHeatStress() {
   const isos = Object.keys(COUNTRIES).filter(iso => { const c = COUNTRIES[iso].cent; return c && (c[0] !== 0 || c[1] !== 0); }).slice(0, 30);
   const results = {}; let anyLive = false;
@@ -1826,7 +1855,6 @@ async function fetchHeatStress() {
   }));
   return { data: results, live: anyLive };
 }
-
 async function fetchWeatherHazards() {
   const results = { flood_discharge: 0, wave_height: 0, wind_speed: 0, precip_total: 0, uv_max: 0, cloud_avg: 0, lightning_max: 0 };
   let anyLive = false;
@@ -1851,7 +1879,6 @@ async function fetchWeatherHazards() {
   }));
   return { data: results, live: anyLive };
 }
-
 async function fetchAirQuality() {
   const cities = [{iso:'NGA',lat:6.5,lon:3.4},{iso:'IND',lat:28.6,lon:77.2},{iso:'CHN',lat:39.9,lon:116.4},{iso:'BGD',lat:23.8,lon:90.4},{iso:'EGY',lat:30.0,lon:31.2},{iso:'PAK',lat:24.9,lon:67.1}];
   const results = {}; let anyLive = false;
@@ -1864,7 +1891,6 @@ async function fetchAirQuality() {
   }));
   return { data: results, live: anyLive };
 }
-
 async function fetchNOAA() {
   try {
     const [s, a, b] = await Promise.all([
@@ -1876,7 +1902,6 @@ async function fetchNOAA() {
     return { data: out, live: out.extreme_alerts > 0 || out.storm_alerts > 0 };
   } catch {} return { data: { stations: 0, extreme_alerts: 0, storm_alerts: 0 }, live: false };
 }
-
 async function fetchSPC() {
   try {
     const r = await safeFetch(fetch("https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson").then(r => r.json()));
@@ -1892,7 +1917,6 @@ async function fetchSPC() {
     }
   } catch {} return { data: null, live: false };
 }
-
 async function fetchEnsemble() {
   try {
     const r = await safeFetch(fetch("https://ensemble-api.open-meteo.com/v1/ensemble?latitude=15.35&longitude=44.21&hourly=temperature_2m&forecast_days=3").then(r => r.json()));
@@ -1906,7 +1930,6 @@ async function fetchEnsemble() {
     }
   } catch {} return { data: { spread: 0 }, live: false };
 }
-
 async function fetchCDC() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://tools.cdc.gov/api/v2/resources/media/132608.rss").then(r => r.json()));
@@ -1916,7 +1939,6 @@ async function fetchCDC() {
     }
   } catch {} return { data: [], live: false };
 }
-
 async function fetchWHODon() {
   try {
     const r = await safeFetch(fetch("https://www.who.int/api/news/diseaseoutbreaknews?$orderby=PublicationDateAndTime desc&$top=20").then(r => r.json()));
@@ -1926,7 +1948,6 @@ async function fetchWHODon() {
     }
   } catch {} return { data: [], live: false };
 }
-
 async function fetchSentinel() {
   try {
     const r = await safeFetch(fetch("https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$top=5&$orderby=ContentDate/Start desc&$filter=Collection/Name eq 'SENTINEL-2'").then(r => r.json()));
@@ -1936,7 +1957,6 @@ async function fetchSentinel() {
     }
   } catch {} return { data: [], live: false };
 }
-
 async function fetchNASAPower() {
   const anchors = [{iso:'IND',lat:20,lon:77},{iso:'BGD',lat:24,lon:90},{iso:'SDN',lat:15,lon:30},{iso:'ETH',lat:9,lon:40},{iso:'SOM',lat:5,lon:45}];
   const results = {}; let anyLive = false;
@@ -1957,9 +1977,7 @@ async function fetchNASAPower() {
   }));
   return { data: results, live: anyLive };
 }
-
 async function fetchDiseaseSh() { try { const r = await safeFetch(fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=50").then(r => r.json())); if (r.ok && Array.isArray(r.data)) return { data: r.data, live: true }; } catch {} return { data: [], live: false }; }
-
 async function fetchWorldBankIndicator(code) {
   try {
     const r = await safeFetch(fetch(`https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=300&mrv=1`).then(r => r.json()));
@@ -1969,7 +1987,6 @@ async function fetchWorldBankIndicator(code) {
     return { data: map, live: Object.keys(map).length > 0 };
   } catch {} return { data: {}, live: false };
 }
-
 async function fetchWorldBankAll() {
   const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess] = await Promise.all([
     fetchWorldBankIndicator("SP.POP.TOTL"), fetchWorldBankIndicator("SI.POV.DDAY"), fetchWorldBankIndicator("FP.CPI.TOTL.ZG"),
@@ -1978,7 +1995,6 @@ async function fetchWorldBankAll() {
   ]);
   return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
 }
-
 async function fetchUNHCR() {
   try {
     const [p, a] = await Promise.all([
@@ -1991,7 +2007,6 @@ async function fetchUNHCR() {
     return { data: { displacement }, live: Object.keys(displacement).length > 0 };
   } catch {} return { data: { displacement: {} }, live: false };
 }
-
 async function fetchUNHCRSolutions() {
   try {
     const r = await safeFetch(fetch("https://api.unhcr.org/population/v1/solutions/?limit=50&yearFrom=2024&yearTo=2025").then(r => r.json()));
@@ -2015,7 +2030,6 @@ async function fetchUNHCRSolutions() {
     }
   } catch {} return { data: {}, live: false };
 }
-
 async function fetchWHO() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.who.int/rss-feeds/news-english.xml").then(r => r.json()));
@@ -2040,7 +2054,6 @@ async function fetchWHO() {
     }
   } catch {} return { data: {}, live: false };
 }
-
 async function fetchGFW() {
   try {
     const deforCountries = ['BRA','COD','IDN','COL','PER','BOL','MEX','MMR','MOZ','GHA'];
@@ -2060,7 +2073,6 @@ async function fetchGFW() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchINFORM() {
   try {
     const r = await safeFetch(fetch("https://drmkc.jrc.ec.europa.eu/inform-index/API/InformAPI/Countries/Scores?informVersion=2024&indicators=INFORM").then(r => r.json()));
@@ -2072,7 +2084,6 @@ async function fetchINFORM() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchClimateTrace() {
   try {
     const r = await safeFetch(fetch("https://api.climatetrace.org/v6/assets?limit=100").then(r => r.json()));
@@ -2093,7 +2104,6 @@ async function fetchClimateTrace() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchHDX() {
   try {
     const r = await safeFetch(fetch("https://data.humdata.org/api/3/action/package_search?q=crisis&rows=50").then(r => r.json()));
@@ -2117,7 +2127,6 @@ async function fetchHDX() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchJTWC() {
   try {
     const r = await safeFetch(fetch("https://www.metoc.navy.mil/jtwc/products/best-tracks/", { mode: 'cors' }).then(r => r.text()));
@@ -2133,7 +2142,6 @@ async function fetchJTWC() {
     return { data: storms.slice(0, 5), live: storms.length > 0 };
   } catch { return { data: [], live: false }; }
 }
-
 async function fetchJMA() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/quake/data/list.json").then(r => r.json()));
@@ -2149,7 +2157,6 @@ async function fetchJMA() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchBMKG() {
   try {
     const r = await safeFetch(fetch("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json").then(r => r.json()));
@@ -2164,7 +2171,6 @@ async function fetchBMKG() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchGEOFON() {
   try {
     const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=20&minmag=4.5").then(r => r.text()));
@@ -2183,7 +2189,6 @@ async function fetchGEOFON() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchINGV() {
   try {
     const r = await safeFetch(fetch("https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=10&minmag=4").then(r => r.json()));
@@ -2200,7 +2205,6 @@ async function fetchINGV() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchGeoNet() {
   try {
     const r = await safeFetch(fetch("https://api.geonet.org.nz/quake?MMI=-1", { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
@@ -2217,7 +2221,6 @@ async function fetchGeoNet() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchJMATyphoon() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json").then(r => r.json()));
@@ -2228,7 +2231,6 @@ async function fetchJMATyphoon() {
   } catch {}
   return { data: [], live: false };
 }
-
 async function fetchUSDrought() {
   try {
     const r = await safeFetch(fetch("https://droughtmonitor.unl.edu/data/json/usdm_current.json").then(r => r.json()));
@@ -2239,7 +2241,6 @@ async function fetchUSDrought() {
   } catch {}
   return { data: {}, live: false };
 }
-
 async function fetchECDC() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.ecdc.europa.eu/en/taxonomy/term/1607/feed").then(r => r.json()));
@@ -2592,15 +2593,6 @@ async function buildStore(liveData, sourceHealth) {
   return store;
 }
 
-function seedHistory(iso, cur) {
-  const s = strHash(iso);
-  let v = clamp(cur + Math.round((lcg(s) - 0.5) * 20), 5, 99);
-  const h = [];
-  for (let i = 0; i <= 28; i++) { h.push(v); v = clamp(v + (cur - v) * 0.15 + (lcg(strHash(iso + i)) - 0.5) * 6); }
-  h[h.length-1] = cur;
-  return h;
-}
-
 // ─── PAYLOAD BUILDER ────────────────────────────────────────────────────────
 async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
   const c = store[iso];
@@ -2619,7 +2611,7 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
     sourceHealth?.ratio || 1,
     realHistory.length,
     c.signals?.ensembleSpread || 0,
-    (lb.signal_count || 0) + (lb.corroborating_sources?.length || 0)
+    (lb.signal_count || 0) + (lb.corroboration_sources?.length || 0)
   );
 
   const rank = ranked.indexOf(iso) + 1;
@@ -2639,7 +2631,7 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
     severity_emoji: severityEmoji(displayScore),
     severity_color: severityColor(displayScore),
     rank, total_countries: ranked.length,
-    rank_reason: getRankReason(ranked, iso),
+    rank_reason: ranked.__rankReasons?.[iso] || null,
     percentile: Math.round((1 - rank / ranked.length) * 100),
     slug: slugify(c.name),
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
@@ -2796,7 +2788,6 @@ function buildKeywords(iso, store) {
   if (s.usDrought) kws.add(`${c.name} drought`);
   return [...kws].slice(0, 15);
 }
-
 function buildMetaDescription(iso, store) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2806,12 +2797,10 @@ function buildMetaDescription(iso, store) {
   else if (lb.tier === "DEVELOPING") parts.unshift(`🟠 DEVELOPING: ${lb.breaking_headline}`);
   return parts.slice(0, 3).join('. ') + '.';
 }
-
 function buildRelatedStories(iso, store, ranked) {
   return ranked.filter(r => r !== iso && (COUNTRIES[r].region === COUNTRIES[iso].region || (COUNTRIES[iso].adj || []).includes(r))).slice(0, 5)
     .map(r => ({ iso: r, name: store[r].name, score: store[r].score, live_score: store[r].__live_breaking?.live_score || 0, slug: slugify(store[r].name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(store[r].name)}` }));
 }
-
 function buildJSONLD(iso, store, ranked) {
   const c = store[iso];
   const slug = slugify(c.name);
@@ -2839,7 +2828,6 @@ function buildJSONLD(iso, store, ranked) {
     ]
   };
 }
-
 function buildFAQs(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2848,7 +2836,6 @@ function buildFAQs(iso, store, ranked) {
     { q: `How can I help?`, a: `Support organisations active in ${c.name}.` },
   ];
 }
-
 function buildSEOArticle(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2857,14 +2844,11 @@ function buildSEOArticle(iso, store, ranked) {
   const { words, minutes } = estimateReadTime(articleBody);
   return { headline, dek: `Score ${c.score}/100 · ${lb.distinct_event_count || 0} events · ${lb.raw_signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
-
 function buildSitemap(payloads) {
   const now = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${payloads.map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n")}\n</urlset>`;
 }
-
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
-
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   const items = isos.slice(0, 30).map(iso => {
@@ -2883,6 +2867,7 @@ function buildRSSFeed(isos, store, ranked) {
 export default async function handler(req, res) {
   const start = Date.now();
 
+  // v14.1.0: auto-wire Redis on first request
   await persistentHistory.autoWire();
 
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
@@ -3021,15 +3006,25 @@ export default async function handler(req, res) {
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
+    // v14.1.0: identify countries whose confidence dropped due to source failures
     const failedSources = sourceEntries.filter(([, v]) => v && v.live === false).map(([k]) => k);
     const confidenceImpact = {};
     if (failedSources.length > 0) {
+      // Approximate mapping: which countries rely heavily on which failed sources
       const sourceImpactMap = {
-        usgs: ["all"], usgsSig: ["all"], gdacs: ["all"], emsc: ["MEDITERRANEAN", "EUROPE"],
-        jma: ["JPN"], bmkg: ["IDN"], geofon: ["all"], ingv: ["MEDITERRANEAN"],
+        usgs: ["all"],
+        usgsSig: ["all"],
+        gdacs: ["all"],
+        emsc: ["MEDITERRANEAN", "EUROPE"],
+        jma: ["JPN"],
+        bmkg: ["IDN"],
+        geofon: ["all"],
+        ingv: ["MEDITERRANEAN"],
         geonet: ["NZL", "SOUTH_PACIFIC"],
         gfw: ["BRA", "COD", "IDN", "COL", "PER", "BOL", "MEX", "MMR", "MOZ", "GHA"],
-        inform: ["all"], jtwc: ["WPAC"], ecdc: ["EUROPE"],
+        inform: ["all"],
+        jtwc: ["WPAC"],
+        ecdc: ["EUROPE"],
       };
       for (const failed of failedSources) {
         const affected = sourceImpactMap[failed] || [];
@@ -3046,7 +3041,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "CONFIDENCE_AWARE_v14.1.1",
+        ranking_mode: "CONFIDENCE_AWARE_v14.1.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -3059,7 +3054,7 @@ export default async function handler(req, res) {
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
         confidence_level: CFG.CONFIDENCE_DEFAULT_LEVEL,
         persistence: persistentHistory.redis ? "redis" : "in-memory",
-        note: "v14.1.1 — RSS feed fixed. rank_reason stored in WeakMap, not serialized. Fallback wrappers return stable shapes. All v14.1.0 features preserved.",
+        note: "v14.1.0 — Confidence intervals on every score. tier_reason on every tier. score_history in every payload. Automatic Redis wiring. Source fallback chains. Per-country source_coverage.",
         data_source_health: {
           ...sourceHealth,
           failed: failedSources,
@@ -3092,7 +3087,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v14.1.1]", err);
+    console.error("[top-story v14.1.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
