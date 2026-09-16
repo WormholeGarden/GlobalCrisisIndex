@@ -16,6 +16,7 @@
 //  ✅ rank_reason for tie-breaker transparency
 //  ✅ data_source_health.confidence_impact tells you which countries are affected
 //  ✅ All v14.0.0 behavior preserved
+//  ✅ FIXED: RSS feed now includes live breaking headlines and proper escaping
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -2849,13 +2850,26 @@ function buildSitemap(payloads) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${payloads.map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n")}\n</urlset>`;
 }
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  FIXED: RSS Feed — now includes live breaking headlines and proper escaping
+// ════════════════════════════════════════════════════════════════════════════
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   const items = isos.slice(0, 30).map(iso => {
-    const a = buildSEOArticle(iso, store, ranked);
     const c = store[iso];
     const lb = c.__live_breaking || {};
-    return `<item><title>${escapeXml(a.headline)}</title><link>${a.url}</link><guid isPermaLink="true">${a.url}</guid><pubDate>${now.toUTCString()}</pubDate><description>${escapeXml(a.dek)}</description>${lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : ""}<content:encoded><![CDATA[${a.body_html}]]></content:encoded></item>`;
+    // Use the live breaking headline if available, otherwise fall back to a generic one
+    const headline = lb.breaking_headline || `${c.flag} ${c.name} — Crisis Score ${c.score}/100`;
+    const articleUrl = `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`;
+    const severity = severityLabel(c.score);
+    const description = lb.tier === "BREAKING"
+      ? `BREAKING: ${lb.breaking_headline} — Score ${c.score}/100 (${severity})`
+      : `${c.name} crisis score: ${c.score}/100 (${severity}). ${lb.signal_count || 0} live signals from ${lb.source_count || 0} sources.`;
+    const liveCategory = lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : 
+                         lb.tier === "DEVELOPING" ? `<category>🟠 DEVELOPING STORY</category>` : "";
+    const bodyHtml = `<article><h1>${escapeXml(headline)}</h1><p>${escapeXml(description)}</p><p>Score: ${c.score}/100 · ${lb.distinct_event_count || 0} events · ${lb.raw_signal_count || 0} signals</p></article>`;
+    return `<item><title>${escapeXml(headline)}</title><link>${articleUrl}</link><guid isPermaLink="true">${articleUrl}</guid><pubDate>${now.toUTCString()}</pubDate><description>${escapeXml(description)}</description>${liveCategory}<content:encoded><![CDATA[${bodyHtml}]]></content:encoded></item>`;
   }).join("");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
@@ -2960,6 +2974,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // ═══ RSS FEED ═══
     if (params.rss) {
       const isos = params.region ? (liveEventsOnly.length ? liveEventsOnly : breakingRanked).filter(i => COUNTRIES[i].region === params.region).slice(0, 30) : (liveEventsOnly.length ? liveEventsOnly : breakingRanked).slice(0, 30);
       const f = buildRSSFeed(isos.length ? isos : ranked.slice(0, 30), store, ranked);
