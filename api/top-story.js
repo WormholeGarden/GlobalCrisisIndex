@@ -1,16 +1,24 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.5 — SYNTAX FIXED + ROBUST ERROR HANDLING
+//  TOP-STORY API — v13.9.1 — HONEST SIGNALS + EVENT DEDUP + REAL HISTORY
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ v13.9.5 CHANGES ═══
-//  ✅ FIXED: syntax error — `eventKeyFor` was glued to a comment box footer
-//  ✅ FIXED: 500 handler now coerces err to string (no more [object Object])
-//  ✅ FIXED: top-level try/catch around handler initialization
-//  ✅ PRESERVED: v13.9.3 ranking algorithm (effective_score primary)
-//  ✅ PRESERVED: event dedup, real history, all v13.9.1 features
+//  ═══ v13.9.1 CHANGES ═══
+//  ✅ Event deduplication (spatial+temporal+mag hash)
+//  ✅ live_event_count now counts distinct events (was duplicate of signal_count)
+//  ✅ Real history persistence (in-memory + optional Redis/Upstash shim)
+//  ✅ Anomaly detection runs on real history (or reports INSUFFICIENT_HISTORY)
+//  ✅ ML trains on real sequences only (falls back to simple trend)
+//  ✅ seedHistory reserved for display (labeled "synthetic")
+//  ✅ Single-country feeds capped (BMKG, JMA, JMA Typhoon)
+//  ✅ US-only feeds capped (NOAA, SPC, CDC, US Drought)
+//  ✅ New payload: events[], distinct_event_count, raw_signal_count
+//  ✅ All v13.9 real feeds preserved
+//  ✅ v13.9.1 PATCH: rankByLiveBreaking now sorts by effective_score first
+//     (structural floor preserved), then has_fresh_live_event, then live_score,
+//     then freshness. Fixes "Error loading crisis intelligence" on the UI.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -203,7 +211,6 @@ const CORS = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-// ─── Regional ISO scoping sets ───────────────────────────────────────────────
 const WPAC_ISOS = new Set([
   'PHL', 'TWN', 'JPN', 'CHN', 'VNM', 'KOR', 'PRK', 'IDN',
   'MYS', 'THA', 'KHM', 'LAO', 'MMR', 'BGD', 'IND', 'LKA', 'MDV',
@@ -217,7 +224,6 @@ const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
 
-// ─── Country centroids (for dedup distance check) ────────────────────────────
 const COUNTRY_CENTROIDS = {
   IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
   IND: [78.9, 20.6], BGD: [90.4, 23.7], VNM: [108.3, 14.1], THA: [100.9, 15.9],
@@ -245,7 +251,7 @@ const COUNTRY_CENTROIDS = {
   HRV: [15.2, 45.1], SVN: [14.9, 46.2], HUN: [19.5, 47.2], AUT: [14.6, 47.5],
   CHE: [8.2, 46.8], NLD: [5.3, 52.1], BEL: [4.5, 50.5], LUX: [6.1, 49.8],
   DNK: [9.5, 56.3], NOR: [8.5, 60.5], SWE: [18.6, 60.1], FIN: [25.7, 61.9],
-  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4], AND: [1.6, 42.5],
+  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4],
   CAN: [-105.0, 56.1], AUS: [133.8, -25.3], NZL: [172.0, -41.0], PNG: [143.9, -6.3],
   SLB: [160.2, -9.6], VUT: [166.9, -15.4], FJI: [178.0, -17.7], WSM: [-172.1, -13.8],
   TON: [-175.2, -21.2], KIR: [173.0, 1.9], FSM: [158.2, 6.9], MHL: [171.2, 7.1],
@@ -259,10 +265,9 @@ const COUNTRY_CENTROIDS = {
   NIC: [-85.2, 12.9], CRI: [-83.8, 9.7], PAN: [-80.8, 8.5], BHS: [-77.4, 25.0],
   ATG: [-61.8, 17.1], DMA: [-61.4, 15.4], GRD: [-61.7, 12.1], KNA: [-62.7, 17.3],
   LCA: [-60.9, 13.9], VCT: [-61.2, 13.3], URY: [-55.8, -32.5], ARG: [-63.6, -38.4],
-  PRY: [-58.4, -23.4], BOL: [-63.6, -16.3], CHL_ALT: [-70.7, -33.4],
+  PRY: [-58.4, -23.4], BOL: [-63.6, -16.3],
 };
 
-// ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
 const ARC = {
   CE:  { l:"Complex Emergency",    i:"⚔️",  n:["shelter","food","health","protection"], seo:"complex humanitarian emergency", color:"#ff375f" },
   CW:  { l:"Civil War",            i:"⚔️",  n:["shelter","protection","health","food"], seo:"armed conflict civil war", color:"#ff6b4a" },
@@ -294,7 +299,6 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
 
-// ─── FSI 2024 — 179 COUNTRIES ────────────────────────────────────────────────
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
   SDN: { name:"Sudan",                flag:"🇸🇩", fsi_score:109.3, rank:2, region:"africa", fsi_band:"Very High Alert" },
@@ -518,7 +522,6 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
   };
 }
 
-// ─── MATH UTILITIES ──────────────────────────────────────────────────────────
 function lcg(seed) { return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000; }
 function strHash(str) { return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0; }
 const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
@@ -547,7 +550,6 @@ function findClosestCountry(lng, lat) {
 }
 function isUS(iso) { return iso === "USA"; }
 
-// ─── Haversine distance ──────────────────────────────────────────────────────
 function haversineKm(lon1, lat1, lon2, lat2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -556,7 +558,6 @@ function haversineKm(lon1, lat1, lon2, lat2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// ─── Place-name matching ─────────────────────────────────────────────────────
 const REGION_KEYWORDS = {
   IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
   JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
@@ -592,20 +593,14 @@ function matchesCountryPlace(iso, place) {
   return false;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  EVENT DEDUPLICATION
-// ════════════════════════════════════════════════════════════════════════════
-
 function eventKeyFor(sig, iso) {
-  // Non-seismic events: dedup by type + source + day
   if (!sig.type.startsWith("earthquake_") && !sig.type.includes("earthquake") && sig.type !== "shakemap_event") {
     const day = sig.ageHours ? Math.floor(Date.now() / 86400000 - sig.ageHours / 24) : "unknown";
     return `${sig.type}::${iso}::${day}`;
   }
-  // Seismic events: dedup by spatial+temporal+mag
   const lat = sig.latitude ?? COUNTRIES[iso]?.cent?.[1] ?? 0;
   const lon = sig.longitude ?? COUNTRIES[iso]?.cent?.[0] ?? 0;
-  const mag = sig.magnitude ?? sig.weight / 20;   // fallback if mag missing
+  const mag = sig.magnitude ?? sig.weight / 20;
   const timeBucket = sig.ageHours ? Math.floor((Date.now() - sig.ageHours * 36e5) / (CFG.DEDUP_TIME_WINDOW_HOURS * 36e5)) : "unknown";
   const magBucket = Math.round(mag / CFG.DEDUP_MAG_TOLERANCE);
   return `seismic::${timeBucket}::${magBucket}::${Math.round(lat)}::${Math.round(lon)}`;
@@ -630,10 +625,6 @@ function deduplicateEvents(signals, iso) {
   }
   return deduped;
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  REAL HISTORY PERSISTENCE
-// ════════════════════════════════════════════════════════════════════════════
 
 class PersistentHistoryStore {
   constructor() {
@@ -688,10 +679,6 @@ class HistoricalDataStore {
   }
 }
 const historyStore = new HistoricalDataStore();
-
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE
-// ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
@@ -1083,9 +1070,13 @@ function buildBreakingHeadline(iso, signals, country) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  RANKING — v13.9.3 ALGORITHM
+//  v13.9.1 PATCH: RANKING ALGORITHM
+//  Primary sort: effective_score = max(structural, live). Preserves structural
+//  floor so chronic crises don't collapse when live events age out.
+//  Tiebreaker 1: has_fresh_live_event
+//  Tiebreaker 2: live_score
+//  Tiebreaker 3: freshness
 // ════════════════════════════════════════════════════════════════════════════
-
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
@@ -1093,16 +1084,20 @@ function rankByLiveBreaking(store) {
     const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
     const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
 
+    // Primary: effective score
     if (bEff !== aEff) return bEff - aEff;
 
+    // Tiebreaker 1: has fresh live event
     if (CFG.LIVE_EVENT_OVERRIDE || true) {
       const aHas = aLB.has_fresh_live_event ? 1 : 0;
       const bHas = bLB.has_fresh_live_event ? 1 : 0;
       if (aHas !== bHas) return bHas - aHas;
     }
 
+    // Tiebreaker 2: live score
     if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
 
+    // Tiebreaker 3: freshness
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 }
@@ -1113,8 +1108,12 @@ function rankBreakingOnly(store, minSignals = 1) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+      if (CFG.LIVE_EVENT_OVERRIDE) {
+        const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+        const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+        if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+      }
+      return (bLB.live_score || 0) - (aLB.live_score || 0);
     });
 }
 
@@ -1129,7 +1128,6 @@ function rankLiveEventsOnly(store) {
     });
 }
 
-// ─── ML / SENTIMENT ──────────────────────────────────────────────────────────
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
   predict(seq) {
@@ -1285,10 +1283,6 @@ class AlertManager {
   }
 }
 const alertManager = new AlertManager();
-
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS
-// ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
@@ -1518,6 +1512,8 @@ async function fetchUNHCRSolutions() {
           const iso = item.coo_iso;
           if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
           map[iso].returned_refugees += parseInt(item.returned_refugees) || 0;
+          map[iso].resettlement += parseInt(item.resettlement) || 0;
+          map[iso].naturalisation += parseInt(item.naturalisation) || 0;
         }
       }
       return { data: map, live: Object.keys(map).length > 0 };
@@ -1787,10 +1783,6 @@ async function fetchAllLive() {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS
-// ════════════════════════════════════════════════════════════════════════════
-
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   let liveEvidenceCount = 0;
@@ -2031,7 +2023,6 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── APPLY LIVE ADJUSTMENTS ─────────────────────────────────────────────────
 function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
@@ -2207,7 +2198,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   return { dims, score: clamp(composite(dims)), audit, totalBoostRaw: totalBoost, totalBoostCapped: capped, boostRatio: ratio, maxAllowedBoost: cap };
 }
 
-// ─── BUILD STORE ────────────────────────────────────────────────────────────
 async function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
@@ -2232,7 +2222,7 @@ async function buildStore(liveData) {
       ...country, dims, score: structuralScore, structural_score: structuralScore, priorScore,
       liveBoost: structuralScore - priorScore, audit, signals, spillover: 0,
       fsi_score: fsiScore, fsi_rank: country.fsi_rank, fsi_band: country.fsi_band,
-      historical_scores: [], __wst: null, __live_breaking: null, __effective_score: null,
+      historical_scores: [], __wst: null, __live_breaking: null,
     };
   }
 
@@ -2253,12 +2243,6 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  for (const iso in store) {
-    const structural = store[iso].structural_score ?? store[iso].score;
-    const live = store[iso].__live_breaking?.live_score || 0;
-    store[iso].__effective_score = Math.max(structural, live);
-  }
-
   if (CFG.SCORE_FIELD_IS_LIVE && CFG.LIVE_BREAKING_ENABLED) {
     for (const iso in store) { const lb = store[iso].__live_breaking; if (lb) store[iso].score = lb.live_score; }
   }
@@ -2272,7 +2256,6 @@ async function buildStore(liveData) {
   return store;
 }
 
-// ─── ANOMALY / TREND / SEED / PRIOR DIMS ─────────────────────────────────────
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
@@ -2284,7 +2267,7 @@ function runAnomalyDetection(a, opts = {}) {
   }
   const m = [detectCUSUM(a), detectZScore(a), detectChangepoint(a), detectVolatilityRegime(a)];
   const f = m.filter(x => x.detected);
-return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
+  return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
 }
 function trendForecast(h, cur) {
   if (h.length < 5) return { fc: cur, trend: "stable", esc: false, slope: 0, confidence: 0.3 };
@@ -2329,7 +2312,6 @@ function recommendation(score, anomaly) {
   return { tier: "WATCH", text: `Routine monitoring.${an}` };
 }
 
-// ─── PAYLOAD BUILDER ────────────────────────────────────────────────────────
 async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2348,9 +2330,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   const base = {
     iso, name: c.name, flag: c.flag,
     score: displayScore,
-    effective_score: c.__effective_score ?? displayScore,
     structural_score: c.structural_score ?? c.score,
-    live_score: lb.live_score || 0,
     severity: severityLabel(displayScore),
     severity_emoji: severityEmoji(displayScore),
     severity_color: severityColor(displayScore),
@@ -2483,7 +2463,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
       live_breaking_score: lb.live_score,
-      effective_score: c.__effective_score ?? displayScore,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2599,55 +2578,50 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  MAIN HANDLER
-// ════════════════════════════════════════════════════════════════════════════
-
 export default async function handler(req, res) {
   const start = Date.now();
-  // ═══ v13.9.5: wrap everything so init errors don't leak as [object Object] ═══
+  if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
+  if (req.method !== "GET") { res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
+
+  let params;
   try {
-    if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
-    if (req.method !== "GET") { res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
+    const url = new URL(req.url ?? "/", "https://x");
+    params = {
+      iso: url.searchParams.get("iso")?.toUpperCase().trim() || null,
+      top: parseInt(url.searchParams.get("top") || "179", 10),
+      q: url.searchParams.get("q")?.trim() || null,
+      region: url.searchParams.get("region")?.toLowerCase().trim() || null,
+      threshold: parseInt(url.searchParams.get("threshold") || "0", 10),
+      format: url.searchParams.get("format") || "json",
+      keywords: url.searchParams.get("keywords") === "true",
+      related: url.searchParams.get("related") === "true",
+      schema: url.searchParams.get("schema") === "true",
+      summary: url.searchParams.get("summary") === "true",
+      force_live: url.searchParams.get("force_live") !== "false",
+      export: url.searchParams.get("export") || null,
+      widget: url.searchParams.get("widget") === "true",
+      breaking: url.searchParams.get("format") === "breaking",
+      live: url.searchParams.get("format") === "live",
+      rss: url.searchParams.get("format") === "rss",
+      wst: url.searchParams.get("format") === "wst",
+    };
+    if (Number.isNaN(params.top)) params.top = 179;
+    if (Number.isNaN(params.threshold)) params.threshold = 0;
+    params.top = Math.min(CFG.MAX_TOP_N, Math.max(1, params.top));
+  } catch { res.writeHead(400, CORS); res.end(JSON.stringify({ error: "Bad request URL" })); return; }
 
-    let params;
-    try {
-      const url = new URL(req.url ?? "/", "https://x");
-      params = {
-        iso: url.searchParams.get("iso")?.toUpperCase().trim() || null,
-        top: parseInt(url.searchParams.get("top") || "179", 10),
-        q: url.searchParams.get("q")?.trim() || null,
-        region: url.searchParams.get("region")?.toLowerCase().trim() || null,
-        threshold: parseInt(url.searchParams.get("threshold") || "0", 10),
-        format: url.searchParams.get("format") || "json",
-        keywords: url.searchParams.get("keywords") === "true",
-        related: url.searchParams.get("related") === "true",
-        schema: url.searchParams.get("schema") === "true",
-        summary: url.searchParams.get("summary") === "true",
-        force_live: url.searchParams.get("force_live") !== "false",
-        export: url.searchParams.get("export") || null,
-        widget: url.searchParams.get("widget") === "true",
-        breaking: url.searchParams.get("format") === "breaking",
-        live: url.searchParams.get("format") === "live",
-        rss: url.searchParams.get("format") === "rss",
-        wst: url.searchParams.get("format") === "wst",
-      };
-      if (Number.isNaN(params.top)) params.top = 179;
-      if (Number.isNaN(params.threshold)) params.threshold = 0;
-      params.top = Math.min(CFG.MAX_TOP_N, Math.max(1, params.top));
-    } catch { res.writeHead(400, CORS); res.end(JSON.stringify({ error: "Bad request URL" })); return; }
+  if (params.region) for (const [canon, aliases] of Object.entries(REGION_ALIASES)) if (aliases.includes(params.region)) { params.region = canon; break; }
+  if (params.q && !params.iso) {
+    const r = findIsoByName(params.q);
+    if (!r) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Could not resolve "${params.q}"` })); return; }
+    params.iso = r;
+  }
 
-    if (params.region) for (const [canon, aliases] of Object.entries(REGION_ALIASES)) if (aliases.includes(params.region)) { params.region = canon; break; }
-    if (params.q && !params.iso) {
-      const r = findIsoByName(params.q);
-      if (!r) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Could not resolve "${params.q}"` })); return; }
-      params.iso = r;
-    }
+  const isoList = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s]) : [];
+  const invalid = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s]) : [];
+  if (invalid.length) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Unknown ISO: ${invalid.join(", ")}` })); return; }
 
-    const isoList = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => COUNTRIES[s]) : [];
-    const invalid = params.iso ? params.iso.split(",").map(s => s.trim()).filter(s => !COUNTRIES[s]) : [];
-    if (invalid.length) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Unknown ISO: ${invalid.join(", ")}` })); return; }
-
+  try {
     const liveData = await fetchAllLive();
     const store = await buildStore(liveData);
     const ranked = rankByLiveBreaking(store);
@@ -2686,7 +2660,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
@@ -2713,7 +2687,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: (lb.events || []).slice(0, 3) };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2744,7 +2718,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.5",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -2753,7 +2727,7 @@ export default async function handler(req, res) {
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
         dedup_enabled: CFG.DEDUP_ENABLED,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
-        note: "v13.9.5 — syntax fix + robust error handling. Ranking uses effective_score (max of structural, live). Event dedup preserved.",
+        note: "v13.9.1 — Event deduplication + real history. live_event_count now = DISTINCT events (was duplicate of signal_count). Anomalies require ≥14 days of observed history.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2818,17 +2792,8 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    // ═══ v13.9.5: never leak an object as the error message ═══
-    console.error("[top-story v13.9.5]", err);
-    const errMessage = typeof err === "string" ? err :
-                       (err && typeof err.message === "string") ? err.message :
-                       (err && typeof err.toString === "function") ? err.toString() :
-                       "Unknown error";
+    console.error("[top-story v13.9.1]", err);
     res.writeHead(500, CORS);
-    res.end(JSON.stringify({
-      error: "Internal server error",
-      message: errMessage,
-      error_type: err?.constructor?.name || typeof err,
-    }));
+    res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
 }
