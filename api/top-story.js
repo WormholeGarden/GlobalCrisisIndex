@@ -1,4 +1,4 @@
-"use strict";
+you know how the rss feed was working before, it doesnt in this new code so fix the new api code and show me the full code. "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
 //  TOP-STORY API — v13.9.3 — STRUCTURAL/LIVE BALANCE
@@ -2845,4 +2845,3 @@ export default async function handler(req, res) {
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
-}
