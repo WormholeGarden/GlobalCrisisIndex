@@ -2529,7 +2529,7 @@ async function buildStore(liveData, sourceHealth) {
     store[iso].structural_score = store[iso].score;
   }
 
-  for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score);
+  for (const iso in store) store[iso].historical_scores = [];
 
   if (CFG.ML_ENABLED) await trainMLModel(store);
 
