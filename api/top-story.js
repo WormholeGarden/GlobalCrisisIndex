@@ -1,22 +1,22 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.1-A — SCORING SYSTEM A
+//  TOP-STORY API — v13.9.5 — SCORING SYSTEM A + v13.9.1 DEDUP/HISTORY
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ v13.9.1-A CHANGES ═══
-//  ✅ Scoring System A replaces the previous ranking logic
-//  ✅ effective_score = max(structural, live) drives ranking
-//  ✅ has_fresh_live_event is a tiebreaker, not an override
-//  ✅ Event deduplication preserved (spatial+temporal+mag hash)
-//  ✅ live_event_count = distinct events (was duplicate of signal_count)
-//  ✅ Real history persistence preserved
-//  ✅ Anomaly detection runs on real history (or reports INSUFFICIENT_HISTORY)
-//  ✅ ML trains on real sequences only
-//  ✅ seedHistory reserved for display (labeled "synthetic")
-//  ✅ All v13.9 real feeds preserved
-//  ✅ Everything else identical to v13.9.1
+//  ═══ v13.9.5 CHANGES ═══
+//  ✅ SCORING SYSTEM A (from v13.9.3):
+//       effective_score = max(structural, live) drives ranking
+//       event signals age out at 168h, state signals at 720h
+//       FSI-capped boosts (10/20/30/40 by FSI band)
+//       LIVE_EVENT_OVERRIDE = false (has_fresh_live_event is tiebreaker)
+//  ✅ v13.9.1 PRESERVED:
+//       Event deduplication (spatial+temporal+mag hash)
+//       Real history persistence (in-memory + Redis/Upstash shim)
+//       Anomaly detection gated on real history
+//       distinct_event_count + raw_signal_count in payload
+//       RSS feed + Live evidence feed
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -50,23 +50,32 @@ const CFG = {
 
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
-  // ═══ Scoring System A: display mode + ranking mode are separate ═══
-  SCORE_FIELD_IS_LIVE: false,        // display max(structural, live)
+  // ═══ SCORING SYSTEM A ═══
+  SCORE_FIELD_IS_LIVE: false,
   RANKING_USES_EFFECTIVE_SCORE: true,
-  EFFECTIVE_SCORE_MODE: "max",       // "max" | "live" | "structural"
-
+  EFFECTIVE_SCORE_MODE: "max",
   LIVE_EVENT_FLAT_BOOST: 35,
-  LIVE_EVENT_OVERRIDE: false,        // Scoring System A: false = tiebreaker only
+  LIVE_EVENT_OVERRIDE: false,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
 
-  // ═══ Event deduplication ═══
+  // ═══ SCORING SYSTEM A: age-out ═══
+  EVENT_SIGNAL_MAX_AGE_HOURS: 168,
+  STATE_SIGNAL_MAX_AGE_HOURS: 720,
+
+  // ═══ SCORING SYSTEM A: FSI-capped boosts ═══
+  FSI_BOOST_CAP_VERY_HIGH: 40,
+  FSI_BOOST_CAP_HIGH: 30,
+  FSI_BOOST_CAP_MODERATE: 20,
+  FSI_BOOST_CAP_LOW: 10,
+
+  // ═══ v13.9.1: Event deduplication ═══
   DEDUP_TIME_WINDOW_HOURS: 6,
   DEDUP_DISTANCE_KM: 300,
   DEDUP_MAG_TOLERANCE: 0.8,
   DEDUP_ENABLED: true,
 
-  // ═══ Real history ═══
+  // ═══ v13.9.1: Real history ═══
   HISTORY_MIN_FOR_ANOMALY: 14,
   HISTORY_MIN_FOR_ML_TRAIN: 10,
   HISTORY_GRANULARITY_HOURS: 1,
@@ -206,16 +215,6 @@ const CFG = {
 
   WB_INFRASTRUCTURE_ENABLED: true,
   WB_INFRASTRUCTURE_BOOST: 30,
-
-  // ═══ Scoring System A: FSI-capped boosts ═══
-  FSI_BOOST_CAP_VERY_HIGH: 40,
-  FSI_BOOST_CAP_HIGH: 30,
-  FSI_BOOST_CAP_MODERATE: 20,
-  FSI_BOOST_CAP_LOW: 10,
-
-  // ═══ Scoring System A: event/state age-out ═══
-  EVENT_SIGNAL_MAX_AGE_HOURS: 168,
-  STATE_SIGNAL_MAX_AGE_HOURS: 720,
 };
 
 const CORS = {
@@ -239,7 +238,7 @@ const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
 
-// ─── Scoring System A: event vs state classification ─────────────────────────
+// ═══ SCORING SYSTEM A: EVENT vs STATE classification ═══
 const EVENT_SIGNAL_TYPES = new Set([
   "gdacs_red", "gdacs_orange",
   "earthquake_m6", "earthquake_m5", "earthquake_m45",
@@ -285,20 +284,21 @@ const COUNTRY_CENTROIDS = {
   HRV: [15.2, 45.1], SVN: [14.9, 46.2], HUN: [19.5, 47.2], AUT: [14.6, 47.5],
   CHE: [8.2, 46.8], NLD: [5.3, 52.1], BEL: [4.5, 50.5], LUX: [6.1, 49.8],
   DNK: [9.5, 56.3], NOR: [8.5, 60.5], SWE: [18.6, 60.1], FIN: [25.7, 61.9],
-  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4],
+  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4], AND: [1.6, 42.5],
   CAN: [-105.0, 56.1], AUS: [133.8, -25.3], NZL: [172.0, -41.0], PNG: [143.9, -6.3],
   SLB: [160.2, -9.6], VUT: [166.9, -15.4], FJI: [178.0, -17.7], WSM: [-172.1, -13.8],
   TON: [-175.2, -21.2], KIR: [173.0, 1.9], FSM: [158.2, 6.9], MHL: [171.2, 7.1],
   PLW: [134.6, 7.5], NRU: [166.9, -0.5], TUV: [177.7, -7.1], KOR: [127.8, 36.5],
   PRK: [127.5, 40.3], TWN: [120.9, 23.7], HKG: [114.1, 22.3], MNG: [103.8, 46.9],
   KHM: [104.9, 12.6], LAO: [102.5, 19.9], MYS: [101.9, 4.2], SGP: [103.8, 1.4],
-  BRN: [114.7, 4.5], TLS: [125.7, -8.9], BTN: [90.4, 27.5], MDV: [73.2, 3.2],
+  BRN: [114.7, 4.5], TLS: [-125.7, -8.9], BTN: [90.4, 27.5], MDV: [73.2, 3.2],
   CUB: [-77.8, 21.5], HTI: [-72.3, 18.9], DOM: [-70.2, 18.7], JAM: [-77.3, 18.1],
   TTO: [-61.2, 10.7], BRB: [-59.6, 13.2], GUY: [-58.9, 4.9], SUR: [-55.9, 4.0],
   BLZ: [-88.5, 17.2], GTM: [-90.2, 15.8], HND: [-86.2, 15.2], SLV: [-88.9, 13.8],
   NIC: [-85.2, 12.9], CRI: [-83.8, 9.7], PAN: [-80.8, 8.5], BHS: [-77.4, 25.0],
-  ATG: [-61.8, 17.1], GRD: [-61.7, 12.1], LCA: [-60.9, 13.9],
-  URY: [-55.8, -32.5], ARG: [-63.6, -38.4], PRY: [-58.4, -23.4], BOL: [-63.6, -16.3],
+  ATG: [-61.8, 17.1], DMA: [-61.4, 15.4], GRD: [-61.7, 12.1], KNA: [-62.7, 17.3],
+  LCA: [-60.9, 13.9], VCT: [-61.2, 13.3], URY: [-55.8, -32.5], ARG: [-63.6, -38.4],
+  PRY: [-58.4, -23.4], BOL: [-63.6, -16.3],
 };
 
 // ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
@@ -631,7 +631,7 @@ function matchesCountryPlace(iso, place) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EVENT DEDUPLICATION
+//  v13.9.1: EVENT DEDUPLICATION
 // ════════════════════════════════════════════════════════════════════════════
 
 function eventKeyFor(sig, iso) {
@@ -668,7 +668,7 @@ function deduplicateEvents(signals, iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  REAL HISTORY PERSISTENCE
+//  v13.9.1: REAL HISTORY PERSISTENCE
 // ════════════════════════════════════════════════════════════════════════════
 
 class PersistentHistoryStore {
@@ -677,13 +677,16 @@ class PersistentHistoryStore {
     this.redis = null;
     this.maxPoints = CFG.HISTORY_MAX_POINTS;
   }
+
   attachRedis(client) { this.redis = client; }
+
   async record(iso, snapshot) {
     const entry = { ts: Date.now(), ...snapshot };
     if (!this.memory.has(iso)) this.memory.set(iso, []);
     const arr = this.memory.get(iso);
     arr.push(entry);
     if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
+
     if (this.redis) {
       try {
         await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
@@ -692,6 +695,7 @@ class PersistentHistoryStore {
       } catch {}
     }
   }
+
   async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
     if (this.redis) {
       try {
@@ -704,6 +708,7 @@ class PersistentHistoryStore {
     const arr = this.memory.get(iso) || [];
     return arr.slice(-limit);
   }
+
   async scoreSeries(iso, limit = CFG.HISTORY_MAX_POINTS) {
     const rows = await this.get(iso, limit);
     return rows.map(r => r.score).filter(Number.isFinite);
@@ -725,10 +730,7 @@ class HistoricalDataStore {
 }
 const historyStore = new HistoricalDataStore();
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SIGNAL AGE-OUT — Scoring System A
-// ════════════════════════════════════════════════════════════════════════════
-
+// ═══ SCORING SYSTEM A: signal freshness gate ═══
 function isSignalFresh(sig) {
   const age = sig.ageHours || 0;
   const maxAge = EVENT_SIGNAL_TYPES.has(sig.type)
@@ -737,7 +739,7 @@ function isSignalFresh(sig) {
   return age <= maxAge;
 }
 
-// ═══ Scoring System A: FSI-capped boosts ═══
+// ═══ SCORING SYSTEM A: FSI-capped boosts ═══
 function maxBoostForFSI(fsiScore) {
   if (fsiScore >= 80) return CFG.FSI_BOOST_CAP_VERY_HIGH;
   if (fsiScore >= 60) return CFG.FSI_BOOST_CAP_HIGH;
@@ -745,15 +747,15 @@ function maxBoostForFSI(fsiScore) {
   return CFG.FSI_BOOST_CAP_LOW;
 }
 
-// ═══ Scoring System A: effective score ═══
+// ═══ SCORING SYSTEM A: effective score ═══
 function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
   if (mode === "live") return liveScore;
   if (mode === "structural") return structuralScore;
-  return Math.max(structuralScore, liveScore);   // "max" (default)
+  return Math.max(structuralScore, liveScore);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE
+//  LIVE BREAKING ENGINE — v13.9.5
 // ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -1020,13 +1022,16 @@ function detectLiveBreakingSignals(iso, live, store) {
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
 
+// ═══ SCORING SYSTEM A: computeLiveBreakingScore with dedup + event/state split + FSI caps ═══
 function computeLiveBreakingScore(iso, live, store) {
   const c = COUNTRIES[iso];
   const rawSignals = detectLiveBreakingSignals(iso, live, store);
-  // ═══ Scoring System A: age out stale signals ═══
-  const freshSignals = rawSignals.filter(isSignalFresh);
-  // ═══ Event deduplication ═══
-  const signals = deduplicateEvents(freshSignals, iso);
+
+  // v13.9.1: dedup
+  const dedupedSignals = deduplicateEvents(rawSignals, iso);
+
+  // v13.9.5: SCORING SYSTEM A: age-out via isSignalFresh
+  const signals = dedupedSignals.filter(isSignalFresh);
 
   let rawScore = 0;
   const sources = new Set();
@@ -1051,7 +1056,7 @@ function computeLiveBreakingScore(iso, live, store) {
   const signalCount = rawSignals.length;
   const distinctEventCount = signals.length;
 
-  // ═══ Scoring System A: split event vs state sources ═══
+  // ═══ SCORING SYSTEM A: event signals drive boosts; states excluded from source multiplier ═══
   const eventSignals = activeSignals.filter(s => EVENT_SIGNAL_TYPES.has(s.type));
   const eventSources = new Set(eventSignals.map(s => s.source));
 
@@ -1062,11 +1067,9 @@ function computeLiveBreakingScore(iso, live, store) {
     rawScore += liveEventBoost;
   }
 
-  // Source multiplier: only event sources count
   const sourceMultiplier = 1 + Math.min(0.8, Math.max(0, eventSources.size - 1) * 0.3);
   rawScore *= sourceMultiplier;
 
-  // Diversity bonus: only event types count
   const eventTypes = new Set(eventSignals.map(s => s.type));
   const diversityBonus = Math.min(30, Math.max(0, eventTypes.size - 1) * 8);
   rawScore += diversityBonus;
@@ -1079,11 +1082,11 @@ function computeLiveBreakingScore(iso, live, store) {
   else if (freshest <= 48) freshnessBonus = 8;
   rawScore += freshnessBonus;
 
-  // ═══ Scoring System A: FSI baseline (non-negative) ═══
+  // ═══ SCORING SYSTEM A: FSI baseline (never negative) ═══
   const fsiBaseline = Math.max(0, ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX);
   rawScore += fsiBaseline;
 
-  // ═══ Scoring System A: FSI-capped boosts ═══
+  // ═══ SCORING SYSTEM A: FSI-capped total boost ═══
   const maxBoost = maxBoostForFSI(c.fsi_score);
   const boostAboveBaseline = Math.max(0, rawScore - fsiBaseline);
   if (boostAboveBaseline > maxBoost) {
@@ -1132,6 +1135,7 @@ function computeLiveBreakingScore(iso, live, store) {
     fsi_boost_cap: maxBoost,
     ensemble_dampener: ensembleDampener,
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
+    signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
     events: signals.map(sig => ({
       type: sig.type,
       label: LIVE_SIGNALS[sig.type]?.label || sig.type,
@@ -1144,7 +1148,6 @@ function computeLiveBreakingScore(iso, live, store) {
       corroborating_sources: sig.corroborating_sources || [],
       corroboration_count: sig.corroboration_count || 0,
     })).sort((a, b) => b.weighted_score - a.weighted_score),
-    signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(iso, activeSignals, c),
   };
 }
@@ -1163,14 +1166,7 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  RANKING — SCORING SYSTEM A
-//  Primary: effective_score (max of structural, live)
-//  Tiebreaker 1: has_fresh_live_event
-//  Tiebreaker 2: live_score
-//  Tiebreaker 3: freshest_signal_age_hours
-// ════════════════════════════════════════════════════════════════════════════
-
+// ═══ SCORING SYSTEM A: ranking by effective_score, live event as tiebreaker ═══
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
@@ -1189,9 +1185,7 @@ function rankByLiveBreaking(store) {
     }
 
     // Tiebreaker 2: live score
-    const aLive = Number.isFinite(aLB.live_score) ? aLB.live_score : 0;
-    const bLive = Number.isFinite(bLB.live_score) ? bLB.live_score : 0;
-    if (bLive !== aLive) return bLive - aLive;
+    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
 
     // Tiebreaker 3: freshness
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
@@ -1205,9 +1199,6 @@ function rankBreakingOnly(store, minSignals = 1) {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
       if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-      if (bEff !== aEff) return bEff - aEff;
       return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
     });
 }
@@ -1218,9 +1209,6 @@ function rankLiveEventsOnly(store) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking;
       const bLB = store[b].__live_breaking;
-      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-      if (bEff !== aEff) return bEff - aEff;
       if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
       return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
     });
@@ -1355,13 +1343,16 @@ function analyzeCountrySentiment(iso, store) {
 async function storeHistoricalData(iso, store) {
   if (!CFG.HISTORY_ENABLED) return;
   const c = store[iso];
+  const effective = c.__effective_score ?? c.score;
+  const live = c.__live_breaking?.live_score || 0;
   await persistentHistory.record(iso, {
-    score: c.score,
-    live_score: c.__live_breaking?.live_score || 0,
+    score: effective,
+    live_score: live,
+    structural_score: c.structural_score,
     signal_count: c.__live_breaking?.signal_count || 0,
     distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
   });
-  historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
+  historyStore.store(iso, { score: effective, live_score: live });
 }
 
 class AlertManager {
@@ -1385,7 +1376,7 @@ class AlertManager {
 const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS
+//  LIVE DATA FETCHERS — v13.9.1 (preserved)
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1732,17 +1723,26 @@ async function fetchJTWC() {
     const seen = new Set();
     for (const m of activeMatches) {
       const name = m[1]?.trim();
-      if (name && !seen.has(name)) { seen.add(name); storms.push({ name, ageHours: 12, category: 'active' }); }
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        storms.push({ name, ageHours: 12, category: 'active' });
+      }
     }
     return { data: storms.slice(0, 5), live: storms.length > 0 };
-  } catch { return { data: [], live: false }; }
+  } catch {
+    return { data: [], live: false };
+  }
 }
 async function fetchJMA() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/quake/data/list.json").then(r => r.json()));
     if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
       const events = r.data.slice(0, 20).map(e => {
-        const parseJMATime = (s) => { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d.getTime(); };
+        const parseJMATime = (s) => {
+          if (!s) return null;
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? null : d.getTime();
+        };
         const eventTime = parseJMATime(e.at);
         const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 24;
         return { mag: parseFloat(e.mag) || 0, place: e.en_anm || e.anm || 'Japan region', maxIntensity: parseInt(e.maxi) || 0, eventTime, ageHours };
@@ -1820,7 +1820,11 @@ async function fetchJMATyphoon() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json").then(r => r.json()));
     if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
-      const typhoons = r.data.map(t => ({ name: t.title || t.name || 'Typhoon', category: t.category || 'active', ageHours: 12 }));
+      const typhoons = r.data.map(t => ({
+        name: t.title || t.name || 'Typhoon',
+        category: t.category || 'active',
+        ageHours: 12,
+      }));
       return { data: typhoons, live: typhoons.length > 0 };
     }
   } catch {}
@@ -1840,7 +1844,11 @@ async function fetchECDC() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.ecdc.europa.eu/en/taxonomy/term/1607/feed").then(r => r.json()));
     if (r.ok && r.data?.items?.length) {
-      const items = r.data.items.slice(0, 10).map(it => ({ title: it.title || '', pubDate: it.pubDate || null, ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 48 }));
+      const items = r.data.items.slice(0, 10).map(it => ({
+        title: it.title || '',
+        pubDate: it.pubDate || null,
+        ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 48,
+      }));
       return { data: items, live: true };
     }
   } catch {}
@@ -1871,7 +1879,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS
+//  EXTRACT SIGNALS — v13.9.1 (preserved)
 // ════════════════════════════════════════════════════════════════════════════
 
 function extractSignals(iso, live) {
@@ -2336,7 +2344,7 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ Scoring System A: effective_score = max(structural, live) ═══
+  // ═══ SCORING SYSTEM A: compute effective_score ═══
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
@@ -2358,7 +2366,6 @@ function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 };
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
 function detectVolatilityRegime(a) { if (a.length < 8) return { detected: false, stat: 0 }; const h = Math.floor(a.length/2); const r = stddev(a.slice(h))/stddev(a.slice(0,h)); return { detected: r > 2, stat: +r.toFixed(2) }; }
-
 function runAnomalyDetection(a, opts = {}) {
   const minRequired = opts.minRequired || 10;
   if (a.length < minRequired) {
@@ -2368,7 +2375,6 @@ function runAnomalyDetection(a, opts = {}) {
   const f = m.filter(x => x.detected);
   return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
 }
-
 function trendForecast(h, cur) {
   if (h.length < 5) return { fc: cur, trend: "stable", esc: false, slope: 0, confidence: 0.3 };
   const w = h.slice(-10);
@@ -2446,7 +2452,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
 
     live_breaking: {
-      score: liveScore,
+      score: lb.live_score || 0,
       tier: lb.tier || "BACKGROUND",
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
@@ -2472,7 +2478,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
         type: sig.type,
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
         icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
-        is_live_event: sig.is_live_event || false,
+        is_live_event: EVENT_SIGNAL_TYPES.has(sig.type),
         weight: sig.weight,
         age_hours: +(sig.ageHours || 0).toFixed(1),
         weighted_score: sig.weighted_score,
@@ -2745,15 +2751,13 @@ export default async function handler(req, res) {
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
     else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__effective_score || 0) >= params.threshold);
-    else if (params.force_live && liveEventsOnly.length > 0) finalIsos = liveEventsOnly.slice(0, params.top);
-    else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const s = store[iso];
-      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
+      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_score: s.__live_breaking?.live_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -2762,12 +2766,13 @@ export default async function handler(req, res) {
     if (params.widget && finalIsos.length === 1) {
       const c = store[finalIsos[0]];
       const lb = c.__live_breaking || {};
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Live Score ${lb.live_score || 0}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
+      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
     }
 
+    // ═══ LIVE EVIDENCE FEED ═══
     if (params.live) {
       const source = liveEventsOnly.length ? liveEventsOnly : breakingRanked;
       const feed = source.slice(0, params.top || 25).map(iso => {
@@ -2780,6 +2785,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // ═══ RSS FEED ═══
     if (params.rss) {
       const isos = params.region ? (liveEventsOnly.length ? liveEventsOnly : breakingRanked).filter(i => COUNTRIES[i].region === params.region).slice(0, 30) : (liveEventsOnly.length ? liveEventsOnly : breakingRanked).slice(0, 30);
       const f = buildRSSFeed(isos.length ? isos : ranked.slice(0, 30), store, ranked);
@@ -2800,7 +2806,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3) };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: (lb.events || []).slice(0, 3) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2831,17 +2837,18 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.1-A",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.5",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         effective_score_mode: CFG.EFFECTIVE_SCORE_MODE,
-        score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
         dedup_enabled: CFG.DEDUP_ENABLED,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
-        note: "v13.9.1-A — Scoring System A applied: effective_score = max(structural, live) drives ranking. has_fresh_live_event is a tiebreaker. All v13.9.1 features preserved.",
+        event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
+        state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
+        note: "v13.9.5 — Scoring System A (effective_score = max(structural, live), event age-out, FSI-capped boosts) + v13.9.1 dedup and real history preserved.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2906,7 +2913,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.9.1-A]", err);
+    console.error("[top-story v13.9.5]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
