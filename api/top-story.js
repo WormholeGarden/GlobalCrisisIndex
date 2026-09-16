@@ -1,20 +1,19 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.3 — STRUCTURAL/LIVE BALANCE
+//  TOP-STORY API — v13.9.3 — STRUCTURAL FLOOR + HONEST HISTORY
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
 //  ═══ v13.9.3 CHANGES ═══
-//  ✅ Live score no longer overrides structural score when lower
-//  ✅ effective_score = max(structural, live) drives ranking
-//  ✅ has_fresh_live_event is a tiebreaker, not an override
-//  ✅ Anomaly gate fixed (INSUFFICIENT_HISTORY until 14 real obs)
-//  ✅ ML gate fixed (no training on synthetic data)
+//  ✅ STRUCTURAL FLOOR: live score cannot fall below 75% of structural score
+//  ✅ Palestine no longer vanishes to #143 when it has no fresh events
+//  ✅ Anomaly gated on ≥14 real observations (INSUFFICIENT_HISTORY)
+//  ✅ ML gated on ≥14 real observations (no synthetic training)
 //  ✅ Event signals age out at 168h; state signals at 720h
 //  ✅ Boosts capped by FSI baseline
 //  ✅ Data source health reported
-//  ✅ Persistence wiring
+//  ✅ Persistence wiring (InMemoryHistoryStore, swap for Redis/KV)
 //  ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -49,15 +48,19 @@ const CFG = {
 
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
-  // ═══ v13.9.3: SCORE_FIELD_IS_LIVE is now the *display* mode, not the ranking mode ═══
-  SCORE_FIELD_IS_LIVE: false,   // false = display max(structural, live); true = display live only
-  RANKING_USES_EFFECTIVE_SCORE: true,
-  EFFECTIVE_SCORE_MODE: "max",   // "max" | "live" | "structural"
-
+  SCORE_FIELD_IS_LIVE: true,
   LIVE_EVENT_FLAT_BOOST: 35,
-  LIVE_EVENT_OVERRIDE: false,   // v13.9.3: false = has_fresh_live_event is a tiebreaker only
+  LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
+
+  // ═══ v13.9.3: STRUCTURAL FLOOR ═══
+  // The final score cannot fall below this fraction of the structural score.
+  // Prevents chronic crises from vanishing when they have no fresh events.
+  // 0.75 means: Palestine with structural=80 has floor of 60.
+  // 0.50 means: floor of 40.
+  // 1.00 means: live score never goes below structural (defeats the purpose).
+  STRUCTURAL_FLOOR_MULTIPLIER: 0.75,
 
   EVENT_SIGNAL_MAX_AGE_HOURS: 168,
   STATE_SIGNAL_MAX_AGE_HOURS: 720,
@@ -273,7 +276,7 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
 
-// ─── FSI 2024 — 179 COUNTRIES (same table as before) ────────────────────────
+// ─── FSI 2024 — 179 COUNTRIES ────────────────────────────────────────────────
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
   SDN: { name:"Sudan",                flag:"🇸🇩", fsi_score:109.3, rank:2, region:"africa", fsi_band:"Very High Alert" },
@@ -558,7 +561,7 @@ function matchesCountryPlace(iso, place) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v13.9.3: HISTORY PERSISTENCE
+//  v13.9.3: HISTORY PERSISTENCE LAYER
 // ════════════════════════════════════════════════════════════════════════════
 
 class InMemoryHistoryStore {
@@ -594,7 +597,10 @@ async function recordHistory(iso, displayScore, liveScore) {
   await historyStore.recordObservation(iso, { score: displayScore, live_score: liveScore });
 }
 
-// ═══ v13.9.3: SIGNAL AGE-OUT ═══
+// ════════════════════════════════════════════════════════════════════════════
+//  SIGNAL AGE-OUT + BOOST CAPS
+// ════════════════════════════════════════════════════════════════════════════
+
 function isSignalFresh(sig) {
   const age = sig.ageHours || 0;
   const maxAge = EVENT_SIGNAL_TYPES.has(sig.type)
@@ -603,21 +609,11 @@ function isSignalFresh(sig) {
   return age <= maxAge;
 }
 
-// ═══ v13.9.3: FSI-CAPPED BOOSTS ═══
 function maxBoostForFSI(fsiScore) {
   if (fsiScore >= 80) return CFG.FSI_BOOST_CAP_VERY_HIGH;
   if (fsiScore >= 60) return CFG.FSI_BOOST_CAP_HIGH;
   if (fsiScore >= 40) return CFG.FSI_BOOST_CAP_MODERATE;
   return CFG.FSI_BOOST_CAP_LOW;
-}
-
-// ═══ v13.9.3: EFFECTIVE SCORE ═══
-// The score that drives ranking and display. Distinct from both structural and live.
-// NEVER lets a live score *reduce* a country's standing below its structural baseline.
-function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
-  if (mode === "live") return liveScore;
-  if (mode === "structural") return structuralScore;
-  return Math.max(structuralScore, liveScore);   // "max" (default)
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -677,14 +673,12 @@ function detectLiveBreakingSignals(iso, live, store) {
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
 
-  // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // ── USGS weekly / EMSC ──
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
     signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
@@ -696,7 +690,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   }
 
-  // ── JMA (Japan only) ──
   if (CFG.JMA_ENABLED && iso === "JPN" && s.jmaQuake && s.jmaQuake.mag >= CFG.JMA_MIN_MAG) {
     signals.push({
       type: "jma_earthquake",
@@ -707,7 +700,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── BMKG (Indonesia only) ──
   if (CFG.BMKG_ENABLED && iso === "IDN" && s.bmkgQuake && s.bmkgQuake.mag >= CFG.BMKG_MIN_MAG) {
     signals.push({
       type: "bmkg_earthquake",
@@ -718,7 +710,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── GEOFON ──
   if (CFG.GEOFON_ENABLED && s.geofonQuake && s.geofonQuake.mag >= 4.5) {
     signals.push({
       type: "geofon_earthquake",
@@ -729,7 +720,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── INGV ──
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && s.ingvQuake && s.ingvQuake.mag >= 4.0) {
     signals.push({
       type: "ingv_earthquake",
@@ -740,7 +730,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── GeoNet ──
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && s.geonetQuake && s.geonetQuake.mag >= 4.0) {
     signals.push({
       type: "geonet_earthquake",
@@ -751,7 +740,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── ShakeMap ──
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
     signals.push({
       type: "shakemap_event",
@@ -762,7 +750,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── USGS Significant Month tail ──
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
@@ -773,21 +760,18 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── WHO RSS ──
   if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
     const ageHours = s.whoOutbreaks[0].ageHours || 24;
     if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", ") });
     else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease });
   }
 
-  // ── WHO DON ──
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
     for (const don of s.whoDon.slice(0, 3)) {
       signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
     }
   }
 
-  // ── ECDC (Europe only) ──
   if (CFG.ECDC_THREAT_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0 && COUNTRIES[iso].region === "europe") {
     for (const threat of s.ecdcThreats.slice(0, 2)) {
       signals.push({
@@ -800,12 +784,10 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── UNHCR ──
   if (s.totalDisplaced > 500_000) {
     signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
-  // ── UNHCR Solutions ──
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
     signals.push({
       type: "unhcr_return",
@@ -816,7 +798,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── NASA EONET ──
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
@@ -828,7 +809,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── IFRC events / appeals ──
   if (s.ifrcCount > 0 && s.ifrcEvents) {
     const top = s.ifrcEvents[0];
     const ageHours = top.disaster_start_date ? (now - new Date(top.disaster_start_date).getTime()) / 36e5 : 72;
@@ -841,7 +821,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── Cyclone / flood / heat / marine ──
   if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
     signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
   }
@@ -855,16 +834,13 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
-  // ── disease.sh ──
   if (s.diseaseActive > 10_000) {
     signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   }
 
-  // ── World Bank economic ──
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
-  // ── World Bank food price + electricity ──
   if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
   }
@@ -872,14 +848,12 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
   }
 
-  // ── CDC (US only) ──
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     for (const ob of s.cdcOutbreaks.slice(0, 3)) {
       signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
     }
   }
 
-  // ── SPC (US only) ──
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: 20, MRGL: 40, SLGT: 55, ENH: 75, MDT: 90, HIGH: 110 };
@@ -887,7 +861,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
-  // ── US Drought Monitor (US only) ──
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
     signals.push({
       type: "us_drought",
@@ -898,7 +871,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     });
   }
 
-  // ── NASA POWER ──
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
     const tempAnom = s.nasaPower.tempAnomaly || 0;
     const precipAnom = s.nasaPower.precipAnomaly || 0;
@@ -910,7 +882,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── GFW ──
   if (CFG.GFW_ENABLED && s.gfwAlerts && s.gfwAlerts.count > 0) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
@@ -925,7 +896,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── JTWC ──
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
     for (const storm of s.jtwcStorms.slice(0, 2)) {
       signals.push({
@@ -938,7 +908,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── JMA Typhoon ──
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
     for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
       signals.push({
@@ -951,7 +920,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── Climate TRACE ──
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
@@ -965,7 +933,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  // ── HDX ──
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
     signals.push({
       type: "hdx_crisis",
@@ -1103,28 +1070,18 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ═══ v13.9.3: RANK BY EFFECTIVE SCORE, LIVE EVENT AS TIEBREAKER ═══
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
     const bLB = store[b].__live_breaking || {};
-    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-
-    // Primary: effective score
-    if (bEff !== aEff) return bEff - aEff;
-
-    // Tiebreaker 1: has fresh live event
-    if (CFG.LIVE_EVENT_OVERRIDE || true) {  // always use as tiebreaker
-      const aHas = aLB.has_fresh_live_event ? 1 : 0;
-      const bHas = bLB.has_fresh_live_event ? 1 : 0;
-      if (aHas !== bHas) return bHas - aHas;
+    if (CFG.LIVE_EVENT_OVERRIDE) {
+      const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+      const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+      if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
     }
-
-    // Tiebreaker 2: live score
-    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-
-    // Tiebreaker 3: freshness
+    const aScore = store[a].score;
+    const bScore = store[b].score;
+    if (bScore !== aScore) return bScore - aScore;
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 }
@@ -1135,8 +1092,12 @@ function rankBreakingOnly(store, minSignals = 1) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+      if (CFG.LIVE_EVENT_OVERRIDE) {
+        const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+        const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+        if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+      }
+      return (store[b].score || 0) - (store[a].score || 0);
     });
 }
 
@@ -1144,10 +1105,10 @@ function rankLiveEventsOnly(store) {
   return Object.keys(store)
     .filter(iso => store[iso].__live_breaking?.has_fresh_live_event)
     .sort((a, b) => {
-      const aLB = store[a].__live_breaking;
-      const bLB = store[b].__live_breaking;
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
+      const aScore = store[a].score;
+      const bScore = store[b].score;
+      if (bScore !== aScore) return bScore - aScore;
+      return (store[a].__live_breaking.freshest_signal_age_hours ?? 9999) - (store[b].__live_breaking.freshest_signal_age_hours ?? 9999);
     });
 }
 
@@ -1300,11 +1261,10 @@ class AlertManager {
     const c = store[iso];
     const triggered = [];
     const now = Date.now();
-    const score = c.__effective_score ?? c.score;
-    if (score >= this.thresholds.global) {
+    if (c.score >= this.thresholds.global) {
       const key = `${iso}_global`;
       if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({ iso, name: c.name, score, type: 'global', message: `${c.name} reached ${score}/100.` });
+        triggered.push({ iso, name: c.name, score: c.score, type: 'global', message: `${c.name} reached ${c.score}/100.` });
         this.lastAlerts[key] = now;
       }
     }
@@ -1313,7 +1273,6 @@ class AlertManager {
 }
 const alertManager = new AlertManager();
 
-// ═══ v13.9.3: ANOMALY ON REAL HISTORY ONLY ═══
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
@@ -1389,7 +1348,7 @@ function recommendation(score, anomaly) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS — v13.9.3 (unchanged)
+//  LIVE DATA FETCHERS — v13.9.3 (unchanged from v13.9.2)
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1868,7 +1827,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS — v13.9.3 (unchanged)
+//  EXTRACT SIGNALS
 // ════════════════════════════════════════════════════════════════════════════
 
 function extractSignals(iso, live) {
@@ -2131,7 +2090,6 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── APPLY LIVE ADJUSTMENTS ─────────────────────────────────────────────────
 function applyLiveAdjustments(priorDims, signals, iso, store) {
   const dims = { ...priorDims };
   const audit = [];
@@ -2307,7 +2265,6 @@ function applyLiveAdjustments(priorDims, signals, iso, store) {
   return { dims, score: clamp(composite(dims)), audit, totalBoostRaw: totalBoost, totalBoostCapped: capped, boostRatio: ratio, maxAllowedBoost: cap };
 }
 
-// ─── BUILD STORE ────────────────────────────────────────────────────────────
 async function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
@@ -2332,7 +2289,7 @@ async function buildStore(liveData) {
       ...country, dims, score: structuralScore, structural_score: structuralScore, priorScore,
       liveBoost: structuralScore - priorScore, audit, signals, spillover: 0,
       fsi_score: fsiScore, fsi_rank: country.fsi_rank, fsi_band: country.fsi_band,
-      __wst: null, __live_breaking: null, __effective_score: null,
+      __wst: null, __live_breaking: null,
     };
   }
 
@@ -2352,24 +2309,35 @@ async function buildStore(liveData) {
     store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
   }
 
-  // ═══ v13.9.3: COMPUTE EFFECTIVE SCORE (does not override structural) ═══
-  for (const iso in store) {
-    const structural = store[iso].structural_score ?? store[iso].score;
-    const live = store[iso].__live_breaking?.live_score || 0;
-    store[iso].__effective_score = computeEffectiveScore(structural, live);
-    // The `score` field is now the effective score
-    store[iso].score = store[iso].__effective_score;
+  // ═══ v13.9.3: STRUCTURAL FLOOR ═══
+  // When SCORE_FIELD_IS_LIVE is true, the live score cannot fall below
+  // STRUCTURAL_FLOOR_MULTIPLIER × structural score. This preserves the
+  // breaking-news behavior while preventing chronic crises from vanishing
+  // off the board when they have no fresh events this cycle.
+  if (CFG.SCORE_FIELD_IS_LIVE && CFG.LIVE_BREAKING_ENABLED) {
+    for (const iso in store) {
+      const lb = store[iso].__live_breaking;
+      if (!lb) continue;
+      const structural = store[iso].structural_score;
+      const floor = Math.round(structural * CFG.STRUCTURAL_FLOOR_MULTIPLIER);
+      const liveScore = lb.live_score;
+      const finalScore = Math.max(liveScore, floor);
+      store[iso].score = clamp(finalScore);
+      store[iso].__live_breaking.floor_applied = floor > liveScore;
+      store[iso].__live_breaking.floor_value = floor;
+      store[iso].__live_breaking.pre_floor_score = liveScore;
+    }
   }
 
   if (CFG.HISTORY_ENABLED) {
     for (const iso in store) {
-      await recordHistory(iso, store[iso].__effective_score, store[iso].__live_breaking?.live_score || 0);
+      await recordHistory(iso, store[iso].score, store[iso].__live_breaking?.live_score || 0);
     }
   }
 
   for (const iso in store) {
     const realHistory = await getRealHistory(iso, 90);
-    store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].__effective_score, realHistory);
+    store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].score, realHistory);
   }
 
   for (const iso in store) {
@@ -2380,15 +2348,10 @@ async function buildStore(liveData) {
   return store;
 }
 
-// ─── PAYLOAD BUILDER ────────────────────────────────────────────────────────
 async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
-  const structuralScore = c.structural_score ?? c.score;
-  const liveScore = lb.live_score || 0;
-  const effectiveScore = c.__effective_score ?? computeEffectiveScore(structuralScore, liveScore);
-  // Display: the effective score (max of structural and live by default)
-  const displayScore = effectiveScore;
+  const displayScore = c.score;
 
   const realHistory = await getRealHistory(iso, 90);
   const anom = runAnomalyDetection(realHistory);
@@ -2403,10 +2366,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   const base = {
     iso, name: c.name, flag: c.flag,
     score: displayScore,
-    // ═══ v13.9.3: ALL THREE SCORES EXPOSED ═══
-    effective_score: effectiveScore,
-    structural_score: structuralScore,
-    live_score: liveScore,
+    structural_score: c.structural_score ?? c.score,
     severity: severityLabel(displayScore),
     severity_emoji: severityEmoji(displayScore),
     severity_color: severityColor(displayScore),
@@ -2416,7 +2376,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
 
     live_breaking: {
-      score: liveScore,
+      score: lb.live_score || 0,
       tier: lb.tier || "BACKGROUND",
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
@@ -2437,6 +2397,10 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       fsi_boost_cap: lb.fsi_boost_cap || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
+      // ═══ v13.9.3: floor disclosure ═══
+      floor_applied: lb.floor_applied || false,
+      floor_value: lb.floor_value || 0,
+      pre_floor_score: lb.pre_floor_score ?? lb.live_score ?? 0,
       events: (lb.events || []).map(sig => ({
         type: sig.type,
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
@@ -2530,10 +2494,11 @@ async function buildPayload(iso, store, ranked, opts = {}) {
 
     score_audit: {
       prior_score: c.priorScore,
-      structural_score: structuralScore,
-      live_breaking_score: liveScore,
-      effective_score: effectiveScore,
-      effective_mode: CFG.EFFECTIVE_SCORE_MODE,
+      structural_score: c.structural_score,
+      live_breaking_score: lb.live_score,
+      floor_applied: lb.floor_applied || false,
+      floor_value: lb.floor_value || 0,
+      pre_floor_score: lb.pre_floor_score ?? lb.live_score ?? 0,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2651,10 +2616,6 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  MAIN HANDLER
-// ════════════════════════════════════════════════════════════════════════════
-
 export default async function handler(req, res) {
   const start = Date.now();
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
@@ -2708,14 +2669,16 @@ export default async function handler(req, res) {
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__effective_score || 0) >= params.threshold);
+    else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
+    else if (params.force_live && liveEventsOnly.length > 0) finalIsos = liveEventsOnly.slice(0, params.top);
+    else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const s = store[iso];
-      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_score: s.__live_breaking?.live_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
+      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -2724,7 +2687,7 @@ export default async function handler(req, res) {
     if (params.widget && finalIsos.length === 1) {
       const c = store[finalIsos[0]];
       const lb = c.__live_breaking || {};
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
+      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Live Score ${lb.live_score || 0}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -2735,7 +2698,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, score: c.score, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
@@ -2751,7 +2714,7 @@ export default async function handler(req, res) {
     }
 
     if (params.wst) {
-      const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: store[i].__wst.class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.live_score - a.live_score);
+      const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: store[i].__wst.class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.score - a.score);
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString() }, countries: wst }, null, 2));
       return;
@@ -2762,7 +2725,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_signals: (lb.events || []).slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: +s.ageHours.toFixed(1), source: s.source })) };
+        return { iso, name: c.name, flag: c.flag, score: c.score, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, floor_applied: lb.floor_applied, top_signals: (lb.events || []).slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: +s.ageHours.toFixed(1), source: s.source })) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2803,11 +2766,12 @@ export default async function handler(req, res) {
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
-        effective_score_mode: CFG.EFFECTIVE_SCORE_MODE,
+        score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
+        structural_floor_multiplier: CFG.STRUCTURAL_FLOOR_MULTIPLIER,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        note: "v13.9.3 — effective_score = max(structural, live). Chronic crises no longer collapse when events age out. Anomaly + ML gated on real history. Stale events age out.",
+        note: "v13.9.3 — Structural floor prevents chronic crises from vanishing when no fresh events. Anomaly + ML gated on real history.",
         data_source_health: {
           live: sourceLiveCount,
           total: sourceTotalCount,
