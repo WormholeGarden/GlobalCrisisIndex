@@ -1,16 +1,21 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.1-patched — v13.9.3 RANKING ALGORITHM
+//  TOP-STORY API — v13.9.1 — HONEST SIGNALS + EVENT DEDUP + REAL HISTORY
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ v13.9.1-patched CHANGES ═══
-//  ✅ rankByLiveBreaking: effective_score → has_fresh → live_score → freshness
-//  ✅ rankBreakingOnly:   live_score → freshness
-//  ✅ rankLiveEventsOnly: live_score → freshness
-//  ✅ __effective_score computed in buildStore (needed by rankByLiveBreaking)
-//  ⚠️  No other logic changed. All v13.9.1 signal/scoring behavior preserved.
+//  ═══ v13.9.1 CHANGES ═══
+//  ✅ Event deduplication (spatial+temporal+mag hash)
+//  ✅ live_event_count now counts distinct events (was duplicate of signal_count)
+//  ✅ Real history persistence (in-memory + optional Redis/Upstash shim)
+//  ✅ Anomaly detection runs on real history (or reports INSUFFICIENT_HISTORY)
+//  ✅ ML trains on real sequences only (falls back to simple trend)
+//  ✅ seedHistory reserved for display (labeled "synthetic")
+//  ✅ Single-country feeds capped (BMKG, JMA, JMA Typhoon)
+//  ✅ US-only feeds capped (NOAA, SPC, CDC, US Drought)
+//  ✅ New payload: events[], distinct_event_count, raw_signal_count
+//  ✅ All v13.9 real feeds preserved
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -61,9 +66,6 @@ const CFG = {
   HISTORY_MIN_FOR_ML_TRAIN: 10,      // sequences
   HISTORY_GRANULARITY_HOURS: 1,      // store one snapshot per hour
   HISTORY_MAX_POINTS: 2160,          // 90 days @ 1/hour
-
-  // ═══ v13.9.1-patched: effective score mode ═══
-  EFFECTIVE_SCORE_MODE: "max",       // "max" | "live" | "structural"
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -599,16 +601,18 @@ function matchesCountryPlace(iso, place) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  v13.9.1: EVENT DEDUPLICATION
-// ════════════════════════════════════════════════════════════════════════════
-
-function eventKeyFor(sig, iso) {
+//  Groups signals that represent the same physical event into one "event".
+//  Uses spatial (300km) + temporal (6h) + magnitude (±0.8) proximity.
+// ════════════════════════════════════════════════════════════════════════════function eventKeyFor(sig, iso) {
+  // Non-seismic events: dedup by type + source + day
   if (!sig.type.startsWith("earthquake_") && !sig.type.includes("earthquake") && sig.type !== "shakemap_event") {
     const day = sig.ageHours ? Math.floor(Date.now() / 86400000 - sig.ageHours / 24) : "unknown";
     return `${sig.type}::${iso}::${day}`;
   }
+  // Seismic events: dedup by spatial+temporal+mag
   const lat = sig.latitude ?? COUNTRIES[iso]?.cent?.[1] ?? 0;
   const lon = sig.longitude ?? COUNTRIES[iso]?.cent?.[0] ?? 0;
-  const mag = sig.magnitude ?? sig.weight / 20;
+  const mag = sig.magnitude ?? sig.weight / 20;   // fallback if mag missing
   const timeBucket = sig.ageHours ? Math.floor((Date.now() - sig.ageHours * 36e5) / (CFG.DEDUP_TIME_WINDOW_HOURS * 36e5)) : "unknown";
   const magBucket = Math.round(mag / CFG.DEDUP_MAG_TOLERANCE);
   return `seismic::${timeBucket}::${magBucket}::${Math.round(lat)}::${Math.round(lon)}`;
@@ -622,6 +626,8 @@ function deduplicateEvents(signals, iso) {
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key).push(sig);
   }
+  // For each group, keep the highest-weighted signal as the "canonical" one
+  // but record the corroborating sources.
   const deduped = [];
   for (const [key, group] of grouped) {
     group.sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
@@ -636,12 +642,13 @@ function deduplicateEvents(signals, iso) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  v13.9.1: REAL HISTORY PERSISTENCE
+//  In-memory ring buffer + optional Redis/Upstash shim. Falls back gracefully.
 // ════════════════════════════════════════════════════════════════════════════
 
 class PersistentHistoryStore {
   constructor() {
-    this.memory = new Map();
-    this.redis = null;
+    this.memory = new Map();          // iso → [{ts, score, ...}]
+    this.redis = null;                // set externally if available
     this.maxPoints = CFG.HISTORY_MAX_POINTS;
   }
 
@@ -649,21 +656,25 @@ class PersistentHistoryStore {
 
   async record(iso, snapshot) {
     const entry = { ts: Date.now(), ...snapshot };
+    // In-memory
     if (!this.memory.has(iso)) this.memory.set(iso, []);
     const arr = this.memory.get(iso);
     arr.push(entry);
     if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
 
+    // Redis (best-effort)
     if (this.redis) {
       try {
         await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
         await this.redis.ltrim(`history:${iso}`, 0, this.maxPoints - 1);
+        // 90-day TTL
         await this.redis.expire(`history:${iso}`, CFG.HISTORY_RETENTION_DAYS * 86400);
       } catch {}
     }
   }
 
   async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
+    // Try Redis first
     if (this.redis) {
       try {
         const rows = await this.redis.lrange(`history:${iso}`, 0, limit - 1);
@@ -672,6 +683,7 @@ class PersistentHistoryStore {
         }
       } catch {}
     }
+    // Fall back to memory
     const arr = this.memory.get(iso) || [];
     return arr.slice(-limit);
   }
@@ -684,6 +696,7 @@ class PersistentHistoryStore {
 
 const persistentHistory = new PersistentHistoryStore();
 
+// Keep the old in-process store for backward compat with existing code paths
 class HistoricalDataStore {
   constructor() { this.data = {}; }
   store(iso, d) { if (!this.data[iso]) this.data[iso] = []; this.data[iso].push({ timestamp: Date.now(), ...d }); }
@@ -764,6 +777,8 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   // ── Seismic: canonical quake (highest mag across sources) ──
+  // We deliberately emit ONE primary quake signal + optional shakemap.
+  // Dedup will collapse JMA/BMKG/GEOFON/INGV/GeoNet duplicates.
   const seismicSources = [
     { key: "quakeMag", placeKey: "quakePlace", timeKey: "quakeTime", type: null, source: "USGS/EMSC" },
     { key: "jmaQuake", placeKey: "place", timeKey: "eventTime", type: "jma_earthquake", source: "JMA" },
@@ -1014,6 +1029,7 @@ function computeLiveBreakingScore(iso, live, store) {
     activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
 
+  // ═══ Key fix: event count is DISTINCT events, signal count is raw signals ═══
   const signalCount = rawSignals.length;
   const distinctEventCount = signals.length;
 
@@ -1068,8 +1084,8 @@ function computeLiveBreakingScore(iso, live, store) {
     live_score: normalizedScore,
     tier, tier_label: tierLabel, tier_icon: tierIcon,
     raw_score: +rawScore.toFixed(2),
-    signal_count: signalCount,
-    live_event_count: distinctEventCount,
+    signal_count: signalCount,              // ═══ raw signal count ═══
+    live_event_count: distinctEventCount,   // ═══ DISTINCT events ═══
     distinct_event_count: distinctEventCount,
     raw_signal_count: signalCount,
     has_fresh_live_event: hasFreshLiveEvent,
@@ -1115,22 +1131,11 @@ function buildBreakingHeadline(iso, signals, country) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v13.9.1-patched: RANKING — v13.9.3 algorithm
-// ════════════════════════════════════════════════════════════════════════════
-//
-//  rankByLiveBreaking:
-//    1. effective_score (max of structural, live)
-//    2. has_fresh_live_event (tiebreaker)
-//    3. live_score
-//    4. freshest_signal_age_hours
-//
-//  rankBreakingOnly:
-//    1. live_score
-//    2. freshest_signal_age_hours
-//
-//  rankLiveEventsOnly:
-//    1. live_score
-//    2. freshest_signal_age_hours
+//  ═══ RANKING — REPLACED WITH v13.9.3 ALGORITHM (surgical edit) ═══
+//  Primary:    effective_score = max(structural, live)
+//  Tiebreak 1: has_fresh_live_event
+//  Tiebreak 2: live_score
+//  Tiebreak 3: freshest_signal_age_hours
 // ════════════════════════════════════════════════════════════════════════════
 
 function rankByLiveBreaking(store) {
@@ -1348,7 +1353,7 @@ const safeFetch = p =>
 async function fetchUSGS() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchUSGSSignificant() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchShakeMap() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true }; } catch {} return { data: [], live: false }; }
-async function fetchEMSC() { try { const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsns/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
+async function fetchEMSC() { try { const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchNASA() {
   try {
     const [a, b] = await Promise.all([
@@ -2306,13 +2311,13 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ v13.9.1-patched: compute effective_score for ranking ═══
-  // effective_score = max(structural, live) — used by rankByLiveBreaking
+  // ═══ v13.9.4 surgical edit: compute effective_score for ranking ═══
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
     store[iso].__effective_score = Math.max(structural, live);
   }
+  // ═══ end surgical edit ═══
 
   if (CFG.SCORE_FIELD_IS_LIVE && CFG.LIVE_BREAKING_ENABLED) {
     for (const iso in store) { const lb = store[iso].__live_breaking; if (lb) store[iso].score = lb.live_score; }
@@ -2390,6 +2395,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   const lb = c.__live_breaking || {};
   const displayScore = CFG.SCORE_FIELD_IS_LIVE ? (lb.live_score || c.structural_score || c.score) : c.score;
 
+  // ═══ Real history for anomaly + trend ═══
   const realHistory = await persistentHistory.scoreSeries(iso, 500);
   const hasRealHistory = realHistory.length >= CFG.HISTORY_MIN_FOR_ANOMALY;
   const series = hasRealHistory ? realHistory : seedHistory(iso, displayScore);
@@ -2418,9 +2424,9 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
       headline: lb.breaking_headline || null,
-      signal_count: lb.signal_count || 0,
+      signal_count: lb.signal_count || 0,                   // ═══ raw signals ═══
       raw_signal_count: lb.raw_signal_count || 0,
-      live_event_count: lb.live_event_count || 0,
+      live_event_count: lb.live_event_count || 0,           // ═══ DISTINCT events ═══
       distinct_event_count: lb.distinct_event_count || 0,
       has_fresh_live_event: lb.has_fresh_live_event || false,
       unique_signal_types: lb.unique_signal_types || 0,
@@ -2433,7 +2439,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       fsi_baseline: lb.fsi_baseline || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
-      events: lb.events || [],
+      events: lb.events || [],                              // ═══ deduplicated events ═══
       signals: (lb.signals || []).map(sig => ({
         type: sig.type,
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
@@ -2536,7 +2542,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
       live_breaking_score: lb.live_score,
-      effective_score: c.__effective_score,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2796,7 +2801,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.1-patched",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -2805,8 +2810,7 @@ export default async function handler(req, res) {
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
         dedup_enabled: CFG.DEDUP_ENABLED,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
-        ranking_algorithm: "v13.9.3 (effective_score → has_fresh → live_score → freshness)",
-        note: "v13.9.1-patched — ranking algorithm replaced with v13.9.3. All other logic unchanged.",
+        note: "v13.9.1 — Event deduplication + real history. live_event_count now = DISTINCT events (was duplicate of signal_count). Anomalies require ≥14 days of observed history.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2871,7 +2875,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.9.1-patched]", err);
+    console.error("[top-story v13.9.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
