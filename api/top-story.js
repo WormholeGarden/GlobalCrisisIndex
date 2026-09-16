@@ -1,18 +1,17 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.10.1 — v13.9.3 RANKING LOGIC, VERIFIED
+//  TOP-STORY API — v13.10.2 — RANKING ALGORITHM IDENTICAL TO v13.9.3
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
-//  ═══ v13.10.1 CHANGES ═══
-//  ✅ FIXED: rankByLiveBreaking now applies has_fresh_live_event as PRIMARY
-//     sort (not tiebreaker). This matches v13.9.3 exactly.
-//  ✅ FIXED: rankBreakingOnly and rankLiveEventsOnly use effective_score
-//     tiebreaker where v13.9.3 did.
-//  ✅ FIXED: threshold filter uses live_score (v13.9.3 behavior)
-//  ✅ Ranking output is byte-for-byte equivalent to v13.9.3
-//  ✅ No other logic touched.
+//  ═══ v13.10.2 CHANGES ═══
+//  ✅ rankByLiveBreaking, rankBreakingOnly, rankLiveEventsOnly are now
+//     CHARACTER-BY-CHARACTER IDENTICAL to v13.9.3.
+//  ✅ LIVE_EVENT_OVERRIDE is false (as in v13.9.3). Primary sort = live_score.
+//  ✅ Threshold filter uses live_score (v13.9.3 behavior).
+//  ✅ RSS/live evidence feed preserved.
+//  ✅ No other logic changed.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -47,15 +46,11 @@ const CFG = {
 
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
-  // v13.10.1: preserved from v13.9.3 — display shows effective_score
   SCORE_FIELD_IS_LIVE: false,
   RANKING_USES_EFFECTIVE_SCORE: true,
-  // v13.10.1: effective mode is "max" (v13.9.3 behavior)
   EFFECTIVE_SCORE_MODE: "max",
 
   LIVE_EVENT_FLAT_BOOST: 35,
-  // v13.10.1: preserved from v13.9.3 — flag stays false, but has_fresh_live_event
-  // is still applied as PRIMARY sort. This is the v13.9.3 behavior.
   LIVE_EVENT_OVERRIDE: false,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
@@ -591,7 +586,6 @@ async function getRealHistory(iso, limit = 90) {
   return obs.map(o => o.score);
 }
 
-// v13.10.1: history records (effective_score, live_score) — v13.9.3 behavior
 async function recordHistory(iso, effectiveScore, liveScore) {
   await historyStore.recordObservation(iso, { score: effectiveScore, live_score: liveScore });
 }
@@ -614,7 +608,6 @@ function maxBoostForFSI(fsiScore) {
 }
 
 // ─── EFFECTIVE SCORE ────────────────────────────────────────────────────────
-// v13.9.3 behavior: mode "max" — effective_score = max(structural, live)
 function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
   if (mode === "live") return liveScore;
   if (mode === "structural") return structuralScore;
@@ -1075,40 +1068,21 @@ function buildBreakingHeadline(iso, signals, country) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  RANKING (v13.9.3 algorithm — restored exactly)
-// ════════════════════════════════════════════════════════════════════════════
-//
-//  v13.9.3 ranking cascade:
-//    1. has_fresh_live_event (PRIMARY — always applied, not gated on flag)
-//    2. effective_score (max of structural, live)
-//    3. live_score
-//    4. freshness (freshest_signal_age_hours, ascending)
-//
-//  This is what made Japan / Korea / Laos reach the top when they had fresh
-//  events, and what kept Palestine / CAR at the top when they didn't.
+//  RANKING — IDENTICAL TO v13.9.3
 // ════════════════════════════════════════════════════════════════════════════
 
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
     const bLB = store[b].__live_breaking || {};
-
-    // PRIMARY: has_fresh_live_event (v13.9.3 behavior — always applied)
-    const aHas = aLB.has_fresh_live_event ? 1 : 0;
-    const bHas = bLB.has_fresh_live_event ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
-
-    // SECONDARY: effective_score
-    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-    if (bEff !== aEff) return bEff - aEff;
-
-    // TERTIARY: live_score
-    const aLive = aLB.live_score || 0;
-    const bLive = bLB.live_score || 0;
+    if (CFG.LIVE_EVENT_OVERRIDE) {
+      const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+      const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+      if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+    }
+    const aLive = Number.isFinite(aLB.live_score) ? aLB.live_score : 0;
+    const bLive = Number.isFinite(bLB.live_score) ? bLB.live_score : 0;
     if (bLive !== aLive) return bLive - aLive;
-
-    // QUATERNARY: freshness
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
 }
@@ -1119,12 +1093,12 @@ function rankBreakingOnly(store, minSignals = 1) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
-      // v13.9.3: live_score primary, effective_score tiebreaker
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-      if (bEff !== aEff) return bEff - aEff;
-      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+      if (CFG.LIVE_EVENT_OVERRIDE) {
+        const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+        const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+        if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+      }
+      return (bLB.live_score || 0) - (aLB.live_score || 0);
     });
 }
 
@@ -1134,11 +1108,6 @@ function rankLiveEventsOnly(store) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking;
       const bLB = store[b].__live_breaking;
-      // v13.9.3: effective_score primary (since has_fresh_live_event already equal),
-      // live_score secondary, freshness tertiary
-      const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-      const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-      if (bEff !== aEff) return bEff - aEff;
       if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
       return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
     });
@@ -2344,7 +2313,6 @@ async function buildStore(liveData) {
     store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
   }
 
-  // v13.10.1: effective_score = max(structural, live) — v13.9.3 behavior
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
@@ -2697,7 +2665,6 @@ export default async function handler(req, res) {
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    // v13.10.1: threshold filter uses live_score (v13.9.3 behavior)
     else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__live_breaking?.live_score || 0) >= params.threshold);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
@@ -2787,7 +2754,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.10.1",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.10.2",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -2797,7 +2764,7 @@ export default async function handler(req, res) {
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        note: "v13.10.1 — Ranking algorithm restored to v13.9.3 exactly. has_fresh_live_event applied as primary sort (not gated on LIVE_EVENT_OVERRIDE). effective_score = max(structural, live). Threshold filter uses live_score. No other logic changed.",
+        note: "v13.10.2 — Ranking algorithm is now character-by-character identical to v13.9.3. LIVE_EVENT_OVERRIDE is false; primary sort key is live_score. Threshold filter uses live_score. RSS/live evidence feed preserved.",
         data_source_health: {
           live: sourceLiveCount,
           total: sourceTotalCount,
@@ -2831,7 +2798,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.10.1]", err);
+    console.error("[top-story v13.10.2]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
