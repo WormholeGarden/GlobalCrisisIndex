@@ -1260,7 +1260,30 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-function rankByLiveBreaking(store) { const ranked = Object.keys(store).sort((a, b) => { const aLB = store[a].__live_breaking || {}; const bLB = store[b].__live_breaking || {}; // PRESERVE ORIGINAL v13.9.1 RANKING: // 1. Fresh live-event override // 2. Live breaking score // 3. Freshest signal age if (CFG.LIVE_EVENT_OVERRIDE) { const aHasEvent = aLB.has_fresh_live_event ? 1 : 0; const bHasEvent = bLB.has_fresh_live_event ? 1 : 0; if (aHasEvent !== bHasEvent) { return bHasEvent - aHasEvent; } } const aLive = Number.isFinite(aLB.live_score) ? aLB.live_score : 0; const bLive = Number.isFinite(bLB.live_score) ? bLB.live_score : 0; if (bLive !== aLive) { return bLive - aLive; } return ( (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999) ); }); // v14.1 transparency metadata. // This does NOT participate in ranking. const rankReasons = {}; for (let i = 0; i < ranked.length; i++) { const iso = ranked[i]; const lb = store[iso].__live_breaking || {}; const live = Number.isFinite(lb.live_score) ? lb.live_score : 0; const prev = i > 0 ? ranked[i - 1] : null; const prevLB = prev ? (store[prev].__live_breaking || {}) : null; const prevLive = prevLB ? (Number.isFinite(prevLB.live_score) ? prevLB.live_score : 0) : null; if (i === 0) { rankReasons[iso] = `top:live_score=${live}`; } else if (live !== prevLive) { rankReasons[iso] = `live_score=${live} (prev=${prevLive})`; } else if (lb.has_fresh_live_event) { rankReasons[iso] = `tied_live_score=${live}, fresh_event_break`; } else { rankReasons[iso] = `tied_live_score=${live}, freshest_signal_age=${ lb.freshest_signal_age_hours ?? 9999 }`; } } ranked.__rankReasons = rankReasons; return ranked; }
+function rankByLiveBreaking(store) {
+  const ranked = Object.keys(store).sort((a, b) => { const aLB = store[a].__live_breaking || {}; const bLB = store[b].__live_breaking || {}; if (CFG.LIVE_EVENT_OVERRIDE) { const aHasEvent = aLB.has_fresh_live_event ? 1 : 0; const bHasEvent = bLB.has_fresh_live_event ? 1 : 0; if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent; } const aLive = Number.isFinite(aLB.live_score) ? aLB.live_score : 0; const bLive = Number.isFinite(bLB.live_score) ? bLB.live_score : 0; if (bLive !== aLive) return bLive - aLive; return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999)); });
+
+  const rankReasons = {};
+  for (let i = 0; i < ranked.length; i++) {
+    const iso = ranked[i];
+    const lb = store[iso].__live_breaking || {};
+    const eff = store[iso].__effective_score ?? 0;
+    const prev = i > 0 ? ranked[i - 1] : null;
+    const prevEff = prev ? (store[prev].__effective_score ?? 0) : null;
+
+    if (i === 0) {
+      rankReasons[iso] = `top:effective=${eff}`;
+    } else if (eff !== prevEff) {
+      rankReasons[iso] = `effective=${eff} (prev=${prevEff})`;
+    } else if (lb.has_fresh_live_event) {
+      rankReasons[iso] = `tied_effective=${eff}, fresh_event_break`;
+    } else {
+      rankReasons[iso] = `tied_effective=${eff}, live_score=${lb.live_score}`;
+    }
+  }
+  ranked.__rankReasons = rankReasons;
+  return ranked;
+}
 
 function rankBreakingOnly(store, minSignals = 1) {
   return Object.keys(store)
