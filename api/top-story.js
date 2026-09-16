@@ -1,21 +1,17 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v14.1.0 — CONFIDENCE + HISTORY + FALLBACK
+//  TOP-STORY API — v13.9.3 — SINGLE-PATH CONSISTENCY + NAME-MATCHING FIX
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 179 COUNTRIES · 40 LIVE FEEDS (with fallbacks) · EVENT-DEDUPLICATED
-//  ═══ v14.1.0 CHANGES ═══
-//  ✅ Confidence intervals on every score (source health + history + ensemble)
-//  ✅ tier_reason on every live_breaking block
-//  ✅ score_history (last 30 observations) in every payload
-//  ✅ Automatic Redis wiring (REDIS_URL or KV_REST_API_URL)
-//  ✅ Source fallback chains for USGS, GDACS, ECDC
-//  ✅ Dynamic blend constant for mid-tier differentiation
-//  ✅ Per-country source_coverage reporting
-//  ✅ rank_reason for tie-breaker transparency
-//  ✅ data_source_health.confidence_impact tells you which countries are affected
-//  ✅ All v14.0.0 behavior preserved
+//  🌍 179 COUNTRIES · 37 LIVE FEEDS · RECENCY-WEIGHTED · SOURCE-COMPOUNDED
+//  ═══ v13.9.3 CHANGES ═══
+//  ✅ buildPayload reads ONLY from store — no re-extraction, no divergence
+//  ✅ Country name aliases (Gaza, West Bank, OPT, DRC, Burma, etc.)
+//  ✅ Anomaly gate enforced: methods_fired >= 2 AND history >= 14
+//  ✅ Empty-signal safety guard in computeLiveBreakingScore
+//  ✅ Deploy fingerprint in ranking_mode
+//  ✅ Consistent async ordering in buildStore
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -39,8 +35,6 @@ const CFG = {
   HISTORY_ENABLED: true,
   HISTORY_RETENTION_DAYS: 90,
   HISTORY_MIN_FOR_ANOMALY: 14,
-  HISTORY_GRANULARITY_HOURS: 1,
-  HISTORY_MAX_POINTS: 2160,
   GEO_FENCING_ENABLED: true,
   ALERT_WEBHOOK_URL: null,
   ALERT_EMAIL: null,
@@ -52,22 +46,9 @@ const CFG = {
 
   LIVE_BREAKING_ENABLED: true,
   LIVE_BREAKING_MIN_SIGNALS: 1,
-  SCORE_FIELD_IS_LIVE: false,
-  RANKING_USES_EFFECTIVE_SCORE: true,
-  EFFECTIVE_SCORE_MODE: "max",
-
-  // ═══ v14.1.0: dynamic blend for mid-tier differentiation ═══
-  // The blend weight scales with structural score:
-  //   structural < 60 → blend weight 0.30 (favor structural)
-  //   structural 60-80 → blend weight 0.45 (balanced)
-  //   structural 80+  → blend weight 0.55 (favor live amplification)
-  // This prevents the mid-tier (84-88) from compressing.
-  BLEND_WEIGHT_LOW: 0.30,
-  BLEND_WEIGHT_MID: 0.45,
-  BLEND_WEIGHT_HIGH: 0.55,
-
+  SCORE_FIELD_IS_LIVE: true,
   LIVE_EVENT_FLAT_BOOST: 35,
-  LIVE_EVENT_OVERRIDE: false,
+  LIVE_EVENT_OVERRIDE: true,
   FSI_BASELINE_MAX: 8,
   FRESH_SIGNAL_HOURS: 24,
 
@@ -78,18 +59,6 @@ const CFG = {
   FSI_BOOST_CAP_HIGH: 30,
   FSI_BOOST_CAP_MODERATE: 20,
   FSI_BOOST_CAP_LOW: 10,
-
-  DEDUP_TIME_WINDOW_HOURS: 6,
-  DEDUP_DISTANCE_KM: 300,
-  DEDUP_MAG_TOLERANCE: 0.8,
-  DEDUP_ENABLED: true,
-
-  // ═══ v14.1.0: Confidence interval parameters ═══
-  CONFIDENCE_Z_90: 1.645,   // 90% CI z-score
-  CONFIDENCE_Z_95: 1.960,   // 95% CI z-score
-  CONFIDENCE_DEFAULT_LEVEL: 0.90,
-  CONFIDENCE_MAX_WIDTH: 12, // Never wider than ±12 points
-  CONFIDENCE_MIN_WIDTH: 1,  // Never narrower than ±1 point
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -227,6 +196,8 @@ const CFG = {
   WB_INFRASTRUCTURE_BOOST: 30,
 };
 
+const BUILD_ID = "v13.9.3-" + "a1f8c2e";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -248,6 +219,7 @@ const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
 
+// ═══ EVENT VS STATE CLASSIFICATION ═══
 const EVENT_SIGNAL_TYPES = new Set([
   "gdacs_red", "gdacs_orange",
   "earthquake_m6", "earthquake_m5", "earthquake_m45",
@@ -264,49 +236,6 @@ const EVENT_SIGNAL_TYPES = new Set([
   "cdc_outbreak", "spc_severe",
   "us_drought",
 ]);
-
-// ─── Country centroids ────────────────────────────────────────────────────────
-const COUNTRY_CENTROIDS = {
-  IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
-  IND: [78.9, 20.6], BGD: [90.4, 23.7], VNM: [108.3, 14.1], THA: [100.9, 15.9],
-  MMR: [96.0, 21.9], PAK: [69.3, 30.4], NPL: [84.1, 28.4], LKA: [80.8, 7.9],
-  USA: [-95.7, 37.1], MEX: [-102.5, 23.6], COL: [-74.3, 4.6], VEN: [-66.6, 6.4],
-  PER: [-75.0, -9.2], CHL: [-71.5, -35.7], ECU: [-78.2, -1.8], BRA: [-51.9, -14.2],
-  ITA: [12.6, 41.9], GRC: [22.0, 39.1], TUR: [35.2, 39.0], ESP: [-3.7, 40.5],
-  FRA: [2.2, 46.2], DEU: [10.5, 51.2], GBR: [-3.4, 55.4], RUS: [105.3, 61.5],
-  IRN: [53.7, 32.4], IRQ: [43.7, 33.2], SAU: [45.1, 23.9], ISR: [34.9, 31.0],
-  SYR: [38.0, 34.8], LBN: [35.9, 33.9], JOR: [36.2, 30.6], EGY: [30.8, 26.8],
-  LBY: [17.2, 26.3], TUN: [9.5, 33.9], DZA: [1.7, 28.0], MAR: [-7.1, 31.8],
-  SDN: [30.2, 12.9], SSD: [31.3, 7.9], ETH: [40.5, 9.1], SOM: [46.2, 5.2],
-  KEN: [37.9, -0.0], TZA: [34.9, -6.4], UGA: [32.3, 1.4], NGA: [8.7, 9.1],
-  NER: [8.1, 17.6], TCD: [18.7, 15.5], CMR: [12.4, 7.4], CAF: [20.9, 6.6],
-  COD: [21.8, -4.0], COG: [15.8, -0.2], GAB: [11.6, -0.8], AGO: [17.9, -11.2],
-  ZAF: [22.9, -30.6], MOZ: [35.5, -18.7], ZWE: [29.2, -19.0], ZMB: [27.8, -13.1],
-  MWI: [34.3, -13.3], MDG: [46.9, -18.8], MLI: [-4.0, 17.6], BFA: [-1.6, 12.2],
-  GHA: [-1.0, 7.9], CIV: [-5.5, 7.5], SEN: [-14.5, 14.5], GIN: [-9.7, 9.9],
-  LBR: [-9.4, 6.4], SLE: [-11.8, 8.5], GNB: [-15.2, 12.0], MRT: [-10.9, 21.0],
-  ERI: [39.8, 15.2], DJI: [42.6, 11.8], YEM: [48.5, 15.6], OMN: [56.1, 21.5],
-  AFG: [67.7, 33.9], UZB: [64.6, 41.4], KAZ: [66.9, 48.0], KGZ: [74.8, 41.2],
-  TJK: [71.3, 38.9], TKM: [59.6, 38.9], AZE: [47.6, 40.1], ARM: [45.0, 40.1],
-  GEO: [43.4, 42.3], BLR: [28.0, 53.7], UKR: [31.2, 49.0], MDA: [28.9, 47.4],
-  ROU: [24.9, 45.9], BGR: [25.5, 42.7], SRB: [21.0, 44.0], BIH: [17.7, 43.9],
-  HRV: [15.2, 45.1], SVN: [14.9, 46.2], HUN: [19.5, 47.2], AUT: [14.6, 47.5],
-  CHE: [8.2, 46.8], NLD: [5.3, 52.1], BEL: [4.5, 50.5], LUX: [6.1, 49.8],
-  DNK: [9.5, 56.3], NOR: [8.5, 60.5], SWE: [18.6, 60.1], FIN: [25.7, 61.9],
-  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4],
-  CAN: [-105.0, 56.1], AUS: [133.8, -25.3], NZL: [172.0, -41.0], PNG: [143.9, -6.3],
-  SLB: [160.2, -9.6], VUT: [166.9, -15.4], FJI: [178.0, -17.7], WSM: [-172.1, -13.8],
-  TON: [-175.2, -21.2], KIR: [173.0, 1.9], FSM: [158.2, 6.9], MHL: [171.2, 7.1],
-  PLW: [134.6, 7.5], KOR: [127.8, 36.5], PRK: [127.5, 40.3], TWN: [120.9, 23.7],
-  MNG: [103.8, 46.9], KHM: [104.9, 12.6], LAO: [102.5, 19.9], MYS: [101.9, 4.2],
-  SGP: [103.8, 1.4], BRN: [114.7, 4.5], TLS: [125.7, -8.9], BTN: [90.4, 27.5],
-  MDV: [73.2, 3.2], CUB: [-77.8, 21.5], HTI: [-72.3, 18.9], DOM: [-70.2, 18.7],
-  JAM: [-77.3, 18.1], TTO: [-61.2, 10.7], BRB: [-59.6, 13.2], GUY: [-58.9, 4.9],
-  SUR: [-55.9, 4.0], BLZ: [-88.5, 17.2], GTM: [-90.2, 15.8], HND: [-86.2, 15.2],
-  SLV: [-88.9, 13.8], NIC: [-85.2, 12.9], CRI: [-83.8, 9.7], PAN: [-80.8, 8.5],
-  BHS: [-77.4, 25.0], URY: [-55.8, -32.5], ARG: [-63.6, -38.4], PRY: [-58.4, -23.4],
-  BOL: [-63.6, -16.3],
-};
 
 // ─── CRISIS ARCHETYPES ───────────────────────────────────────────────────────
 const ARC = {
@@ -523,6 +452,42 @@ const FSI_2024 = {
   NOR: { name:"Norway",               flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
 };
 
+// ═══ v13.9.3: COUNTRY NAME ALIASES ═══
+// Maps common alternate names used by external sources to ISO3 codes.
+const COUNTRY_ALIASES = {
+  PSE: ["palestine","gaza","gaza strip","west bank","occupied palestinian","opt","ramallah","hebron","nablus","jenin","gaza city"],
+  COD: ["drc","democratic republic of congo","congo-kinshasa","congo kinshasa","dr congo","zaire"],
+  COG: ["congo-brazzaville","congo brazzaville","republic of the congo"],
+  MMR: ["burma","myanmar"],
+  CIV: ["ivory coast","cote d'ivoire","côte d'ivoire"],
+  SWZ: ["eswatini","swaziland"],
+  TLS: ["east timor","timor-leste","timor leste"],
+  PRK: ["north korea","dprk","democratic people's republic of korea"],
+  KOR: ["south korea","republic of korea"],
+  RUS: ["russia","russian federation"],
+  IRN: ["iran","islamic republic of iran"],
+  SYR: ["syria","syrian arab republic"],
+  VNM: ["vietnam","viet nam"],
+  LAO: ["laos","lao pdr"],
+  BOL: ["bolivia","plurinational state of bolivia"],
+  VEN: ["venezuela","bolivarian republic of venezuela"],
+  TZA: ["tanzania","united republic of tanzania"],
+  CZE: ["czech republic","czechia"],
+  TUR: ["turkey","türkiye"],
+  NLD: ["netherlands","holland"],
+  GBR: ["united kingdom","uk","great britain"],
+  USA: ["united states","us","usa","united states of america"],
+  FSM: ["micronesia","federated states of micronesia"],
+  STP: ["sao tome","são tomé"],
+  CPV: ["cape verde","cabo verde"],
+  DOM: ["dominican republic"],
+  PHL: ["philippines"],
+  ARE: ["uae","united arab emirates"],
+  SSD: ["south sudan"],
+  SDN: ["sudan"],
+  CAF: ["central african republic","car"],
+};
+
 const REGION_ALIASES = {
   africa:     ["africa"],
   asia:       ["asia"],
@@ -555,8 +520,8 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
   COUNTRIES[iso] = {
     name: fsi.name, flag: fsi.flag, prior: Math.round(score),
     fsi_score: score, fsi_rank: fsi.rank, fsi_band: fsi.fsi_band,
-    region: fsi.region, types: uniqueTypes.slice(0, 4), adj: adj.slice(0, 8),
-    cent: COUNTRY_CENTROIDS[iso] || [0, 0],
+    region: fsi.region, types: uniqueTypes.slice(0, 4), adj: adj.slice(0, 8), cent: [0, 0],
+    aliases: COUNTRY_ALIASES[iso] || [],
   };
 }
 
@@ -574,31 +539,34 @@ function estimateReadTime(text) { const words = text.trim().split(/\s+/).length;
 function findIsoByName(name) {
   if (!name) return null;
   const lower = name.toLowerCase().trim();
+  // Exact match on canonical name
   for (const [iso, d] of Object.entries(COUNTRIES)) if (d.name.toLowerCase() === lower) return iso;
+  // Alias match
+  for (const [iso, d] of Object.entries(COUNTRIES)) {
+    if (d.aliases) for (const a of d.aliases) if (a === lower) return iso;
+  }
+  // Partial match
   for (const [iso, d] of Object.entries(COUNTRIES)) if (d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase())) return iso;
+  // Partial alias match
+  for (const [iso, d] of Object.entries(COUNTRIES)) {
+    if (d.aliases) for (const a of d.aliases) if (lower.includes(a) || a.includes(lower)) return iso;
+  }
   return null;
 }
 function findClosestCountry(lng, lat) {
   let closest = null, minDist = Infinity;
   for (const [iso, d] of Object.entries(COUNTRIES)) {
     if (!d.cent || (d.cent[0] === 0 && d.cent[1] === 0)) continue;
-    const dist = haversineKm(d.cent[0], d.cent[1], lng, lat);
+    const dist = Math.sqrt((lng - d.cent[0]) ** 2 + (lat - d.cent[1]) ** 2);
     if (dist < minDist) { minDist = dist; closest = iso; }
   }
   return closest;
 }
 function isUS(iso) { return iso === "USA"; }
 
-function haversineKm(lon1, lat1, lon2, lat2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-// ─── Place-name matching ─────────────────────────────────────────────────────
+// ═══ v13.9.3: EXPANDED PLACE-NAME MATCHING ═══
 const REGION_KEYWORDS = {
+  PSE: ['palestine','gaza','west bank','israel','jerusalem','ramallah','hebron','nablus','jenin','rafah','khan yunis','gaza strip'],
   IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
   JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
   NZL: ['new zealand','kermadec','te araroa','auckland','wellington','christchurch','canterbury','fiordland','north island','south island','taupo','taupō'],
@@ -620,6 +588,16 @@ const REGION_KEYWORDS = {
   ISL: ['iceland','reykjanes','katla','bardarbunga','hekla','askja'],
   NOR: ['norway','oslo','bergen','trondheim','tromso'],
   RUS: ['russia','kamchatka','kuril','sakhalin','siberia','caucasus','baikal','ural','kola','chukotka'],
+  SYR: ['syria','damascus','aleppo','homs','latakia','idlib','raqqa'],
+  LBN: ['lebanon','beirut','tripoli','sidon','tyre'],
+  ISR: ['israel','tel aviv','haifa','beersheba','ashdod','ashkelon','sderot'],
+  YEM: ['yemen','sanaa','aden','hodeidah','taiz','marib'],
+  LBY: ['libya','tripoli','benghazi','misrata','sirte'],
+  SDN: ['sudan','khartoum','darfur','omdurman','port sudan'],
+  SSD: ['south sudan','juba','malakal','bentiu'],
+  ETH: ['ethiopia','addis ababa','tigray','amhara','oromia','somali region'],
+  SOM: ['somalia','mogadishu','kismayo','baidoa','puntland','somaliland'],
+  UKR: ['ukraine','kyiv','kiev','kharkiv','odesa','odessa','donetsk','luhansk','crimea','zaporizhzhia','mariupol'],
 };
 
 function matchesCountryPlace(iso, place) {
@@ -627,180 +605,54 @@ function matchesCountryPlace(iso, place) {
   const p = place.toLowerCase();
   const c = COUNTRIES[iso];
   if (!c) return false;
+  // Canonical name
   if (p.includes(c.name.toLowerCase())) return true;
+  // Country-specific aliases (v13.9.3)
+  if (c.aliases) for (const a of c.aliases) if (p.includes(a)) return true;
+  // Regional keyword map
   const kws = REGION_KEYWORDS[iso];
   if (kws) for (const kw of kws) if (p.includes(kw)) return true;
   return false;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EVENT DEDUPLICATION
+//  HISTORY PERSISTENCE LAYER
 // ════════════════════════════════════════════════════════════════════════════
 
-function eventKeyFor(sig, iso) {
-  if (!sig.type.startsWith("earthquake_") && !sig.type.includes("earthquake") && sig.type !== "shakemap_event") {
-    const day = sig.ageHours ? Math.floor(Date.now() / 86400000 - sig.ageHours / 24) : "unknown";
-    return `${sig.type}::${iso}::${day}`;
-  }
-  const lat = sig.latitude ?? COUNTRIES[iso]?.cent?.[1] ?? 0;
-  const lon = sig.longitude ?? COUNTRIES[iso]?.cent?.[0] ?? 0;
-  const mag = sig.magnitude ?? sig.weight / 20;
-  const timeBucket = sig.ageHours ? Math.floor((Date.now() - sig.ageHours * 36e5) / (CFG.DEDUP_TIME_WINDOW_HOURS * 36e5)) : "unknown";
-  const magBucket = Math.round(mag / CFG.DEDUP_MAG_TOLERANCE);
-  return `seismic::${timeBucket}::${magBucket}::${Math.round(lat)}::${Math.round(lon)}`;
-}
-
-function deduplicateEvents(signals, iso) {
-  if (!CFG.DEDUP_ENABLED || signals.length === 0) return signals;
-  const grouped = new Map();
-  for (const sig of signals) {
-    const key = eventKeyFor(sig, iso);
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push(sig);
-  }
-  const deduped = [];
-  for (const [key, group] of grouped) {
-    group.sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
-    const canonical = group[0];
-    canonical.corroborating_sources = [...new Set(group.slice(1).map(s => s.source))];
-    canonical.corroboration_count = group.length - 1;
-    canonical.dedup_key = key;
-    deduped.push(canonical);
-  }
-  return deduped;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  v14.1.0: PERSISTENT HISTORY STORE + AUTOMATIC REDIS WIRING
-// ════════════════════════════════════════════════════════════════════════════
-
-class PersistentHistoryStore {
+class InMemoryHistoryStore {
   constructor() {
-    this.memory = new Map();
-    this.redis = null;
-    this.maxPoints = CFG.HISTORY_MAX_POINTS;
-    this.wireAttempted = false;
-    this.data = this.memory;
+    this.data = new Map();
+    this.maxPerIso = 180;
   }
-
-  async autoWire() {
-    if (this.wireAttempted) return;
-    this.wireAttempted = true;
-
-    // Try Vercel KV / Upstash REST first
-    const kvUrl = process.env.KV_REST_API_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN;
-    if (kvUrl && kvToken && typeof fetch === "function") {
-      this.redis = this._makeRestAdapter(kvUrl, kvToken);
-      return;
-    }
-
-    // Try Upstash via env vars
-    const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
-    const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (upstashUrl && upstashToken && typeof fetch === "function") {
-      this.redis = this._makeRestAdapter(upstashUrl, upstashToken);
-      return;
-    }
-
-    // Try ioredis if installed (optional dependency)
-    try {
-      const Redis = (await import("ioredis")).default;
-      const url = process.env.REDIS_URL;
-      if (url) {
-        this.redis = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 2 });
-        await this.redis.connect();
-      }
-    } catch {
-      // ioredis not installed; stay in-memory
-    }
+  async recordObservation(iso, obs) {
+    if (!this.data.has(iso)) this.data.set(iso, []);
+    const arr = this.data.get(iso);
+    arr.push({ ts: Date.now(), ...obs });
+    if (arr.length > this.maxPerIso) arr.splice(0, arr.length - this.maxPerIso);
   }
-
-  _makeRestAdapter(url, token) {
-    const call = async (cmd, ...args) => {
-      try {
-        const r = await fetch(`${url}/${cmd}/${args.map(encodeURIComponent).join("/")}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!r.ok) return null;
-        return await r.json();
-      } catch { return null; }
-    };
-    return {
-      async lpush(key, value) { return call("lpush", key, value); },
-      async ltrim(key, start, stop) { return call("ltrim", key, String(start), String(stop)); },
-      async lrange(key, start, stop) {
-        const r = await call("lrange", key, String(start), String(stop));
-        return r?.result || [];
-      },
-      async expire(key, seconds) { return call("expire", key, String(seconds)); },
-    };
-  }
-
-  async record(iso, snapshot) {
-    const entry = { ts: Date.now(), ...snapshot };
-    if (!this.memory.has(iso)) this.memory.set(iso, []);
-    const arr = this.memory.get(iso);
-    arr.push(entry);
-    if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
-
-    if (this.redis) {
-      try {
-        await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
-        await this.redis.ltrim(`history:${iso}`, 0, this.maxPoints - 1);
-        await this.redis.expire(`history:${iso}`, CFG.HISTORY_RETENTION_DAYS * 86400);
-      } catch {}
-    }
-  }
-
-  async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
-    if (this.redis) {
-      try {
-        const rows = await this.redis.lrange(`history:${iso}`, 0, limit - 1);
-        if (rows && rows.length) {
-          return rows.map(r => typeof r === "string" ? JSON.parse(r) : r).reverse();
-        }
-      } catch {}
-    }
-    const arr = this.memory.get(iso) || [];
+  async getObservations(iso, limit = 90) {
+    const arr = this.data.get(iso) || [];
     return arr.slice(-limit);
   }
-
-  async scoreSeries(iso, limit = CFG.HISTORY_MAX_POINTS) {
-    const rows = await this.get(iso, limit);
-    return rows.map(r => r.score).filter(Number.isFinite);
-  }
-
-  async recent(iso, limit = 30) {
-    const rows = await this.get(iso, limit);
-    return rows.map(r => ({ ts: r.ts, score: r.score, live_score: r.live_score ?? 0 }));
-  }
-
-  async recordObservation(iso, obs) { return this.record(iso, obs); }
-  async getObservations(iso, limit = 90) { return this.get(iso, limit); }
   async flush(iso, beforeTs) {
-    if (!this.memory.has(iso)) return;
-    const arr = this.memory.get(iso).filter(o => o.ts >= beforeTs);
-    this.memory.set(iso, arr);
+    if (!this.data.has(iso)) return;
+    const arr = this.data.get(iso).filter(o => o.ts >= beforeTs);
+    this.data.set(iso, arr);
   }
 }
 
-const persistentHistory = new PersistentHistoryStore();
-const historyStore = persistentHistory;
+const historyStore = new InMemoryHistoryStore();
 
 async function getRealHistory(iso, limit = 90) {
-  return persistentHistory.scoreSeries(iso, limit);
+  const obs = await historyStore.getObservations(iso, limit);
+  return obs.map(o => o.score);
 }
 
-async function getRecentHistory(iso, limit = 30) {
-  return persistentHistory.recent(iso, limit);
+async function recordHistory(iso, displayScore, liveScore) {
+  await historyStore.recordObservation(iso, { score: displayScore, live_score: liveScore });
 }
 
-async function recordHistory(iso, displayScore, liveScore, structuralScore) {
-  await persistentHistory.record(iso, { score: displayScore, live_score: liveScore, structural_score: structuralScore });
-}
-
-// ═══ Signal age-out ═══
+// ═══ SIGNAL AGE-OUT ═══
 function isSignalFresh(sig) {
   const age = sig.ageHours || 0;
   const maxAge = EVENT_SIGNAL_TYPES.has(sig.type)
@@ -809,7 +661,7 @@ function isSignalFresh(sig) {
   return age <= maxAge;
 }
 
-// ═══ FSI-capped boosts ═══
+// ═══ FSI-CAPPED BOOSTS ═══
 function maxBoostForFSI(fsiScore) {
   if (fsiScore >= 80) return CFG.FSI_BOOST_CAP_VERY_HIGH;
   if (fsiScore >= 60) return CFG.FSI_BOOST_CAP_HIGH;
@@ -817,66 +669,8 @@ function maxBoostForFSI(fsiScore) {
   return CFG.FSI_BOOST_CAP_LOW;
 }
 
-// ═══ v14.1.0: Effective score with dynamic blend ═══
-function computeEffectiveScore(structuralScore, liveScore, mode = CFG.EFFECTIVE_SCORE_MODE) {
-  if (mode === "live") return liveScore;
-  if (mode === "structural") return structuralScore;
-  return Math.max(structuralScore, liveScore);
-}
-
-// ═══ v14.1.0: Confidence interval ═══
-// Uncertainty scales with: (1) fraction of sources that responded,
-// (2) history depth, (3) ensemble spread.
-function computeConfidenceInterval(pointScore, sourceHealth, historyDepth, ensembleSpread, signalCount) {
-  // Base uncertainty from source health: if we're missing 20% of sources, uncertainty grows
-  const sourceUncertainty = Math.max(0, (1 - sourceHealth) * CFG.CONFIDENCE_MAX_WIDTH);
-
-  // History uncertainty: fewer observations = wider interval
-  const historyFraction = Math.min(1, historyDepth / CFG.HISTORY_MIN_FOR_ANOMALY);
-  const historyUncertainty = (1 - historyFraction) * 4;
-
-  // Ensemble uncertainty: model disagreement
-  const ensembleUncertainty = ensembleSpread > CFG.ENSEMBLE_SPREAD_THRESHOLD
-    ? Math.min(3, (ensembleSpread - CFG.ENSEMBLE_SPREAD_THRESHOLD) * 0.5)
-    : 0;
-
-  // Signal count reduces uncertainty: more signals = more confidence
-  const signalBonus = Math.min(2, signalCount * 0.1);
-
-  // Total raw uncertainty
-  let halfWidth = sourceUncertainty + historyUncertainty + ensembleUncertainty - signalBonus;
-
-  // Clamp to configured bounds
-  halfWidth = Math.max(CFG.CONFIDENCE_MIN_WIDTH, Math.min(CFG.CONFIDENCE_MAX_WIDTH, halfWidth));
-
-  const level = CFG.CONFIDENCE_DEFAULT_LEVEL;
-  const z = level === 0.95 ? CFG.CONFIDENCE_Z_95 : CFG.CONFIDENCE_Z_90;
-
-  const lower = clamp(pointScore - halfWidth, 1, 99);
-  const upper = clamp(pointScore + halfWidth, 1, 99);
-
-  // Overall confidence as a 0-1 scalar
-  const confidence = +Math.max(0.15, Math.min(0.99, 1 - (halfWidth / CFG.CONFIDENCE_MAX_WIDTH))).toFixed(2);
-
-  return {
-    point: pointScore,
-    lower,
-    upper,
-    half_width: +halfWidth.toFixed(1),
-    level,
-    z,
-    confidence,
-    components: {
-      source_uncertainty: +sourceUncertainty.toFixed(2),
-      history_uncertainty: +historyUncertainty.toFixed(2),
-      ensemble_uncertainty: +ensembleUncertainty.toFixed(2),
-      signal_bonus: +signalBonus.toFixed(2),
-    },
-  };
-}
-
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING ENGINE — v14.1.0
+//  LIVE BREAKING ENGINE v13.9.3
 // ════════════════════════════════════════════════════════════════════════════
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -931,50 +725,84 @@ function detectLiveBreakingSignals(iso, live, store) {
   const c = COUNTRIES[iso];
   const s = (live && live.extracted && live.extracted[iso]) || (store[iso] && store[iso].signals) || {};
   const now = Date.now();
-  const cent = c.cent || [0, 0];
 
   // ── GDACS ──
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
-    const coords = s.gdacs.geometry?.coordinates || [cent[0], cent[1]];
-    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active", latitude: coords[1], longitude: coords[0] });
-    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0] });
+    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
+    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // ── Seismic ──
+  // ── USGS weekly / EMSC ──
   if (s.quakeMag >= 6.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 24;
-    signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}`, magnitude: s.quakeMag, latitude: cent[1], longitude: cent[0] });
+    signals.push({ type: "earthquake_m6", weight: 95, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   } else if (s.quakeMag >= 5.0) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 48;
-    signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}`, magnitude: s.quakeMag, latitude: cent[1], longitude: cent[0] });
+    signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   } else if (s.quakeMag >= 4.5) {
     const ageHours = s.quakeTime ? (now - s.quakeTime) / 36e5 : 72;
-    signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}`, magnitude: s.quakeMag, latitude: cent[1], longitude: cent[0] });
+    signals.push({ type: "earthquake_m45", weight: 40, ageHours, source: "USGS/EMSC", details: `M${s.quakeMag.toFixed(1)} ${s.quakePlace || ""}` });
   }
 
   if (CFG.JMA_ENABLED && iso === "JPN" && s.jmaQuake && s.jmaQuake.mag >= CFG.JMA_MIN_MAG) {
-    signals.push({ type: "jma_earthquake", weight: CFG.JMA_BOOST + (s.jmaQuake.maxIntensity || 0) * 2, ageHours: s.jmaQuake.ageHours || 12, source: "JMA", details: `JMA M${s.jmaQuake.mag} — ${s.jmaQuake.place || ""} (intensity ${s.jmaQuake.maxIntensity || "?"})`, magnitude: s.jmaQuake.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "jma_earthquake",
+      weight: CFG.JMA_BOOST + (s.jmaQuake.maxIntensity || 0) * 2,
+      ageHours: s.jmaQuake.ageHours || 12,
+      source: "JMA",
+      details: `JMA M${s.jmaQuake.mag} — ${s.jmaQuake.place || ""} (intensity ${s.jmaQuake.maxIntensity || "?"})`,
+    });
   }
 
   if (CFG.BMKG_ENABLED && iso === "IDN" && s.bmkgQuake && s.bmkgQuake.mag >= CFG.BMKG_MIN_MAG) {
-    signals.push({ type: "bmkg_earthquake", weight: CFG.BMKG_BOOST, ageHours: s.bmkgQuake.ageHours || 12, source: "BMKG", details: `BMKG M${s.bmkgQuake.mag} — ${s.bmkgQuake.place || ""}`, magnitude: s.bmkgQuake.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "bmkg_earthquake",
+      weight: CFG.BMKG_BOOST,
+      ageHours: s.bmkgQuake.ageHours || 12,
+      source: "BMKG",
+      details: `BMKG M${s.bmkgQuake.mag} — ${s.bmkgQuake.place || ""}`,
+    });
   }
 
   if (CFG.GEOFON_ENABLED && s.geofonQuake && s.geofonQuake.mag >= 4.5) {
-    signals.push({ type: "geofon_earthquake", weight: CFG.GEOFON_BOOST, ageHours: s.geofonQuake.ageHours || 12, source: "GEOFON", details: `GEOFON M${s.geofonQuake.mag.toFixed(1)} — ${s.geofonQuake.place || ""}`, magnitude: s.geofonQuake.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "geofon_earthquake",
+      weight: CFG.GEOFON_BOOST,
+      ageHours: s.geofonQuake.ageHours || 12,
+      source: "GEOFON",
+      details: `GEOFON M${s.geofonQuake.mag.toFixed(1)} — ${s.geofonQuake.place || ""}`,
+    });
   }
 
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && s.ingvQuake && s.ingvQuake.mag >= 4.0) {
-    signals.push({ type: "ingv_earthquake", weight: CFG.INGV_BOOST, ageHours: s.ingvQuake.ageHours || 12, source: "INGV", details: `INGV M${s.ingvQuake.mag.toFixed(1)} — ${s.ingvQuake.place || "Mediterranean"}`, magnitude: s.ingvQuake.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "ingv_earthquake",
+      weight: CFG.INGV_BOOST,
+      ageHours: s.ingvQuake.ageHours || 12,
+      source: "INGV",
+      details: `INGV M${s.ingvQuake.mag.toFixed(1)} — ${s.ingvQuake.place || "Mediterranean"}`,
+    });
   }
 
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && s.geonetQuake && s.geonetQuake.mag >= 4.0) {
-    signals.push({ type: "geonet_earthquake", weight: CFG.GEONET_BOOST, ageHours: s.geonetQuake.ageHours || 12, source: "GeoNet", details: `GeoNet M${s.geonetQuake.mag.toFixed(1)} — ${s.geonetQuake.place || "South Pacific"}`, magnitude: s.geonetQuake.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "geonet_earthquake",
+      weight: CFG.GEONET_BOOST,
+      ageHours: s.geonetQuake.ageHours || 12,
+      source: "GeoNet",
+      details: `GeoNet M${s.geonetQuake.mag.toFixed(1)} — ${s.geonetQuake.place || "South Pacific"}`,
+    });
   }
 
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
-    signals.push({ type: "shakemap_event", weight: CFG.SHAKEMAP_BOOST, ageHours: s.shakeMapEvent.ageHours || 2, source: "USGS ShakeMap", details: `ShakeMap M${s.shakeMapEvent.mag.toFixed(1)} — ${s.shakeMapEvent.place || ""}`, magnitude: s.shakeMapEvent.mag, latitude: cent[1], longitude: cent[0] });
+    signals.push({
+      type: "shakemap_event",
+      weight: CFG.SHAKEMAP_BOOST,
+      ageHours: s.shakeMapEvent.ageHours || 2,
+      source: "USGS ShakeMap",
+      details: `ShakeMap M${s.shakeMapEvent.mag.toFixed(1)} — ${s.shakeMapEvent.place || ""}`,
+    });
   }
 
   if (CFG.USGS_SIG_ENABLED && s.quakeSigMonth && s.quakeSigMonth.mag >= 5.5) {
@@ -982,7 +810,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
       const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_") || sig.type === "shakemap_event");
       if (!alreadyCovered) {
-        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
+        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}` });
       }
     }
   }
@@ -1001,7 +829,13 @@ function detectLiveBreakingSignals(iso, live, store) {
 
   if (CFG.ECDC_THREAT_ENABLED && s.ecdcThreats && s.ecdcThreats.length > 0 && COUNTRIES[iso].region === "europe") {
     for (const threat of s.ecdcThreats.slice(0, 2)) {
-      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_THREAT_BOOST, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
+      signals.push({
+        type: "ecdc_threat",
+        weight: CFG.ECDC_THREAT_BOOST,
+        ageHours: threat.ageHours || 48,
+        source: "ECDC",
+        details: threat.title || "ECDC Threat",
+      });
     }
   }
 
@@ -1010,19 +844,23 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
-    signals.push({ type: "unhcr_return", weight: CFG.UNHCR_SOLUTIONS_BOOST, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned` });
+    signals.push({
+      type: "unhcr_return",
+      weight: CFG.UNHCR_SOLUTIONS_BOOST,
+      ageHours: 168,
+      source: "UNHCR Solutions",
+      details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned`,
+    });
   }
 
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
       const cat = ev.categories?.[0]?.id || "";
       const ageHours = ev.geometry?.[0]?.date ? (now - new Date(ev.geometry[0].date).getTime()) / 36e5 : 48;
-      const coords = ev.geometry?.[0]?.coordinates || [cent[0], cent[1]];
-      const payload = { ageHours, source: "NASA EONET", details: ev.title, latitude: coords[1], longitude: coords[0] };
-      if (cat === "wildfires") signals.push({ type: "nasa_wildfire", weight: 75, ...payload });
-      else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ...payload });
-      else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ...payload });
-      else if (cat === "drought") signals.push({ type: "nasa_drought", weight: 55, ...payload });
+      if (cat === "wildfires") signals.push({ type: "nasa_wildfire", weight: 75, ageHours, source: "NASA EONET", details: ev.title });
+      else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
+      else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
+      else if (cat === "drought") signals.push({ type: "nasa_drought", weight: 55, ageHours, source: "NASA EONET", details: ev.title });
     }
   }
 
@@ -1066,8 +904,9 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
-    const top = s.cdcOutbreaks[0];
-    signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: top.ageHours || 48, source: "CDC", details: top.title || top.disease || "CDC Outbreak Notice" });
+    for (const ob of s.cdcOutbreaks.slice(0, 3)) {
+      signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: ob.ageHours || 48, source: "CDC", details: ob.title || ob.disease || "CDC Outbreak Notice" });
+    }
   }
 
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
@@ -1078,7 +917,13 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
-    signals.push({ type: "us_drought", weight: CFG.US_DROUGHT_BOOST, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}` });
+    signals.push({
+      type: "us_drought",
+      weight: CFG.US_DROUGHT_BOOST,
+      ageHours: s.usDrought.ageHours || 168,
+      source: "US Drought Monitor",
+      details: `Drought level: ${s.usDrought.level}`,
+    });
   }
 
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
@@ -1096,31 +941,61 @@ function detectLiveBreakingSignals(iso, live, store) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
       const b = Math.min(CFG.GFW_MAX_BOOST, Math.round(Math.log10(top.count) * CFG.GFW_DEFORESTATION_BOOST / 3));
-      signals.push({ type: "gfw_deforestation", weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b), ageHours: top.ageHours || 24, source: "Global Forest Watch", details: `${top.count.toLocaleString()} deforestation alerts detected` });
+      signals.push({
+        type: "gfw_deforestation",
+        weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b),
+        ageHours: top.ageHours || 24,
+        source: "Global Forest Watch",
+        details: `${top.count.toLocaleString()} deforestation alerts detected`,
+      });
     }
   }
 
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
     for (const storm of s.jtwcStorms.slice(0, 2)) {
-      signals.push({ type: "jtwc_cyclone", weight: CFG.JTWC_BOOST, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}` });
+      signals.push({
+        type: "jtwc_cyclone",
+        weight: CFG.JTWC_BOOST,
+        ageHours: storm.ageHours || 12,
+        source: "JTWC",
+        details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}`,
+      });
     }
   }
 
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
     for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
-      signals.push({ type: "jma_typhoon", weight: CFG.JMA_TYPHOON_BOOST, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}` });
+      signals.push({
+        type: "jma_typhoon",
+        weight: CFG.JMA_TYPHOON_BOOST,
+        ageHours: typhoon.ageHours || 12,
+        source: "JMA",
+        details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}`,
+      });
     }
   }
 
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
-      signals.push({ type: "climate_trace_emissions", weight: CFG.CLIMATE_TRACE_BOOST, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}` });
+      signals.push({
+        type: "climate_trace_emissions",
+        weight: CFG.CLIMATE_TRACE_BOOST,
+        ageHours: 168,
+        source: "Climate TRACE",
+        details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}`,
+      });
     }
   }
 
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
-    signals.push({ type: "hdx_crisis", weight: CFG.HDX_BOOST, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available` });
+    signals.push({
+      type: "hdx_crisis",
+      weight: CFG.HDX_BOOST,
+      ageHours: 168,
+      source: "OCHA HDX",
+      details: `${s.hdxDatasets.count} crisis dataset(s) available`,
+    });
   }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
@@ -1129,9 +1004,51 @@ function detectLiveBreakingSignals(iso, live, store) {
 function computeLiveBreakingScore(iso, live, store) {
   const c = COUNTRIES[iso];
   const rawSignals = detectLiveBreakingSignals(iso, live, store);
-  const freshByAge = rawSignals.filter(isSignalFresh);
 
-  for (const sig of freshByAge) {
+  // ═══ v13.9.3: EMPTY-SIGNAL SAFETY GUARD ═══
+  // If no signals survived extraction, return the structural score with an
+  // explicit low-confidence flag rather than producing a misleading 7.
+  const signals = rawSignals.filter(isSignalFresh);
+
+  if (signals.length === 0) {
+    const structuralScore = store[iso]?.structural_score || c.fsi_score || 50;
+    return {
+      live_score: 0,
+      tier: "BACKGROUND",
+      tier_label: "BACKGROUND",
+      tier_icon: "⚪",
+      raw_score: 0,
+      signal_count: 0,
+      raw_signal_count: rawSignals.length,
+      live_event_count: 0,
+      distinct_event_count: 0,
+      has_fresh_live_event: false,
+      unique_signal_types: 0,
+      source_count: 0,
+      sources: [],
+      source_multiplier: 1,
+      live_event_boost: 0,
+      diversity_bonus: 0,
+      freshness_bonus: 0,
+      fsi_baseline: ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX,
+      fsi_boost_cap: 0,
+      ensemble_dampener: 1.0,
+      freshest_signal_age_hours: null,
+      events: [],
+      signals: [],
+      breaking_headline: `${c.flag} ${c.name}: No active breaking crisis signals`,
+      // v13.9.3: explicit flag so consumers know this is a fallback reading
+      fallback_to_structural: true,
+      structural_reference: structuralScore,
+      note: "No live signals survived extraction and age-out. Structural score applies.",
+    };
+  }
+
+  let rawScore = 0, signalCount = 0, liveEventCount = 0;
+  const sources = new Set();
+  const activeSignals = [];
+
+  for (const sig of signals) {
     const ageHours = Math.max(0, sig.ageHours || 0);
     let recencyFactor;
     if (ageHours <= 6) recencyFactor = RECENCY.HOURS_6;
@@ -1141,23 +1058,13 @@ function computeLiveBreakingScore(iso, live, store) {
     else recencyFactor = RECENCY.OLDER;
 
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
-    sig.recency_factor = +recencyFactor.toFixed(3);
-    sig.weighted_score = +(sig.weight * recencyFactor * (def.verify || 0.8)).toFixed(2);
-  }
-
-  const dedupedSignals = deduplicateEvents(freshByAge, iso);
-  const activeSignals = dedupedSignals.sort((a, b) => b.weighted_score - a.weighted_score);
-
-  let rawScore = 0;
-  const sources = new Set();
-  for (const sig of activeSignals) {
-    rawScore += sig.weighted_score;
+    const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
+    rawScore += weighted;
+    signalCount++;
+    liveEventCount++;
     sources.add(sig.source);
-    for (const cs of sig.corroborating_sources || []) sources.add(cs);
+    activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
-
-  const signalCount = rawSignals.length;
-  const distinctEventCount = dedupedSignals.length;
 
   const eventSignals = activeSignals.filter(s => EVENT_SIGNAL_TYPES.has(s.type));
   const stateSignals = activeSignals.filter(s => !EVENT_SIGNAL_TYPES.has(s.type));
@@ -1185,8 +1092,8 @@ function computeLiveBreakingScore(iso, live, store) {
   else if (freshest <= 48) freshnessBonus = 8;
   rawScore += freshnessBonus;
 
-  const fsiBaseline = Math.max(0, ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX);
-  rawScore += fsiBaseline;
+  const fsiBaseline = ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX;
+  rawScore += Math.max(0, fsiBaseline);
 
   const maxBoost = maxBoostForFSI(c.fsi_score);
   const boostAboveBaseline = Math.max(0, rawScore - fsiBaseline);
@@ -1202,33 +1109,28 @@ function computeLiveBreakingScore(iso, live, store) {
   const normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / 120)) * ensembleDampener);
 
   const hasFreshLiveEvent = freshEvents.length > 0;
-  let tier, tierLabel, tierIcon, tierReason;
+  let tier, tierLabel, tierIcon;
   if (hasFreshLiveEvent) {
     if (normalizedScore >= 70) { tier = "BREAKING"; tierLabel = "BREAKING NEWS"; tierIcon = "🔴"; }
     else if (normalizedScore >= 50) { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
     else if (normalizedScore >= 30) { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
     else if (normalizedScore >= 15) { tier = "MONITORING"; tierLabel = "MONITORING"; tierIcon = "🟢"; }
     else { tier = "BACKGROUND"; tierLabel = "BACKGROUND"; tierIcon = "⚪"; }
-    const topEvent = freshEvents[0];
-    tierReason = `fresh_event:${topEvent.type}@${(topEvent.ageHours || 0).toFixed(1)}h`;
   } else {
     if (normalizedScore >= 65) { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
     else if (normalizedScore >= 40) { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
     else if (normalizedScore >= 20) { tier = "MONITORING"; tierLabel = "MONITORING"; tierIcon = "🟢"; }
     else { tier = "BACKGROUND"; tierLabel = "BACKGROUND"; tierIcon = "⚪"; }
-    const topState = stateSignals[0];
-    tierReason = topState ? `state_only:${topState.type}@${(topState.ageHours || 0).toFixed(1)}h` : "no_active_signals";
   }
 
-  const lb = {
+  return {
     live_score: normalizedScore,
     tier, tier_label: tierLabel, tier_icon: tierIcon,
-    tier_reason: tierReason,
     raw_score: +rawScore.toFixed(2),
     signal_count: signalCount,
     raw_signal_count: rawSignals.length,
-    live_event_count: distinctEventCount,
-    distinct_event_count: distinctEventCount,
+    live_event_count: liveEventCount,
+    distinct_event_count: new Set(signals.map(s => `${s.type}:${s.source}`)).size,
     has_fresh_live_event: hasFreshLiveEvent,
     unique_signal_types: eventTypes.size,
     source_count: eventSources.size,
@@ -1241,34 +1143,11 @@ function computeLiveBreakingScore(iso, live, store) {
     fsi_boost_cap: maxBoost,
     ensemble_dampener: ensembleDampener,
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
-    events: eventSignals.map(sig => ({
-      type: sig.type,
-      label: LIVE_SIGNALS[sig.type]?.label || sig.type,
-      icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
-      weight: sig.weight,
-      age_hours: +(sig.ageHours || 0).toFixed(1),
-      weighted_score: sig.weighted_score,
-      source: sig.source,
-      details: sig.details,
-      corroborating_sources: sig.corroborating_sources || [],
-      corroboration_count: sig.corroboration_count || 0,
-    })),
-    signals: activeSignals.map(sig => ({
-      type: sig.type,
-      label: LIVE_SIGNALS[sig.type]?.label || sig.type,
-      icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
-      is_live_event: EVENT_SIGNAL_TYPES.has(sig.type),
-      weight: sig.weight,
-      age_hours: +(sig.ageHours || 0).toFixed(1),
-      weighted_score: sig.weighted_score,
-      source: sig.source,
-      details: sig.details,
-      corroborating_sources: sig.corroborating_sources || [],
-      corroboration_count: sig.corroboration_count || 0,
-    })),
+    events: eventSignals.sort((a, b) => b.weighted_score - a.weighted_score),
+    signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(iso, activeSignals, c),
+    fallback_to_structural: false,
   };
-  return lb;
 }
 
 function buildBreakingHeadline(iso, signals, country) {
@@ -1285,46 +1164,20 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ═══ Ranking with rank_reason ═══
 function rankByLiveBreaking(store) {
-  const ranked = Object.keys(store).sort((a, b) => {
+  return Object.keys(store).sort((a, b) => {
     const aLB = store[a].__live_breaking || {};
     const bLB = store[b].__live_breaking || {};
-    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-
-    if (bEff !== aEff) return bEff - aEff;
-
-    const aHas = aLB.has_fresh_live_event ? 1 : 0;
-    const bHas = bLB.has_fresh_live_event ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
-
-    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-
+    if (CFG.LIVE_EVENT_OVERRIDE) {
+      const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+      const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+      if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+    }
+    const aLive = Number.isFinite(aLB.live_score) ? aLB.live_score : 0;
+    const bLive = Number.isFinite(bLB.live_score) ? bLB.live_score : 0;
+    if (bLive !== aLive) return bLive - aLive;
     return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
   });
-
-  // Compute rank_reason for each
-  const rankReasons = {};
-  for (let i = 0; i < ranked.length; i++) {
-    const iso = ranked[i];
-    const lb = store[iso].__live_breaking || {};
-    const eff = store[iso].__effective_score ?? 0;
-    const prev = i > 0 ? ranked[i - 1] : null;
-    const prevEff = prev ? (store[prev].__effective_score ?? 0) : null;
-
-    if (i === 0) {
-      rankReasons[iso] = `top:effective=${eff}`;
-    } else if (eff !== prevEff) {
-      rankReasons[iso] = `effective=${eff} (prev=${prevEff})`;
-    } else if (lb.has_fresh_live_event) {
-      rankReasons[iso] = `tied_effective=${eff}, fresh_event_break`;
-    } else {
-      rankReasons[iso] = `tied_effective=${eff}, live_score=${lb.live_score}`;
-    }
-  }
-  ranked.__rankReasons = rankReasons;
-  return ranked;
 }
 
 function rankBreakingOnly(store, minSignals = 1) {
@@ -1333,8 +1186,12 @@ function rankBreakingOnly(store, minSignals = 1) {
     .sort((a, b) => {
       const aLB = store[a].__live_breaking || {};
       const bLB = store[b].__live_breaking || {};
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+      if (CFG.LIVE_EVENT_OVERRIDE) {
+        const aHasEvent = aLB.has_fresh_live_event ? 1 : 0;
+        const bHasEvent = bLB.has_fresh_live_event ? 1 : 0;
+        if (aHasEvent !== bHasEvent) return bHasEvent - aHasEvent;
+      }
+      return (bLB.live_score || 0) - (aLB.live_score || 0);
     });
 }
 
@@ -1349,10 +1206,7 @@ function rankLiveEventsOnly(store) {
     });
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  ML / SENTIMENT / ALERTS
-// ════════════════════════════════════════════════════════════════════════════
-
+// ─── ML / SENTIMENT / ALERTS ────────────────────────────────────────────────
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
   predict(seq) {
@@ -1413,7 +1267,7 @@ async function trainMLModel(store) {
   if (!CFG.ML_ENABLED) return;
   const seqs = [];
   for (const iso in store) {
-    const h = await getRealHistory(iso, 500);
+    const h = await getRealHistory(iso, 90);
     if (h.length >= CFG.HISTORY_MIN_FOR_ANOMALY) {
       for (let i = 7; i < h.length - 1; i++) seqs.push(h.slice(i - 7, i + 1));
     }
@@ -1501,11 +1355,10 @@ class AlertManager {
     const c = store[iso];
     const triggered = [];
     const now = Date.now();
-    const score = c.__effective_score ?? c.score;
-    if (score >= this.thresholds.global) {
+    if (c.score >= this.thresholds.global) {
       const key = `${iso}_global`;
       if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({ iso, name: c.name, score, type: 'global', message: `${c.name} reached ${score}/100.` });
+        triggered.push({ iso, name: c.name, score: c.score, type: 'global', message: `${c.name} reached ${c.score}/100.` });
         this.lastAlerts[key] = now;
       }
     }
@@ -1514,12 +1367,14 @@ class AlertManager {
 }
 const alertManager = new AlertManager();
 
+// ═══ ANOMALY DETECTION — v13.9.3: ENFORCED GATE ═══
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
 function detectVolatilityRegime(a) { if (a.length < 8) return { detected: false, stat: 0 }; const h = Math.floor(a.length/2); const r = stddev(a.slice(h))/stddev(a.slice(0,h)); return { detected: r > 2, stat: +r.toFixed(2) }; }
 
 function runAnomalyDetection(realHistory) {
+  // v13.9.3: hard gate on history
   if (realHistory.length < CFG.HISTORY_MIN_FOR_ANOMALY) {
     return {
       detected: false,
@@ -1540,10 +1395,12 @@ function runAnomalyDetection(realHistory) {
 
   const m = [detectCUSUM(realHistory), detectZScore(realHistory), detectChangepoint(realHistory), detectVolatilityRegime(realHistory)];
   const f = m.filter(x => x.detected);
+  // v13.9.3: require at least 2 methods to agree
+  const detected = f.length >= 2;
   return {
-    detected: f.length >= 2,
-    severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : "NONE",
-    reason: null,
+    detected,
+    severity: detected ? (f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : "HIGH") : "NONE",
+    reason: detected ? null : `Only ${f.length} of 4 methods fired; need >= 2`,
     methods_fired: f.length,
     methods: { cusum: m[0], zscore: m[1], changepoint: m[2], volatility: m[3] },
     z_score: m[1].stat,
@@ -1589,229 +1446,15 @@ function recommendation(score, anomaly) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  APPLY LIVE ADJUSTMENTS
-// ════════════════════════════════════════════════════════════════════════════
-function applyLiveAdjustments(priorDims, signals, iso, store) {
-  const dims = { ...priorDims };
-  const audit = [];
-  let totalBoost = 0;
-  const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
-
-  if (CFG.GDACS_ENABLED && signals.gdacs) {
-    const lvl = signals.gdacsAlert || "green";
-    const base = lvl === "red" ? 12 : lvl === "orange" ? 7 : 3;
-    const mult = Math.min(2, 1 + (signals.gdacsCount || 1) * 0.15);
-    const b = Math.round(base * mult);
-    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.5));
-    dims.health = clamp(dims.health + Math.floor(b * 0.3));
-    totalBoost += b;
-    audit.push({ source: "GDACS", delta: b, reason: `${lvl.toUpperCase()} x${signals.gdacsCount || 1}` });
-  }
-
-  if (signals.quakeMag >= 4.5) {
-    const b = Math.min(15, Math.round((signals.quakeMag - 3.5) * 3.5));
-    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.5));
-    totalBoost += b;
-    audit.push({ source: "USGS/EMSC", delta: b, reason: `M${signals.quakeMag.toFixed(1)}` });
-  }
-
-  if (CFG.NASA_ENABLED && signals.nasaEventCount > 0) {
-    const b = Math.min(12, signals.nasaEventCount * 4);
-    dims.climate = clamp(dims.climate + Math.ceil(b * 0.6));
-    totalBoost += b;
-    audit.push({ source: "NASA EONET", delta: b, reason: `${signals.nasaEventCount} events` });
-  }
-
-  if (CFG.IFRC_ENABLED && signals.ifrcCount > 0) {
-    const b = Math.min(10, signals.ifrcCount * 4);
-    dims.access = clamp(dims.access + b);
-    totalBoost += b;
-    audit.push({ source: "IFRC Event", delta: b, reason: `${signals.ifrcCount} ops` });
-  }
-
-  if (CFG.IFRC_APPEAL_ENABLED && signals.ifrcAppeals?.length) {
-    const b = Math.min(12, signals.ifrcAppeals.length * 6);
-    dims.access = clamp(dims.access + b);
-    totalBoost += b;
-    audit.push({ source: "IFRC Appeal", delta: b, reason: `${signals.ifrcAppeals.length} appeal(s)` });
-  }
-
-  if (signals.maxTempC >= 35) {
-    const b = Math.min(12, Math.round((signals.maxTempC - 28) * 1.2));
-    dims.climate = clamp(dims.climate + Math.ceil(b * 0.6));
-    dims.health = clamp(dims.health + Math.floor(b * 0.4));
-    totalBoost += b;
-    audit.push({ source: "Open-Meteo", delta: b, reason: `${signals.maxTempC}°C heat` });
-  }
-
-  if (signals.hazards) {
-    const h = signals.hazards;
-    let b = 0;
-    if (h.flood_discharge > 100) b += 5;
-    if (h.wave_height >= CFG.OPENMETEO_MARINE_THRESHOLD) b += 4;
-    if (h.wind_speed > 30) b += 4;
-    if (h.precip_total > 10) b += 3;
-    if (h.uv_max > 8) b += 2;
-    b = Math.min(15, b);
-    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "Open-Meteo Hazards", delta: b, reason: "hazard thresholds" }); }
-  }
-
-  if (signals.aq?.pm25 >= 35) {
-    const b = Math.min(8, Math.round((signals.aq.pm25 - 25) / 10));
-    if (b > 0) { dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "Open-Meteo AQ", delta: b, reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}` }); }
-  }
-
-  if (CFG.DISEASE_ENABLED && signals.diseaseActive > 1000) {
-    const b = Math.min(12, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 5));
-    dims.health = clamp(dims.health + b);
-    totalBoost += b;
-    audit.push({ source: "disease.sh", delta: b, reason: `${signals.diseaseActive} active` });
-  }
-
-  if (CFG.WHO_ENABLED && signals.whoOutbreaks?.length) {
-    const b = Math.min(10, signals.whoOutbreaks.length * 4);
-    dims.health = clamp(dims.health + b);
-    totalBoost += b;
-    audit.push({ source: "WHO RSS", delta: b, reason: `${signals.whoOutbreaks.length} outbreak(s)` });
-  }
-
-  if (CFG.WHO_DON_ENABLED && signals.whoDon?.length) {
-    const b = Math.min(15, signals.whoDon.length * 8);
-    dims.health = clamp(dims.health + b);
-    totalBoost += b;
-    audit.push({ source: "WHO DON", delta: b, reason: `${signals.whoDon.length} report(s)` });
-  }
-
-  if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && signals.ecdcThreats?.length) {
-    const b = Math.min(6, signals.ecdcThreats.length * 3);
-    dims.health = clamp(dims.health + b);
-    totalBoost += b;
-    audit.push({ source: "ECDC", delta: b, reason: `${signals.ecdcThreats.length} threat(s)` });
-  }
-
-  if (CFG.CDC_ENABLED && signals.cdcOutbreaks?.length) {
-    const b = Math.min(12, signals.cdcOutbreaks.length * 4);
-    dims.health = clamp(dims.health + b);
-    totalBoost += b;
-    audit.push({ source: "CDC", delta: b, reason: `${signals.cdcOutbreaks.length} notice(s)` });
-  }
-
-  if (CFG.SPC_ENABLED && signals.spcOutlook) {
-    const lvl = signals.spcOutlook.label;
-    const wm = { TSTM: 4, MRGL: 6, SLGT: 9, ENH: 12, MDT: 15, HIGH: 18 };
-    const b = wm[lvl] || 3;
-    dims.climate = clamp(dims.climate + b);
-    totalBoost += b;
-    audit.push({ source: "SPC", delta: b, reason: `SPC ${lvl}` });
-  }
-
-  if (CFG.US_DROUGHT_ENABLED && signals.usDrought) {
-    const b = Math.min(10, CFG.US_DROUGHT_BOOST * 0.2);
-    dims.climate = clamp(dims.climate + b);
-    totalBoost += b;
-    audit.push({ source: "US Drought Monitor", delta: b, reason: signals.usDrought.level });
-  }
-
-  if (CFG.NASA_POWER_ENABLED && signals.nasaPower) {
-    const t = Math.abs(signals.nasaPower.tempAnomaly || 0);
-    const p = Math.abs(signals.nasaPower.precipAnomaly || 0);
-    const b = Math.min(8, Math.round(t * 1.2 + p * 0.5));
-    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "NASA POWER", delta: b, reason: "climate anomaly" }); }
-  }
-
-  if (CFG.WB_ENABLED && signals.wbInflation?.value > 5) {
-    const b = Math.min(10, Math.round(signals.wbInflation.value / 5));
-    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbInflation.value.toFixed(1)}% inflation` });
-  }
-  if (CFG.WB_ENABLED && signals.wbGdpGrowth?.value < 0) {
-    const b = Math.min(10, Math.round(Math.abs(signals.wbGdpGrowth.value) * 1.5));
-    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbGdpGrowth.value.toFixed(1)}% GDP` });
-  }
-  if (CFG.WB_ENABLED && signals.wbPoverty?.value > 5) {
-    const b = Math.min(10, Math.round(signals.wbPoverty.value / 5));
-    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbPoverty.value.toFixed(1)}% poverty` });
-  }
-
-  if (CFG.UNHCR_ENABLED && signals.totalDisplaced > 0) {
-    const m = signals.totalDisplaced / 1_000_000;
-    const b = m >= 10 ? 25 : m >= 5 ? 18 : m >= 3 ? 14 : m >= 1.5 ? 10 : m >= 0.5 ? 6 : m >= 0.1 ? 3 : 0;
-    if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR", delta: b, reason: `${m.toFixed(1)}M displaced` }); }
-  }
-
-  if (CFG.UNHCR_SOLUTIONS_ENABLED && signals.unhcrSolutions?.returned_refugees > 10_000) {
-    const b = Math.min(12, Math.round(signals.unhcrSolutions.returned_refugees / 200_000));
-    if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR Solutions", delta: b, reason: `${fmtPop(signals.unhcrSolutions.returned_refugees)} returned` }); }
-  }
-
-  if (CFG.GFW_ENABLED && signals.gfwAlerts) {
-    const b = Math.min(10, Math.round(Math.log10(signals.gfwAlerts.count + 1) * 4));
-    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "GFW", delta: b, reason: `${signals.gfwAlerts.count} alerts` }); }
-  }
-
-  if (CFG.CLIMATE_TRACE_ENABLED && signals.climateTrace) {
-    const b = Math.min(6, Math.round(Math.log10((signals.climateTrace.topEmission?.emissions || 0) / 1000) * 2));
-    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "Climate TRACE", delta: b, reason: `emissions hotspot` }); }
-  }
-
-  if (CFG.HDX_ENABLED && signals.hdxDatasets) {
-    const b = Math.min(5, Math.round(signals.hdxDatasets.count * 0.5));
-    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "OCHA HDX", delta: b, reason: `${signals.hdxDatasets.count} datasets` }); }
-  }
-
-  const cap = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
-  const capped = Math.min(totalBoost, cap);
-  const ratio = totalBoost > 0 ? capped / totalBoost : 1;
-  for (const k of Object.keys(dims)) { const d = dims[k] - priorDims[k]; if (d > 0) dims[k] = clamp(Math.round(priorDims[k] + d * ratio)); }
-
-  return { dims, score: clamp(composite(dims)), audit, totalBoostRaw: totalBoost, totalBoostCapped: capped, boostRatio: ratio, maxAllowedBoost: cap };
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE DATA FETCHERS — with fallback chains
+//  LIVE DATA FETCHERS (unchanged from v13.9.2)
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
   Promise.race([p.then(r => ({ ok: true, data: r })), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), CFG.FETCH_TIMEOUT_MS))])
     .catch(e => ({ ok: false, error: e.message }));
 
-// ═══ v14.1.0: Fallback helper — try primary, then fallbacks ═══
-async function fetchWithFallback(primaryUrl, fallbackUrls, parseFn) {
-  const urls = [primaryUrl, ...(fallbackUrls || [])];
-  for (const url of urls) {
-    try {
-      const r = await safeFetch(fetch(url).then(res => res.json()));
-      if (r.ok && r.data) return { data: r.data, live: true, source_url: url };
-    } catch {}
-  }
-  return { data: null, live: false, source_url: null };
-}
-
-async function fetchUSGS() {
-  const result = await fetchWithFallback(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson",
-    [
-      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson",
-      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson",
-    ],
-    d => d.features || []
-  );
-  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true, fallback_used: result.source_url !== "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson" };
-  return { data: [], live: false };
-}
-
-async function fetchUSGSSignificant() {
-  const result = await fetchWithFallback(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
-    [
-      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
-      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson",
-    ],
-    d => d.features || []
-  );
-  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true };
-  return { data: [], live: false };
-}
-
+async function fetchUSGS() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
+async function fetchUSGSSignificant() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchShakeMap() { try { const r = await safeFetch(fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features.filter(f => (f.properties?.mag || 0) >= CFG.SHAKEMAP_MIN_MAG), live: true }; } catch {} return { data: [], live: false }; }
 async function fetchEMSC() { try { const r = await safeFetch(fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.json())); if (r.ok && r.data?.features?.length) return { data: r.data.features, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchNASA() {
@@ -1825,16 +1468,18 @@ async function fetchNASA() {
   } catch {} return { data: [], live: false };
 }
 async function fetchGDACS() {
-  const result = await fetchWithFallback(
-    "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40",
-    [
-      "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40",
-      "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?limit=40",
-    ],
-    d => d.features || []
-  );
-  if (result.live && result.data?.features?.length) return { data: result.data.features, live: true };
-  return { data: [], live: false };
+  try {
+    const [a, b, c, d, e, f] = await Promise.all([
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=30").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TC&limit=30").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=FL&limit=30").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=WF&limit=30").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=30").then(r => r.json())),
+    ]);
+    const feats = [...(a.ok ? a.data.features || [] : []), ...(b.ok ? b.data.features || [] : []), ...(c.ok ? c.data.features || [] : []), ...(d.ok ? d.data.features || [] : []), ...(e.ok ? e.data.features || [] : []), ...(f.ok ? f.data.features || [] : [])];
+    return { data: feats, live: feats.length > 0 };
+  } catch {} return { data: [], live: false };
 }
 async function fetchIFRC() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
 async function fetchIFRCAppeals() { try { const r = await safeFetch(fetch("https://goadmin.ifrc.org/api/v2/appeal/?limit=30&ordering=-start_date").then(r => r.json())); if (r.ok && r.data?.results?.length) return { data: r.data.results, live: true }; } catch {} return { data: [], live: false }; }
@@ -2017,8 +1662,6 @@ async function fetchUNHCRSolutions() {
           const iso = item.coa_iso;
           if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
           map[iso].returned_refugees += parseInt(item.returned_refugees) || 0;
-          map[iso].resettlement += parseInt(item.resettlement) || 0;
-          map[iso].naturalisation += parseInt(item.naturalisation) || 0;
         }
         if (item.coo_iso && item.coo_iso !== "-" && item.returned_refugees) {
           const iso = item.coo_iso;
@@ -2041,7 +1684,7 @@ async function fetchWHO() {
         for (const kw of kws) {
           if (t.includes(kw)) {
             for (const [iso, c] of Object.entries(COUNTRIES)) {
-              if (t.includes(c.name.toLowerCase())) {
+              if (matchesCountryPlace(iso, t)) {
                 if (!outbreaks[iso]) outbreaks[iso] = [];
                 outbreaks[iso].push({ disease: kw, title: it.title, date: it.pubDate, ageHours: 24 });
                 break;
@@ -2245,7 +1888,11 @@ async function fetchECDC() {
   try {
     const r = await safeFetch(fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.ecdc.europa.eu/en/taxonomy/term/1607/feed").then(r => r.json()));
     if (r.ok && r.data?.items?.length) {
-      const items = r.data.items.slice(0, 10).map(it => ({ title: it.title || '', pubDate: it.pubDate || null, ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 48 }));
+      const items = r.data.items.slice(0, 10).map(it => ({
+        title: it.title || '',
+        pubDate: it.pubDate || null,
+        ageHours: it.pubDate ? (Date.now() - new Date(it.pubDate).getTime()) / 36e5 : 48,
+      }));
       return { data: items, live: true };
     }
   } catch {}
@@ -2276,7 +1923,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EXTRACT SIGNALS
+//  EXTRACT SIGNALS — v13.9.3 (uses matchesCountryPlace throughout)
 // ════════════════════════════════════════════════════════════════════════════
 
 function extractSignals(iso, live) {
@@ -2285,7 +1932,8 @@ function extractSignals(iso, live) {
   const evidenceSources = [];
   const signals = {};
 
-  const quakes = (live.usgs.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
+  // USGS
+  const quakes = (live.usgs.data || []).filter(f => matchesCountryPlace(iso, f.properties?.place));
   const topQuake = quakes.length ? quakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topQuake?.properties?.mag >= 4.5) {
     liveEvidenceCount++; evidenceSources.push("USGS");
@@ -2294,14 +1942,14 @@ function extractSignals(iso, live) {
     signals.quakeTime = topQuake.properties.time;
   }
 
-  const sigQuakes = (live.usgsSig.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
+  const sigQuakes = (live.usgsSig.data || []).filter(f => matchesCountryPlace(iso, f.properties?.place));
   const topSig = sigQuakes.length ? sigQuakes.reduce((a, b) => b.properties.mag > a.properties.mag ? b : a) : null;
   if (topSig?.properties?.mag >= 5.5 && (!topQuake || topSig.properties.mag > topQuake.properties.mag)) {
     signals.quakeSigMonth = { mag: topSig.properties.mag, place: topSig.properties.place.split(",")[0].trim(), time: topSig.properties.time };
     liveEvidenceCount++; evidenceSources.push("USGS-Sig");
   }
 
-  const shakemapEvents = (live.shakemap.data || []).filter(f => (f.properties?.place || "").toLowerCase().includes(name));
+  const shakemapEvents = (live.shakemap.data || []).filter(f => matchesCountryPlace(iso, f.properties?.place));
   const topShakeMap = shakemapEvents.length ? shakemapEvents.reduce((a, b) => (b.properties?.mag || 0) > (a.properties?.mag || 0) ? b : a) : null;
   if (topShakeMap?.properties?.mag >= CFG.SHAKEMAP_MIN_MAG) {
     const eventTime = topShakeMap.properties.time;
@@ -2312,27 +1960,47 @@ function extractSignals(iso, live) {
 
   if (CFG.JMA_ENABLED && iso === "JPN" && live.jma.data?.length) {
     const jmaEvents = live.jma.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (jmaEvents.length > 0) { const topJMA = jmaEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.jmaQuake = topJMA; liveEvidenceCount++; evidenceSources.push("JMA"); }
+    if (jmaEvents.length > 0) {
+      const topJMA = jmaEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.jmaQuake = topJMA;
+      liveEvidenceCount++; evidenceSources.push("JMA");
+    }
   }
 
   if (CFG.BMKG_ENABLED && iso === "IDN" && live.bmkg.data?.length) {
     const bmkgEvents = live.bmkg.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (bmkgEvents.length > 0) { const topBMKG = bmkgEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.bmkgQuake = topBMKG; liveEvidenceCount++; evidenceSources.push("BMKG"); }
+    if (bmkgEvents.length > 0) {
+      const topBMKG = bmkgEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.bmkgQuake = topBMKG;
+      liveEvidenceCount++; evidenceSources.push("BMKG");
+    }
   }
 
   if (CFG.GEOFON_ENABLED && live.geofon.data?.length) {
     const geofonEvents = live.geofon.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (geofonEvents.length > 0) { const topGEOFON = geofonEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.geofonQuake = topGEOFON; liveEvidenceCount++; evidenceSources.push("GEOFON"); }
+    if (geofonEvents.length > 0) {
+      const topGEOFON = geofonEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.geofonQuake = topGEOFON;
+      liveEvidenceCount++; evidenceSources.push("GEOFON");
+    }
   }
 
   if (CFG.INGV_ENABLED && MEDITERRANEAN_ISOS.has(iso) && live.ingv.data?.length) {
     const ingvEvents = live.ingv.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (ingvEvents.length > 0) { const topINGV = ingvEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.ingvQuake = topINGV; liveEvidenceCount++; evidenceSources.push("INGV"); }
+    if (ingvEvents.length > 0) {
+      const topINGV = ingvEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.ingvQuake = topINGV;
+      liveEvidenceCount++; evidenceSources.push("INGV");
+    }
   }
 
   if (CFG.GEONET_ENABLED && SOUTH_PACIFIC_ISOS.has(iso) && live.geonet.data?.length) {
     const geonetEvents = live.geonet.data.filter(e => matchesCountryPlace(iso, e.place));
-    if (geonetEvents.length > 0) { const topGeoNet = geonetEvents.reduce((a, b) => b.mag > a.mag ? b : a); signals.geonetQuake = topGeoNet; liveEvidenceCount++; evidenceSources.push("GeoNet"); }
+    if (geonetEvents.length > 0) {
+      const topGeoNet = geonetEvents.reduce((a, b) => b.mag > a.mag ? b : a);
+      signals.geonetQuake = topGeoNet;
+      liveEvidenceCount++; evidenceSources.push("GeoNet");
+    }
   }
 
   const emscQuakes = (live.emsc.data || []).filter(f => { const c = f.geometry?.coordinates; return c && findClosestCountry(c[0], c[1]) === iso; });
@@ -2361,9 +2029,18 @@ function extractSignals(iso, live) {
     signals.gdacsCount = gdacsEvents.length;
   }
 
-  const ifrcEvents = (live.ifrc.data || []).filter(ev => (ev.countries?.[0]?.iso3 || ev.country?.iso3) === iso);
+  const ifrcEvents = (live.ifrc.data || []).filter(ev => {
+    const iso3 = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+    if (iso3 === iso) return true;
+    // v13.9.3: also match by name for events that don't carry iso3
+    return ev.name && matchesCountryPlace(iso, ev.name);
+  });
   if (ifrcEvents.length) { liveEvidenceCount++; evidenceSources.push("IFRC"); signals.ifrcCount = ifrcEvents.length; signals.ifrcEvents = ifrcEvents; }
-  const ifrcAppeals = (live.ifrcAppeals?.data || []).filter(ap => { const iso3 = ap.country?.iso3 || ap.countries?.[0]?.iso3; return iso3 === iso; });
+  const ifrcAppeals = (live.ifrcAppeals?.data || []).filter(ap => {
+    const iso3 = ap.country?.iso3 || ap.countries?.[0]?.iso3;
+    if (iso3 === iso) return true;
+    return ap.name && matchesCountryPlace(iso, ap.name);
+  });
   if (ifrcAppeals.length) { liveEvidenceCount++; evidenceSources.push("IFRC-Appeal"); signals.ifrcAppeals = ifrcAppeals; }
 
   const maxTempC = live.heat.data[iso] ?? 0;
@@ -2384,7 +2061,7 @@ function extractSignals(iso, live) {
   if (CFG.WHO_DON_ENABLED && live.whoDon.data?.length) {
     const matched = live.whoDon.data.filter(d => {
       const text = ((d.title || "") + " " + (d.summary || "") + " " + (d.overview || "")).toLowerCase();
-      return text.includes(name);
+      return matchesCountryPlace(iso, text);
     });
     if (matched.length) { liveEvidenceCount++; evidenceSources.push("WHO DON"); signals.whoDon = matched; }
   }
@@ -2427,7 +2104,7 @@ function extractSignals(iso, live) {
     liveEvidenceCount++; evidenceSources.push("UNHCR Solutions");
   }
 
-  const diseaseRow = (live.disease.data || []).find(d => { const cN = d.country || d.country_name || ""; return cN.toLowerCase() === name || name.includes(cN.toLowerCase()) || cN.toLowerCase().includes(name); });
+  const diseaseRow = (live.disease.data || []).find(d => { const cN = d.country || d.country_name || ""; return matchesCountryPlace(iso, cN); });
   if (diseaseRow?.active > 1000) { liveEvidenceCount++; evidenceSources.push("disease.sh"); signals.diseaseActive = diseaseRow.active; signals.diseaseName = "COVID-19"; }
 
   const whoData = live.who?.data || null;
@@ -2518,11 +2195,188 @@ function extractSignals(iso, live) {
   };
 }
 
-// ─── BUILD STORE ────────────────────────────────────────────────────────────
-async function buildStore(liveData, sourceHealth) {
+// ─── APPLY LIVE ADJUSTMENTS ─────────────────────────────────────────────────
+function applyLiveAdjustments(priorDims, signals, iso, store) {
+  const dims = { ...priorDims };
+  const audit = [];
+  let totalBoost = 0;
+  const fsiBase = COUNTRIES[iso]?.fsi_score || 50;
+
+  if (CFG.GDACS_ENABLED && signals.gdacs) {
+    const lvl = signals.gdacsAlert || "green";
+    const base = lvl === "red" ? 12 : lvl === "orange" ? 7 : 3;
+    const mult = Math.min(2, 1 + (signals.gdacsCount || 1) * 0.15);
+    const b = Math.round(base * mult);
+    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.5));
+    dims.health = clamp(dims.health + Math.floor(b * 0.3));
+    totalBoost += b;
+    audit.push({ source: "GDACS", delta: b, reason: `${lvl.toUpperCase()} x${signals.gdacsCount || 1}` });
+  }
+
+  if (signals.quakeMag >= 4.5) {
+    const b = Math.min(15, Math.round((signals.quakeMag - 3.5) * 3.5));
+    dims.displacement = clamp(dims.displacement + Math.ceil(b * 0.5));
+    totalBoost += b;
+    audit.push({ source: "USGS/EMSC", delta: b, reason: `M${signals.quakeMag.toFixed(1)}` });
+  }
+
+  if (CFG.NASA_ENABLED && signals.nasaEventCount > 0) {
+    const b = Math.min(12, signals.nasaEventCount * 4);
+    dims.climate = clamp(dims.climate + Math.ceil(b * 0.6));
+    totalBoost += b;
+    audit.push({ source: "NASA EONET", delta: b, reason: `${signals.nasaEventCount} events` });
+  }
+
+  if (CFG.IFRC_ENABLED && signals.ifrcCount > 0) {
+    const b = Math.min(10, signals.ifrcCount * 4);
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "IFRC Event", delta: b, reason: `${signals.ifrcCount} ops` });
+  }
+
+  if (CFG.IFRC_APPEAL_ENABLED && signals.ifrcAppeals?.length) {
+    const b = Math.min(12, signals.ifrcAppeals.length * 6);
+    dims.access = clamp(dims.access + b);
+    totalBoost += b;
+    audit.push({ source: "IFRC Appeal", delta: b, reason: `${signals.ifrcAppeals.length} appeal(s)` });
+  }
+
+  if (signals.maxTempC >= 35) {
+    const b = Math.min(12, Math.round((signals.maxTempC - 28) * 1.2));
+    dims.climate = clamp(dims.climate + Math.ceil(b * 0.6));
+    dims.health = clamp(dims.health + Math.floor(b * 0.4));
+    totalBoost += b;
+    audit.push({ source: "Open-Meteo", delta: b, reason: `${signals.maxTempC}°C heat` });
+  }
+
+  if (signals.hazards) {
+    const h = signals.hazards;
+    let b = 0;
+    if (h.flood_discharge > 100) b += 5;
+    if (h.wave_height >= CFG.OPENMETEO_MARINE_THRESHOLD) b += 4;
+    if (h.wind_speed > 30) b += 4;
+    if (h.precip_total > 10) b += 3;
+    if (h.uv_max > 8) b += 2;
+    b = Math.min(15, b);
+    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "Open-Meteo Hazards", delta: b, reason: "hazard thresholds" }); }
+  }
+
+  if (signals.aq?.pm25 >= 35) {
+    const b = Math.min(8, Math.round((signals.aq.pm25 - 25) / 10));
+    if (b > 0) { dims.health = clamp(dims.health + b); totalBoost += b; audit.push({ source: "Open-Meteo AQ", delta: b, reason: `PM2.5 ${signals.aq.pm25.toFixed(0)}` }); }
+  }
+
+  if (CFG.DISEASE_ENABLED && signals.diseaseActive > 1000) {
+    const b = Math.min(12, Math.round(Math.log10(signals.diseaseActive / 1000 + 1) * 5));
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "disease.sh", delta: b, reason: `${signals.diseaseActive} active` });
+  }
+
+  if (CFG.WHO_ENABLED && signals.whoOutbreaks?.length) {
+    const b = Math.min(10, signals.whoOutbreaks.length * 4);
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "WHO RSS", delta: b, reason: `${signals.whoOutbreaks.length} outbreak(s)` });
+  }
+
+  if (CFG.WHO_DON_ENABLED && signals.whoDon?.length) {
+    const b = Math.min(15, signals.whoDon.length * 8);
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "WHO DON", delta: b, reason: `${signals.whoDon.length} report(s)` });
+  }
+
+  if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && signals.ecdcThreats?.length) {
+    const b = Math.min(6, signals.ecdcThreats.length * 3);
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "ECDC", delta: b, reason: `${signals.ecdcThreats.length} threat(s)` });
+  }
+
+  if (CFG.CDC_ENABLED && signals.cdcOutbreaks?.length) {
+    const b = Math.min(12, signals.cdcOutbreaks.length * 4);
+    dims.health = clamp(dims.health + b);
+    totalBoost += b;
+    audit.push({ source: "CDC", delta: b, reason: `${signals.cdcOutbreaks.length} notice(s)` });
+  }
+
+  if (CFG.SPC_ENABLED && signals.spcOutlook) {
+    const lvl = signals.spcOutlook.label;
+    const wm = { TSTM: 4, MRGL: 6, SLGT: 9, ENH: 12, MDT: 15, HIGH: 18 };
+    const b = wm[lvl] || 3;
+    dims.climate = clamp(dims.climate + b);
+    totalBoost += b;
+    audit.push({ source: "SPC", delta: b, reason: `SPC ${lvl}` });
+  }
+
+  if (CFG.US_DROUGHT_ENABLED && signals.usDrought) {
+    const b = Math.min(10, CFG.US_DROUGHT_BOOST * 0.2);
+    dims.climate = clamp(dims.climate + b);
+    totalBoost += b;
+    audit.push({ source: "US Drought Monitor", delta: b, reason: signals.usDrought.level });
+  }
+
+  if (CFG.NASA_POWER_ENABLED && signals.nasaPower) {
+    const t = Math.abs(signals.nasaPower.tempAnomaly || 0);
+    const p = Math.abs(signals.nasaPower.precipAnomaly || 0);
+    const b = Math.min(8, Math.round(t * 1.2 + p * 0.5));
+    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "NASA POWER", delta: b, reason: "climate anomaly" }); }
+  }
+
+  if (CFG.WB_ENABLED && signals.wbInflation?.value > 5) {
+    const b = Math.min(10, Math.round(signals.wbInflation.value / 5));
+    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbInflation.value.toFixed(1)}% inflation` });
+  }
+  if (CFG.WB_ENABLED && signals.wbGdpGrowth?.value < 0) {
+    const b = Math.min(10, Math.round(Math.abs(signals.wbGdpGrowth.value) * 1.5));
+    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbGdpGrowth.value.toFixed(1)}% GDP` });
+  }
+  if (CFG.WB_ENABLED && signals.wbPoverty?.value > 5) {
+    const b = Math.min(10, Math.round(signals.wbPoverty.value / 5));
+    dims.economic = clamp(dims.economic + b); totalBoost += b; audit.push({ source: "World Bank", delta: b, reason: `${signals.wbPoverty.value.toFixed(1)}% poverty` });
+  }
+
+  if (CFG.UNHCR_ENABLED && signals.totalDisplaced > 0) {
+    const m = signals.totalDisplaced / 1_000_000;
+    const b = m >= 10 ? 25 : m >= 5 ? 18 : m >= 3 ? 14 : m >= 1.5 ? 10 : m >= 0.5 ? 6 : m >= 0.1 ? 3 : 0;
+    if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR", delta: b, reason: `${m.toFixed(1)}M displaced` }); }
+  }
+
+  if (CFG.UNHCR_SOLUTIONS_ENABLED && signals.unhcrSolutions?.returned_refugees > 10_000) {
+    const b = Math.min(12, Math.round(signals.unhcrSolutions.returned_refugees / 200_000));
+    if (b > 0) { dims.displacement = clamp(dims.displacement + b); totalBoost += b; audit.push({ source: "UNHCR Solutions", delta: b, reason: `${fmtPop(signals.unhcrSolutions.returned_refugees)} returned` }); }
+  }
+
+  if (CFG.GFW_ENABLED && signals.gfwAlerts) {
+    const b = Math.min(10, Math.round(Math.log10(signals.gfwAlerts.count + 1) * 4));
+    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "GFW", delta: b, reason: `${signals.gfwAlerts.count} alerts` }); }
+  }
+
+  if (CFG.CLIMATE_TRACE_ENABLED && signals.climateTrace) {
+    const b = Math.min(6, Math.round(Math.log10((signals.climateTrace.topEmission?.emissions || 0) / 1000) * 2));
+    if (b > 0) { dims.climate = clamp(dims.climate + b); totalBoost += b; audit.push({ source: "Climate TRACE", delta: b, reason: `emissions hotspot` }); }
+  }
+
+  if (CFG.HDX_ENABLED && signals.hdxDatasets) {
+    const b = Math.min(5, Math.round(signals.hdxDatasets.count * 0.5));
+    if (b > 0) { dims.access = clamp(dims.access + b); totalBoost += b; audit.push({ source: "OCHA HDX", delta: b, reason: `${signals.hdxDatasets.count} datasets` }); }
+  }
+
+  const cap = Math.min(CFG.WST_MAX_BOOST_ABOVE_FSI, Math.max(8, Math.round(fsiBase * 0.25)));
+  const capped = Math.min(totalBoost, cap);
+  const ratio = totalBoost > 0 ? capped / totalBoost : 1;
+  for (const k of Object.keys(dims)) { const d = dims[k] - priorDims[k]; if (d > 0) dims[k] = clamp(Math.round(priorDims[k] + d * ratio)); }
+
+  return { dims, score: clamp(composite(dims)), audit, totalBoostRaw: totalBoost, totalBoostCapped: capped, boostRatio: ratio, maxAllowedBoost: cap };
+}
+
+// ═══ v13.9.3: BUILD STORE — single canonical computation ═══
+async function buildStore(liveData) {
   const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
 
+  // Step 1: initialize every country
   for (const [iso, country] of Object.entries(COUNTRIES)) {
     const fsiScore = country.fsi_score || country.prior || 50;
     const base = Math.round((fsiScore / 120) * 100);
@@ -2543,10 +2397,11 @@ async function buildStore(liveData, sourceHealth) {
       ...country, dims, score: structuralScore, structural_score: structuralScore, priorScore,
       liveBoost: structuralScore - priorScore, audit, signals, spillover: 0,
       fsi_score: fsiScore, fsi_rank: country.fsi_rank, fsi_band: country.fsi_band,
-      historical_scores: [], __wst: null, __live_breaking: null, __effective_score: null,
+      __wst: null, __live_breaking: null,
     };
   }
 
+  // Step 2: spillover
   for (const iso in store) {
     const n = (COUNTRIES[iso].adj || []).filter(x => store[x]);
     if (!n.length) continue;
@@ -2557,34 +2412,36 @@ async function buildStore(liveData, sourceHealth) {
     store[iso].structural_score = store[iso].score;
   }
 
-  for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score);
+  // Step 3: ML training (awaited)
+  await trainMLModel(store);
 
-  if (CFG.ML_ENABLED) await trainMLModel(store);
-
+  // Step 4: compute live breaking score for every country
   for (const iso in store) {
     store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
   }
 
-  for (const iso in store) {
-    const structural = store[iso].structural_score ?? store[iso].score;
-    const live = store[iso].__live_breaking?.live_score || 0;
-    store[iso].__effective_score = computeEffectiveScore(structural, live);
-    store[iso].score = store[iso].__effective_score;
+  // Step 5: promote live score to top-level score field
+  if (CFG.SCORE_FIELD_IS_LIVE && CFG.LIVE_BREAKING_ENABLED) {
+    for (const iso in store) {
+      const lb = store[iso].__live_breaking;
+      if (lb && !lb.fallback_to_structural) store[iso].score = lb.live_score;
+    }
   }
 
+  // Step 6: record history (awaited)
   if (CFG.HISTORY_ENABLED) {
     for (const iso in store) {
-      await recordHistory(iso, store[iso].__effective_score, store[iso].__live_breaking?.live_score || 0, store[iso].structural_score || 0);
+      await recordHistory(iso, store[iso].score, store[iso].__live_breaking?.live_score || 0);
     }
   }
 
+  // Step 7: ML forecast (awaited)
   for (const iso in store) {
-    if (CFG.ML_ENABLED) {
-      const realHistory = await getRealHistory(iso, 90);
-      store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].__effective_score, realHistory);
-    }
+    const realHistory = await getRealHistory(iso, 90);
+    store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].score, realHistory);
   }
 
+  // Step 8: sentiment + alerts
   for (const iso in store) {
     if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
     if (CFG.GEO_FENCING_ENABLED) alertManager.checkAlerts(iso, store);
@@ -2593,26 +2450,17 @@ async function buildStore(liveData, sourceHealth) {
   return store;
 }
 
-// ─── PAYLOAD BUILDER ────────────────────────────────────────────────────────
-async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
+// ═══ v13.9.3: PAYLOAD BUILDER — reads only from store ═══
+async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
+  if (!c) throw new Error(`Unknown ISO: ${iso}`);
+
   const lb = c.__live_breaking || {};
-  const structuralScore = c.structural_score ?? c.score;
-  const liveScore = lb.live_score || 0;
-  const effectiveScore = c.__effective_score ?? computeEffectiveScore(structuralScore, liveScore);
-  const displayScore = effectiveScore;
+  const displayScore = CFG.SCORE_FIELD_IS_LIVE ? (lb.fallback_to_structural ? c.structural_score : (lb.live_score ?? c.structural_score ?? c.score)) : c.score;
 
   const realHistory = await getRealHistory(iso, 90);
-  const recentHistory = await getRecentHistory(iso, 30);
   const anom = runAnomalyDetection(realHistory);
   const fc = trendForecast(realHistory.length >= 5 ? realHistory : [displayScore], displayScore);
-  const confidence = computeConfidenceInterval(
-    displayScore,
-    sourceHealth?.ratio || 1,
-    realHistory.length,
-    c.signals?.ensembleSpread || 0,
-    (lb.signal_count || 0) + (lb.corroboration_sources?.length || 0)
-  );
 
   const rank = ranked.indexOf(iso) + 1;
   const s = c.signals || {};
@@ -2623,25 +2471,20 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
   const base = {
     iso, name: c.name, flag: c.flag,
     score: displayScore,
-    effective_score: effectiveScore,
-    structural_score: structuralScore,
-    live_score: liveScore,
-    confidence,
+    structural_score: c.structural_score ?? c.score,
     severity: severityLabel(displayScore),
     severity_emoji: severityEmoji(displayScore),
     severity_color: severityColor(displayScore),
     rank, total_countries: ranked.length,
-    rank_reason: ranked.__rankReasons?.[iso] || null,
     percentile: Math.round((1 - rank / ranked.length) * 100),
     slug: slugify(c.name),
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
 
     live_breaking: {
-      score: liveScore,
+      score: lb.live_score || 0,
       tier: lb.tier || "BACKGROUND",
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
-      tier_reason: lb.tier_reason || "unknown",
       headline: lb.breaking_headline || null,
       signal_count: lb.signal_count || 0,
       raw_signal_count: lb.raw_signal_count || 0,
@@ -2659,19 +2502,34 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
       fsi_boost_cap: lb.fsi_boost_cap || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
-      events: lb.events || [],
-      signals: lb.signals || [],
+      fallback_to_structural: lb.fallback_to_structural || false,
+      events: (lb.events || []).map(sig => ({
+        type: sig.type,
+        label: LIVE_SIGNALS[sig.type]?.label || sig.type,
+        icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
+        is_live_event: true,
+        weight: sig.weight,
+        age_hours: +(sig.ageHours || 0).toFixed(1),
+        weighted_score: sig.weighted_score,
+        source: sig.source,
+        details: sig.details,
+      })),
+      signals: (lb.signals || []).map(sig => ({
+        type: sig.type,
+        label: LIVE_SIGNALS[sig.type]?.label || sig.type,
+        icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
+        is_live_event: EVENT_SIGNAL_TYPES.has(sig.type),
+        weight: sig.weight,
+        age_hours: +(sig.ageHours || 0).toFixed(1),
+        weighted_score: sig.weighted_score,
+        source: sig.source,
+        details: sig.details,
+      })),
     },
 
     live_evidence_sources: s.evidenceSources || [],
     live_evidence_count: s.liveEvidenceCount || 0,
     is_live_data: s.liveEvidenceCount >= CFG.MIN_LIVE_EVIDENCE_SOURCES,
-    source_coverage: {
-      total_configured: 40,
-      contributing: s.evidenceSources || [],
-      contributing_count: (s.evidenceSources || []).length,
-      missing_critical: ["USGS","GDACS","EMSC","NASA"].filter(src => !(s.evidenceSources || []).includes(src)),
-    },
     dimensions: Object.fromEntries(DIMS.map(d => [d.k, { value: c.dims[d.k] || 0, label: d.l, weight: d.w, icon: d.icon }])),
     crisis_types: c.types.map(t => ({ code: t, label: ARC[t]?.l || t, icon: ARC[t]?.i || "⚠️", color: ARC[t]?.color || "#6bc8ff" })),
     needs: [...new Set(c.types.flatMap(t => ARC[t]?.n || []))],
@@ -2685,7 +2543,6 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
       history_source: realHistory.length >= CFG.HISTORY_MIN_FOR_ANOMALY ? "observed" : (realHistory.length > 0 ? "partial" : "none"),
       history_points: realHistory.length,
     },
-    score_history: recentHistory,
     anomaly: anom,
     spillover: { value: c.spillover, from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({ iso: n, name: store[n].name, score: store[n].score })) },
 
@@ -2724,7 +2581,7 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
         unemployment: s.wbUnemployment ? { ...s.wbUnemployment, source: "World Bank" } : null,
         poverty: s.wbPoverty ? { ...s.wbPoverty, source: "World Bank" } : null,
         water_stress: s.wbWaterStress ? { ...s.wbWaterStress, source: "World Bank" } : null,
-        food_price_index: s.wbFoodPrice ? { ...s.wbFoodPrice, source: "World Bank" } : null,
+                food_price_index: s.wbFoodPrice ? { ...s.wbFoodPrice, source: "World Bank" } : null,
         population: s.population ? { value: s.population, source: "World Bank" } : null,
         electricity_access: s.electricityAccess ? { ...s.electricityAccess, source: "World Bank" } : null,
       },
@@ -2735,18 +2592,17 @@ async function buildPayload(iso, store, ranked, sourceHealth, opts = {}) {
 
     ml: c.ml_forecast || null,
     sentiment: c.sentiment ? { score: c.sentiment.score, label: c.sentiment.label, confidence: c.sentiment.confidence } : null,
+    historical: null,
 
     score_audit: {
       prior_score: c.priorScore,
-      structural_score: structuralScore,
-      live_breaking_score: liveScore,
-      effective_score: effectiveScore,
-      effective_mode: CFG.EFFECTIVE_SCORE_MODE,
-      confidence_half_width: confidence.half_width,
+      structural_score: c.structural_score,
+      live_breaking_score: lb.live_score,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
       live_boost: c.liveBoost,
+      fallback_to_structural: lb.fallback_to_structural || false,
     },
 
     recommendation: recommendation(displayScore, anom),
@@ -2788,6 +2644,7 @@ function buildKeywords(iso, store) {
   if (s.usDrought) kws.add(`${c.name} drought`);
   return [...kws].slice(0, 15);
 }
+
 function buildMetaDescription(iso, store) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2797,10 +2654,12 @@ function buildMetaDescription(iso, store) {
   else if (lb.tier === "DEVELOPING") parts.unshift(`🟠 DEVELOPING: ${lb.breaking_headline}`);
   return parts.slice(0, 3).join('. ') + '.';
 }
+
 function buildRelatedStories(iso, store, ranked) {
   return ranked.filter(r => r !== iso && (COUNTRIES[r].region === COUNTRIES[iso].region || (COUNTRIES[iso].adj || []).includes(r))).slice(0, 5)
     .map(r => ({ iso: r, name: store[r].name, score: store[r].score, live_score: store[r].__live_breaking?.live_score || 0, slug: slugify(store[r].name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(store[r].name)}` }));
 }
+
 function buildJSONLD(iso, store, ranked) {
   const c = store[iso];
   const slug = slugify(c.name);
@@ -2828,6 +2687,7 @@ function buildJSONLD(iso, store, ranked) {
     ]
   };
 }
+
 function buildFAQs(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -2836,19 +2696,23 @@ function buildFAQs(iso, store, ranked) {
     { q: `How can I help?`, a: `Support organisations active in ${c.name}.` },
   ];
 }
+
 function buildSEOArticle(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
   const headline = lb.breaking_headline || `${c.name} Crisis Monitor — ${c.score}/100`;
   const articleBody = `## Overview\n\n${c.name} scores ${c.score}/100 (${severityLabel(c.score)}).`;
   const { words, minutes } = estimateReadTime(articleBody);
-  return { headline, dek: `Score ${c.score}/100 · ${lb.distinct_event_count || 0} events · ${lb.raw_signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
+  return { headline, dek: `Score ${c.score}/100 · ${lb.signal_count || 0} signals`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), faqs: buildFAQs(iso, store, ranked), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
+
 function buildSitemap(payloads) {
   const now = new Date().toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${payloads.map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n")}\n</urlset>`;
 }
+
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
+
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   const items = isos.slice(0, 30).map(iso => {
@@ -2861,15 +2725,29 @@ function buildRSSFeed(isos, store, ranked) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  DATA SOURCE HEALTH
+// ════════════════════════════════════════════════════════════════════════════
+
+function computeSourceHealth(liveData) {
+  const entries = Object.entries(liveData || {});
+  const live = entries.filter(([, v]) => v && v.live === true).map(([k]) => k);
+  const failed = entries.filter(([, v]) => v && v.live === false).map(([k]) => k);
+  const total = entries.length;
+  return {
+    live: live.length,
+    total,
+    ratio: total > 0 ? +(live.length / total).toFixed(2) : 0,
+    failed_sources: failed,
+    live_sources: live,
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  MAIN HANDLER
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   const start = Date.now();
-
-  // v14.1.0: auto-wire Redis on first request
-  await persistentHistory.autoWire();
-
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
   if (req.method !== "GET") { res.writeHead(405, CORS); res.end(JSON.stringify({ error: "Method not allowed" })); return; }
 
@@ -2894,6 +2772,7 @@ export default async function handler(req, res) {
       live: url.searchParams.get("format") === "live",
       rss: url.searchParams.get("format") === "rss",
       wst: url.searchParams.get("format") === "wst",
+      health: url.searchParams.get("format") === "health",
     };
     if (Number.isNaN(params.top)) params.top = 179;
     if (Number.isNaN(params.threshold)) params.threshold = 0;
@@ -2913,27 +2792,39 @@ export default async function handler(req, res) {
 
   try {
     const liveData = await fetchAllLive();
-    const sourceEntries = Object.entries(liveData);
-    const sourceLiveCount = sourceEntries.filter(([, v]) => v && v.live === true).length;
-    const sourceTotalCount = sourceEntries.length;
-    const sourceHealth = { live: sourceLiveCount, total: sourceTotalCount, ratio: +(sourceLiveCount / sourceTotalCount).toFixed(2) };
-
-    const store = await buildStore(liveData, sourceHealth);
+    const store = await buildStore(liveData);
     const ranked = rankByLiveBreaking(store);
     const breakingRanked = rankBreakingOnly(store, 1);
     const liveEventsOnly = rankLiveEventsOnly(store);
 
+    // ═══ v13.9.3: health endpoint ═══
+    if (params.health) {
+      const health = computeSourceHealth(liveData);
+      res.writeHead(200, CORS);
+      res.end(JSON.stringify({
+        meta: {
+          generated_at: new Date().toISOString(),
+          build_id: BUILD_ID,
+          elapsed_ms: Date.now() - start,
+        },
+        health,
+      }, null, 2));
+      return;
+    }
+
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__effective_score || 0) >= params.threshold);
+    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__live_breaking?.live_score || 0) >= params.threshold);
+    else if (params.force_live && liveEventsOnly.length > 0) finalIsos = liveEventsOnly.slice(0, params.top);
+    else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const s = store[iso];
-      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_score: s.__live_breaking?.live_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
+      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, live_breaking: s.__live_breaking, dimensions: s.dims, evidence: s.signals };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -2942,7 +2833,7 @@ export default async function handler(req, res) {
     if (params.widget && finalIsos.length === 1) {
       const c = store[finalIsos[0]];
       const lb = c.__live_breaking || {};
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
+      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Live Score ${lb.live_score || 0}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -2953,10 +2844,10 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_reason: lb.tier_reason, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID, feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -2971,7 +2862,7 @@ export default async function handler(req, res) {
     if (params.wst) {
       const wst = Object.keys(store).filter(i => store[i].__wst).map(i => ({ iso: i, name: store[i].name, flag: store[i].flag, wst_class: store[i].__wst.class, score: store[i].score, structural_score: store[i].structural_score, live_score: store[i].__live_breaking?.live_score || 0, live_tier: store[i].__live_breaking?.tier })).sort((a, b) => b.live_score - a.live_score);
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString() }, countries: wst }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID }, countries: wst }, null, 2));
       return;
     }
 
@@ -2980,15 +2871,15 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, tier_reason: lb.tier_reason, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: (lb.events || []).slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: s.age_hours, source: s.source, corroborating_sources: s.corroborating_sources || [] })) };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, live_event_count: lb.live_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_signals: (lb.events || []).slice(0, 3).map(s => ({ icon: LIVE_SIGNALS[s.type]?.icon || "⚠️", label: LIVE_SIGNALS[s.type]?.label || s.type, details: s.details, age_hours: +s.ageHours.toFixed(1), source: s.source })) };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), build_id: BUILD_ID, mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
       return;
     }
 
     if (params.format === "sitemap") {
-      const p = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, sourceHealth, { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary })));
+      const p = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary })));
       res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
       res.end(buildSitemap(p));
       return;
@@ -3002,64 +2893,30 @@ export default async function handler(req, res) {
     }
 
     const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary, article: params.format === "article" };
-    const payloads = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, sourceHealth, opts)));
+    const payloads = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, opts)));
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
-    // v14.1.0: identify countries whose confidence dropped due to source failures
-    const failedSources = sourceEntries.filter(([, v]) => v && v.live === false).map(([k]) => k);
-    const confidenceImpact = {};
-    if (failedSources.length > 0) {
-      // Approximate mapping: which countries rely heavily on which failed sources
-      const sourceImpactMap = {
-        usgs: ["all"],
-        usgsSig: ["all"],
-        gdacs: ["all"],
-        emsc: ["MEDITERRANEAN", "EUROPE"],
-        jma: ["JPN"],
-        bmkg: ["IDN"],
-        geofon: ["all"],
-        ingv: ["MEDITERRANEAN"],
-        geonet: ["NZL", "SOUTH_PACIFIC"],
-        gfw: ["BRA", "COD", "IDN", "COL", "PER", "BOL", "MEX", "MMR", "MOZ", "GHA"],
-        inform: ["all"],
-        jtwc: ["WPAC"],
-        ecdc: ["EUROPE"],
-      };
-      for (const failed of failedSources) {
-        const affected = sourceImpactMap[failed] || [];
-        for (const a of affected) {
-          if (a === "all") { confidenceImpact.all = confidenceImpact.all || []; confidenceImpact.all.push(failed); continue; }
-          confidenceImpact[a] = confidenceImpact[a] || [];
-          confidenceImpact[a].push(failed);
-        }
-      }
-    }
+    const sourceHealth = computeSourceHealth(liveData);
 
     const body = {
       meta: {
         generated_at: new Date().toISOString(),
+        build_id: BUILD_ID,
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "CONFIDENCE_AWARE_v14.1.0",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.3",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
-        effective_score_mode: CFG.EFFECTIVE_SCORE_MODE,
-        dedup_enabled: CFG.DEDUP_ENABLED,
+        score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
         event_max_age_hours: CFG.EVENT_SIGNAL_MAX_AGE_HOURS,
         state_max_age_hours: CFG.STATE_SIGNAL_MAX_AGE_HOURS,
-        confidence_level: CFG.CONFIDENCE_DEFAULT_LEVEL,
-        persistence: persistentHistory.redis ? "redis" : "in-memory",
-        note: "v14.1.0 — Confidence intervals on every score. tier_reason on every tier. score_history in every payload. Automatic Redis wiring. Source fallback chains. Per-country source_coverage.",
-        data_source_health: {
-          ...sourceHealth,
-          failed: failedSources,
-          confidence_impact: confidenceImpact,
-        },
+        note: "v13.9.3 — Single-path consistency. Name aliases (Gaza, West Bank, DRC, Burma, etc.). Anomaly gate enforced (>=14 history AND >=2 methods). Empty-signal safety guard. Deploy fingerprint in build_id.",
+        data_source_health: sourceHealth,
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -3077,6 +2934,7 @@ export default async function handler(req, res) {
           region: "GET /api/top-story?region=africa",
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
+          health: "GET /api/top-story?format=health",
           structural_fallback: "GET /api/top-story?force_live=false",
         },
       },
@@ -3087,8 +2945,8 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v14.1.0]", err);
+    console.error("[top-story v13.9.3]", err);
     res.writeHead(500, CORS);
-    res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
+    res.end(JSON.stringify({ error: "Internal server error", message: err.message, build_id: BUILD_ID }));
   }
 }
