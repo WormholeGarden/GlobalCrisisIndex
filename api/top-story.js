@@ -61,22 +61,16 @@ const CFG = {
   HISTORY_GRANULARITY_HOURS: 1,
   HISTORY_MAX_POINTS: 2160,
 
-  // ═══ v13.9.6: POPULATION EXPOSURE ═══
-  // Composite score gets multiplied by log10(population/1M) clamped to [0.85, 1.15].
-  // Pakistan (240M) gets ~1.09x; Guinea (14M) gets ~0.97x.
   POP_EXPOSURE_ENABLED: true,
   POP_EXPOSURE_MIN_MULT: 0.85,
   POP_EXPOSURE_MAX_MULT: 1.15,
-  POP_EXPOSURE_FLOOR_POP: 1_000_000,     // below this, no multiplier
-  POP_EXPOSURE_CEILING_POP: 100_000_000, // at/above this, max multiplier
+  POP_EXPOSURE_FLOOR_POP: 1_000_000,
+  POP_EXPOSURE_CEILING_POP: 100_000_000,
 
-  // ═══ v13.9.6: LOW-INSTRUMENTATION FLAG ═══
-  LOW_INSTRUMENTATION_THRESHOLD: 6,      // signal_count below this → flagged
+  LOW_INSTRUMENTATION_THRESHOLD: 6,
 
-  // ═══ v13.9.6: CRISIS RESOLUTION CREDIT ═══
-  // Refugee returns > 100k during the window subtract a small amount from effective score.
   RESOLUTION_CREDIT_ENABLED: true,
-  RESOLUTION_CREDIT_MAX: 4,              // max points subtracted
+  RESOLUTION_CREDIT_MAX: 4,
   RESOLUTION_CREDIT_RETURN_THRESHOLD: 100_000,
 
   WST_ENABLED: true,
@@ -1076,10 +1070,6 @@ function buildBreakingHeadline(iso, signals, country) {
   return headline;
 }
 
-// ═══ v13.9.6: POPULATION EXPOSURE MULTIPLIER ═══
-// Applied to effective_score at the end of buildStore. Log-scale, clamped to
-// [POP_EXPOSURE_MIN_MULT, POP_EXPOSURE_MAX_MULT]. Only fires when we have a
-// real population value from World Bank.
 function popExposureMultiplier(population) {
   if (!CFG.POP_EXPOSURE_ENABLED) return 1.0;
   if (!population || population < CFG.POP_EXPOSURE_FLOOR_POP) return 1.0;
@@ -1090,19 +1080,14 @@ function popExposureMultiplier(population) {
   return CFG.POP_EXPOSURE_MIN_MULT + t * (CFG.POP_EXPOSURE_MAX_MULT - CFG.POP_EXPOSURE_MIN_MULT);
 }
 
-// ═══ v13.9.6: CRISIS RESOLUTION CREDIT ═══
-// If UNHCR reports > 100k returns this cycle, subtract up to 4 points from
-// effective_score. This makes the instrument sensitive to de-escalation.
 function resolutionCredit(store, iso) {
   if (!CFG.RESOLUTION_CREDIT_ENABLED) return 0;
   const returns = store[iso]?.signals?.unhcrSolutions?.returned_refugees || 0;
   if (returns < CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) return 0;
-  // Linear ramp from threshold to 1M returns, capped at max credit
   const t = Math.min(1, (returns - CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) / 900_000);
   return t * CFG.RESOLUTION_CREDIT_MAX;
 }
 
-// ═══ v13.9.6: LOW-INSTRUMENTATION FLAG ═══
 function isLowInstrumentation(lb) {
   return (lb?.signal_count || 0) < CFG.LOW_INSTRUMENTATION_THRESHOLD;
 }
@@ -2259,7 +2244,6 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ v13.9.6: EFFECTIVE SCORE = max(structural, live) × pop_exposure − resolution_credit ═══
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
