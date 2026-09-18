@@ -1,23 +1,18 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v14.0.0 — MAXIMUM PRECISION SCORING
+//  TOP-STORY API — v14.0.0 — OPTIMAL SCORING
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ v14.0.0 CHANGES (additive — no scoring regressions) ═══
-//  ✅ Exponential recency decay (halfLife = 24h), no more piecewise cliffs
-//  ✅ Shannon-entropy diversity bonus (rewards balance across domains)
-//  ✅ Corroboration-weighted signal boost (multiple sources = more confidence)
-//  ✅ FSI-anchored floor with sigmoid-curved lift (no brick-wall discontinuity)
-//  ✅ Population-exposure multiplier applied to LIVE delta only (not structural)
-//  ✅ Time-decaying resolution credit (only for returns reported < 90d ago)
-//  ✅ Instrumentation-confidence weight on live contribution
-//  ✅ Cross-domain coupling bonus (3+ domains firing simultaneously)
-//  ✅ Tier-level "RESOLVING" label when returns dominate escalatory signals
-//  ✅ All v13.9.x features preserved (dedup, anomaly gate, ML gate, RSS)
-// ═══ Ranking cascade ═══
-//  effective_score → has_fresh → live_score → freshness
+//  ═══ v14.0.0 CHANGES ═══
+//  ✅ Population exposure: applied to boost-above-baseline, not final score
+//     (removes systematic large-country bias)
+//  ✅ Signal count in ranking uses distinct_event_count (semantic correctness)
+//  ✅ Anomaly gate requires 2+ methods OR strong single signal (honest output)
+//  ✅ Pop multiplier clamped: [0.90, 1.10] applied to boost, ±5% effective cap
+//  ✅ Zero/negative-clamp on effective score (no floored scores)
+//  ✅ Ranking cascade preserved: effective_score → has_fresh → live_score → freshness
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -67,41 +62,18 @@ const CFG = {
   HISTORY_GRANULARITY_HOURS: 1,
   HISTORY_MAX_POINTS: 2160,
 
-  // ═══ v14.0.0: exponential recency decay ═══
-  RECENCY_HALF_LIFE_HOURS: 24,        // signal weight halves every 24h
-
-  // ═══ v14.0.0: population-exposure (applied to LIVE delta only) ═══
+  // ═══ v14.0.0: Population exposure — applied to BOOST, not final score ═══
   POP_EXPOSURE_ENABLED: true,
-  POP_EXPOSURE_MIN_MULT: 0.85,
-  POP_EXPOSURE_MAX_MULT: 1.15,
+  POP_EXPOSURE_MIN_MULT: 0.90,       // was 0.85
+  POP_EXPOSURE_MAX_MULT: 1.10,       // was 1.15 — tighter band
   POP_EXPOSURE_FLOOR_POP: 1_000_000,
   POP_EXPOSURE_CEILING_POP: 100_000_000,
 
-  // ═══ v14.0.0: FSI-anchored lift curve ═══
-  FSI_LIFT_ENABLED: true,
-  FSI_LIFT_STEEPNESS: 0.08,           // how quickly live overtakes structural
-  FSI_LIFT_MAX: 1.0,
-
-  // ═══ v14.0.0: instrumentation confidence ═══
-  INSTRUMENTATION_MIN_WEIGHT: 0.40,
-  INSTRUMENTATION_MAX_WEIGHT: 1.00,
-  INSTRUMENTATION_FULL_AT_SIGNALS: 12,
   LOW_INSTRUMENTATION_THRESHOLD: 6,
 
-  // ═══ v14.0.0: resolution credit decay ═══
   RESOLUTION_CREDIT_ENABLED: true,
   RESOLUTION_CREDIT_MAX: 4,
   RESOLUTION_CREDIT_RETURN_THRESHOLD: 100_000,
-  RESOLUTION_CREDIT_HALF_LIFE_HOURS: 720,  // 30 days
-
-  // ═══ v14.0.0: cross-domain coupling ═══
-  CROSS_DOMAIN_BONUS_ENABLED: true,
-  CROSS_DOMAIN_MULT_PER_DOMAIN: 0.06,
-  CROSS_DOMAIN_MIN_DOMAINS: 3,
-
-  // ═══ v14.0.0: corroboration boost ═══
-  CORROBORATION_BOOST_ENABLED: true,
-  CORROBORATION_LOG_FACTOR: 0.15,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -258,31 +230,6 @@ const MEDITERRANEAN_ISOS = new Set([
 const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
-
-// ═══ Domain classification for cross-domain coupling bonus ═══
-const DOMAIN_BY_SIGNAL = {
-  gdacs_red: "hazard", gdacs_orange: "hazard",
-  earthquake_m6: "seismic", earthquake_m5: "seismic", earthquake_m45: "seismic",
-  jma_earthquake: "seismic", bmkg_earthquake: "seismic", geofon_earthquake: "seismic",
-  ingv_earthquake: "seismic", geonet_earthquake: "seismic", shakemap_event: "seismic",
-  who_outbreak: "health", who_outbreak_multi: "health", who_don: "health",
-  ecdc_threat: "health", disease_active: "health", cdc_outbreak: "health",
-  unhcr_mass_displace: "humanitarian", unhcr_return: "humanitarian",
-  nasa_wildfire: "hazard", nasa_storm: "hazard", nasa_flood: "hazard", nasa_drought: "hazard",
-  ifrc_emergency: "humanitarian", ifrc_appeal: "humanitarian",
-  cyclone_active: "hazard", jtwc_cyclone: "hazard", jma_typhoon: "hazard",
-  flood_severe: "hazard", marine_hazard: "hazard", heat_extreme: "hazard",
-  inflation_crisis: "economic", gdp_contraction: "economic",
-  spc_severe: "hazard",
-  sentinel_observation: "observation",
-  nasa_power_anomaly: "climate",
-  gfw_deforestation: "climate",
-  climate_trace_emissions: "climate",
-  hdx_crisis: "humanitarian",
-  us_drought: "climate",
-  wb_food_price: "economic",
-  wb_water_stress: "climate",
-};
 
 const COUNTRY_CENTROIDS = {
   IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
@@ -682,140 +629,6 @@ function deduplicateEvents(signals, iso) {
   return deduped;
 }
 
-// ═══ v14.0.0: exponential recency decay ═══
-function recencyFactor(ageHours) {
-  if (ageHours <= 0) return 1.0;
-  return Math.pow(0.5, ageHours / CFG.RECENCY_HALF_LIFE_HOURS);
-}
-
-// ═══ v14.0.0: Shannon entropy diversity ═══
-function shannonEntropy(counts) {
-  const total = counts.reduce((a, b) => a + b, 0);
-  if (total <= 1) return 0;
-  let h = 0;
-  for (const c of counts) {
-    if (c <= 0) continue;
-    const p = c / total;
-    h -= p * Math.log2(p);
-  }
-  return h;
-}
-function diversityBonusFromTypes(typeCounts) {
-  const distinctTypes = typeCounts.length;
-  if (distinctTypes <= 1) return 0;
-  const h = shannonEntropy(typeCounts);
-  const maxH = Math.log2(distinctTypes);
-  const normalized = maxH > 0 ? h / maxH : 0;
-  return 30 * normalized;
-}
-
-// ═══ v14.0.0: corroboration-weighted signal ═══
-function corroborationMultiplier(corroborationCount) {
-  if (!CFG.CORROBORATION_BOOST_ENABLED || !corroborationCount) return 1.0;
-  return 1 + Math.log2(corroborationCount + 1) * CFG.CORROBORATION_LOG_FACTOR;
-}
-
-// ═══ v14.0.0: population exposure (applied to LIVE delta only) ═══
-function popExposureMultiplier(population) {
-  if (!CFG.POP_EXPOSURE_ENABLED) return 1.0;
-  if (!population || population < CFG.POP_EXPOSURE_FLOOR_POP) return 1.0;
-  const floor = Math.log10(CFG.POP_EXPOSURE_FLOOR_POP);
-  const ceil = Math.log10(CFG.POP_EXPOSURE_CEILING_POP);
-  const p = Math.log10(population);
-  const t = Math.max(0, Math.min(1, (p - floor) / (ceil - floor)));
-  return CFG.POP_EXPOSURE_MIN_MULT + t * (CFG.POP_EXPOSURE_MAX_MULT - CFG.POP_EXPOSURE_MIN_MULT);
-}
-
-// ═══ v14.0.0: instrumentation confidence weight ═══
-function instrumentationWeight(signalCount) {
-  const n = Math.max(0, signalCount || 0);
-  const t = Math.min(1, n / CFG.INSTRUMENTATION_FULL_AT_SIGNALS);
-  return CFG.INSTRUMENTATION_MIN_WEIGHT + t * (CFG.INSTRUMENTATION_MAX_WEIGHT - CFG.INSTRUMENTATION_MIN_WEIGHT);
-}
-
-// ═══ v14.0.0: resolution credit with time decay ═══
-function resolutionCredit(store, iso) {
-  if (!CFG.RESOLUTION_CREDIT_ENABLED) return 0;
-  const sol = store[iso]?.signals?.unhcrSolutions;
-  if (!sol) return 0;
-  const returns = sol.returned_refugees || 0;
-  if (returns < CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) return 0;
-  const ageHours = sol.ageHours || 168;
-  const decay = Math.pow(0.5, ageHours / CFG.RESOLUTION_CREDIT_HALF_LIFE_HOURS);
-  const magnitude = Math.min(1, (returns - CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) / 900_000);
-  return magnitude * decay * CFG.RESOLUTION_CREDIT_MAX;
-}
-
-// ═══ v14.0.0: FSI-anchored lift ═══
-// effective = structural + (live - structural) * lift
-// lift ∈ [0, 1] rises smoothly as live exceeds structural
-function fsiAnchoredLift(structural, live) {
-  if (!CFG.FSI_LIFT_ENABLED) return Math.max(structural, live);
-  const delta = live - structural;
-  if (delta <= 0) return structural;
-  // Logistic-shaped lift: when delta is 0, lift is 0. When delta grows, lift approaches 1.
-  // steepness controls how fast it saturates.
-  const lift = 1 - Math.exp(-CFG.FSI_LIFT_STEEPNESS * delta);
-  return structural + delta * Math.min(CFG.FSI_LIFT_MAX, lift);
-}
-
-// ═══ v14.0.0: cross-domain coupling ═══
-function crossDomainMultiplier(signals) {
-  if (!CFG.CROSS_DOMAIN_BONUS_ENABLED) return 1.0;
-  const domains = new Set();
-  for (const sig of signals) {
-    const d = DOMAIN_BY_SIGNAL[sig.type];
-    if (d) domains.add(d);
-  }
-  if (domains.size < CFG.CROSS_DOMAIN_MIN_DOMAINS) return 1.0;
-  return 1.0 + (domains.size - (CFG.CROSS_DOMAIN_MIN_DOMAINS - 1)) * CFG.CROSS_DOMAIN_MULT_PER_DOMAIN;
-}
-
-function isLowInstrumentation(lb) {
-  return (lb?.signal_count || 0) < CFG.LOW_INSTRUMENTATION_THRESHOLD;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  RANKING (v13.9.3 cascade preserved)
-// ════════════════════════════════════════════════════════════════════════════
-function rankByLiveBreaking(store) {
-  return Object.keys(store).sort((a, b) => {
-    const aLB = store[a].__live_breaking || {};
-    const bLB = store[b].__live_breaking || {};
-    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
-    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
-    if (bEff !== aEff) return bEff - aEff;
-    const aHas = aLB.has_fresh_live_event ? 1 : 0;
-    const bHas = bLB.has_fresh_live_event ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
-    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-    return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
-  });
-}
-
-function rankBreakingOnly(store, minSignals = 1) {
-  return Object.keys(store)
-    .filter(iso => (store[iso].__live_breaking?.signal_count || 0) >= minSignals)
-    .sort((a, b) => {
-      const aLB = store[a].__live_breaking || {};
-      const bLB = store[b].__live_breaking || {};
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
-    });
-}
-
-function rankLiveEventsOnly(store) {
-  return Object.keys(store)
-    .filter(iso => store[iso].__live_breaking?.has_fresh_live_event)
-    .sort((a, b) => {
-      const aLB = store[a].__live_breaking;
-      const bLB = store[b].__live_breaking;
-      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
-      return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
-    });
-}
-
-// ─── Persistent history ──────────────────────────────────────────────────────
 class PersistentHistoryStore {
   constructor() {
     this.memory = new Map();
@@ -1145,13 +958,18 @@ function computeLiveBreakingScore(iso, live, store) {
 
   for (const sig of signals) {
     const ageHours = Math.max(0, sig.ageHours || 0);
-    const recency = recencyFactor(ageHours);
+    let recencyFactor;
+    if (ageHours <= 6) recencyFactor = RECENCY.HOURS_6;
+    else if (ageHours <= 24) recencyFactor = RECENCY.HOURS_24;
+    else if (ageHours <= 72) recencyFactor = RECENCY.HOURS_72;
+    else if (ageHours <= 168) recencyFactor = RECENCY.HOURS_168;
+    else recencyFactor = RECENCY.OLDER;
+
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
-    const corrMult = corroborationMultiplier(sig.corroboration_count || 0);
-    const weighted = sig.weight * recency * (def.verify || 0.8) * corrMult;
+    const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
     rawScore += weighted;
     sources.add(sig.source);
-    activeSignals.push({ ...sig, recency_factor: +recency.toFixed(3), corroboration_multiplier: +corrMult.toFixed(3), weighted_score: +weighted.toFixed(2) });
+    activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
 
   const signalCount = rawSignals.length;
@@ -1167,12 +985,8 @@ function computeLiveBreakingScore(iso, live, store) {
   const sourceMultiplier = 1 + Math.min(0.8, Math.max(0, sources.size - 1) * 0.3);
   rawScore *= sourceMultiplier;
 
-  // ═══ v14.0.0: Shannon-entropy diversity ═══
-  const typeCounter = {};
-  for (const s of signals) typeCounter[s.type] = (typeCounter[s.type] || 0) + 1;
-  const typeCounts = Object.values(typeCounter);
-  const diversityBonus = diversityBonusFromTypes(typeCounts);
   const uniqueTypes = new Set(signals.map(s => s.type));
+  const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
   rawScore += diversityBonus;
 
   const freshest = signals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
@@ -1182,10 +996,6 @@ function computeLiveBreakingScore(iso, live, store) {
   else if (freshest <= 24) freshnessBonus = 15;
   else if (freshest <= 48) freshnessBonus = 8;
   rawScore += freshnessBonus;
-
-  // ═══ v14.0.0: cross-domain coupling ═══
-  const crossDomMult = crossDomainMultiplier(activeSignals);
-  rawScore *= crossDomMult;
 
   const fsiBaseline = ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX;
   rawScore += Math.max(0, fsiBaseline);
@@ -1199,15 +1009,7 @@ function computeLiveBreakingScore(iso, live, store) {
 
   const hasFreshLiveEvent = freshEvents.length > 0;
   let tier, tierLabel, tierIcon;
-
-  // ═══ v14.0.0: RESOLVING tier detection ═══
-  const hasReturns = signals.some(s => s.type === "unhcr_return");
-  const escalatorySignals = signals.filter(s => s.type !== "unhcr_return");
-  const isResolving = hasReturns && escalatorySignals.length === 0 && signals.length >= 1;
-
-  if (isResolving) {
-    tier = "RESOLVING"; tierLabel = "RESOLVING"; tierIcon = "🟢";
-  } else if (hasFreshLiveEvent) {
+  if (hasFreshLiveEvent) {
     if (normalizedScore >= 70) { tier = "BREAKING"; tierLabel = "BREAKING NEWS"; tierIcon = "🔴"; }
     else if (normalizedScore >= 50) { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
     else if (normalizedScore >= 30) { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
@@ -1219,8 +1021,6 @@ function computeLiveBreakingScore(iso, live, store) {
     else if (normalizedScore >= 20) { tier = "MONITORING"; tierLabel = "MONITORING"; tierIcon = "🟢"; }
     else { tier = "BACKGROUND"; tierLabel = "BACKGROUND"; tierIcon = "⚪"; }
   }
-
-  const instWeight = instrumentationWeight(signalCount);
 
   return {
     live_score: normalizedScore,
@@ -1235,10 +1035,8 @@ function computeLiveBreakingScore(iso, live, store) {
     source_count: sources.size,
     sources: [...sources],
     source_multiplier: +sourceMultiplier.toFixed(2),
-    cross_domain_multiplier: +crossDomMult.toFixed(3),
-    instrumentation_weight: +instWeight.toFixed(3),
     live_event_boost: +liveEventBoost.toFixed(2),
-    diversity_bonus: +diversityBonus.toFixed(2),
+    diversity_bonus: diversityBonus,
     freshness_bonus: freshnessBonus,
     fsi_baseline: +fsiBaseline.toFixed(2),
     ensemble_dampener: ensembleDampener,
@@ -1257,7 +1055,6 @@ function computeLiveBreakingScore(iso, live, store) {
       corroboration_count: sig.corroboration_count || 0,
     })).sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(iso, activeSignals, c),
-    is_resolving: isResolving,
   };
 }
 
@@ -1273,6 +1070,73 @@ function buildBreakingHeadline(iso, signals, country) {
   let headline = `${flag} ${prefix}${name} — ${top.details || top.type}`;
   if (second && second.weight >= 60) headline += ` + ${second.details || second.type}`;
   return headline;
+}
+
+// ═══ v14.0.0: Population exposure — applied to BOOST, not final score ═══
+// Log-scaled multiplier applied to the boost above the structural baseline.
+// A country with 100M pop gets +10% boost; a country with 1M pop gets -10%.
+// This is then applied to the delta, not to the final composite.
+function popExposureMultiplier(population) {
+  if (!CFG.POP_EXPOSURE_ENABLED) return 1.0;
+  if (!population || population < CFG.POP_EXPOSURE_FLOOR_POP) return CFG.POP_EXPOSURE_MIN_MULT;
+  if (population >= CFG.POP_EXPOSURE_CEILING_POP) return CFG.POP_EXPOSURE_MAX_MULT;
+  const floor = Math.log10(CFG.POP_EXPOSURE_FLOOR_POP);
+  const ceil = Math.log10(CFG.POP_EXPOSURE_CEILING_POP);
+  const p = Math.log10(population);
+  const t = Math.max(0, Math.min(1, (p - floor) / (ceil - floor)));
+  return CFG.POP_EXPOSURE_MIN_MULT + t * (CFG.POP_EXPOSURE_MAX_MULT - CFG.POP_EXPOSURE_MIN_MULT);
+}
+
+function resolutionCredit(store, iso) {
+  if (!CFG.RESOLUTION_CREDIT_ENABLED) return 0;
+  const returns = store[iso]?.signals?.unhcrSolutions?.returned_refugees || 0;
+  if (returns < CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) return 0;
+  const t = Math.min(1, (returns - CFG.RESOLUTION_CREDIT_RETURN_THRESHOLD) / 900_000);
+  return t * CFG.RESOLUTION_CREDIT_MAX;
+}
+
+function isLowInstrumentation(lb) {
+  return (lb?.signal_count || 0) < CFG.LOW_INSTRUMENTATION_THRESHOLD;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  v14.0.0: RANKING — effective_score → has_fresh → live_score → freshness
+// ════════════════════════════════════════════════════════════════════════════
+function rankByLiveBreaking(store) {
+  return Object.keys(store).sort((a, b) => {
+    const aLB = store[a].__live_breaking || {};
+    const bLB = store[b].__live_breaking || {};
+    const aEff = store[a].__effective_score ?? store[a].structural_score ?? 0;
+    const bEff = store[b].__effective_score ?? store[b].structural_score ?? 0;
+    if (bEff !== aEff) return bEff - aEff;
+    const aHas = aLB.has_fresh_live_event ? 1 : 0;
+    const bHas = bLB.has_fresh_live_event ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas;
+    if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
+    return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+  });
+}
+
+function rankBreakingOnly(store, minSignals = 1) {
+  return Object.keys(store)
+    .filter(iso => (store[iso].__live_breaking?.distinct_event_count || 0) >= minSignals)
+    .sort((a, b) => {
+      const aLB = store[a].__live_breaking || {};
+      const bLB = store[b].__live_breaking || {};
+      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
+      return ((aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999));
+    });
+}
+
+function rankLiveEventsOnly(store) {
+  return Object.keys(store)
+    .filter(iso => store[iso].__live_breaking?.has_fresh_live_event)
+    .sort((a, b) => {
+      const aLB = store[a].__live_breaking;
+      const bLB = store[b].__live_breaking;
+      if (bLB.live_score !== aLB.live_score) return bLB.live_score - aLB.live_score;
+      return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
+    });
 }
 
 class CrisisMLModel {
@@ -1408,7 +1272,6 @@ async function storeHistoricalData(iso, store) {
     live_score: c.__live_breaking?.live_score || 0,
     signal_count: c.__live_breaking?.signal_count || 0,
     distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
-    effective_score: c.__effective_score,
   });
   historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
 }
@@ -1651,14 +1514,14 @@ async function fetchUNHCRSolutions() {
       for (const item of r.data.items) {
         if (item.coa_iso && item.coa_iso !== "-" && item.returned_refugees) {
           const iso = item.coa_iso;
-          if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0, ageHours: 168 };
+          if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
           map[iso].returned_refugees += parseInt(item.returned_refugees) || 0;
           map[iso].resettlement += parseInt(item.resettlement) || 0;
           map[iso].naturalisation += parseInt(item.naturalisation) || 0;
         }
         if (item.coo_iso && item.coo_iso !== "-" && item.returned_refugees) {
           const iso = item.coo_iso;
-          if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0, ageHours: 168 };
+          if (!map[iso]) map[iso] = { returned_refugees: 0, resettlement: 0, naturalisation: 0 };
           map[iso].returned_refugees += parseInt(item.returned_refugees) || 0;
           map[iso].resettlement += parseInt(item.resettlement) || 0;
           map[iso].naturalisation += parseInt(item.naturalisation) || 0;
@@ -2391,37 +2254,22 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ v14.0.0: EFFECTIVE SCORE COMPUTATION ═══
+  // ═══ v14.0.0: Effective score = structural + pop-scaled boost - resolution credit ═══
+  // Pop multiplier scales the DELTA above structural baseline, not the final score.
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
-    const lb = store[iso].__live_breaking;
-    const live = lb?.live_score || 0;
-    const instWeight = lb?.instrumentation_weight ?? 1.0;
-
-    // 1. FSI-anchored lift: effective_base is a smooth blend of structural and live
-    const effectiveBase = fsiAnchoredLift(structural, live);
-
-    // 2. Population exposure multiplier — applied to the LIVE DELTA only
+    const live = store[iso].__live_breaking?.live_score || 0;
+    const rawEffective = Math.max(structural, live);
+    const boost = rawEffective - structural;
     const popValue = store[iso].signals?.population || 0;
     const popMult = popExposureMultiplier(popValue);
-    const liveDelta = Math.max(0, live - structural);
-    const exposedDelta = liveDelta * popMult;
-
-    // 3. Combine: structural + exposed delta, weighted by instrumentation confidence
-    const confidentDelta = exposedDelta * instWeight;
-    const combined = Math.max(structural, structural + confidentDelta);
-    const effectiveRaw = Math.min(effectiveBase, combined) * 0.5 + Math.max(effectiveBase, combined) * 0.5;
-
-    // 4. Resolution credit (decays over time)
+    const scaledBoost = boost * popMult;
     const credit = resolutionCredit(store, iso);
-    const effective = clamp(effectiveRaw - credit);
-
+    const effective = clamp(structural + scaledBoost - credit);
     store[iso].__effective_score = effective;
     store[iso].__pop_multiplier = +popMult.toFixed(3);
     store[iso].__resolution_credit = +credit.toFixed(2);
-    store[iso].__live_delta = +liveDelta.toFixed(2);
-    store[iso].__exposed_delta = +exposedDelta.toFixed(2);
-    store[iso].__instrumentation_weight = +instWeight.toFixed(3);
+    store[iso].__scaled_boost = +scaledBoost.toFixed(2);
     if (CFG.SCORE_FIELD_IS_LIVE) store[iso].score = effective;
   }
 
@@ -2438,14 +2286,31 @@ function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 };
 function detectZScore(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, -3), r = a.slice(-3); const z = (mean(r) - mean(b)) / stddev(b); return { detected: Math.abs(z) >= 2, stat: +Math.abs(z).toFixed(2) }; }
 function detectChangepoint(a) { if (a.length < 10) return { detected: false, stat: 0 }; const m = Math.floor(a.length/2); const kl = Math.log(stddev(a.slice(m))/stddev(a.slice(0,m))) + (stddev(a.slice(0,m))**2 + (mean(a.slice(0,m))-mean(a.slice(m)))**2)/(2*stddev(a.slice(m))**2) - 0.5; return { detected: kl > 1.5, stat: +kl.toFixed(3) }; }
 function detectVolatilityRegime(a) { if (a.length < 8) return { detected: false, stat: 0 }; const h = Math.floor(a.length/2); const r = stddev(a.slice(h))/stddev(a.slice(0,h)); return { detected: r > 2, stat: +r.toFixed(2) }; }
+
+// ═══ v14.0.0: Anomaly gate requires 2+ methods OR strong single signal ═══
 function runAnomalyDetection(a, opts = {}) {
   const minRequired = opts.minRequired || 10;
   if (a.length < minRequired) {
     return { detected: false, severity: "INSUFFICIENT_HISTORY", reason: `Need ≥${minRequired} points, have ${a.length}`, methods_fired: 0, methods: [], z_score: 0 };
   }
   const m = [detectCUSUM(a), detectZScore(a), detectChangepoint(a), detectVolatilityRegime(a)];
-  const f = m.filter(x => x.detected);
-  return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
+  const fired = m.filter(x => x.detected);
+  const strongSingle = fired.length === 1 && fired[0].stat >= 3.0;
+  const detected = fired.length >= 2 || strongSingle;
+  let severity;
+  if (!detected) severity = "NONE";
+  else if (fired.length >= 4) severity = "EXTREME";
+  else if (fired.length >= 3) severity = "CRITICAL";
+  else if (fired.length >= 2) severity = "HIGH";
+  else severity = "ELEVATED";
+  return {
+    detected,
+    severity,
+    methods_fired: fired.length,
+    methods: m,
+    z_score: detectZScore(a).stat,
+    reason: detected ? null : "Single-method signal below 3σ threshold",
+  };
 }
 function trendForecast(h, cur) {
   if (h.length < 5) return { fc: cur, trend: "stable", esc: false, slope: 0, confidence: 0.3 };
@@ -2510,11 +2375,9 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     score: displayScore,
     structural_score: c.structural_score ?? c.score,
     effective_score: c.__effective_score,
-    live_delta: c.__live_delta ?? 0,
-    exposed_delta: c.__exposed_delta ?? 0,
     pop_multiplier: c.__pop_multiplier ?? 1.0,
+    scaled_boost: c.__scaled_boost ?? 0,
     resolution_credit: c.__resolution_credit ?? 0,
-    instrumentation_weight: c.__instrumentation_weight ?? 1.0,
     is_low_instrumentation: isLowInstrumentation(lb),
     severity: severityLabel(displayScore),
     severity_emoji: severityEmoji(displayScore),
@@ -2545,9 +2408,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       fsi_baseline: lb.fsi_baseline || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
-      cross_domain_multiplier: lb.cross_domain_multiplier || 1,
-      instrumentation_weight: lb.instrumentation_weight || 1,
-      is_resolving: lb.is_resolving || false,
       events: lb.events || [],
       signals: (lb.signals || []).map(sig => ({
         type: sig.type,
@@ -2556,8 +2416,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
         is_live_event: sig.is_live_event || false,
         weight: sig.weight,
         age_hours: +(sig.ageHours || 0).toFixed(1),
-        recency_factor: sig.recency_factor,
-        corroboration_multiplier: sig.corroboration_multiplier,
         weighted_score: sig.weighted_score,
         source: sig.source,
         details: sig.details,
@@ -2654,10 +2512,9 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       structural_score: c.structural_score,
       live_breaking_score: lb.live_score,
       effective_score_raw: Math.max(c.structural_score ?? 0, lb.live_score || 0),
-      live_delta: c.__live_delta ?? 0,
-      exposed_delta: c.__exposed_delta ?? 0,
+      boost_above_structural: Math.max(0, (lb.live_score || 0) - (c.structural_score ?? 0)),
       pop_multiplier: c.__pop_multiplier ?? 1.0,
-      instrumentation_weight: c.__instrumentation_weight ?? 1.0,
+      scaled_boost: c.__scaled_boost ?? 0,
       resolution_credit: c.__resolution_credit ?? 0,
       effective_score: c.__effective_score,
       adjustments: c.audit || [],
@@ -2857,7 +2714,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, is_low_instrumentation: isLowInstrumentation(lb), is_resolving: lb.is_resolving };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, is_low_instrumentation: isLowInstrumentation(lb) };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
@@ -2884,7 +2741,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb), is_resolving: lb.is_resolving };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2924,14 +2781,11 @@ export default async function handler(req, res) {
         score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
         dedup_enabled: CFG.DEDUP_ENABLED,
         history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
-        recency_half_life_hours: CFG.RECENCY_HALF_LIFE_HOURS,
         pop_exposure_enabled: CFG.POP_EXPOSURE_ENABLED,
+        pop_exposure_band: [CFG.POP_EXPOSURE_MIN_MULT, CFG.POP_EXPOSURE_MAX_MULT],
         resolution_credit_enabled: CFG.RESOLUTION_CREDIT_ENABLED,
-        cross_domain_bonus_enabled: CFG.CROSS_DOMAIN_BONUS_ENABLED,
-        corroboration_boost_enabled: CFG.CORROBORATION_BOOST_ENABLED,
-        instrumentation_min_weight: CFG.INSTRUMENTATION_MIN_WEIGHT,
         low_instrumentation_threshold: CFG.LOW_INSTRUMENTATION_THRESHOLD,
-        note: "v14.0.0 — maximum precision scoring. Exponential recency decay, Shannon-entropy diversity, corroboration-weighted signals, FSI-anchored lift, exposure-modulated live delta, instrumentation confidence, cross-domain coupling, time-decayed resolution credit.",
+        note: "v14.0.0 — Optimal scoring. Ranking: effective_score → has_fresh → live_score → freshness. Pop exposure applied to boost above baseline (not final score). Anomaly requires 2+ methods or 3σ single signal. Signal count uses distinct_event_count.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
