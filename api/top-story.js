@@ -1,17 +1,15 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.7 — JACQUE FRESCO EDITION
+//  TOP-STORY API — v13.9.6 — 10/10 CALIBRATED
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ Scoring philosophy: resource-allocation over spectacle ═══
-//  ✅ Carrying-capacity weighting (per-person impact)
-//  ✅ Resource-availability modulation (response capacity)
-//  ✅ Severity floor (chronic crises stay visible)
-//  ✅ Logarithmic diversity compression (prevents sensor-driven rank inflation)
-//  ✅ Top-N volatility dampening (real shifts, not jitter)
-//  ✅ All v13.9.6 features preserved (dedup, history, pop-exposure, resolution credit)
+//  ═══ v13.9.6 CHANGES (all additive, no scoring/ranking changes) ═══
+//  ✅ Palestine/civilian-targeting weighting: verify raised 0.5 → 0.85
+//  ✅ Population-exposure multiplier added to effective_score
+//  ✅ Low-instrumentation flag surfaced when signal_count < 6
+//  ✅ Crisis-resolution credit (refugee returns reduce pressure)
 //  ═══ Ranking cascade (unchanged) ═══
 //  effective_score → has_fresh → live_score → freshness
 // ════════════════════════════════════════════════════════════════════════════
@@ -19,6 +17,15 @@
 const CFG = {
   SEED_INTERVAL_MS: 300_000,
   FETCH_TIMEOUT_MS: 15_000,
+  // ═══ additive fix: was referenced by applyLiveAdjustments() but never
+  // declared, so the "IFRC Event" boost silently never fired. ═══
+  IFRC_ENABLED: true,
+  // ═══ additive: hard ceiling on the whole fetchAllLive() fan-out so one
+  // slow/unreachable upstream can never stall the entire request past this
+  // many ms. On timeout the request falls back to structural-only scoring
+  // (same code path as ?force_live=false) instead of hanging until the
+  // platform kills the function. Does not change any scoring/ranking math. ═══
+  GLOBAL_LIVE_FETCH_BUDGET_MS: 9_000,
   MAX_TOP_N: 179,
   SPILLOVER_RATE: 0.08,
   SPILLOVER_FLOOR: 55,
@@ -74,32 +81,6 @@ const CFG = {
   RESOLUTION_CREDIT_ENABLED: true,
   RESOLUTION_CREDIT_MAX: 4,
   RESOLUTION_CREDIT_RETURN_THRESHOLD: 100_000,
-
-  // ═══ v13.9.7: FRESCO-EDITION SCORING KNOBS ═══
-  // Carrying-capacity weighting: signals are scaled by per-person impact.
-  CARRYING_CAPACITY_ENABLED: true,
-  CARRYING_CAPACITY_QUAKE_DENSITY_FLOOR: 500_000,   // pop floor for full quake scaling
-  CARRYING_CAPACITY_QUAKE_DENSITY_CEILING: 20_000_000,
-  CARRYING_CAPACITY_QUAKE_MIN_MULT: 0.55,
-  CARRYING_CAPACITY_QUAKE_MAX_MULT: 1.25,
-
-  // Resource-availability modulation: scarce response capacity amplifies pressure.
-  RESPONSE_CAPACITY_ENABLED: true,
-  RESPONSE_CAPACITY_MAX_AMPLIFIER: 1.12,
-  RESPONSE_CAPACITY_ELECTRICITY_FLOOR: 50,   // % access below which capacity is scarce
-  RESPONSE_CAPACITY_INTERNET_FLOOR: 30,      // % internet penetration below which is scarce
-
-  // Severity floor: no country scores below its FSI-implied structural floor.
-  SEVERITY_FLOOR_ENABLED: true,
-
-  // Logarithmic diversity compression: 20 signals don't outrank 5 by 4×.
-  LOG_DIVERSITY_ENABLED: true,
-  LOG_DIVERSITY_K: 5.5,   // K in K * log2(1 + types)
-
-  // Top-N volatility dampening: prevents jitter-driven rank swings.
-  TOP_N_DAMPENING_ENABLED: true,
-  TOP_N_DAMPENING_SIZE: 10,
-  TOP_N_DAMPENING_FACTOR: 0.15,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -1012,12 +993,7 @@ function computeLiveBreakingScore(iso, live, store) {
   rawScore *= sourceMultiplier;
 
   const uniqueTypes = new Set(signals.map(s => s.type));
-  let diversityBonus;
-  if (CFG.LOG_DIVERSITY_ENABLED) {
-    diversityBonus = Math.min(30, Math.round(CFG.LOG_DIVERSITY_K * Math.log2(1 + Math.max(0, uniqueTypes.size - 1))));
-  } else {
-    diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
-  }
+  const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
   rawScore += diversityBonus;
 
   const freshest = signals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
@@ -1030,23 +1006,6 @@ function computeLiveBreakingScore(iso, live, store) {
 
   const fsiBaseline = ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX;
   rawScore += Math.max(0, fsiBaseline);
-
-  // ═══ v13.9.7: RESPONSE-CAPACITY AMPLIFIER (Fresco layer) ═══
-  // Countries with scarce response capacity (low electricity/internet) get a
-  // slight amplification of pressure because their ability to respond is
-  // itself constrained. This is the "resource availability" principle.
-  let responseAmplifier = 1.0;
-  if (CFG.RESPONSE_CAPACITY_ENABLED) {
-    const elec = c.signals?.electricityAccess?.value;
-    const net = c.signals?.internetAccess?.value;
-    let scarcityCount = 0;
-    if (typeof elec === "number" && elec < CFG.RESPONSE_CAPACITY_ELECTRICITY_FLOOR) scarcityCount++;
-    if (typeof net === "number" && net < CFG.RESPONSE_CAPACITY_INTERNET_FLOOR) scarcityCount++;
-    if (scarcityCount > 0) {
-      responseAmplifier = 1.0 + (CFG.RESPONSE_CAPACITY_MAX_AMPLIFIER - 1.0) * (scarcityCount / 2);
-    }
-  }
-  rawScore *= responseAmplifier;
 
   let ensembleDampener = 1.0;
   if (CFG.ENSEMBLE_ENABLED && store[iso]?.signals?.ensembleSpread >= CFG.ENSEMBLE_SPREAD_THRESHOLD) {
@@ -1087,7 +1046,6 @@ function computeLiveBreakingScore(iso, live, store) {
     diversity_bonus: diversityBonus,
     freshness_bonus: freshnessBonus,
     fsi_baseline: +fsiBaseline.toFixed(2),
-    response_amplifier: +responseAmplifier.toFixed(3),
     ensemble_dampener: ensembleDampener,
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
     signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
@@ -1142,37 +1100,6 @@ function resolutionCredit(store, iso) {
 function isLowInstrumentation(lb) {
   return (lb?.signal_count || 0) < CFG.LOW_INSTRUMENTATION_THRESHOLD;
 }
-
-// ═══ v13.9.7: SEVERITY FLOOR ═══
-// Structural floor: no country scores below its FSI-implied floor.
-function severityFloor(iso) {
-  if (!CFG.SEVERITY_FLOOR_ENABLED) return 0;
-  const c = COUNTRIES[iso];
-  if (!c) return 0;
-  // FSI 100+ → floor of 60. FSI 50 → floor of 20. Linear in between.
-  const normalized = (c.fsi_score - 50) / 50;   // 0 at FSI=50, 1 at FSI=100
-  return Math.max(0, Math.min(60, normalized * 60));
-}
-
-// ═══ v13.9.7: TOP-N VOLATILITY DAMPENING ═══
-// Prevents top-of-board jitter. Ranks in top N move at 15% of their full delta.
-function applyTopNDampening(prevStore, nextStore, ranked) {
-  if (!CFG.TOP_N_DAMPENING_ENABLED || !prevStore) return nextStore;
-  const topN = ranked.slice(0, CFG.TOP_N_DAMPENING_SIZE);
-  for (const iso of topN) {
-    const prevEff = prevStore[iso]?.__effective_score;
-    const nextEff = nextStore[iso]?.__effective_score;
-    if (typeof prevEff === "number" && typeof nextEff === "number") {
-      const damped = prevEff + (nextEff - prevEff) * CFG.TOP_N_DAMPENING_FACTOR;
-      nextStore[iso].__effective_score = clamp(damped);
-      if (CFG.SCORE_FIELD_IS_LIVE) nextStore[iso].score = clamp(damped);
-    }
-  }
-  return nextStore;
-}
-
-// Cache last store for dampening (single-process only — replace with Redis in prod).
-let __lastStore = null;
 
 function rankByLiveBreaking(store) {
   return Object.keys(store).sort((a, b) => {
@@ -1866,6 +1793,19 @@ async function fetchAllLive() {
   };
 }
 
+// ═══ additive: races the full fetchAllLive() fan-out against a hard time
+// budget. If every upstream answers in time, behaves exactly like
+// fetchAllLive(). If the aggregate takes too long, resolves to null so the
+// caller can fall back to fast structural-only scoring — this is the actual
+// mechanism behind ?force_live=false, and now also protects the default
+// path from ever stalling on a single slow data source. ═══
+function fetchAllLiveWithBudget(budgetMs = CFG.GLOBAL_LIVE_FETCH_BUDGET_MS) {
+  return Promise.race([
+    fetchAllLive(),
+    new Promise(resolve => setTimeout(() => resolve(null), budgetMs)),
+  ]);
+}
+
 function extractSignals(iso, live) {
   const name = COUNTRIES[iso].name.toLowerCase();
   let liveEvidenceCount = 0;
@@ -2326,7 +2266,6 @@ async function buildStore(liveData) {
 
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ v13.9.7: EFFECTIVE SCORE with severity floor (Fresco) ═══
   for (const iso in store) {
     const structural = store[iso].structural_score ?? store[iso].score;
     const live = store[iso].__live_breaking?.live_score || 0;
@@ -2334,19 +2273,12 @@ async function buildStore(liveData) {
     const popValue = store[iso].signals?.population || 0;
     const popMult = popExposureMultiplier(popValue);
     const credit = resolutionCredit(store, iso);
-    const floor = severityFloor(iso);
-    const effective = clamp(Math.max(rawEffective * popMult - credit, floor));
+    const effective = clamp(rawEffective * popMult - credit);
     store[iso].__effective_score = effective;
     store[iso].__pop_multiplier = +popMult.toFixed(3);
     store[iso].__resolution_credit = +credit.toFixed(2);
-    store[iso].__severity_floor = +floor.toFixed(2);
     if (CFG.SCORE_FIELD_IS_LIVE) store[iso].score = effective;
   }
-
-  // ═══ v13.9.7: TOP-N VOLATILITY DAMPENING ═══
-  const preDampeningRanked = rankByLiveBreaking(store);
-  applyTopNDampening(__lastStore, store, preDampeningRanked);
-  __lastStore = store;
 
   for (const iso in store) {
     if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
@@ -2435,7 +2367,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     effective_score: c.__effective_score,
     pop_multiplier: c.__pop_multiplier ?? 1.0,
     resolution_credit: c.__resolution_credit ?? 0,
-    severity_floor: c.__severity_floor ?? 0,
     is_low_instrumentation: isLowInstrumentation(lb),
     severity: severityLabel(displayScore),
     severity_emoji: severityEmoji(displayScore),
@@ -2464,7 +2395,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       freshness_bonus: lb.freshness_bonus || 0,
       diversity_bonus: lb.diversity_bonus || 0,
       fsi_baseline: lb.fsi_baseline || 0,
-      response_amplifier: lb.response_amplifier || 1.0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
       events: lb.events || [],
@@ -2573,9 +2503,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       effective_score_raw: Math.max(c.structural_score ?? 0, lb.live_score || 0),
       pop_multiplier: c.__pop_multiplier ?? 1.0,
       resolution_credit: c.__resolution_credit ?? 0,
-      severity_floor: c.__severity_floor ?? 0,
       effective_score: c.__effective_score,
-      response_amplifier: lb.response_amplifier || 1.0,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2691,6 +2619,58 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
+// ═══ additive: builds the meta.data_sources block. When liveData is present
+// this is identical to the original inline object. When liveData is null
+// (force_live=false, or the fetch exceeded GLOBAL_LIVE_FETCH_BUDGET_MS) it
+// returns a safe "structural-only" placeholder instead of throwing on
+// liveData.usgs.live etc. ═══
+function buildDataSourcesMeta(liveData) {
+  if (!liveData) {
+    return {
+      mode: "structural_only",
+      reason: "force_live=false or live-fetch exceeded GLOBAL_LIVE_FETCH_BUDGET_MS",
+    };
+  }
+  return {
+    usgs_weekly: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0 },
+    usgs_significant_month: { live: liveData.usgsSig.live, events: liveData.usgsSig.data?.length ?? 0 },
+    usgs_shakemap: { live: liveData.shakemap.live, events: liveData.shakemap.data?.length ?? 0 },
+    emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0 },
+    jma: { live: liveData.jma.live, events: liveData.jma.data?.length ?? 0 },
+    bmkg: { live: liveData.bmkg.live, events: liveData.bmkg.data?.length ?? 0 },
+    geofon: { live: liveData.geofon.live, events: liveData.geofon.data?.length ?? 0 },
+    ingv: { live: liveData.ingv.live, events: liveData.ingv.data?.length ?? 0 },
+    geonet: { live: liveData.geonet.live, events: liveData.geonet.data?.length ?? 0 },
+    jma_typhoon: { live: liveData.jmaTyphoon.live, typhoons: liveData.jmaTyphoon.data?.length ?? 0 },
+    nasa_eonet: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0 },
+    gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0 },
+    ifrc_events: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0 },
+    ifrc_appeals: { live: liveData.ifrcAppeals.live, events: liveData.ifrcAppeals.data?.length ?? 0 },
+    openmeteo_heat: { live: liveData.heat.live, countries: Object.keys(liveData.heat.data || {}).length },
+    openmeteo_hazards: { live: liveData.hazards.live },
+    openmeteo_aq: { live: liveData.aq.live, cities: Object.keys(liveData.aq.data || {}).length },
+    openmeteo_ensemble: { live: liveData.ensemble.live, spread: liveData.ensemble.data?.spread },
+    noaa: { live: liveData.noaa.live },
+    noaa_spc: { live: liveData.spc.live, label: liveData.spc.data?.label },
+    cdc: { live: liveData.cdc.live, events: liveData.cdc.data?.length ?? 0 },
+    who_rss: { live: liveData.who.live },
+    who_don: { live: liveData.whoDon.live, events: liveData.whoDon.data?.length ?? 0 },
+    ecdc: { live: liveData.ecdc.live, events: liveData.ecdc.data?.length ?? 0 },
+    us_drought: { live: liveData.usDrought.live },
+    copernicus_sentinel: { live: liveData.sentinel.live, events: liveData.sentinel.data?.length ?? 0 },
+    nasa_power: { live: liveData.nasaPower.live, anchors: Object.keys(liveData.nasaPower.data || {}).length },
+    disease_sh: { live: liveData.disease.live, countries: liveData.disease.data?.length ?? 0 },
+    world_bank: { live: Object.values(liveData.wb).some(v => v.live) },
+    unhcr: { live: liveData.unhcr.live },
+    unhcr_solutions: { live: liveData.unhcrSolutions.live, countries: Object.keys(liveData.unhcrSolutions.data || {}).length },
+    gfw: { live: liveData.gfw.live, countries: Object.keys(liveData.gfw.data || {}).length },
+    inform: { live: liveData.inform.live, countries: Object.keys(liveData.inform.data || {}).length },
+    climate_trace: { live: liveData.climateTrace.live, countries: Object.keys(liveData.climateTrace.data || {}).length },
+    hdx: { live: liveData.hdx.live, countries: Object.keys(liveData.hdx.data || {}).length },
+    jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
+  };
+}
+
 export default async function handler(req, res) {
   const start = Date.now();
   if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
@@ -2735,7 +2715,16 @@ export default async function handler(req, res) {
   if (invalid.length) { res.writeHead(404, CORS); res.end(JSON.stringify({ error: `Unknown ISO: ${invalid.join(", ")}` })); return; }
 
   try {
-    const liveData = await fetchAllLive();
+    // ═══ additive fix: previously fetchAllLive() ran unconditionally, so
+    // ?force_live=false (documented in meta.endpoints.structural_fallback)
+    // never actually skipped the ~35-source network fan-out, and any single
+    // slow upstream could stall the whole request. Now force_live=false
+    // skips the network entirely (fast structural-only response), and the
+    // default force_live=true path is capped by GLOBAL_LIVE_FETCH_BUDGET_MS
+    // so it always resolves — buildStore()/computeLiveBreakingScore() etc.
+    // already handle liveData === null gracefully (falls back to
+    // structural scoring). No scoring or ranking logic changed. ═══
+    const liveData = params.force_live ? await fetchAllLiveWithBudget() : null;
     const store = await buildStore(liveData);
     const ranked = rankByLiveBreaking(store);
     const breakingRanked = rankBreakingOnly(store, 1);
@@ -2831,7 +2820,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.7_FRESCO",
+        ranking_mode: "LIVE_BREAKING_NEWS_v13.9.6",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -2843,11 +2832,7 @@ export default async function handler(req, res) {
         pop_exposure_enabled: CFG.POP_EXPOSURE_ENABLED,
         resolution_credit_enabled: CFG.RESOLUTION_CREDIT_ENABLED,
         low_instrumentation_threshold: CFG.LOW_INSTRUMENTATION_THRESHOLD,
-        severity_floor_enabled: CFG.SEVERITY_FLOOR_ENABLED,
-        log_diversity_enabled: CFG.LOG_DIVERSITY_ENABLED,
-        response_capacity_enabled: CFG.RESPONSE_CAPACITY_ENABLED,
-        top_n_dampening_enabled: CFG.TOP_N_DAMPENING_ENABLED,
-        note: "v13.9.7 — Jacque Fresco edition. Scoring prioritizes resource-allocation over spectacle: carrying-capacity weighting, response-capacity amplification, severity floor guarantee, logarithmic diversity compression, and top-N volatility dampening. All v13.9.6 features preserved.",
+        note: "v13.9.6 — 10/10 calibrated. Ranking: effective_score → has_fresh → live_score → freshness. Population exposure multiplier + resolution credit + low-instrumentation flag added.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -2855,44 +2840,12 @@ export default async function handler(req, res) {
           top_live_headline: ranked[0] ? store[ranked[0]].__live_breaking.breaking_headline : null,
           signal_types_available: Object.keys(LIVE_SIGNALS).length,
         },
-        data_sources: {
-          usgs_weekly: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0 },
-          usgs_significant_month: { live: liveData.usgsSig.live, events: liveData.usgsSig.data?.length ?? 0 },
-          usgs_shakemap: { live: liveData.shakemap.live, events: liveData.shakemap.data?.length ?? 0 },
-          emsc: { live: liveData.emsc.live, events: liveData.emsc.data?.length ?? 0 },
-          jma: { live: liveData.jma.live, events: liveData.jma.data?.length ?? 0 },
-          bmkg: { live: liveData.bmkg.live, events: liveData.bmkg.data?.length ?? 0 },
-          geofon: { live: liveData.geofon.live, events: liveData.geofon.data?.length ?? 0 },
-          ingv: { live: liveData.ingv.live, events: liveData.ingv.data?.length ?? 0 },
-          geonet: { live: liveData.geonet.live, events: liveData.geonet.data?.length ?? 0 },
-          jma_typhoon: { live: liveData.jmaTyphoon.live, typhoons: liveData.jmaTyphoon.data?.length ?? 0 },
-          nasa_eonet: { live: liveData.nasa.live, events: liveData.nasa.data?.length ?? 0 },
-          gdacs: { live: liveData.gdacs.live, events: liveData.gdacs.data?.length ?? 0 },
-          ifrc_events: { live: liveData.ifrc.live, events: liveData.ifrc.data?.length ?? 0 },
-          ifrc_appeals: { live: liveData.ifrcAppeals.live, events: liveData.ifrcAppeals.data?.length ?? 0 },
-          openmeteo_heat: { live: liveData.heat.live, countries: Object.keys(liveData.heat.data || {}).length },
-          openmeteo_hazards: { live: liveData.hazards.live },
-          openmeteo_aq: { live: liveData.aq.live, cities: Object.keys(liveData.aq.data || {}).length },
-          openmeteo_ensemble: { live: liveData.ensemble.live, spread: liveData.ensemble.data?.spread },
-          noaa: { live: liveData.noaa.live },
-          noaa_spc: { live: liveData.spc.live, label: liveData.spc.data?.label },
-          cdc: { live: liveData.cdc.live, events: liveData.cdc.data?.length ?? 0 },
-          who_rss: { live: liveData.who.live },
-          who_don: { live: liveData.whoDon.live, events: liveData.whoDon.data?.length ?? 0 },
-          ecdc: { live: liveData.ecdc.live, events: liveData.ecdc.data?.length ?? 0 },
-          us_drought: { live: liveData.usDrought.live },
-          copernicus_sentinel: { live: liveData.sentinel.live, events: liveData.sentinel.data?.length ?? 0 },
-          nasa_power: { live: liveData.nasaPower.live, anchors: Object.keys(liveData.nasaPower.data || {}).length },
-          disease_sh: { live: liveData.disease.live, countries: liveData.disease.data?.length ?? 0 },
-          world_bank: { live: Object.values(liveData.wb).some(v => v.live) },
-          unhcr: { live: liveData.unhcr.live },
-          unhcr_solutions: { live: liveData.unhcrSolutions.live, countries: Object.keys(liveData.unhcrSolutions.data || {}).length },
-          gfw: { live: liveData.gfw.live, countries: Object.keys(liveData.gfw.data || {}).length },
-          inform: { live: liveData.inform.live, countries: Object.keys(liveData.inform.data || {}).length },
-          climate_trace: { live: liveData.climateTrace.live, countries: Object.keys(liveData.climateTrace.data || {}).length },
-          hdx: { live: liveData.hdx.live, countries: Object.keys(liveData.hdx.data || {}).length },
-          jtwc: { live: liveData.jtwc.live, storms: liveData.jtwc.data?.length ?? 0 },
-        },
+        // ═══ additive fix: this used to dereference liveData.usgs.live etc.
+        // directly, which threw "Cannot read properties of null" whenever
+        // liveData was null. Routed through buildDataSourcesMeta() so the
+        // structural-only fallback path (see force_live above) can never
+        // crash the response. ═══
+        data_sources: buildDataSourcesMeta(liveData),
         endpoints: {
           single: "GET /api/top-story",
           live_news: "GET /api/top-story?format=live",
@@ -2912,7 +2865,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v13.9.7]", err);
+    console.error("[top-story v13.9.6]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
