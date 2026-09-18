@@ -20,12 +20,19 @@ const CFG = {
   // ═══ additive fix: was referenced by applyLiveAdjustments() but never
   // declared, so the "IFRC Event" boost silently never fired. ═══
   IFRC_ENABLED: true,
-  // ═══ additive: hard ceiling on the whole fetchAllLive() fan-out so one
-  // slow/unreachable upstream can never stall the entire request past this
-  // many ms. On timeout the request falls back to structural-only scoring
-  // (same code path as ?force_live=false) instead of hanging until the
-  // platform kills the function. Does not change any scoring/ranking math. ═══
-  GLOBAL_LIVE_FETCH_BUDGET_MS: 9_000,
+  // ═══ additive: hard ceiling on the whole fetchAllLive() fan-out so a
+  // truly hung/runaway fetch can never stall the request forever. Every
+  // individual source already gets up to FETCH_TIMEOUT_MS via safeFetch(),
+  // so this MUST stay comfortably above FETCH_TIMEOUT_MS — otherwise it
+  // fires before slow-but-legitimate sources (e.g. GDACS, which carries
+  // affectedcountries) finish, and silently discards real data that would
+  // have arrived fine. Derived below, right after CFG closes, as
+  // FETCH_TIMEOUT_MS + 10s of headroom — not a tighter budget than sources
+  // are individually allowed. On timeout the request falls back to
+  // structural-only scoring (same code path as ?force_live=false) instead
+  // of hanging until the platform kills the function. Does not change any
+  // scoring/ranking math. ═══
+  GLOBAL_LIVE_FETCH_BUDGET_MS: null, // set just below CFG, derived from FETCH_TIMEOUT_MS
   MAX_TOP_N: 179,
   SPILLOVER_RATE: 0.08,
   SPILLOVER_FLOOR: 55,
@@ -217,6 +224,11 @@ const CFG = {
   WB_INFRASTRUCTURE_ENABLED: true,
   WB_INFRASTRUCTURE_BOOST: 30,
 };
+
+// ═══ additive: derived here (not as a literal inside CFG) so it can never
+// drift below FETCH_TIMEOUT_MS if that value is ever tuned later — see the
+// comment on GLOBAL_LIVE_FETCH_BUDGET_MS above. ═══
+CFG.GLOBAL_LIVE_FETCH_BUDGET_MS = CFG.FETCH_TIMEOUT_MS + 10_000;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
