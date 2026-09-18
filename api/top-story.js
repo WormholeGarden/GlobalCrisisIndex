@@ -1,29 +1,32 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v15.0.0 — HTML PARITY (DECIMAL-EXACT)
+//  TOP-STORY API — v16.0.0 — HTML PARITY + ALL REMAINING APIS
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED
-//  ═══ v15.0.0 — PARITY WITH HTML SCORING ═══
-//  ✅ composite() now includes conflictDisp + foodHealth interaction terms
-//  ✅ buildDims() ported verbatim from HTML (same +10/+12/+8/+8 offsets)
+//  ═══ v16.0.0 — PARITY + COMPLETE FETCHER SET ═══
+//  ✅ composite() includes conflictDisp + foodHealth interaction terms
+//  ✅ buildDims() ported verbatim from HTML
 //  ✅ spilloverScore() ported verbatim (0.13 rate, floor 50, cap 20)
-//  ✅ seedHistory() ported verbatim (28-day, 0.12 pull, 5-point noise)
-//  ✅ Final order: evidence → spillover → clamp (matches HTML exactly)
-//  ✅ popExposureMultiplier & resolutionCredit demoted to METADATA ONLY
-//     (they were causing the API to inflate/deflate scores HTML never saw)
-//  ✅ All 40+ fetchers preserved — every one writes evidenceIndex.sourceCoverage
-//  ✅ base = BASE_SCORES[iso] (HTML) NOT fsi_score/120*100 (old API)
+//  ✅ seedHistory() ported verbatim (28-day, 0.12 pull, 5-pt noise)
+//  ✅ Final order: evidence → structural blend → spillover → clamp (HTML)
+//  ✅ popExposureMultiplier & resolutionCredit = METADATA ONLY
+//  ✅ ALL fetchers restored from v13.9.6 — every one writes sourceCoverage
+//  ✅ Sentinel, GFW, ClimateTRACE, HDX, JTWC, JMA-Typhoon, JMA, BMKG,
+//     GEOFON, INGV, GeoNet, NASA POWER, US Drought, ECDC, CDC, WHO DON,
+//     disease.sh, EM-DAT, OSM hospitals/clinics, WB food/water/trade/refugees,
+//     UNHCR ops/emergency/stats/solutions, ReliefWeb IPC/conflict/FEWS NET,
+//     INFORM, Ensemble, NOAA (3 endpoints), SPC, IFRC appeals — ALL WIRED
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
   SEED_INTERVAL_MS: 300_000,
   FETCH_TIMEOUT_MS: 15_000,
   MAX_TOP_N: 179,
-  SPILLOVER_RATE: 0.13,            // ← HTML: 0.13 (was 0.08)
-  SPILLOVER_FLOOR: 50,             // ← HTML: 50   (was 55)
-  SPILLOVER_MAX: 20,               // ← HTML: Math.min(20, ...)
+  SPILLOVER_RATE: 0.13,
+  SPILLOVER_FLOOR: 50,
+  SPILLOVER_MAX: 20,
   PRIOR_JITTER: 1,
   MIN_LIVE_EVIDENCE_SOURCES: 1,
   ANOMALY_WINDOW: 28,
@@ -65,7 +68,6 @@ const CFG = {
   HISTORY_GRANULARITY_HOURS: 1,
   HISTORY_MAX_POINTS: 2160,
 
-  // v15: popExposure & resolutionCredit are METADATA ONLY (do not affect score)
   POP_EXPOSURE_ENABLED: true,
   POP_EXPOSURE_MIN_MULT: 0.85,
   POP_EXPOSURE_MAX_MULT: 1.15,
@@ -129,358 +131,355 @@ const MEDITERRANEAN_ISOS = new Set(['ITA','GRC','TUR','ESP','FRA','HRV','ALB','M
 const SOUTH_PACIFIC_ISOS = new Set(['NZL','FJI','WSM','TON','VUT','SLB','PNG','NCL','PYF','COK','NIU','TKL','KIR','TUV','FSM','MHL','PLW']);
 
 const COUNTRY_CENTROIDS = {
-  IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
-  IND: [78.9, 20.6], BGD: [90.4, 23.7], VNM: [108.3, 14.1], THA: [100.9, 15.9],
-  MMR: [96.0, 21.9], PAK: [69.3, 30.4], NPL: [84.1, 28.4], LKA: [80.8, 7.9],
-  USA: [-95.7, 37.1], MEX: [-102.5, 23.6], COL: [-74.3, 4.6], VEN: [-66.6, 6.4],
-  PER: [-75.0, -9.2], CHL: [-71.5, -35.7], ECU: [-78.2, -1.8], BRA: [-51.9, -14.2],
-  ITA: [12.6, 41.9], GRC: [22.0, 39.1], TUR: [35.2, 39.0], ESP: [-3.7, 40.5],
-  FRA: [2.2, 46.2], DEU: [10.5, 51.2], GBR: [-3.4, 55.4], RUS: [105.3, 61.5],
-  IRN: [53.7, 32.4], IRQ: [43.7, 33.2], SAU: [45.1, 23.9], ISR: [34.9, 31.0],
-  SYR: [38.0, 34.8], LBN: [35.9, 33.9], JOR: [36.2, 30.6], EGY: [30.8, 26.8],
-  LBY: [17.2, 26.3], TUN: [9.5, 33.9], DZA: [1.7, 28.0], MAR: [-7.1, 31.8],
-  SDN: [30.2, 12.9], SSD: [31.3, 7.9], ETH: [40.5, 9.1], SOM: [46.2, 5.2],
-  KEN: [37.9, -0.0], TZA: [34.9, -6.4], UGA: [32.3, 1.4], NGA: [8.7, 9.1],
-  NER: [8.1, 17.6], TCD: [18.7, 15.5], CMR: [12.4, 7.4], CAF: [20.9, 6.6],
-  COD: [21.8, -4.0], COG: [15.8, -0.2], GAB: [11.6, -0.8], AGO: [17.9, -11.2],
-  ZAF: [22.9, -30.6], MOZ: [35.5, -18.7], ZWE: [29.2, -19.0], ZMB: [27.8, -13.1],
-  MWI: [34.3, -13.3], MDG: [46.9, -18.8], MLI: [-4.0, 17.6], BFA: [-1.6, 12.2],
-  GHA: [-1.0, 7.9], CIV: [-5.5, 7.5], SEN: [-14.5, 14.5], GIN: [-9.7, 9.9],
-  LBR: [-9.4, 6.4], SLE: [-11.8, 8.5], GNB: [-15.2, 12.0], MRT: [-10.9, 21.0],
-  ERI: [39.8, 15.2], DJI: [42.6, 11.8], YEM: [48.5, 15.6], OMN: [56.1, 21.5],
-  AFG: [67.7, 33.9], UZB: [64.6, 41.4], KAZ: [66.9, 48.0], KGZ: [74.8, 41.2],
-  TJK: [71.3, 38.9], TKM: [59.6, 38.9], AZE: [47.6, 40.1], ARM: [45.0, 40.1],
-  GEO: [43.4, 42.3], BLR: [28.0, 53.7], UKR: [31.2, 49.0], MDA: [28.9, 47.4],
-  ROU: [24.9, 45.9], BGR: [25.5, 42.7], SRB: [21.0, 44.0], BIH: [17.7, 43.9],
-  HRV: [15.2, 45.1], SVN: [14.9, 46.2], HUN: [19.5, 47.2], AUT: [14.6, 47.5],
-  CHE: [8.2, 46.8], NLD: [5.3, 52.1], BEL: [4.5, 50.5], LUX: [6.1, 49.8],
-  DNK: [9.5, 56.3], NOR: [8.5, 60.5], SWE: [18.6, 60.1], FIN: [25.7, 61.9],
-  ISL: [-19.0, 64.9], IRL: [-8.2, 53.4], PRT: [-8.2, 39.4],
-  CAN: [-105.0, 56.1], AUS: [133.8, -25.3], NZL: [172.0, -41.0], PNG: [143.9, -6.3],
-  SLB: [160.2, -9.6], VUT: [166.9, -15.4], FJI: [178.0, -17.7], WSM: [-172.1, -13.8],
-  TON: [-175.2, -21.2], KIR: [173.0, 1.9], FSM: [158.2, 6.9], MHL: [171.2, 7.1],
-  PLW: [134.6, 7.5], NRU: [166.9, -0.5], TUV: [177.7, -7.1], KOR: [127.8, 36.5],
-  PRK: [127.5, 40.3], TWN: [120.9, 23.7], HKG: [114.1, 22.3], MNG: [103.8, 46.9],
-  KHM: [104.9, 12.6], LAO: [102.5, 19.9], MYS: [101.9, 4.2], SGP: [103.8, 1.4],
-  BRN: [114.7, 4.5], TLS: [-125.7, -8.9], BTN: [90.4, 27.5], MDV: [73.2, 3.2],
-  CUB: [-77.8, 21.5], HTI: [-72.3, 18.9], DOM: [-70.2, 18.7], JAM: [-77.3, 18.1],
-  TTO: [-61.2, 10.7], BRB: [-59.6, 13.2], GUY: [-58.9, 4.9], SUR: [-55.9, 4.0],
-  BLZ: [-88.5, 17.2], GTM: [-90.2, 15.8], HND: [-86.2, 15.2], SLV: [-88.9, 13.8],
-  NIC: [-85.2, 12.9], CRI: [-83.8, 9.7], PAN: [-80.8, 8.5], BHS: [-77.4, 25.0],
-  ATG: [-61.8, 17.1], DMA: [-61.4, 15.4], GRD: [-61.7, 12.1], KNA: [-62.7, 17.3],
-  LCA: [-60.9, 13.9], VCT: [-61.2, 13.3], URY: [-55.8, -32.5], ARG: [-63.6, -38.4],
-  PRY: [-58.4, -23.4], BOL: [-63.6, -16.3],
+  IDN:[113.9,-0.8],JPN:[138.0,36.2],PHL:[121.8,12.9],CHN:[104.2,35.9],
+  IND:[78.9,20.6],BGD:[90.4,23.7],VNM:[108.3,14.1],THA:[100.9,15.9],
+  MMR:[96.0,21.9],PAK:[69.3,30.4],NPL:[84.1,28.4],LKA:[80.8,7.9],
+  USA:[-95.7,37.1],MEX:[-102.5,23.6],COL:[-74.3,4.6],VEN:[-66.6,6.4],
+  PER:[-75.0,-9.2],CHL:[-71.5,-35.7],ECU:[-78.2,-1.8],BRA:[-51.9,-14.2],
+  ITA:[12.6,41.9],GRC:[22.0,39.1],TUR:[35.2,39.0],ESP:[-3.7,40.5],
+  FRA:[2.2,46.2],DEU:[10.5,51.2],GBR:[-3.4,55.4],RUS:[105.3,61.5],
+  IRN:[53.7,32.4],IRQ:[43.7,33.2],SAU:[45.1,23.9],ISR:[34.9,31.0],
+  SYR:[38.0,34.8],LBN:[35.9,33.9],JOR:[36.2,30.6],EGY:[30.8,26.8],
+  LBY:[17.2,26.3],TUN:[9.5,33.9],DZA:[1.7,28.0],MAR:[-7.1,31.8],
+  SDN:[30.2,12.9],SSD:[31.3,7.9],ETH:[40.5,9.1],SOM:[46.2,5.2],
+  KEN:[37.9,-0.0],TZA:[34.9,-6.4],UGA:[32.3,1.4],NGA:[8.7,9.1],
+  NER:[8.1,17.6],TCD:[18.7,15.5],CMR:[12.4,7.4],CAF:[20.9,6.6],
+  COD:[21.8,-4.0],COG:[15.8,-0.2],GAB:[11.6,-0.8],AGO:[17.9,-11.2],
+  ZAF:[22.9,-30.6],MOZ:[35.5,-18.7],ZWE:[29.2,-19.0],ZMB:[27.8,-13.1],
+  MWI:[34.3,-13.3],MDG:[46.9,-18.8],MLI:[-4.0,17.6],BFA:[-1.6,12.2],
+  GHA:[-1.0,7.9],CIV:[-5.5,7.5],SEN:[-14.5,14.5],GIN:[-9.7,9.9],
+  LBR:[-9.4,6.4],SLE:[-11.8,8.5],GNB:[-15.2,12.0],MRT:[-10.9,21.0],
+  ERI:[39.8,15.2],DJI:[42.6,11.8],YEM:[48.5,15.6],OMN:[56.1,21.5],
+  AFG:[67.7,33.9],UZB:[64.6,41.4],KAZ:[66.9,48.0],KGZ:[74.8,41.2],
+  TJK:[71.3,38.9],TKM:[59.6,38.9],AZE:[47.6,40.1],ARM:[45.0,40.1],
+  GEO:[43.4,42.3],BLR:[28.0,53.7],UKR:[31.2,49.0],MDA:[28.9,47.4],
+  ROU:[24.9,45.9],BGR:[25.5,42.7],SRB:[21.0,44.0],BIH:[17.7,43.9],
+  HRV:[15.2,45.1],SVN:[14.9,46.2],HUN:[19.5,47.2],AUT:[14.6,47.5],
+  CHE:[8.2,46.8],NLD:[5.3,52.1],BEL:[4.5,50.5],LUX:[6.1,49.8],
+  DNK:[9.5,56.3],NOR:[8.5,60.5],SWE:[18.6,60.1],FIN:[25.7,61.9],
+  ISL:[-19.0,64.9],IRL:[-8.2,53.4],PRT:[-8.2,39.4],
+  CAN:[-105.0,56.1],AUS:[133.8,-25.3],NZL:[172.0,-41.0],PNG:[143.9,-6.3],
+  SLB:[160.2,-9.6],VUT:[166.9,-15.4],FJI:[178.0,-17.7],WSM:[-172.1,-13.8],
+  TON:[-175.2,-21.2],KIR:[173.0,1.9],FSM:[158.2,6.9],MHL:[171.2,7.1],
+  PLW:[134.6,7.5],NRU:[166.9,-0.5],TUV:[177.7,-7.1],KOR:[127.8,36.5],
+  PRK:[127.5,40.3],TWN:[120.9,23.7],HKG:[114.1,22.3],MNG:[103.8,46.9],
+  KHM:[104.9,12.6],LAO:[102.5,19.9],MYS:[101.9,4.2],SGP:[103.8,1.4],
+  BRN:[114.7,4.5],TLS:[-125.7,-8.9],BTN:[90.4,27.5],MDV:[73.2,3.2],
+  CUB:[-77.8,21.5],HTI:[-72.3,18.9],DOM:[-70.2,18.7],JAM:[-77.3,18.1],
+  TTO:[-61.2,10.7],BRB:[-59.6,13.2],GUY:[-58.9,4.9],SUR:[-55.9,4.0],
+  BLZ:[-88.5,17.2],GTM:[-90.2,15.8],HND:[-86.2,15.2],SLV:[-88.9,13.8],
+  NIC:[-85.2,12.9],CRI:[-83.8,9.7],PAN:[-80.8,8.5],BHS:[-77.4,25.0],
+  ATG:[-61.8,17.1],DMA:[-61.4,15.4],GRD:[-61.7,12.1],KNA:[-62.7,17.3],
+  LCA:[-60.9,13.9],VCT:[-61.2,13.3],URY:[-55.8,-32.5],ARG:[-63.6,-38.4],
+  PRY:[-58.4,-23.4],BOL:[-63.6,-16.3],
 };
 
 const ARC = {
-  CE:  { l:"Complex Emergency",    i:"⚔️",  n:["shelter","food","health","protection"], seo:"complex humanitarian emergency", color:"#ff375f" },
-  CW:  { l:"Civil War",            i:"⚔️",  n:["shelter","protection","health","food"], seo:"armed conflict civil war", color:"#ff6b4a" },
-  EQ:  { l:"Earthquake",           i:"🌍",  n:["shelter","health","water"],             seo:"earthquake disaster relief", color:"#ff8c42" },
-  FL:  { l:"Flood",                i:"🌊",  n:["shelter","water","food"],               seo:"flooding disaster emergency", color:"#3ec5ff" },
-  DR:  { l:"Drought",              i:"🏜️",  n:["food","water","nutrition"],             seo:"drought crisis food security", color:"#ffb020" },
-  FN:  { l:"Famine",               i:"🍚",  n:["food","nutrition","health"],            seo:"famine hunger crisis", color:"#ff375f" },
-  EP:  { l:"Epidemic",             i:"🦠",  n:["health","water","nutrition"],           seo:"disease outbreak epidemic", color:"#e879f9" },
-  REF: { l:"Refugee Crisis",       i:"🚶",  n:["shelter","protection","water"],         seo:"refugee displacement crisis", color:"#bf7fff" },
-  TC:  { l:"Cyclone / Hurricane",  i:"🌀",  n:["shelter","water"],                      seo:"cyclone hurricane disaster", color:"#00c8ff" },
-  WF:  { l:"Wildfire",             i:"🔥",  n:["shelter","health"],                     seo:"wildfire emergency evacuation", color:"#ff6b4a" },
-  HEAT:{ l:"Heatwave",             i:"🥵",  n:["health","water"],                       seo:"heatwave health emergency", color:"#ff8c42" },
-  LS:  { l:"Landslide",            i:"⛰️",  n:["shelter","health"],                     seo:"landslide disaster", color:"#8bbdd8" },
-  TSU: { l:"Tsunami",              i:"🌊",  n:["shelter","health","water"],             seo:"tsunami disaster warning", color:"#3ec5ff" },
-  VLC: { l:"Volcano",              i:"🌋",  n:["shelter","health","water"],             seo:"volcanic eruption emergency", color:"#ff8c42" },
-  ST:  { l:"Storm",                i:"⛈️",  n:["shelter","water"],                      seo:"severe storm disaster", color:"#00c8ff" },
-  POL: { l:"Political Crisis",     i:"🏛️",  n:["protection","food","economic"],         seo:"political crisis instability", color:"#bf7fff" },
-  ECO: { l:"Economic Collapse",    i:"📉",  n:["food","economic","health"],             seo:"economic crisis collapse", color:"#ffb020" },
+  CE:{l:"Complex Emergency",i:"⚔️",n:["shelter","food","health","protection"],seo:"complex humanitarian emergency",color:"#ff375f"},
+  CW:{l:"Civil War",i:"⚔️",n:["shelter","protection","health","food"],seo:"armed conflict civil war",color:"#ff6b4a"},
+  EQ:{l:"Earthquake",i:"🌍",n:["shelter","health","water"],seo:"earthquake disaster relief",color:"#ff8c42"},
+  FL:{l:"Flood",i:"🌊",n:["shelter","water","food"],seo:"flooding disaster emergency",color:"#3ec5ff"},
+  DR:{l:"Drought",i:"🏜️",n:["food","water","nutrition"],seo:"drought crisis food security",color:"#ffb020"},
+  FN:{l:"Famine",i:"🍚",n:["food","nutrition","health"],seo:"famine hunger crisis",color:"#ff375f"},
+  EP:{l:"Epidemic",i:"🦠",n:["health","water","nutrition"],seo:"disease outbreak epidemic",color:"#e879f9"},
+  REF:{l:"Refugee Crisis",i:"🚶",n:["shelter","protection","water"],seo:"refugee displacement crisis",color:"#bf7fff"},
+  TC:{l:"Cyclone / Hurricane",i:"🌀",n:["shelter","water"],seo:"cyclone hurricane disaster",color:"#00c8ff"},
+  WF:{l:"Wildfire",i:"🔥",n:["shelter","health"],seo:"wildfire emergency evacuation",color:"#ff6b4a"},
+  HEAT:{l:"Heatwave",i:"🥵",n:["health","water"],seo:"heatwave health emergency",color:"#ff8c42"},
+  LS:{l:"Landslide",i:"⛰️",n:["shelter","health"],seo:"landslide disaster",color:"#8bbdd8"},
+  TSU:{l:"Tsunami",i:"🌊",n:["shelter","health","water"],seo:"tsunami disaster warning",color:"#3ec5ff"},
+  VLC:{l:"Volcano",i:"🌋",n:["shelter","health","water"],seo:"volcanic eruption emergency",color:"#ff8c42"},
+  ST:{l:"Storm",i:"⛈️",n:["shelter","water"],seo:"severe storm disaster",color:"#00c8ff"},
+  POL:{l:"Political Crisis",i:"🏛️",n:["protection","food","economic"],seo:"political crisis instability",color:"#bf7fff"},
+  ECO:{l:"Economic Collapse",i:"📉",n:["food","economic","health"],seo:"economic crisis collapse",color:"#ffb020"},
 };
 
 const DIMS = [
-  { k:"conflict",     l:"Conflict",      w:0.28, icon:"⚔️", color:"#ff375f" },
-  { k:"displacement", l:"Displacement",  w:0.22, icon:"🚶", color:"#bf7fff" },
-  { k:"food",         l:"Food Security", w:0.18, icon:"🌾", color:"#ffb020" },
-  { k:"health",       l:"Health",        w:0.14, icon:"🏥", color:"#e879f9" },
-  { k:"economic",     l:"Economic",      w:0.10, icon:"📉", color:"#ff8c42" },
-  { k:"climate",      l:"Climate",       w:0.05, icon:"🌡️", color:"#00c8ff" },
-  { k:"access",       l:"Access",        w:0.02, icon:"🚧", color:"#8bbdd8" },
-  { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
+  {k:"conflict",l:"Conflict",w:0.28,icon:"⚔️",color:"#ff375f"},
+  {k:"displacement",l:"Displacement",w:0.22,icon:"🚶",color:"#bf7fff"},
+  {k:"food",l:"Food Security",w:0.18,icon:"🌾",color:"#ffb020"},
+  {k:"health",l:"Health",w:0.14,icon:"🏥",color:"#e879f9"},
+  {k:"economic",l:"Economic",w:0.10,icon:"📉",color:"#ff8c42"},
+  {k:"climate",l:"Climate",w:0.05,icon:"🌡️",color:"#00c8ff"},
+  {k:"access",l:"Access",w:0.02,icon:"🚧",color:"#8bbdd8"},
+  {k:"political",l:"Political",w:0.01,icon:"⚖️",color:"#bf7fff"},
 ];
 
-// ═══ HTML's BASE_SCORES — the authoritative structural baseline ═══
 const BASE_SCORES = {
-  PSE:96, SOM:94, SYR:93, YEM:92, SSD:91, AFG:90, SDN:88, HTI:86, UKR:85, COD:86,
-  ETH:79, MMR:73, IRQ:72, LBN:75, PAK:69, NGA:66, IRN:61, VEN:63, COL:57, BGD:57,
-  IDN:79, PHL:73, NPL:58, KEN:42, MOZ:44, TUR:59, IND:56, BRA:53, ZAF:51, EGY:49,
-  JOR:41, SAU:38, KAZ:32, CHN:55, JPN:66, CHL:63, NZL:56, ITA:59, GRC:57, RUS:66,
-  AUS:29, CAN:27, FRA:26, DEU:22, GBR:25, ESP:28, SWE:18, NOR:17, FIN:17, DNK:15,
-  NLD:16, BEL:15, CHE:12, AUT:14, PRT:22, IRL:18, KOR:31, POL:22, HUN:21, CZE:19,
-  ECU:45, ISL:19, PNG:55, FJI:44, SLB:50, MEX:48, ARG:35, PER:49, DZA:38, LBY:72,
-  MAR:34, TUN:41, BDI:67, COM:42, DJI:48, ERI:61, MDG:55, MUS:18, MWI:52, RWA:44,
-  SYC:15, TZA:46, UGA:51, ZMB:47, ZWE:58, BEN:43, BFA:78, CPV:16, CIV:55, GMB:39,
-  GHA:36, GIN:54, GNB:57, LBR:52, MLI:82, MRT:59, NER:76, SEN:38, SLE:49, TGO:44,
-  CAF:84, CMR:62, COG:48, GAB:32, GNQ:36, STP:18, TCD:74, AGO:48, BWA:22, LSO:38,
-  NAM:26, SWZ:35, UZB:42, TJK:51, TKM:48, KGZ:44, MNG:28, PRK:72, BRN:14, KHM:48,
-  LAO:38, MYS:26, SGP:9, THA:41, TLS:52, VNM:36, BTN:22, LKA:44, MDV:18, ARE:22,
-  ARM:48, AZE:44, BHR:35, CYP:29, GEO:46, ISR:62, KWT:28, OMN:24, QAT:18, BLZ:38,
-  CRI:22, SLV:55, GTM:58, HND:62, NIC:48, PAN:32, ATG:14, BHS:22, BRB:12, CUB:52,
-  DMA:18, DOM:45, GRD:14, JAM:44, KNA:12, LCA:16, TTO:36, VCT:18, BOL:48, GUY:38,
-  PRY:42, SUR:34, URY:19, ALB:38, BIH:42, BGR:28, BLR:55, EST:18, HRV:22, LVA:19,
-  LIE:8, LTU:18, LUX:8, MDA:44, MKD:35, MLT:12, MNE:28, ROU:32, SRB:36, SVK:18,
-  SVN:14, AND:8, SMR:8, GRL:12, VUT:32, TON:26, WSM:24, KIR:38, FSM:28, MHL:32,
-  PLW:18, NRU:22, TUV:36, COK:18, TWN:35, HKG:18, XKX:45, ESH:32, USA:29,
+  PSE:96,SOM:94,SYR:93,YEM:92,SSD:91,AFG:90,SDN:88,HTI:86,UKR:85,COD:86,
+  ETH:79,MMR:73,IRQ:72,LBN:75,PAK:69,NGA:66,IRN:61,VEN:63,COL:57,BGD:57,
+  IDN:79,PHL:73,NPL:58,KEN:42,MOZ:44,TUR:59,IND:56,BRA:53,ZAF:51,EGY:49,
+  JOR:41,SAU:38,KAZ:32,CHN:55,JPN:66,CHL:63,NZL:56,ITA:59,GRC:57,RUS:66,
+  AUS:29,CAN:27,FRA:26,DEU:22,GBR:25,ESP:28,SWE:18,NOR:17,FIN:17,DNK:15,
+  NLD:16,BEL:15,CHE:12,AUT:14,PRT:22,IRL:18,KOR:31,POL:22,HUN:21,CZE:19,
+  ECU:45,ISL:19,PNG:55,FJI:44,SLB:50,MEX:48,ARG:35,PER:49,DZA:38,LBY:72,
+  MAR:34,TUN:41,BDI:67,COM:42,DJI:48,ERI:61,MDG:55,MUS:18,MWI:52,RWA:44,
+  SYC:15,TZA:46,UGA:51,ZMB:47,ZWE:58,BEN:43,BFA:78,CPV:16,CIV:55,GMB:39,
+  GHA:36,GIN:54,GNB:57,LBR:52,MLI:82,MRT:59,NER:76,SEN:38,SLE:49,TGO:44,
+  CAF:84,CMR:62,COG:48,GAB:32,GNQ:36,STP:18,TCD:74,AGO:48,BWA:22,LSO:38,
+  NAM:26,SWZ:35,UZB:42,TJK:51,TKM:48,KGZ:44,MNG:28,PRK:72,BRN:14,KHM:48,
+  LAO:38,MYS:26,SGP:9,THA:41,TLS:52,VNM:36,BTN:22,LKA:44,MDV:18,ARE:22,
+  ARM:48,AZE:44,BHR:35,CYP:29,GEO:46,ISR:62,KWT:28,OMN:24,QAT:18,BLZ:38,
+  CRI:22,SLV:55,GTM:58,HND:62,NIC:48,PAN:32,ATG:14,BHS:22,BRB:12,CUB:52,
+  DMA:18,DOM:45,GRD:14,JAM:44,KNA:12,LCA:16,TTO:36,VCT:18,BOL:48,GUY:38,
+  PRY:42,SUR:34,URY:19,ALB:38,BIH:42,BGR:28,BLR:55,EST:18,HRV:22,LVA:19,
+  LIE:8,LTU:18,LUX:8,MDA:44,MKD:35,MLT:12,MNE:28,ROU:32,SRB:36,SVK:18,
+  SVN:14,AND:8,SMR:8,GRL:12,VUT:32,TON:26,WSM:24,KIR:38,FSM:28,MHL:32,
+  PLW:18,NRU:22,TUV:36,COK:18,TWN:35,HKG:18,XKX:45,ESH:32,USA:29,
 };
 
-// ═══ HTML's CTYPES — authoritative crisis-type map ═══
 const CTYPES = {
-  PSE:["CE","CW","REF","HEAT"], SOM:["CE","CW","DR","FN","REF","HEAT"], SYR:["CE","CW","REF","EP","HEAT"],
-  YEM:["CE","CW","FN","DR","REF"], AFG:["CE","CW","DR","FN","REF"], UKR:["CE","CW","REF","HEAT"],
-  SSD:["CE","CW","FL","FN","REF"], SDN:["CE","CW","DR","FL","REF"], COD:["CE","CW","EP","FL","REF"],
-  HTI:["CE","EQ","EP","ST","REF"], ETH:["CE","CW","DR","FN","REF"], MMR:["CE","CW","FL","REF","EP"],
-  LBN:["CE","REF","EP","HEAT"], NGA:["CE","CW","FL","EP","REF"], PAK:["FL","EQ","DR","REF","HEAT","LS"],
-  IRQ:["CE","CW","REF","HEAT"], IRN:["EQ","DR","REF","HEAT","LS"], VEN:["CE","REF","DR","HEAT"],
-  COL:["CE","CW","FL","REF","LS"], BGD:["FL","TC","REF","EP","LS","HEAT"], IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],
-  PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"], JPN:["EQ","TSU","TC","VLC","FL","HEAT"],
-  CHL:["EQ","VLC","TSU","WF","HEAT"], PER:["EQ","FL","LS","VLC","TSU","HEAT"], MEX:["EQ","ST","VLC","FL","TSU","HEAT"],
-  USA:["WF","ST","EQ","TC","TSU","HEAT"], NZL:["EQ","TSU","VLC","FL","HEAT"], ITA:["EQ","VLC","WF","FL","TSU","HEAT"],
-  GRC:["EQ","VLC","WF","FL","HEAT","REF"], ISL:["VLC","FL","ST","HEAT"], ECU:["EQ","VLC","FL","TSU","HEAT"],
-  PNG:["EQ","TSU","VLC","FL","HEAT"], FJI:["TC","TSU","FL","HEAT"], SLB:["EQ","TSU","TC","HEAT"],
-  NPL:["EQ","LS","FL","HEAT"], TUR:["EQ","FL","REF","CW","LS","HEAT"], IND:["FL","TC","DR","EQ","HEAT","LS"],
-  CHN:["FL","EQ","TC","LS","TSU","HEAT"], RUS:["WF","FL","CW","ST","HEAT"], BRA:["FL","WF","DR","EP","LS","HEAT"],
-  ZAF:["DR","FL","EP","HEAT"], EGY:["DR","REF","HEAT"], JOR:["REF","DR","HEAT"], SAU:["DR","ST","HEAT","REF"],
-  KAZ:["FL","DR","WF","HEAT"], ARG:["FL","DR","ST","HEAT"], CAN:["WF","FL","ST","HEAT"], AUS:["WF","FL","TC","DR","HEAT"],
-  FRA:["WF","ST","HEAT"], DEU:["FL","ST","HEAT"], GBR:["ST","FL","HEAT"], ESP:["WF","DR","ST","HEAT"],
-  PRT:["WF","FL","HEAT"], SWE:["FL","ST","WF","HEAT"], NOR:["FL","ST","WF","HEAT"], FIN:["FL","ST","WF","HEAT"],
-  DNK:["ST","FL","HEAT"], NLD:["FL","ST","HEAT"], BEL:["FL","ST","HEAT"], CHE:["FL","LS","ST","HEAT"],
-  AUT:["FL","LS","ST","HEAT"], POL:["FL","ST","WF","HEAT"], CZE:["FL","ST","WF","HEAT"], HUN:["FL","ST","HEAT","WF"],
-  IRL:["ST","FL","HEAT"], KOR:["ST","FL","HEAT","EQ"], MOZ:["TC","FL","HEAT"], DZA:["DR","WF","HEAT","EP"],
-  LBY:["CE","CW","REF","HEAT"], MAR:["EQ","DR","HEAT","FL"], TUN:["DR","HEAT","FL"],
-  BDI:["CE","CW","EP","FL","REF"], COM:["TC","FL","EP","HEAT"], DJI:["DR","HEAT","REF","FL"], ERI:["CE","DR","REF","HEAT"],
-  KEN:["DR","FL","EP","REF","HEAT"], MDG:["TC","FL","DR","EP","HEAT"], MUS:["TC","FL","HEAT"],
-  MWI:["FL","DR","EP","HEAT"], RWA:["FL","LS","EP","REF"], SYC:["TC","FL","HEAT"], TZA:["FL","DR","EP","HEAT"],
-  UGA:["FL","EP","REF","LS"], ZMB:["FL","DR","EP","HEAT"], ZWE:["DR","FL","EP","HEAT"], BEN:["FL","DR","EP","HEAT"],
-  BFA:["CE","CW","DR","EP","REF","HEAT"], CPV:["DR","HEAT","ST"], CIV:["FL","EP","CE","HEAT"], GMB:["DR","HEAT","FL"],
-  GHA:["FL","DR","EP","HEAT"], GIN:["FL","EP","LS","HEAT"], GNB:["FL","EP","DR","HEAT"], LBR:["FL","EP","CE","HEAT"],
-  MLI:["CE","CW","DR","FN","REF","HEAT"], MRT:["DR","FN","HEAT","FL"], NER:["DR","FN","CE","HEAT","FL"],
-  SEN:["DR","FL","EP","HEAT"], SLE:["FL","EP","LS","HEAT"], TGO:["FL","DR","EP","HEAT"], CAF:["CE","CW","EP","FL","REF"],
-  CMR:["CE","CW","FL","EP","REF"], COG:["FL","EP","CE","HEAT"], GAB:["FL","EP","HEAT"], GNQ:["FL","EP","HEAT"],
-  STP:["FL","EP","HEAT"], AGO:["FL","DR","EP","HEAT"], BWA:["DR","HEAT","FL"], LSO:["DR","FL","HEAT"],
-  NAM:["DR","HEAT","FL"], SWZ:["DR","FL","EP","HEAT"], TCD:["CE","CW","DR","REF","HEAT"],
-  UZB:["DR","HEAT","FL","EQ"], TJK:["EQ","FL","LS","DR","HEAT"], TKM:["DR","HEAT","FL"],
-  KGZ:["EQ","FL","LS","DR","HEAT"], MNG:["DR","ST","HEAT","FL"], PRK:["DR","FL","HEAT","ST"],
-  TWN:["TC","EQ","TSU","FL","HEAT"], HKG:["TC","FL","HEAT"], BRN:["FL","HEAT"], KHM:["FL","DR","HEAT","EP"],
-  LAO:["FL","DR","LS","HEAT"], MYS:["FL","LS","HEAT","EP"], SGP:["HEAT","FL"], THA:["FL","DR","HEAT","EP"],
-  TLS:["FL","DR","EP","HEAT"], VNM:["FL","TC","DR","LS","HEAT","EP"], BTN:["FL","LS","EQ","HEAT"],
-  LKA:["FL","TC","DR","EP","HEAT"], MDV:["TC","FL","HEAT"], ARE:["DR","HEAT","ST"], ARM:["EQ","DR","CW","HEAT"],
-  AZE:["EQ","FL","CW","HEAT"], BHR:["DR","HEAT"], CYP:["DR","WF","HEAT"], GEO:["EQ","FL","LS","CW","HEAT"],
-  ISR:["DR","WF","HEAT","CW"], KWT:["DR","HEAT","ST"], OMN:["TC","DR","HEAT","ST"], QAT:["DR","HEAT"],
-  BLZ:["TC","FL","ST","HEAT"], CRI:["EQ","FL","LS","TC","HEAT"], SLV:["EQ","FL","DR","ST","HEAT"],
-  GTM:["EQ","FL","LS","ST","DR","HEAT"], HND:["ST","FL","DR","LS","HEAT"], NIC:["ST","FL","DR","EQ","HEAT"],
-  PAN:["FL","LS","ST","HEAT"], ATG:["TC","ST","HEAT"], BHS:["TC","ST","FL","HEAT"], BRB:["TC","ST","HEAT"],
-  CUB:["TC","FL","ST","HEAT"], DMA:["TC","VLC","ST","HEAT"], DOM:["TC","FL","EQ","ST","HEAT"],
-  GRD:["TC","ST","HEAT"], JAM:["TC","FL","ST","HEAT"], KNA:["TC","VLC","ST","HEAT"], LCA:["TC","VLC","ST","HEAT"],
-  TTO:["FL","ST","HEAT"], VCT:["TC","VLC","FL","HEAT"], BOL:["FL","DR","LS","HEAT"], GUY:["FL","ST","HEAT"],
-  PRY:["FL","DR","HEAT"], SUR:["FL","ST","HEAT"], URY:["FL","DR","ST","HEAT"], ALB:["EQ","FL","LS","HEAT"],
-  BIH:["FL","LS","ST","HEAT"], BGR:["FL","WF","ST","HEAT"], BLR:["FL","ST","WF","HEAT"], EST:["ST","FL","HEAT"],
-  HRV:["EQ","FL","ST","HEAT"], LVA:["ST","FL","HEAT"], LIE:["FL","LS","HEAT"], LTU:["ST","FL","HEAT"],
-  LUX:["FL","ST","HEAT"], MDA:["FL","DR","HEAT"], MKD:["EQ","FL","WF","HEAT"], MLT:["DR","HEAT","ST"],
-  MNE:["EQ","FL","WF","HEAT"], ROU:["EQ","FL","DR","HEAT"], SRB:["FL","ST","WF","HEAT"], SVK:["FL","ST","WF","HEAT"],
-  SVN:["EQ","FL","LS","HEAT"], AND:["LS","HEAT"], SMR:["HEAT","FL"], GRL:["ST","FL","HEAT"],
-  VUT:["TC","EQ","TSU","VLC","FL","HEAT"], TON:["TC","TSU","FL","HEAT"], WSM:["TC","TSU","FL","HEAT"],
-  KIR:["TC","FL","HEAT"], FSM:["TC","TSU","FL","HEAT"], MHL:["TC","TSU","FL","HEAT"], PLW:["TC","TSU","FL","HEAT"],
-  NRU:["TC","FL","HEAT"], TUV:["TC","FL","HEAT"], COK:["TC","FL","HEAT"], XKX:["FL","ST","HEAT"], ESH:["DR","HEAT"],
+  PSE:["CE","CW","REF","HEAT"],SOM:["CE","CW","DR","FN","REF","HEAT"],SYR:["CE","CW","REF","EP","HEAT"],
+  YEM:["CE","CW","FN","DR","REF"],AFG:["CE","CW","DR","FN","REF"],UKR:["CE","CW","REF","HEAT"],
+  SSD:["CE","CW","FL","FN","REF"],SDN:["CE","CW","DR","FL","REF"],COD:["CE","CW","EP","FL","REF"],
+  HTI:["CE","EQ","EP","ST","REF"],ETH:["CE","CW","DR","FN","REF"],MMR:["CE","CW","FL","REF","EP"],
+  LBN:["CE","REF","EP","HEAT"],NGA:["CE","CW","FL","EP","REF"],PAK:["FL","EQ","DR","REF","HEAT","LS"],
+  IRQ:["CE","CW","REF","HEAT"],IRN:["EQ","DR","REF","HEAT","LS"],VEN:["CE","REF","DR","HEAT"],
+  COL:["CE","CW","FL","REF","LS"],BGD:["FL","TC","REF","EP","LS","HEAT"],IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],
+  PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"],JPN:["EQ","TSU","TC","VLC","FL","HEAT"],
+  CHL:["EQ","VLC","TSU","WF","HEAT"],PER:["EQ","FL","LS","VLC","TSU","HEAT"],MEX:["EQ","ST","VLC","FL","TSU","HEAT"],
+  USA:["WF","ST","EQ","TC","TSU","HEAT"],NZL:["EQ","TSU","VLC","FL","HEAT"],ITA:["EQ","VLC","WF","FL","TSU","HEAT"],
+  GRC:["EQ","VLC","WF","FL","HEAT","REF"],ISL:["VLC","FL","ST","HEAT"],ECU:["EQ","VLC","FL","TSU","HEAT"],
+  PNG:["EQ","TSU","VLC","FL","HEAT"],FJI:["TC","TSU","FL","HEAT"],SLB:["EQ","TSU","TC","HEAT"],
+  NPL:["EQ","LS","FL","HEAT"],TUR:["EQ","FL","REF","CW","LS","HEAT"],IND:["FL","TC","DR","EQ","HEAT","LS"],
+  CHN:["FL","EQ","TC","LS","TSU","HEAT"],RUS:["WF","FL","CW","ST","HEAT"],BRA:["FL","WF","DR","EP","LS","HEAT"],
+  ZAF:["DR","FL","EP","HEAT"],EGY:["DR","REF","HEAT"],JOR:["REF","DR","HEAT"],SAU:["DR","ST","HEAT","REF"],
+  KAZ:["FL","DR","WF","HEAT"],ARG:["FL","DR","ST","HEAT"],CAN:["WF","FL","ST","HEAT"],AUS:["WF","FL","TC","DR","HEAT"],
+  FRA:["WF","ST","HEAT"],DEU:["FL","ST","HEAT"],GBR:["ST","FL","HEAT"],ESP:["WF","DR","ST","HEAT"],
+  PRT:["WF","FL","HEAT"],SWE:["FL","ST","WF","HEAT"],NOR:["FL","ST","WF","HEAT"],FIN:["FL","ST","WF","HEAT"],
+  DNK:["ST","FL","HEAT"],NLD:["FL","ST","HEAT"],BEL:["FL","ST","HEAT"],CHE:["FL","LS","ST","HEAT"],
+  AUT:["FL","LS","ST","HEAT"],POL:["FL","ST","WF","HEAT"],CZE:["FL","ST","WF","HEAT"],HUN:["FL","ST","HEAT","WF"],
+  IRL:["ST","FL","HEAT"],KOR:["ST","FL","HEAT","EQ"],MOZ:["TC","FL","HEAT"],DZA:["DR","WF","HEAT","EP"],
+  LBY:["CE","CW","REF","HEAT"],MAR:["EQ","DR","HEAT","FL"],TUN:["DR","HEAT","FL"],
+  BDI:["CE","CW","EP","FL","REF"],COM:["TC","FL","EP","HEAT"],DJI:["DR","HEAT","REF","FL"],ERI:["CE","DR","REF","HEAT"],
+  KEN:["DR","FL","EP","REF","HEAT"],MDG:["TC","FL","DR","EP","HEAT"],MUS:["TC","FL","HEAT"],
+  MWI:["FL","DR","EP","HEAT"],RWA:["FL","LS","EP","REF"],SYC:["TC","FL","HEAT"],TZA:["FL","DR","EP","HEAT"],
+  UGA:["FL","EP","REF","LS"],ZMB:["FL","DR","EP","HEAT"],ZWE:["DR","FL","EP","HEAT"],BEN:["FL","DR","EP","HEAT"],
+  BFA:["CE","CW","DR","EP","REF","HEAT"],CPV:["DR","HEAT","ST"],CIV:["FL","EP","CE","HEAT"],GMB:["DR","HEAT","FL"],
+  GHA:["FL","DR","EP","HEAT"],GIN:["FL","EP","LS","HEAT"],GNB:["FL","EP","DR","HEAT"],LBR:["FL","EP","CE","HEAT"],
+  MLI:["CE","CW","DR","FN","REF","HEAT"],MRT:["DR","FN","HEAT","FL"],NER:["DR","FN","CE","HEAT","FL"],
+  SEN:["DR","FL","EP","HEAT"],SLE:["FL","EP","LS","HEAT"],TGO:["FL","DR","EP","HEAT"],CAF:["CE","CW","EP","FL","REF"],
+  CMR:["CE","CW","FL","EP","REF"],COG:["FL","EP","CE","HEAT"],GAB:["FL","EP","HEAT"],GNQ:["FL","EP","HEAT"],
+  STP:["FL","EP","HEAT"],AGO:["FL","DR","EP","HEAT"],BWA:["DR","HEAT","FL"],LSO:["DR","FL","HEAT"],
+  NAM:["DR","HEAT","FL"],SWZ:["DR","FL","EP","HEAT"],TCD:["CE","CW","DR","REF","HEAT"],
+  UZB:["DR","HEAT","FL","EQ"],TJK:["EQ","FL","LS","DR","HEAT"],TKM:["DR","HEAT","FL"],
+  KGZ:["EQ","FL","LS","DR","HEAT"],MNG:["DR","ST","HEAT","FL"],PRK:["DR","FL","HEAT","ST"],
+  TWN:["TC","EQ","TSU","FL","HEAT"],HKG:["TC","FL","HEAT"],BRN:["FL","HEAT"],KHM:["FL","DR","HEAT","EP"],
+  LAO:["FL","DR","LS","HEAT"],MYS:["FL","LS","HEAT","EP"],SGP:["HEAT","FL"],THA:["FL","DR","HEAT","EP"],
+  TLS:["FL","DR","EP","HEAT"],VNM:["FL","TC","DR","LS","HEAT","EP"],BTN:["FL","LS","EQ","HEAT"],
+  LKA:["FL","TC","DR","EP","HEAT"],MDV:["TC","FL","HEAT"],ARE:["DR","HEAT","ST"],ARM:["EQ","DR","CW","HEAT"],
+  AZE:["EQ","FL","CW","HEAT"],BHR:["DR","HEAT"],CYP:["DR","WF","HEAT"],GEO:["EQ","FL","LS","CW","HEAT"],
+  ISR:["DR","WF","HEAT","CW"],KWT:["DR","HEAT","ST"],OMN:["TC","DR","HEAT","ST"],QAT:["DR","HEAT"],
+  BLZ:["TC","FL","ST","HEAT"],CRI:["EQ","FL","LS","TC","HEAT"],SLV:["EQ","FL","DR","ST","HEAT"],
+  GTM:["EQ","FL","LS","ST","DR","HEAT"],HND:["ST","FL","DR","LS","HEAT"],NIC:["ST","FL","DR","EQ","HEAT"],
+  PAN:["FL","LS","ST","HEAT"],ATG:["TC","ST","HEAT"],BHS:["TC","ST","FL","HEAT"],BRB:["TC","ST","HEAT"],
+  CUB:["TC","FL","ST","HEAT"],DMA:["TC","VLC","ST","HEAT"],DOM:["TC","FL","EQ","ST","HEAT"],
+  GRD:["TC","ST","HEAT"],JAM:["TC","FL","ST","HEAT"],KNA:["TC","VLC","ST","HEAT"],LCA:["TC","VLC","ST","HEAT"],
+  TTO:["FL","ST","HEAT"],VCT:["TC","VLC","FL","HEAT"],BOL:["FL","DR","LS","HEAT"],GUY:["FL","ST","HEAT"],
+  PRY:["FL","DR","HEAT"],SUR:["FL","ST","HEAT"],URY:["FL","DR","ST","HEAT"],ALB:["EQ","FL","LS","HEAT"],
+  BIH:["FL","LS","ST","HEAT"],BGR:["FL","WF","ST","HEAT"],BLR:["FL","ST","WF","HEAT"],EST:["ST","FL","HEAT"],
+  HRV:["EQ","FL","ST","HEAT"],LVA:["ST","FL","HEAT"],LIE:["FL","LS","HEAT"],LTU:["ST","FL","HEAT"],
+  LUX:["FL","ST","HEAT"],MDA:["FL","DR","HEAT"],MKD:["EQ","FL","WF","HEAT"],MLT:["DR","HEAT","ST"],
+  MNE:["EQ","FL","WF","HEAT"],ROU:["EQ","FL","DR","HEAT"],SRB:["FL","ST","WF","HEAT"],SVK:["FL","ST","WF","HEAT"],
+  SVN:["EQ","FL","LS","HEAT"],AND:["LS","HEAT"],SMR:["HEAT","FL"],GRL:["ST","FL","HEAT"],
+  VUT:["TC","EQ","TSU","VLC","FL","HEAT"],TON:["TC","TSU","FL","HEAT"],WSM:["TC","TSU","FL","HEAT"],
+  KIR:["TC","FL","HEAT"],FSM:["TC","TSU","FL","HEAT"],MHL:["TC","TSU","FL","HEAT"],PLW:["TC","TSU","FL","HEAT"],
+  NRU:["TC","FL","HEAT"],TUV:["TC","FL","HEAT"],COK:["TC","FL","HEAT"],XKX:["FL","ST","HEAT"],ESH:["DR","HEAT"],
 };
 
 const DEFAULT_T = ["EQ","FL","ST","HEAT"];
 
 const FSI_2024 = {
-  SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
-  SDN: { name:"Sudan",                flag:"🇸🇩", fsi_score:109.3, rank:2, region:"africa", fsi_band:"Very High Alert" },
-  SSD: { name:"South Sudan",          flag:"🇸🇸", fsi_score:109.0, rank:3, region:"africa", fsi_band:"High Alert" },
-  SYR: { name:"Syria",                flag:"🇸🇾", fsi_score:108.1, rank:4, region:"middleeast", fsi_band:"High Alert" },
-  COD: { name:"Congo-Kinshasa",       flag:"🇨🇩", fsi_score:106.7, rank:5, region:"africa", fsi_band:"High Alert" },
-  YEM: { name:"Yemen",                flag:"🇾🇪", fsi_score:106.6, rank:6, region:"middleeast", fsi_band:"High Alert" },
-  AFG: { name:"Afghanistan",          flag:"🇦🇫", fsi_score:103.9, rank:7, region:"asia", fsi_band:"High Alert" },
-  CAF: { name:"Central African Rep.", flag:"🇨🇫", fsi_score:103.9, rank:8, region:"africa", fsi_band:"High Alert" },
-  HTI: { name:"Haiti",                flag:"🇭🇹", fsi_score:103.5, rank:9, region:"americas", fsi_band:"High Alert" },
-  TCD: { name:"Chad",                 flag:"🇹🇩", fsi_score:102.7, rank:10, region:"africa", fsi_band:"High Alert" },
-  MMR: { name:"Myanmar",              flag:"🇲🇲", fsi_score:100.0, rank:11, region:"asia", fsi_band:"High Alert" },
-  ETH: { name:"Ethiopia",             flag:"🇪🇹", fsi_score:98.1, rank:12, region:"africa", fsi_band:"Alert" },
-  PSE: { name:"Palestine",            flag:"🇵🇸", fsi_score:97.8, rank:13, region:"middleeast", fsi_band:"Alert" },
-  MLI: { name:"Mali",                 flag:"🇲🇱", fsi_score:97.3, rank:14, region:"africa", fsi_band:"Alert" },
-  NGA: { name:"Nigeria",              flag:"🇳🇬", fsi_score:96.6, rank:15, region:"africa", fsi_band:"Alert" },
-  LBY: { name:"Libya",                flag:"🇱🇾", fsi_score:96.5, rank:16, region:"africa", fsi_band:"Alert" },
-  GIN: { name:"Guinea",               flag:"🇬🇳", fsi_score:96.4, rank:17, region:"africa", fsi_band:"Alert" },
-  ZWE: { name:"Zimbabwe",             flag:"🇿🇼", fsi_score:95.7, rank:18, region:"africa", fsi_band:"Alert" },
-  NER: { name:"Niger",                flag:"🇳🇪", fsi_score:95.2, rank:19, region:"africa", fsi_band:"Alert" },
-  CMR: { name:"Cameroon",             flag:"🇨🇲", fsi_score:94.3, rank:20, region:"africa", fsi_band:"Alert" },
-  BFA: { name:"Burkina Faso",         flag:"🇧🇫", fsi_score:94.2, rank:21, region:"africa", fsi_band:"Alert" },
-  UKR: { name:"Ukraine",              flag:"🇺🇦", fsi_score:93.1, rank:22, region:"europe", fsi_band:"Alert" },
-  LBN: { name:"Lebanon",              flag:"🇱🇧", fsi_score:92.7, rank:23, region:"middleeast", fsi_band:"Alert" },
-  BDI: { name:"Burundi",              flag:"🇧🇮", fsi_score:92.6, rank:24, region:"africa", fsi_band:"Alert" },
-  MOZ: { name:"Mozambique",           flag:"🇲🇿", fsi_score:92.5, rank:25, region:"africa", fsi_band:"Alert" },
-  ERI: { name:"Eritrea",              flag:"🇪🇷", fsi_score:92.1, rank:26, region:"africa", fsi_band:"Alert" },
-  PAK: { name:"Pakistan",             flag:"🇵🇰", fsi_score:91.7, rank:27, region:"asia", fsi_band:"Alert" },
-  UGA: { name:"Uganda",               flag:"🇺🇬", fsi_score:91.1, rank:28, region:"africa", fsi_band:"Alert" },
-  COG: { name:"Congo-Brazzaville",    flag:"🇨🇬", fsi_score:90.2, rank:29, region:"africa", fsi_band:"Alert" },
-  VEN: { name:"Venezuela",            flag:"🇻🇪", fsi_score:89.0, rank:30, region:"americas", fsi_band:"Alert" },
-  IRQ: { name:"Iraq",                 flag:"🇮🇶", fsi_score:88.6, rank:31, region:"middleeast", fsi_band:"Alert" },
-  GNB: { name:"Guinea-Bissau",        flag:"🇬🇼", fsi_score:88.4, rank:32, region:"africa", fsi_band:"Alert" },
-  LKA: { name:"Sri Lanka",            flag:"🇱🇰", fsi_score:88.2, rank:33, region:"asia", fsi_band:"Alert" },
-  MRT: { name:"Mauritania",           flag:"🇲🇷", fsi_score:87.0, rank:34, region:"africa", fsi_band:"High Warning" },
-  LBR: { name:"Liberia",              flag:"🇱🇷", fsi_score:86.9, rank:35, region:"africa", fsi_band:"High Warning" },
-  KEN: { name:"Kenya",                flag:"🇰🇪", fsi_score:86.5, rank:36, region:"africa", fsi_band:"High Warning" },
-  BGD: { name:"Bangladesh",           flag:"🇧🇩", fsi_score:85.9, rank:37, region:"asia", fsi_band:"High Warning" },
-  AGO: { name:"Angola",               flag:"🇦🇴", fsi_score:85.6, rank:38, region:"africa", fsi_band:"High Warning" },
-  CIV: { name:"Ivory Coast",          flag:"🇨🇮", fsi_score:85.3, rank:39, region:"africa", fsi_band:"High Warning" },
-  PRK: { name:"North Korea",          flag:"🇰🇵", fsi_score:84.9, rank:40, region:"asia", fsi_band:"High Warning" },
-  TUR: { name:"Turkey",               flag:"🇹🇷", fsi_score:84.0, rank:41, region:"europe", fsi_band:"High Warning" },
-  GNQ: { name:"Equatorial Guinea",    flag:"🇬🇶", fsi_score:83.7, rank:42, region:"africa", fsi_band:"High Warning" },
-  IRN: { name:"Iran",                 flag:"🇮🇷", fsi_score:82.9, rank:43, region:"middleeast", fsi_band:"High Warning" },
-  EGY: { name:"Egypt",                flag:"🇪🇬", fsi_score:82.8, rank:44, region:"africa", fsi_band:"High Warning" },
-  SLE: { name:"Sierra Leone",         flag:"🇸🇱", fsi_score:82.6, rank:45, region:"africa", fsi_band:"High Warning" },
-  RWA: { name:"Rwanda",               flag:"🇷🇼", fsi_score:81.8, rank:46, region:"africa", fsi_band:"High Warning" },
-  COM: { name:"Comoros",              flag:"🇰🇲", fsi_score:81.7, rank:47, region:"africa", fsi_band:"High Warning" },
-  DJI: { name:"Djibouti",             flag:"🇩🇯", fsi_score:81.6, rank:48, region:"africa", fsi_band:"High Warning" },
-  RUS: { name:"Russia",               flag:"🇷🇺", fsi_score:81.6, rank:48, region:"europe", fsi_band:"High Warning" },
-  ZMB: { name:"Zambia",               flag:"🇿🇲", fsi_score:81.2, rank:50, region:"africa", fsi_band:"High Warning" },
-  TGO: { name:"Togo",                 flag:"🇹🇬", fsi_score:81.1, rank:51, region:"africa", fsi_band:"High Warning" },
-  MWI: { name:"Malawi",               flag:"🇲🇼", fsi_score:80.5, rank:52, region:"africa", fsi_band:"High Warning" },
-  MDG: { name:"Madagascar",           flag:"🇲🇬", fsi_score:79.8, rank:53, region:"africa", fsi_band:"High Warning" },
-  PNG: { name:"Papua New Guinea",     flag:"🇵🇬", fsi_score:78.8, rank:54, region:"oceania", fsi_band:"High Warning" },
-  KHM: { name:"Cambodia",             flag:"🇰🇭", fsi_score:78.6, rank:55, region:"asia", fsi_band:"High Warning" },
-  HND: { name:"Honduras",             flag:"🇭🇳", fsi_score:78.1, rank:56, region:"americas", fsi_band:"High Warning" },
-  NPL: { name:"Nepal",                flag:"🇳🇵", fsi_score:78.0, rank:57, region:"asia", fsi_band:"High Warning" },
-  SWZ: { name:"Eswatini",             flag:"🇸🇿", fsi_score:77.6, rank:58, region:"africa", fsi_band:"High Warning" },
-  SLB: { name:"Solomon Islands",      flag:"🇸🇧", fsi_score:77.6, rank:58, region:"oceania", fsi_band:"High Warning" },
-  NIC: { name:"Nicaragua",            flag:"🇳🇮", fsi_score:76.7, rank:60, region:"americas", fsi_band:"High Warning" },
-  GMB: { name:"Gambia",               flag:"🇬🇲", fsi_score:76.1, rank:61, region:"africa", fsi_band:"Elevated Warning" },
-  TZA: { name:"Tanzania",             flag:"🇹🇿", fsi_score:75.7, rank:62, region:"africa", fsi_band:"Elevated Warning" },
-  COL: { name:"Colombia",             flag:"🇨🇴", fsi_score:75.6, rank:63, region:"americas", fsi_band:"Elevated Warning" },
-  PHL: { name:"Philippines",          flag:"🇵🇭", fsi_score:75.1, rank:64, region:"asia", fsi_band:"Elevated Warning" },
-  GTM: { name:"Guatemala",            flag:"🇬🇹", fsi_score:74.9, rank:65, region:"americas", fsi_band:"Elevated Warning" },
-  KGZ: { name:"Kyrgyzstan",           flag:"🇰🇬", fsi_score:74.9, rank:65, region:"asia", fsi_band:"Elevated Warning" },
-  TLS: { name:"East Timor",           flag:"🇹🇱", fsi_score:74.8, rank:67, region:"asia", fsi_band:"Elevated Warning" },
-  LSO: { name:"Lesotho",              flag:"🇱🇸", fsi_score:74.6, rank:68, region:"africa", fsi_band:"Elevated Warning" },
-  JOR: { name:"Jordan",               flag:"🇯🇴", fsi_score:74.3, rank:69, region:"middleeast", fsi_band:"Elevated Warning" },
-  SEN: { name:"Senegal",              flag:"🇸🇳", fsi_score:74.2, rank:70, region:"africa", fsi_band:"Elevated Warning" },
-  LAO: { name:"Laos",                 flag:"🇱🇦", fsi_score:73.8, rank:71, region:"asia", fsi_band:"Elevated Warning" },
-  AZE: { name:"Azerbaijan",           flag:"🇦🇿", fsi_score:72.8, rank:72, region:"asia", fsi_band:"Elevated Warning" },
-  TJK: { name:"Tajikistan",           flag:"🇹🇯", fsi_score:72.8, rank:72, region:"asia", fsi_band:"Elevated Warning" },
-  BEN: { name:"Benin",                flag:"🇧🇯", fsi_score:72.5, rank:74, region:"africa", fsi_band:"Elevated Warning" },
-  IND: { name:"India",                flag:"🇮🇳", fsi_score:72.3, rank:75, region:"asia", fsi_band:"Elevated Warning" },
-  PER: { name:"Peru",                 flag:"🇵🇪", fsi_score:72.0, rank:76, region:"americas", fsi_band:"Elevated Warning" },
-  BIH: { name:"Bosnia-Herzegovina",   flag:"🇧🇦", fsi_score:71.0, rank:77, region:"europe", fsi_band:"Elevated Warning" },
-  BRA: { name:"Brazil",               flag:"🇧🇷", fsi_score:70.3, rank:78, region:"americas", fsi_band:"Elevated Warning" },
-  GAB: { name:"Gabon",                flag:"🇬🇦", fsi_score:70.2, rank:79, region:"africa", fsi_band:"Elevated Warning" },
-  ZAF: { name:"South Africa",         flag:"🇿🇦", fsi_score:69.6, rank:80, region:"africa", fsi_band:"Elevated Warning" },
-  BOL: { name:"Bolivia",              flag:"🇧🇴", fsi_score:69.4, rank:81, region:"americas", fsi_band:"Elevated Warning" },
-  GEO: { name:"Georgia",              flag:"🇬🇪", fsi_score:69.3, rank:82, region:"asia", fsi_band:"Elevated Warning" },
-  MEX: { name:"Mexico",               flag:"🇲🇽", fsi_score:69.0, rank:83, region:"americas", fsi_band:"Elevated Warning" },
-  MAR: { name:"Morocco",              flag:"🇲🇦", fsi_score:68.8, rank:84, region:"africa", fsi_band:"Elevated Warning" },
-  BLR: { name:"Belarus",              flag:"🇧🇾", fsi_score:68.7, rank:85, region:"europe", fsi_band:"Elevated Warning" },
-  SLV: { name:"El Salvador",          flag:"🇸🇻", fsi_score:68.7, rank:85, region:"americas", fsi_band:"Elevated Warning" },
-  DZA: { name:"Algeria",              flag:"🇩🇿", fsi_score:68.6, rank:87, region:"africa", fsi_band:"Elevated Warning" },
-  STP: { name:"Sao Tome and Principe",flag:"🇸🇹", fsi_score:68.5, rank:88, region:"africa", fsi_band:"Elevated Warning" },
-  ARM: { name:"Armenia",              flag:"🇦🇲", fsi_score:68.1, rank:89, region:"asia", fsi_band:"Elevated Warning" },
-  ECU: { name:"Ecuador",              flag:"🇪🇨", fsi_score:68.0, rank:90, region:"americas", fsi_band:"Elevated Warning" },
-  SRB: { name:"Serbia",               flag:"🇷🇸", fsi_score:67.8, rank:91, region:"europe", fsi_band:"Elevated Warning" },
-  TUN: { name:"Tunisia",              flag:"🇹🇳", fsi_score:67.2, rank:92, region:"africa", fsi_band:"Elevated Warning" },
-  FSM: { name:"F.S. Micronesia",      flag:"🇫🇲", fsi_score:66.9, rank:93, region:"oceania", fsi_band:"Elevated Warning" },
-  FJI: { name:"Fiji",                 flag:"🇫🇯", fsi_score:66.4, rank:94, region:"oceania", fsi_band:"Elevated Warning" },
-  THA: { name:"Thailand",             flag:"🇹🇭", fsi_score:66.2, rank:95, region:"asia", fsi_band:"Elevated Warning" },
-  UZB: { name:"Uzbekistan",           flag:"🇺🇿", fsi_score:64.8, rank:96, region:"asia", fsi_band:"Warning" },
-  MDA: { name:"Moldova",              flag:"🇲🇩", fsi_score:64.7, rank:97, region:"europe", fsi_band:"Warning" },
-  BTN: { name:"Bhutan",               flag:"🇧🇹", fsi_score:64.5, rank:98, region:"asia", fsi_band:"Warning" },
-  CHN: { name:"China",                flag:"🇨🇳", fsi_score:64.4, rank:99, region:"asia", fsi_band:"Warning" },
-  BHR: { name:"Bahrain",              flag:"🇧🇭", fsi_score:64.2, rank:100, region:"middleeast", fsi_band:"Warning" },
-  WSM: { name:"Samoa",                flag:"🇼🇸", fsi_score:63.9, rank:101, region:"oceania", fsi_band:"Warning" },
-  IDN: { name:"Indonesia",            flag:"🇮🇩", fsi_score:63.7, rank:102, region:"asia", fsi_band:"Warning" },
-  SAU: { name:"Saudi Arabia",         flag:"🇸🇦", fsi_score:63.2, rank:103, region:"middleeast", fsi_band:"Warning" },
-  TKM: { name:"Turkmenistan",         flag:"🇹🇲", fsi_score:62.2, rank:104, region:"asia", fsi_band:"Warning" },
-  PRY: { name:"Paraguay",             flag:"🇵🇾", fsi_score:61.5, rank:105, region:"americas", fsi_band:"Warning" },
-  GHA: { name:"Ghana",                flag:"🇬🇭", fsi_score:60.8, rank:106, region:"africa", fsi_band:"Warning" },
-  MDV: { name:"Maldives",             flag:"🇲🇻", fsi_score:60.3, rank:107, region:"asia", fsi_band:"Warning" },
-  DOM: { name:"Dominican Republic",   flag:"🇩🇴", fsi_score:60.2, rank:108, region:"americas", fsi_band:"Warning" },
-  JAM: { name:"Jamaica",              flag:"🇯🇲", fsi_score:59.3, rank:109, region:"americas", fsi_band:"Warning" },
-  NAM: { name:"Namibia",              flag:"🇳🇦", fsi_score:59.3, rank:109, region:"africa", fsi_band:"Warning" },
-  GUY: { name:"Guyana",               flag:"🇬🇾", fsi_score:59.2, rank:111, region:"americas", fsi_band:"Warning" },
-  CUB: { name:"Cuba",                 flag:"🇨🇺", fsi_score:59.1, rank:112, region:"americas", fsi_band:"Warning" },
-  SUR: { name:"Suriname",             flag:"🇸🇷", fsi_score:58.8, rank:113, region:"americas", fsi_band:"Warning" },
-  MKD: { name:"North Macedonia",      flag:"🇲🇰", fsi_score:58.1, rank:114, region:"europe", fsi_band:"Warning" },
-  KAZ: { name:"Kazakhstan",           flag:"🇰🇿", fsi_score:57.8, rank:115, region:"asia", fsi_band:"Warning" },
-  CPV: { name:"Cape Verde",           flag:"🇨🇻", fsi_score:57.2, rank:116, region:"africa", fsi_band:"Warning" },
-  BLZ: { name:"Belize",               flag:"🇧🇿", fsi_score:57.0, rank:117, region:"americas", fsi_band:"Warning" },
-  MNE: { name:"Montenegro",           flag:"🇲🇪", fsi_score:56.9, rank:118, region:"europe", fsi_band:"Warning" },
-  VNM: { name:"Vietnam",              flag:"🇻🇳", fsi_score:56.2, rank:119, region:"asia", fsi_band:"Warning" },
-  ALB: { name:"Albania",              flag:"🇦🇱", fsi_score:55.9, rank:120, region:"europe", fsi_band:"Warning" },
-  GRC: { name:"Greece",               flag:"🇬🇷", fsi_score:54.7, rank:121, region:"europe", fsi_band:"Warning" },
-  CYP: { name:"Cyprus",               flag:"🇨🇾", fsi_score:54.1, rank:122, region:"europe", fsi_band:"Less Stable" },
-  BRN: { name:"Brunei",               flag:"🇧🇳", fsi_score:53.9, rank:123, region:"asia", fsi_band:"Less Stable" },
-  BWA: { name:"Botswana",             flag:"🇧🇼", fsi_score:53.6, rank:124, region:"africa", fsi_band:"Less Stable" },
-  TTO: { name:"Trinidad and Tobago",  flag:"🇹🇹", fsi_score:53.5, rank:125, region:"americas", fsi_band:"Less Stable" },
-  MYS: { name:"Malaysia",             flag:"🇲🇾", fsi_score:53.1, rank:126, region:"asia", fsi_band:"Less Stable" },
-  ATG: { name:"Antigua and Barbuda",  flag:"🇦🇬", fsi_score:51.9, rank:127, region:"americas", fsi_band:"Less Stable" },
-  GRD: { name:"Grenada",              flag:"🇬🇩", fsi_score:51.9, rank:127, region:"americas", fsi_band:"Less Stable" },
-  ISR: { name:"Israel",               flag:"🇮🇱", fsi_score:51.5, rank:129, region:"middleeast", fsi_band:"Less Stable" },
-  ROU: { name:"Romania",              flag:"🇷🇴", fsi_score:51.0, rank:130, region:"europe", fsi_band:"Less Stable" },
-  SYC: { name:"Seychelles",           flag:"🇸🇨", fsi_score:51.0, rank:130, region:"africa", fsi_band:"Less Stable" },
-  MNG: { name:"Mongolia",             flag:"🇲🇳", fsi_score:50.7, rank:132, region:"asia", fsi_band:"Less Stable" },
-  BGR: { name:"Bulgaria",             flag:"🇧🇬", fsi_score:49.4, rank:133, region:"europe", fsi_band:"Less Stable" },
-  KWT: { name:"Kuwait",               flag:"🇰🇼", fsi_score:49.3, rank:134, region:"middleeast", fsi_band:"Less Stable" },
-  BHS: { name:"Bahamas",              flag:"🇧🇸", fsi_score:48.0, rank:135, region:"americas", fsi_band:"Less Stable" },
-  PAN: { name:"Panama",               flag:"🇵🇦", fsi_score:47.7, rank:136, region:"americas", fsi_band:"Less Stable" },
-  OMN: { name:"Oman",                 flag:"🇴🇲", fsi_score:47.4, rank:137, region:"middleeast", fsi_band:"Less Stable" },
-  HUN: { name:"Hungary",              flag:"🇭🇺", fsi_score:46.2, rank:138, region:"europe", fsi_band:"Less Stable" },
-  HRV: { name:"Croatia",              flag:"🇭🇷", fsi_score:45.9, rank:139, region:"europe", fsi_band:"Less Stable" },
-  BRB: { name:"Barbados",             flag:"🇧🇧", fsi_score:44.7, rank:140, region:"americas", fsi_band:"Less Stable" },
-  USA: { name:"United States",        flag:"🇺🇸", fsi_score:44.5, rank:141, region:"americas", fsi_band:"Less Stable" },
-  ARG: { name:"Argentina",            flag:"🇦🇷", fsi_score:44.2, rank:142, region:"americas", fsi_band:"Less Stable" },
-  ESP: { name:"Spain",                flag:"🇪🇸", fsi_score:44.0, rank:143, region:"europe", fsi_band:"Less Stable" },
-  POL: { name:"Poland",               flag:"🇵🇱", fsi_score:41.7, rank:144, region:"europe", fsi_band:"Stable" },
-  LVA: { name:"Latvia",               flag:"🇱🇻", fsi_score:41.4, rank:145, region:"europe", fsi_band:"Stable" },
-  CHL: { name:"Chile",                flag:"🇨🇱", fsi_score:41.1, rank:146, region:"americas", fsi_band:"Stable" },
-  ITA: { name:"Italy",                flag:"🇮🇹", fsi_score:41.1, rank:146, region:"europe", fsi_band:"Stable" },
-  GBR: { name:"United Kingdom",       flag:"🇬🇧", fsi_score:40.8, rank:148, region:"europe", fsi_band:"Stable" },
-  QAT: { name:"Qatar",                flag:"🇶🇦", fsi_score:39.8, rank:149, region:"middleeast", fsi_band:"Stable" },
-  CRI: { name:"Costa Rica",           flag:"🇨🇷", fsi_score:39.4, rank:150, region:"americas", fsi_band:"Stable" },
-  MUS: { name:"Mauritius",            flag:"🇲🇺", fsi_score:37.8, rank:151, region:"africa", fsi_band:"Stable" },
-  CZE: { name:"Czech Republic",       flag:"🇨🇿", fsi_score:37.7, rank:152, region:"europe", fsi_band:"Stable" },
-  LTU: { name:"Lithuania",            flag:"🇱🇹", fsi_score:37.4, rank:153, region:"europe", fsi_band:"Stable" },
-  EST: { name:"Estonia",              flag:"🇪🇪", fsi_score:36.5, rank:154, region:"europe", fsi_band:"Stable" },
-  SVK: { name:"Slovakia",             flag:"🇸🇰", fsi_score:35.3, rank:155, region:"europe", fsi_band:"Stable" },
-  ARE: { name:"United Arab Emirates", flag:"🇦🇪", fsi_score:34.7, rank:156, region:"middleeast", fsi_band:"Stable" },
-  URY: { name:"Uruguay",              flag:"🇺🇾", fsi_score:33.7, rank:157, region:"americas", fsi_band:"Stable" },
-  MLT: { name:"Malta",                flag:"🇲🇹", fsi_score:31.1, rank:158, region:"europe", fsi_band:"More Stable" },
-  BEL: { name:"Belgium",              flag:"🇧🇪", fsi_score:30.3, rank:159, region:"europe", fsi_band:"More Stable" },
-  JPN: { name:"Japan",                flag:"🇯🇵", fsi_score:30.2, rank:160, region:"asia", fsi_band:"More Stable" },
-  KOR: { name:"South Korea",          flag:"🇰🇷", fsi_score:29.8, rank:161, region:"asia", fsi_band:"More Stable" },
-  FRA: { name:"France",               flag:"🇫🇷", fsi_score:28.3, rank:162, region:"europe", fsi_band:"More Stable" },
-  SVN: { name:"Slovenia",             flag:"🇸🇮", fsi_score:26.1, rank:163, region:"europe", fsi_band:"More Stable" },
-  PRT: { name:"Portugal",             flag:"🇵🇹", fsi_score:25.9, rank:164, region:"europe", fsi_band:"More Stable" },
-  SGP: { name:"Singapore",            flag:"🇸🇬", fsi_score:25.4, rank:165, region:"asia", fsi_band:"More Stable" },
-  DEU: { name:"Germany",              flag:"🇩🇪", fsi_score:24.0, rank:166, region:"europe", fsi_band:"More Stable" },
-  AUT: { name:"Austria",              flag:"🇦🇹", fsi_score:23.1, rank:167, region:"europe", fsi_band:"More Stable" },
-  SWE: { name:"Sweden",               flag:"🇸🇪", fsi_score:20.6, rank:168, region:"europe", fsi_band:"Sustainable" },
-  AUS: { name:"Australia",            flag:"🇦🇺", fsi_score:19.6, rank:169, region:"oceania", fsi_band:"Sustainable" },
-  NLD: { name:"Netherlands",          flag:"🇳🇱", fsi_score:19.5, rank:170, region:"europe", fsi_band:"Sustainable" },
-  LUX: { name:"Luxembourg",           flag:"🇱🇺", fsi_score:18.7, rank:171, region:"europe", fsi_band:"Sustainable" },
-  CAN: { name:"Canada",               flag:"🇨🇦", fsi_score:18.6, rank:172, region:"americas", fsi_band:"Sustainable" },
-  IRL: { name:"Ireland",              flag:"🇮🇪", fsi_score:18.6, rank:172, region:"europe", fsi_band:"Sustainable" },
-  CHE: { name:"Switzerland",          flag:"🇨🇭", fsi_score:16.2, rank:174, region:"europe", fsi_band:"Sustainable" },
-  DNK: { name:"Denmark",              flag:"🇩🇰", fsi_score:15.9, rank:175, region:"europe", fsi_band:"Sustainable" },
-  NZL: { name:"New Zealand",          flag:"🇳🇿", fsi_score:15.9, rank:175, region:"oceania", fsi_band:"Sustainable" },
-  ISL: { name:"Iceland",              flag:"🇮🇸", fsi_score:15.2, rank:177, region:"europe", fsi_band:"Sustainable" },
-  FIN: { name:"Finland",              flag:"🇫🇮", fsi_score:14.3, rank:178, region:"europe", fsi_band:"Sustainable" },
-  NOR: { name:"Norway",               flag:"🇳🇴", fsi_score:12.7, rank:179, region:"europe", fsi_band:"Sustainable" },
+  SOM:{name:"Somalia",flag:"🇸🇴",fsi_score:111.3,rank:1,region:"africa",fsi_band:"Very High Alert"},
+  SDN:{name:"Sudan",flag:"🇸🇩",fsi_score:109.3,rank:2,region:"africa",fsi_band:"Very High Alert"},
+  SSD:{name:"South Sudan",flag:"🇸🇸",fsi_score:109.0,rank:3,region:"africa",fsi_band:"High Alert"},
+  SYR:{name:"Syria",flag:"🇸🇾",fsi_score:108.1,rank:4,region:"middleeast",fsi_band:"High Alert"},
+  COD:{name:"Congo-Kinshasa",flag:"🇨🇩",fsi_score:106.7,rank:5,region:"africa",fsi_band:"High Alert"},
+  YEM:{name:"Yemen",flag:"🇾🇪",fsi_score:106.6,rank:6,region:"middleeast",fsi_band:"High Alert"},
+  AFG:{name:"Afghanistan",flag:"🇦🇫",fsi_score:103.9,rank:7,region:"asia",fsi_band:"High Alert"},
+  CAF:{name:"Central African Rep.",flag:"🇨🇫",fsi_score:103.9,rank:8,region:"africa",fsi_band:"High Alert"},
+  HTI:{name:"Haiti",flag:"🇭🇹",fsi_score:103.5,rank:9,region:"americas",fsi_band:"High Alert"},
+  TCD:{name:"Chad",flag:"🇹🇩",fsi_score:102.7,rank:10,region:"africa",fsi_band:"High Alert"},
+  MMR:{name:"Myanmar",flag:"🇲🇲",fsi_score:100.0,rank:11,region:"asia",fsi_band:"High Alert"},
+  ETH:{name:"Ethiopia",flag:"🇪🇹",fsi_score:98.1,rank:12,region:"africa",fsi_band:"Alert"},
+  PSE:{name:"Palestine",flag:"🇵🇸",fsi_score:97.8,rank:13,region:"middleeast",fsi_band:"Alert"},
+  MLI:{name:"Mali",flag:"🇲🇱",fsi_score:97.3,rank:14,region:"africa",fsi_band:"Alert"},
+  NGA:{name:"Nigeria",flag:"🇳🇬",fsi_score:96.6,rank:15,region:"africa",fsi_band:"Alert"},
+  LBY:{name:"Libya",flag:"🇱🇾",fsi_score:96.5,rank:16,region:"africa",fsi_band:"Alert"},
+  GIN:{name:"Guinea",flag:"🇬🇳",fsi_score:96.4,rank:17,region:"africa",fsi_band:"Alert"},
+  ZWE:{name:"Zimbabwe",flag:"🇿🇼",fsi_score:95.7,rank:18,region:"africa",fsi_band:"Alert"},
+  NER:{name:"Niger",flag:"🇳🇪",fsi_score:95.2,rank:19,region:"africa",fsi_band:"Alert"},
+  CMR:{name:"Cameroon",flag:"🇨🇲",fsi_score:94.3,rank:20,region:"africa",fsi_band:"Alert"},
+  BFA:{name:"Burkina Faso",flag:"🇧🇫",fsi_score:94.2,rank:21,region:"africa",fsi_band:"Alert"},
+  UKR:{name:"Ukraine",flag:"🇺🇦",fsi_score:93.1,rank:22,region:"europe",fsi_band:"Alert"},
+  LBN:{name:"Lebanon",flag:"🇱🇧",fsi_score:92.7,rank:23,region:"middleeast",fsi_band:"Alert"},
+  BDI:{name:"Burundi",flag:"🇧🇮",fsi_score:92.6,rank:24,region:"africa",fsi_band:"Alert"},
+  MOZ:{name:"Mozambique",flag:"🇲🇿",fsi_score:92.5,rank:25,region:"africa",fsi_band:"Alert"},
+  ERI:{name:"Eritrea",flag:"🇪🇷",fsi_score:92.1,rank:26,region:"africa",fsi_band:"Alert"},
+  PAK:{name:"Pakistan",flag:"🇵🇰",fsi_score:91.7,rank:27,region:"asia",fsi_band:"Alert"},
+  UGA:{name:"Uganda",flag:"🇺🇬",fsi_score:91.1,rank:28,region:"africa",fsi_band:"Alert"},
+  COG:{name:"Congo-Brazzaville",flag:"🇨🇬",fsi_score:90.2,rank:29,region:"africa",fsi_band:"Alert"},
+  VEN:{name:"Venezuela",flag:"🇻🇪",fsi_score:89.0,rank:30,region:"americas",fsi_band:"Alert"},
+  IRQ:{name:"Iraq",flag:"🇮🇶",fsi_score:88.6,rank:31,region:"middleeast",fsi_band:"Alert"},
+  GNB:{name:"Guinea-Bissau",flag:"🇬🇼",fsi_score:88.4,rank:32,region:"africa",fsi_band:"Alert"},
+  LKA:{name:"Sri Lanka",flag:"🇱🇰",fsi_score:88.2,rank:33,region:"asia",fsi_band:"Alert"},
+  MRT:{name:"Mauritania",flag:"🇲🇷",fsi_score:87.0,rank:34,region:"africa",fsi_band:"High Warning"},
+  LBR:{name:"Liberia",flag:"🇱🇷",fsi_score:86.9,rank:35,region:"africa",fsi_band:"High Warning"},
+  KEN:{name:"Kenya",flag:"🇰🇪",fsi_score:86.5,rank:36,region:"africa",fsi_band:"High Warning"},
+  BGD:{name:"Bangladesh",flag:"🇧🇩",fsi_score:85.9,rank:37,region:"asia",fsi_band:"High Warning"},
+  AGO:{name:"Angola",flag:"🇦🇴",fsi_score:85.6,rank:38,region:"africa",fsi_band:"High Warning"},
+  CIV:{name:"Ivory Coast",flag:"🇨🇮",fsi_score:85.3,rank:39,region:"africa",fsi_band:"High Warning"},
+  PRK:{name:"North Korea",flag:"🇰🇵",fsi_score:84.9,rank:40,region:"asia",fsi_band:"High Warning"},
+  TUR:{name:"Turkey",flag:"🇹🇷",fsi_score:84.0,rank:41,region:"europe",fsi_band:"High Warning"},
+  GNQ:{name:"Equatorial Guinea",flag:"🇬🇶",fsi_score:83.7,rank:42,region:"africa",fsi_band:"High Warning"},
+  IRN:{name:"Iran",flag:"🇮🇷",fsi_score:82.9,rank:43,region:"middleeast",fsi_band:"High Warning"},
+  EGY:{name:"Egypt",flag:"🇪🇬",fsi_score:82.8,rank:44,region:"africa",fsi_band:"High Warning"},
+  SLE:{name:"Sierra Leone",flag:"🇸🇱",fsi_score:82.6,rank:45,region:"africa",fsi_band:"High Warning"},
+  RWA:{name:"Rwanda",flag:"🇷🇼",fsi_score:81.8,rank:46,region:"africa",fsi_band:"High Warning"},
+  COM:{name:"Comoros",flag:"🇰🇲",fsi_score:81.7,rank:47,region:"africa",fsi_band:"High Warning"},
+  DJI:{name:"Djibouti",flag:"🇩🇯",fsi_score:81.6,rank:48,region:"africa",fsi_band:"High Warning"},
+  RUS:{name:"Russia",flag:"🇷🇺",fsi_score:81.6,rank:48,region:"europe",fsi_band:"High Warning"},
+  ZMB:{name:"Zambia",flag:"🇿🇲",fsi_score:81.2,rank:50,region:"africa",fsi_band:"High Warning"},
+  TGO:{name:"Togo",flag:"🇹🇬",fsi_score:81.1,rank:51,region:"africa",fsi_band:"High Warning"},
+  MWI:{name:"Malawi",flag:"🇲🇼",fsi_score:80.5,rank:52,region:"africa",fsi_band:"High Warning"},
+  MDG:{name:"Madagascar",flag:"🇲🇬",fsi_score:79.8,rank:53,region:"africa",fsi_band:"High Warning"},
+  PNG:{name:"Papua New Guinea",flag:"🇵🇬",fsi_score:78.8,rank:54,region:"oceania",fsi_band:"High Warning"},
+  KHM:{name:"Cambodia",flag:"🇰🇭",fsi_score:78.6,rank:55,region:"asia",fsi_band:"High Warning"},
+  HND:{name:"Honduras",flag:"🇭🇳",fsi_score:78.1,rank:56,region:"americas",fsi_band:"High Warning"},
+  NPL:{name:"Nepal",flag:"🇳🇵",fsi_score:78.0,rank:57,region:"asia",fsi_band:"High Warning"},
+  SWZ:{name:"Eswatini",flag:"🇸🇿",fsi_score:77.6,rank:58,region:"africa",fsi_band:"High Warning"},
+  SLB:{name:"Solomon Islands",flag:"🇸🇧",fsi_score:77.6,rank:58,region:"oceania",fsi_band:"High Warning"},
+  NIC:{name:"Nicaragua",flag:"🇳🇮",fsi_score:76.7,rank:60,region:"americas",fsi_band:"High Warning"},
+  GMB:{name:"Gambia",flag:"🇬🇲",fsi_score:76.1,rank:61,region:"africa",fsi_band:"Elevated Warning"},
+  TZA:{name:"Tanzania",flag:"🇹🇿",fsi_score:75.7,rank:62,region:"africa",fsi_band:"Elevated Warning"},
+  COL:{name:"Colombia",flag:"🇨🇴",fsi_score:75.6,rank:63,region:"americas",fsi_band:"Elevated Warning"},
+  PHL:{name:"Philippines",flag:"🇵🇭",fsi_score:75.1,rank:64,region:"asia",fsi_band:"Elevated Warning"},
+  GTM:{name:"Guatemala",flag:"🇬🇹",fsi_score:74.9,rank:65,region:"americas",fsi_band:"Elevated Warning"},
+  KGZ:{name:"Kyrgyzstan",flag:"🇰🇬",fsi_score:74.9,rank:65,region:"asia",fsi_band:"Elevated Warning"},
+  TLS:{name:"East Timor",flag:"🇹🇱",fsi_score:74.8,rank:67,region:"asia",fsi_band:"Elevated Warning"},
+  LSO:{name:"Lesotho",flag:"🇱🇸",fsi_score:74.6,rank:68,region:"africa",fsi_band:"Elevated Warning"},
+  JOR:{name:"Jordan",flag:"🇯🇴",fsi_score:74.3,rank:69,region:"middleeast",fsi_band:"Elevated Warning"},
+  SEN:{name:"Senegal",flag:"🇸🇳",fsi_score:74.2,rank:70,region:"africa",fsi_band:"Elevated Warning"},
+  LAO:{name:"Laos",flag:"🇱🇦",fsi_score:73.8,rank:71,region:"asia",fsi_band:"Elevated Warning"},
+  AZE:{name:"Azerbaijan",flag:"🇦🇿",fsi_score:72.8,rank:72,region:"asia",fsi_band:"Elevated Warning"},
+  TJK:{name:"Tajikistan",flag:"🇹🇯",fsi_score:72.8,rank:72,region:"asia",fsi_band:"Elevated Warning"},
+  BEN:{name:"Benin",flag:"🇧🇯",fsi_score:72.5,rank:74,region:"africa",fsi_band:"Elevated Warning"},
+  IND:{name:"India",flag:"🇮🇳",fsi_score:72.3,rank:75,region:"asia",fsi_band:"Elevated Warning"},
+  PER:{name:"Peru",flag:"🇵🇪",fsi_score:72.0,rank:76,region:"americas",fsi_band:"Elevated Warning"},
+  BIH:{name:"Bosnia-Herzegovina",flag:"🇧🇦",fsi_score:71.0,rank:77,region:"europe",fsi_band:"Elevated Warning"},
+  BRA:{name:"Brazil",flag:"🇧🇷",fsi_score:70.3,rank:78,region:"americas",fsi_band:"Elevated Warning"},
+  GAB:{name:"Gabon",flag:"🇬🇦",fsi_score:70.2,rank:79,region:"africa",fsi_band:"Elevated Warning"},
+  ZAF:{name:"South Africa",flag:"🇿🇦",fsi_score:69.6,rank:80,region:"africa",fsi_band:"Elevated Warning"},
+  BOL:{name:"Bolivia",flag:"🇧🇴",fsi_score:69.4,rank:81,region:"americas",fsi_band:"Elevated Warning"},
+  GEO:{name:"Georgia",flag:"🇬🇪",fsi_score:69.3,rank:82,region:"asia",fsi_band:"Elevated Warning"},
+  MEX:{name:"Mexico",flag:"🇲🇽",fsi_score:69.0,rank:83,region:"americas",fsi_band:"Elevated Warning"},
+  MAR:{name:"Morocco",flag:"🇲🇦",fsi_score:68.8,rank:84,region:"africa",fsi_band:"Elevated Warning"},
+  BLR:{name:"Belarus",flag:"🇧🇾",fsi_score:68.7,rank:85,region:"europe",fsi_band:"Elevated Warning"},
+  SLV:{name:"El Salvador",flag:"🇸🇻",fsi_score:68.7,rank:85,region:"americas",fsi_band:"Elevated Warning"},
+  DZA:{name:"Algeria",flag:"🇩🇿",fsi_score:68.6,rank:87,region:"africa",fsi_band:"Elevated Warning"},
+  STP:{name:"Sao Tome and Principe",flag:"🇸🇹",fsi_score:68.5,rank:88,region:"africa",fsi_band:"Elevated Warning"},
+  ARM:{name:"Armenia",flag:"🇦🇲",fsi_score:68.1,rank:89,region:"asia",fsi_band:"Elevated Warning"},
+  ECU:{name:"Ecuador",flag:"🇪🇨",fsi_score:68.0,rank:90,region:"americas",fsi_band:"Elevated Warning"},
+  SRB:{name:"Serbia",flag:"🇷🇸",fsi_score:67.8,rank:91,region:"europe",fsi_band:"Elevated Warning"},
+  TUN:{name:"Tunisia",flag:"🇹🇳",fsi_score:67.2,rank:92,region:"africa",fsi_band:"Elevated Warning"},
+  FSM:{name:"F.S. Micronesia",flag:"🇫🇲",fsi_score:66.9,rank:93,region:"oceania",fsi_band:"Elevated Warning"},
+  FJI:{name:"Fiji",flag:"🇫🇯",fsi_score:66.4,rank:94,region:"oceania",fsi_band:"Elevated Warning"},
+  THA:{name:"Thailand",flag:"🇹🇭",fsi_score:66.2,rank:95,region:"asia",fsi_band:"Elevated Warning"},
+  UZB:{name:"Uzbekistan",flag:"🇺🇿",fsi_score:64.8,rank:96,region:"asia",fsi_band:"Warning"},
+  MDA:{name:"Moldova",flag:"🇲🇩",fsi_score:64.7,rank:97,region:"europe",fsi_band:"Warning"},
+  BTN:{name:"Bhutan",flag:"🇧🇹",fsi_score:64.5,rank:98,region:"asia",fsi_band:"Warning"},
+  CHN:{name:"China",flag:"🇨🇳",fsi_score:64.4,rank:99,region:"asia",fsi_band:"Warning"},
+  BHR:{name:"Bahrain",flag:"🇧🇭",fsi_score:64.2,rank:100,region:"middleeast",fsi_band:"Warning"},
+  WSM:{name:"Samoa",flag:"🇼🇸",fsi_score:63.9,rank:101,region:"oceania",fsi_band:"Warning"},
+  IDN:{name:"Indonesia",flag:"🇮🇩",fsi_score:63.7,rank:102,region:"asia",fsi_band:"Warning"},
+  SAU:{name:"Saudi Arabia",flag:"🇸🇦",fsi_score:63.2,rank:103,region:"middleeast",fsi_band:"Warning"},
+  TKM:{name:"Turkmenistan",flag:"🇹🇲",fsi_score:62.2,rank:104,region:"asia",fsi_band:"Warning"},
+  PRY:{name:"Paraguay",flag:"🇵🇾",fsi_score:61.5,rank:105,region:"americas",fsi_band:"Warning"},
+  GHA:{name:"Ghana",flag:"🇬🇭",fsi_score:60.8,rank:106,region:"africa",fsi_band:"Warning"},
+  MDV:{name:"Maldives",flag:"🇲🇻",fsi_score:60.3,rank:107,region:"asia",fsi_band:"Warning"},
+  DOM:{name:"Dominican Republic",flag:"🇩🇴",fsi_score:60.2,rank:108,region:"americas",fsi_band:"Warning"},
+  JAM:{name:"Jamaica",flag:"🇯🇲",fsi_score:59.3,rank:109,region:"americas",fsi_band:"Warning"},
+  NAM:{name:"Namibia",flag:"🇳🇦",fsi_score:59.3,rank:109,region:"africa",fsi_band:"Warning"},
+  GUY:{name:"Guyana",flag:"🇬🇾",fsi_score:59.2,rank:111,region:"americas",fsi_band:"Warning"},
+  CUB:{name:"Cuba",flag:"🇨🇺",fsi_score:59.1,rank:112,region:"americas",fsi_band:"Warning"},
+  SUR:{name:"Suriname",flag:"🇸🇷",fsi_score:58.8,rank:113,region:"americas",fsi_band:"Warning"},
+  MKD:{name:"North Macedonia",flag:"🇲🇰",fsi_score:58.1,rank:114,region:"europe",fsi_band:"Warning"},
+  KAZ:{name:"Kazakhstan",flag:"🇰🇿",fsi_score:57.8,rank:115,region:"asia",fsi_band:"Warning"},
+  CPV:{name:"Cape Verde",flag:"🇨🇻",fsi_score:57.2,rank:116,region:"africa",fsi_band:"Warning"},
+  BLZ:{name:"Belize",flag:"🇧🇿",fsi_score:57.0,rank:117,region:"americas",fsi_band:"Warning"},
+  MNE:{name:"Montenegro",flag:"🇲🇪",fsi_score:56.9,rank:118,region:"europe",fsi_band:"Warning"},
+  VNM:{name:"Vietnam",flag:"🇻🇳",fsi_score:56.2,rank:119,region:"asia",fsi_band:"Warning"},
+  ALB:{name:"Albania",flag:"🇦🇱",fsi_score:55.9,rank:120,region:"europe",fsi_band:"Warning"},
+  GRC:{name:"Greece",flag:"🇬🇷",fsi_score:54.7,rank:121,region:"europe",fsi_band:"Warning"},
+  CYP:{name:"Cyprus",flag:"🇨🇾",fsi_score:54.1,rank:122,region:"europe",fsi_band:"Less Stable"},
+  BRN:{name:"Brunei",flag:"🇧🇳",fsi_score:53.9,rank:123,region:"asia",fsi_band:"Less Stable"},
+  BWA:{name:"Botswana",flag:"🇧🇼",fsi_score:53.6,rank:124,region:"africa",fsi_band:"Less Stable"},
+  TTO:{name:"Trinidad and Tobago",flag:"🇹🇹",fsi_score:53.5,rank:125,region:"americas",fsi_band:"Less Stable"},
+  MYS:{name:"Malaysia",flag:"🇲🇾",fsi_score:53.1,rank:126,region:"asia",fsi_band:"Less Stable"},
+  ATG:{name:"Antigua and Barbuda",flag:"🇦🇬",fsi_score:51.9,rank:127,region:"americas",fsi_band:"Less Stable"},
+  GRD:{name:"Grenada",flag:"🇬🇩",fsi_score:51.9,rank:127,region:"americas",fsi_band:"Less Stable"},
+  ISR:{name:"Israel",flag:"🇮🇱",fsi_score:51.5,rank:129,region:"middleeast",fsi_band:"Less Stable"},
+  ROU:{name:"Romania",flag:"🇷🇴",fsi_score:51.0,rank:130,region:"europe",fsi_band:"Less Stable"},
+  SYC:{name:"Seychelles",flag:"🇸🇨",fsi_score:51.0,rank:130,region:"africa",fsi_band:"Less Stable"},
+  MNG:{name:"Mongolia",flag:"🇲🇳",fsi_score:50.7,rank:132,region:"asia",fsi_band:"Less Stable"},
+  BGR:{name:"Bulgaria",flag:"🇧🇬",fsi_score:49.4,rank:133,region:"europe",fsi_band:"Less Stable"},
+  KWT:{name:"Kuwait",flag:"🇰🇼",fsi_score:49.3,rank:134,region:"middleeast",fsi_band:"Less Stable"},
+  BHS:{name:"Bahamas",flag:"🇧🇸",fsi_score:48.0,rank:135,region:"americas",fsi_band:"Less Stable"},
+  PAN:{name:"Panama",flag:"🇵🇦",fsi_score:47.7,rank:136,region:"americas",fsi_band:"Less Stable"},
+  OMN:{name:"Oman",flag:"🇴🇲",fsi_score:47.4,rank:137,region:"middleeast",fsi_band:"Less Stable"},
+  HUN:{name:"Hungary",flag:"🇭🇺",fsi_score:46.2,rank:138,region:"europe",fsi_band:"Less Stable"},
+  HRV:{name:"Croatia",flag:"🇭🇷",fsi_score:45.9,rank:139,region:"europe",fsi_band:"Less Stable"},
+  BRB:{name:"Barbados",flag:"🇧🇧",fsi_score:44.7,rank:140,region:"americas",fsi_band:"Less Stable"},
+  USA:{name:"United States",flag:"🇺🇸",fsi_score:44.5,rank:141,region:"americas",fsi_band:"Less Stable"},
+  ARG:{name:"Argentina",flag:"🇦🇷",fsi_score:44.2,rank:142,region:"americas",fsi_band:"Less Stable"},
+  ESP:{name:"Spain",flag:"🇪🇸",fsi_score:44.0,rank:143,region:"europe",fsi_band:"Less Stable"},
+  POL:{name:"Poland",flag:"🇵🇱",fsi_score:41.7,rank:144,region:"europe",fsi_band:"Stable"},
+  LVA:{name:"Latvia",flag:"🇱🇻",fsi_score:41.4,rank:145,region:"europe",fsi_band:"Stable"},
+  CHL:{name:"Chile",flag:"🇨🇱",fsi_score:41.1,rank:146,region:"americas",fsi_band:"Stable"},
+  ITA:{name:"Italy",flag:"🇮🇹",fsi_score:41.1,rank:146,region:"europe",fsi_band:"Stable"},
+  GBR:{name:"United Kingdom",flag:"🇬🇧",fsi_score:40.8,rank:148,region:"europe",fsi_band:"Stable"},
+  QAT:{name:"Qatar",flag:"🇶🇦",fsi_score:39.8,rank:149,region:"middleeast",fsi_band:"Stable"},
+  CRI:{name:"Costa Rica",flag:"🇨🇷",fsi_score:39.4,rank:150,region:"americas",fsi_band:"Stable"},
+  MUS:{name:"Mauritius",flag:"🇲🇺",fsi_score:37.8,rank:151,region:"africa",fsi_band:"Stable"},
+  CZE:{name:"Czech Republic",flag:"🇨🇿",fsi_score:37.7,rank:152,region:"europe",fsi_band:"Stable"},
+  LTU:{name:"Lithuania",flag:"🇱🇹",fsi_score:37.4,rank:153,region:"europe",fsi_band:"Stable"},
+  EST:{name:"Estonia",flag:"🇪🇪",fsi_score:36.5,rank:154,region:"europe",fsi_band:"Stable"},
+  SVK:{name:"Slovakia",flag:"🇸🇰",fsi_score:35.3,rank:155,region:"europe",fsi_band:"Stable"},
+  ARE:{name:"United Arab Emirates",flag:"🇦🇪",fsi_score:34.7,rank:156,region:"middleeast",fsi_band:"Stable"},
+  URY:{name:"Uruguay",flag:"🇺🇾",fsi_score:33.7,rank:157,region:"americas",fsi_band:"Stable"},
+  MLT:{name:"Malta",flag:"🇲🇹",fsi_score:31.1,rank:158,region:"europe",fsi_band:"More Stable"},
+  BEL:{name:"Belgium",flag:"🇧🇪",fsi_score:30.3,rank:159,region:"europe",fsi_band:"More Stable"},
+  JPN:{name:"Japan",flag:"🇯🇵",fsi_score:30.2,rank:160,region:"asia",fsi_band:"More Stable"},
+  KOR:{name:"South Korea",flag:"🇰🇷",fsi_score:29.8,rank:161,region:"asia",fsi_band:"More Stable"},
+  FRA:{name:"France",flag:"🇫🇷",fsi_score:28.3,rank:162,region:"europe",fsi_band:"More Stable"},
+  SVN:{name:"Slovenia",flag:"🇸🇮",fsi_score:26.1,rank:163,region:"europe",fsi_band:"More Stable"},
+  PRT:{name:"Portugal",flag:"🇵🇹",fsi_score:25.9,rank:164,region:"europe",fsi_band:"More Stable"},
+  SGP:{name:"Singapore",flag:"🇸🇬",fsi_score:25.4,rank:165,region:"asia",fsi_band:"More Stable"},
+  DEU:{name:"Germany",flag:"🇩🇪",fsi_score:24.0,rank:166,region:"europe",fsi_band:"More Stable"},
+  AUT:{name:"Austria",flag:"🇦🇹",fsi_score:23.1,rank:167,region:"europe",fsi_band:"More Stable"},
+  SWE:{name:"Sweden",flag:"🇸🇪",fsi_score:20.6,rank:168,region:"europe",fsi_band:"Sustainable"},
+  AUS:{name:"Australia",flag:"🇦🇺",fsi_score:19.6,rank:169,region:"oceania",fsi_band:"Sustainable"},
+  NLD:{name:"Netherlands",flag:"🇳🇱",fsi_score:19.5,rank:170,region:"europe",fsi_band:"Sustainable"},
+  LUX:{name:"Luxembourg",flag:"🇱🇺",fsi_score:18.7,rank:171,region:"europe",fsi_band:"Sustainable"},
+  CAN:{name:"Canada",flag:"🇨🇦",fsi_score:18.6,rank:172,region:"americas",fsi_band:"Sustainable"},
+  IRL:{name:"Ireland",flag:"🇮🇪",fsi_score:18.6,rank:172,region:"europe",fsi_band:"Sustainable"},
+  CHE:{name:"Switzerland",flag:"🇨🇭",fsi_score:16.2,rank:174,region:"europe",fsi_band:"Sustainable"},
+  DNK:{name:"Denmark",flag:"🇩🇰",fsi_score:15.9,rank:175,region:"europe",fsi_band:"Sustainable"},
+  NZL:{name:"New Zealand",flag:"🇳🇿",fsi_score:15.9,rank:175,region:"oceania",fsi_band:"Sustainable"},
+  ISL:{name:"Iceland",flag:"🇮🇸",fsi_score:15.2,rank:177,region:"europe",fsi_band:"Sustainable"},
+  FIN:{name:"Finland",flag:"🇫🇮",fsi_score:14.3,rank:178,region:"europe",fsi_band:"Sustainable"},
+  NOR:{name:"Norway",flag:"🇳🇴",fsi_score:12.7,rank:179,region:"europe",fsi_band:"Sustainable"},
 };
 
 const REGION_ALIASES = {
-  africa:     ["africa"],
-  asia:       ["asia"],
-  europe:     ["europe"],
-  middleeast: ["middleeast","middle east","mena"],
-  americas:   ["americas","latin america","latam","caribbean"],
-  oceania:    ["oceania","pacific"],
+  africa:["africa"],
+  asia:["asia"],
+  europe:["europe"],
+  middleeast:["middleeast","middle east","mena"],
+  americas:["americas","latin america","latam","caribbean"],
+  oceania:["oceania","pacific"],
 };
 
-// ═══ COUNTRIES built from HTML source of truth ═══
 const COUNTRIES = {};
 for (const iso of Object.keys(BASE_SCORES)) {
   const fsi = FSI_2024[iso];
@@ -504,7 +503,7 @@ for (const iso of Object.keys(BASE_SCORES)) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  UTILITIES — ported verbatim from HTML
+//  UTILITIES
 // ════════════════════════════════════════════════════════════════════════════
 
 function lcg(seed) { return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000; }
@@ -516,7 +515,6 @@ function fmtPop(n) { if (!n) return null; if (n >= 1_000_000) return `${(n / 1_0
 function slugify(str) { return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function estimateReadTime(text) { const words = text.trim().split(/\s+/).length; return { words, minutes: Math.max(1, Math.ceil(words / 225)) }; }
 
-// ═══ HTML: composite() — WITH INTERACTION TERMS ═══
 function composite(d) {
   const raw = DIMS.reduce((s, dim) => s + dim.w * (d[dim.k] || 0), 0);
   const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
@@ -525,7 +523,6 @@ function composite(d) {
   return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
 }
 
-// ═══ HTML: buildDims() — VERBATIM ═══
 function buildDims(base, types) {
   const has = t => types.includes(t);
   const clampV = v => Math.min(99, Math.max(5, Math.round(v)));
@@ -541,7 +538,6 @@ function buildDims(base, types) {
   };
 }
 
-// ═══ HTML: seedHistory() — VERBATIM (28-day, 0.12 pull, 5-point noise) ═══
 function seedHistory(iso, currentScore) {
   const N = 28;
   const seed = iso.split("").reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
@@ -586,27 +582,27 @@ function haversineKm(lon1, lat1, lon2, lat2) {
 }
 
 const REGION_KEYWORDS = {
-  IDN: ['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
-  JPN: ['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
-  NZL: ['new zealand','kermadec','te araroa','auckland','wellington','christchurch','canterbury','fiordland','north island','south island','taupo','taupō'],
-  PHL: ['philippines','luzon','mindanao','visayas','manila','cebu','davao','bohol','leyte','samar','mindoro','palawan'],
-  CHL: ['chile','valparaiso','santiago','atacama','antofagasta','coquimbo','bio-bio','araucania','los lagos'],
-  ITA: ['italy','sicily','sardinia','naples','rome','milan','turin','florence','venice','calabria','puglia','lazio','tuscany','etna','vesuvius','stromboli'],
-  GRC: ['greece','crete','athens','aegean','ionian','peloponnese','thessaly','epirus','rhodes','santorini','cyclades'],
-  TUR: ['turkey','anatolia','istanbul','ankara','izmir','aegean','marmara','black sea','antalya','bursa'],
-  IRN: ['iran','tehran','tabriz','shiraz','isfahan','kerman','zagros','alborz','persian gulf'],
-  MEX: ['mexico','oaxaca','chiapas','guerrero','michoacan','jalisco','puebla','veracruz','baja california','sonora','sinaloa'],
-  USA: ['california','alaska','hawaii','puerto rico','nevada','washington','oregon','oklahoma','texas','utah','montana','idaho','wyoming'],
-  TWN: ['taiwan','taipei','kaohsiung','tainan','taichung','hualien','taitung'],
-  PNG: ['papua new guinea','new britain','new ireland','bougainville','solomon sea','bismarck'],
-  SLB: ['solomon islands','guadalcanal','santa cruz','malaita','choiseul','isabel'],
-  VUT: ['vanuatu','espiritu santo','efate','tanna','pentecost'],
-  FJI: ['fiji','viti levu','vanua levu','suva','lautoka'],
-  TON: ['tonga','tongatapu','haapai','vavau'],
-  WSM: ['samoa','savaii','upolu','apia'],
-  ISL: ['iceland','reykjanes','katla','bardarbunga','hekla','askja'],
-  NOR: ['norway','oslo','bergen','trondheim','tromso'],
-  RUS: ['russia','kamchatka','kuril','sakhalin','siberia','caucasus','baikal','ural','kola','chukotka'],
+  IDN:['indonesia','sumatra','java','sulawesi','borneo','papua','bali','flores','maluku','timor','lombok','sumbawa','halmahera','seram','sunda','banda sea','banda'],
+  JPN:['japan','honshu','hokkaido','kyushu','shikoku','ryukyu','bonin','izu','tokyo','osaka','nagoya','sea of japan','okinawa','kanto','kansai'],
+  NZL:['new zealand','kermadec','te araroa','auckland','wellington','christchurch','canterbury','fiordland','north island','south island','taupo','taupō'],
+  PHL:['philippines','luzon','mindanao','visayas','manila','cebu','davao','bohol','leyte','samar','mindoro','palawan'],
+  CHL:['chile','valparaiso','santiago','atacama','antofagasta','coquimbo','bio-bio','araucania','los lagos'],
+  ITA:['italy','sicily','sardinia','naples','rome','milan','turin','florence','venice','calabria','puglia','lazio','tuscany','etna','vesuvius','stromboli'],
+  GRC:['greece','crete','athens','aegean','ionian','peloponnese','thessaly','epirus','rhodes','santorini','cyclades'],
+  TUR:['turkey','anatolia','istanbul','ankara','izmir','aegean','marmara','black sea','antalya','bursa'],
+  IRN:['iran','tehran','tabriz','shiraz','isfahan','kerman','zagros','alborz','persian gulf'],
+  MEX:['mexico','oaxaca','chiapas','guerrero','michoacan','jalisco','puebla','veracruz','baja california','sonora','sinaloa'],
+  USA:['california','alaska','hawaii','puerto rico','nevada','washington','oregon','oklahoma','texas','utah','montana','idaho','wyoming'],
+  TWN:['taiwan','taipei','kaohsiung','tainan','taichung','hualien','taitung'],
+  PNG:['papua new guinea','new britain','new ireland','bougainville','solomon sea','bismarck'],
+  SLB:['solomon islands','guadalcanal','santa cruz','malaita','choiseul','isabel'],
+  VUT:['vanuatu','espiritu santo','efate','tanna','pentecost'],
+  FJI:['fiji','viti levu','vanua levu','suva','lautoka'],
+  TON:['tonga','tongatapu','haapai','vavau'],
+  WSM:['samoa','savaii','upolu','apia'],
+  ISL:['iceland','reykjanes','katla','bardarbunga','hekla','askja'],
+  NOR:['norway','oslo','bergen','trondheim','tromso'],
+  RUS:['russia','kamchatka','kuril','sakhalin','siberia','caucasus','baikal','ural','kola','chukotka'],
 };
 
 function matchesCountryPlace(iso, place) {
@@ -654,7 +650,7 @@ function deduplicateEvents(signals, iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EVIDENCE INDEX — writes only, never reads (scoring reads via computeEvidenceScore)
+//  EVIDENCE INDEX
 // ════════════════════════════════════════════════════════════════════════════
 
 const evidenceIndex = {
@@ -668,7 +664,7 @@ function resetEvidenceIndex() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  SCORING HELPERS — VERBATIM FROM HTML
+//  SCORING HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 
 function logScale(value, floor, ceiling, maxPts) {
@@ -891,7 +887,7 @@ function computeEvidenceScore(iso) {
     const trade = coverage.trade_gdp;
     if (trade > 60) add("WORLDBANK", `Trade ${trade.toFixed(1)}% of GDP`, trade, coverageScale(trade, 60, 200, 4), 0.6);
   }
-  // 40. Conflict event (ReliefWeb)
+  // 40. Conflict event
   if (coverage.conflict_event) {
     const sev = coverage.conflict_event.severityIndex || 40;
     add("RELIEFWEB", `${coverage.conflict_event.event_type}: ${(coverage.conflict_event.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 6), 0.75);
@@ -906,6 +902,62 @@ function computeEvidenceScore(iso) {
   if (coverage.fewsnet) {
     const phase = coverage.fewsnet.phase || 3;
     add("FEWS NET", `${coverage.fewsnet.title || "Food security alert"}`, phase, phase >= 4 ? 8 : 5, 0.75);
+  }
+  // 43. JTWC cyclone
+  if (coverage.jtwc) {
+    add("JTWC", `Pacific cyclone: ${coverage.jtwc.name || "active"}`, 1, 9, 0.9);
+  }
+  // 44. JMA Typhoon
+  if (coverage.jma_typhoon) {
+    add("JMA", `Typhoon: ${coverage.jma_typhoon.name || "active"}`, 1, 8.5, 0.9);
+  }
+  // 45. GFW deforestation
+  if (coverage.gfw) {
+    const count = coverage.gfw.count || 0;
+    if (count >= 100) add("GFW", `${count.toLocaleString()} deforestation alerts`, count, logScale(count, 100, 10000, 6), 0.7);
+  }
+  // 46. NASA POWER climate anomaly
+  if (coverage.nasa_power) {
+    const t = Math.abs(coverage.nasa_power.tempAnomaly || 0);
+    const p = Math.abs(coverage.nasa_power.precipAnomaly || 0);
+    if (t >= 5 || p >= 5) {
+      const pts = Math.min(6, t * 0.8 + p * 0.4);
+      add("NASA POWER", `Climate anomaly: +${t.toFixed(1)}°C / +${p.toFixed(1)}mm`, Math.max(t, p), pts, 0.8);
+    }
+  }
+  // 47. US Drought Monitor
+  if (coverage.us_drought && iso === "USA") {
+    add("US DM", `Drought level: ${coverage.us_drought.level}`, 1, 5, 0.75);
+  }
+  // 48. ECDC threat
+  if (coverage.ecdc_threat) {
+    add("ECDC", `Threat: ${(coverage.ecdc_threat.title || "").substring(0, 40)}`, 1, 5, 0.8);
+  }
+  // 49. CDC outbreak
+  if (coverage.cdc_outbreak && iso === "USA") {
+    add("CDC", `Outbreak: ${(coverage.cdc_outbreak.title || "").substring(0, 40)}`, 1, 5, 0.85);
+  }
+  // 50. WHO DON
+  if (coverage.who_don) {
+    add("WHO DON", `${(coverage.who_don.title || "").substring(0, 40)}`, 1, 8, 0.9);
+  }
+  // 51. INFORM
+  if (coverage.inform && coverage.inform.score >= 5) {
+    add("INFORM", `INFORM score ${coverage.inform.score.toFixed(1)}`, coverage.inform.score, logScale(coverage.inform.score, 5, 10, 5), 0.7);
+  }
+  // 52. HDX crisis datasets
+  if (coverage.hdx) {
+    const count = coverage.hdx.count || 0;
+    if (count > 0) add("OCHA HDX", `${count} crisis dataset(s) available`, count, coverageScale(count, 1, 20, 4), 0.65);
+  }
+  // 53. UNHCR solutions
+  if (coverage.unhcr_solutions && coverage.unhcr_solutions.returned_refugees > 10000) {
+    const ret = coverage.unhcr_solutions.returned_refugees;
+    add("UNHCR Sol", `${ret.toLocaleString()} refugees returned`, ret, logScale(ret, 10000, 1000000, 5), 0.75);
+  }
+  // 54. Sentinel-2 observations
+  if (coverage.sentinel && coverage.sentinel.count > 0) {
+    add("Sentinel-2", `${coverage.sentinel.count} recent observation(s)`, coverage.sentinel.count, coverageScale(coverage.sentinel.count, 1, 5, 3), 0.5);
   }
 
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
@@ -922,7 +974,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS — ALL 40+ PRESERVED. Each writes into evidenceIndex.sourceCoverage.
+//  FETCHERS — ALL 40+ RESTORED
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1000,6 +1052,131 @@ async function fetchEMSC() {
     }
     return { data: r.data.features, live: true };
   } catch { return { data: [], live: false }; }
+}
+
+// ── JMA ──
+async function fetchJMA() {
+  try {
+    const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/quake/data/list.json").then(r => r.json()));
+    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
+      const events = r.data.slice(0, 20).map(e => {
+        const parseJMATime = (s) => { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d.getTime(); };
+        const eventTime = parseJMATime(e.at);
+        const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 24;
+        return { mag: parseFloat(e.mag) || 0, place: e.en_anm || e.anm || 'Japan region', maxIntensity: parseInt(e.maxi) || 0, eventTime, ageHours };
+      }).filter(e => e.mag >= 4.0 && e.ageHours <= 72);
+      for (const e of events) {
+        evidenceIndex.sourceCoverage['JPN'] = evidenceIndex.sourceCoverage['JPN'] || {};
+        const existing = evidenceIndex.sourceCoverage['JPN'].emsc?.mag || 0;
+        if (e.mag > existing) evidenceIndex.sourceCoverage['JPN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
+      }
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+// ── BMKG ──
+async function fetchBMKG() {
+  try {
+    const r = await safeFetch(fetch("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json").then(r => r.json()));
+    if (r.ok && r.data?.Infogempa?.gempa) {
+      const events = r.data.Infogempa.gempa.slice(0, 20).map(e => {
+        const eventTime = e.DateTime ? new Date(e.DateTime).getTime() : null;
+        const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 24;
+        return { mag: parseFloat(e.Magnitude) || 0, place: e.Wilayah || 'Indonesia region', depth: e.Kedalaman || null, eventTime, ageHours };
+      }).filter(e => e.mag >= 4.5 && e.ageHours <= 72);
+      for (const e of events) {
+        evidenceIndex.sourceCoverage['IDN'] = evidenceIndex.sourceCoverage['IDN'] || {};
+        const existing = evidenceIndex.sourceCoverage['IDN'].emsc?.mag || 0;
+        if (e.mag > existing) evidenceIndex.sourceCoverage['IDN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
+      }
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+// ── GEOFON ──
+async function fetchGEOFON() {
+  try {
+    const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=20&minmag=4.5").then(r => r.text()));
+    if (r.ok && typeof r.data === 'string') {
+      const lines = r.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+      const events = lines.map(line => {
+        const parts = line.split('|');
+        if (parts.length < 13) return null;
+        const mag = parseFloat(parts[10]) || 0;
+        const time = parts[1] ? new Date(parts[1]).getTime() : null;
+        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
+        return { mag, place: parts[12] || 'Unknown', eventTime: time, ageHours };
+      }).filter(e => e && e.mag >= 4.5);
+      for (const e of events) {
+        for (const [isoKey] of Object.entries(COUNTRIES)) {
+          if (matchesCountryPlace(isoKey, e.place)) {
+            evidenceIndex.sourceCoverage[isoKey] = evidenceIndex.sourceCoverage[isoKey] || {};
+            const existing = evidenceIndex.sourceCoverage[isoKey].emsc?.mag || 0;
+            if (e.mag > existing) evidenceIndex.sourceCoverage[isoKey].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
+            break;
+          }
+        }
+      }
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+// ── INGV ──
+async function fetchINGV() {
+  try {
+    const r = await safeFetch(fetch("https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=10&minmag=4").then(r => r.json()));
+    if (r.ok && r.data?.features?.length) {
+      const events = r.data.features.map(f => {
+        const p = f.properties || {};
+        const mag = p.mag || 0;
+        const time = p.time ? new Date(p.time).getTime() : null;
+        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
+        return { mag, place: p.place || 'Mediterranean', eventTime: time, ageHours };
+      }).filter(e => e.mag >= 4.0);
+      for (const e of events) {
+        for (const iso of MEDITERRANEAN_ISOS) {
+          if (matchesCountryPlace(iso, e.place)) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            const existing = evidenceIndex.sourceCoverage[iso].emsc?.mag || 0;
+            if (e.mag > existing) evidenceIndex.sourceCoverage[iso].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
+          }
+        }
+      }
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+// ── GeoNet ──
+async function fetchGeoNet() {
+  try {
+    const r = await safeFetch(fetch("https://api.geonet.org.nz/quake?MMI=-1", { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
+    if (r.ok && r.data?.features?.length) {
+      const events = r.data.features.map(f => {
+        const p = f.properties || {};
+        const mag = p.magnitude || 0;
+        const time = p.time ? new Date(p.time).getTime() : null;
+        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
+        return { mag, place: p.locality || 'New Zealand', eventTime: time, ageHours };
+      }).filter(e => e.mag >= 3.5);
+      for (const e of events) {
+        if (matchesCountryPlace('NZL', e.place)) {
+          evidenceIndex.sourceCoverage['NZL'] = evidenceIndex.sourceCoverage['NZL'] || {};
+          const existing = evidenceIndex.sourceCoverage['NZL'].emsc?.mag || 0;
+          if (e.mag > existing) evidenceIndex.sourceCoverage['NZL'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
+        }
+      }
+      return { data: events, live: events.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
 }
 
 // ── NASA ──
@@ -1286,7 +1463,9 @@ async function fetchWHODon() {
       for (const [iso, c] of Object.entries(COUNTRIES)) {
         if (text.includes(c.name.toLowerCase())) {
           evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-          evidenceIndex.sourceCoverage[iso].who_don = { title: it.title, ageHours: it.ageHours };
+          if (!evidenceIndex.sourceCoverage[iso].who_don) {
+            evidenceIndex.sourceCoverage[iso].who_don = { title: it.title, ageHours: it.ageHours };
+          }
           break;
         }
       }
@@ -1308,7 +1487,9 @@ async function fetchECDC() {
       for (const [iso, c] of Object.entries(COUNTRIES)) {
         if (COUNTRIES[iso].region === "europe" && t.includes(c.name.toLowerCase())) {
           evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-          evidenceIndex.sourceCoverage[iso].ecdc_threat = { title: it.title };
+          if (!evidenceIndex.sourceCoverage[iso].ecdc_threat) {
+            evidenceIndex.sourceCoverage[iso].ecdc_threat = { title: it.title };
+          }
         }
       }
     }
@@ -1329,7 +1510,9 @@ async function fetchCDC() {
         for (const [iso, c] of Object.entries(COUNTRIES)) {
           if (t.includes(c.name.toLowerCase())) {
             evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-            evidenceIndex.sourceCoverage[iso].cdc_outbreak = { title: it.title };
+            if (!evidenceIndex.sourceCoverage[iso].cdc_outbreak) {
+              evidenceIndex.sourceCoverage[iso].cdc_outbreak = { title: it.title };
+            }
             break;
           }
         }
@@ -1375,6 +1558,70 @@ async function fetchWorldBankAll() {
   for (const [iso, d] of Object.entries(foodPriceIndex.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].food_prices = [{ value: d.value, date: d.date }]; }
   for (const [iso, d] of Object.entries(electricityAccess.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].electricity_access = d.value; }
   return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
+}
+
+async function fetchWorldBankFoodPrices() {
+  try {
+    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=300&mrv=1").then(r => r.json()));
+    if (r.ok && r.data?.[1]) {
+      for (const item of r.data[1]) {
+        if (item.country?.id && item.value != null) {
+          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
+          evidenceIndex.sourceCoverage[item.country.id].food_prices = [{ value: parseFloat(item.value), date: item.date }];
+        }
+      }
+      return { data: r.data[1], live: true };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+async function fetchWorldBankWater() {
+  try {
+    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=300&mrv=1").then(r => r.json()));
+    if (r.ok && r.data?.[1]) {
+      for (const item of r.data[1]) {
+        if (item.country?.id && item.value != null) {
+          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
+          evidenceIndex.sourceCoverage[item.country.id].water_stress = parseFloat(item.value);
+        }
+      }
+      return { data: r.data[1], live: true };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+async function fetchWorldBankTrade() {
+  try {
+    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=300&mrv=1").then(r => r.json()));
+    if (r.ok && r.data?.[1]) {
+      for (const item of r.data[1]) {
+        if (item.country?.id && item.value != null) {
+          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
+          evidenceIndex.sourceCoverage[item.country.id].trade_gdp = parseFloat(item.value);
+        }
+      }
+      return { data: r.data[1], live: true };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+async function fetchWorldBankRefugees() {
+  try {
+    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1").then(r => r.json()));
+    if (r.ok && r.data?.[1]) {
+      for (const item of r.data[1]) {
+        if (item.country?.id && item.value) {
+          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
+          evidenceIndex.sourceCoverage[item.country.id].refugees_wb = parseInt(item.value);
+        }
+      }
+      return { data: r.data[1], live: true };
+    }
+  } catch {}
+  return { data: [], live: false };
 }
 
 // ── UNHCR ──
@@ -1436,6 +1683,61 @@ async function fetchUNHCRSolutions() {
     }
   } catch {}
   return { data: {}, live: false };
+}
+
+async function fetchUNHCROperations() {
+  try {
+    const r = await safeFetch(fetch("https://api.unhcr.org/operations/v1/operations?limit=20").then(r => r.json()));
+    if (r.ok && (r.data?.items || r.data?.data)) {
+      const ops = r.data.items || r.data.data || [];
+      for (const op of ops) {
+        const iso = op.country_iso || op.country?.iso3;
+        if (!iso || !COUNTRIES[iso]) continue;
+        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+        evidenceIndex.sourceCoverage[iso].unhcr_op = { name: op.name || "UNHCR operation", status: op.status || "active" };
+      }
+      return { data: ops, live: ops.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+async function fetchUNHCREmergency() {
+  try {
+    const r = await safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=20").then(r => r.json()));
+    if (r.ok && (r.data?.items || r.data?.data)) {
+      const emergencies = r.data.items || r.data.data || [];
+      for (const em of emergencies) {
+        const iso = em.country_iso || em.country?.iso3;
+        if (!iso || !COUNTRIES[iso]) continue;
+        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+        if (!evidenceIndex.sourceCoverage[iso].unhcr_emergency) {
+          evidenceIndex.sourceCoverage[iso].unhcr_emergency = { name: em.name || "Emergency response", status: em.status || "active", level: em.level || "unknown" };
+        }
+      }
+      return { data: emergencies, live: emergencies.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
+}
+
+async function fetchUNHCRStatistics() {
+  try {
+    const r = await safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=20").then(r => r.json()));
+    if (r.ok && (r.data?.data || r.data?.items)) {
+      const stats = r.data.data || r.data.items || [];
+      for (const stat of stats) {
+        const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
+        if (!iso || !COUNTRIES[iso]) continue;
+        if (stat.refugees > 1000) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].unhcr_stats = { refugees: stat.refugees, asylum_seekers: stat.asylum_seekers || 0, year: stat.year || '2024' };
+        }
+      }
+      return { data: stats, live: stats.length > 0 };
+    }
+  } catch {}
+  return { data: [], live: false };
 }
 
 // ── GFW ──
@@ -1536,7 +1838,7 @@ async function fetchHDX() {
   return { data: {}, live: false };
 }
 
-// ── JTWC / JMA TYPHOON ──
+// ── JTWC ──
 async function fetchJTWC() {
   try {
     const r = await safeFetch(fetch("https://www.metoc.navy.mil/jtwc/products/best-tracks/", { mode: 'cors' }).then(r => r.text()));
@@ -1551,13 +1853,16 @@ async function fetchJTWC() {
     for (const storm of storms.slice(0, 5)) {
       for (const iso of WPAC_ISOS) {
         evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-        evidenceIndex.sourceCoverage[iso].jtwc = { name: storm.name };
+        if (!evidenceIndex.sourceCoverage[iso].jtwc) {
+          evidenceIndex.sourceCoverage[iso].jtwc = { name: storm.name };
+        }
       }
     }
     return { data: storms.slice(0, 5), live: storms.length > 0 };
   } catch { return { data: [], live: false }; }
 }
 
+// ── JMA Typhoon ──
 async function fetchJMATyphoon() {
   try {
     const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json").then(r => r.json()));
@@ -1566,131 +1871,12 @@ async function fetchJMATyphoon() {
       for (const typhoon of typhoons) {
         for (const iso of WPAC_ISOS) {
           evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-          evidenceIndex.sourceCoverage[iso].jma_typhoon = { name: typhoon.name };
+          if (!evidenceIndex.sourceCoverage[iso].jma_typhoon) {
+            evidenceIndex.sourceCoverage[iso].jma_typhoon = { name: typhoon.name };
+          }
         }
       }
       return { data: typhoons, live: typhoons.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── JMA / BMKG / GEOFON / INGV / GeoNet ──
-async function fetchJMA() {
-  try {
-    const r = await safeFetch(fetch("https://www.jma.go.jp/bosai/quake/data/list.json").then(r => r.json()));
-    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
-      const events = r.data.slice(0, 20).map(e => {
-        const parseJMATime = (s) => { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d.getTime(); };
-        const eventTime = parseJMATime(e.at);
-        const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 24;
-        return { mag: parseFloat(e.mag) || 0, place: e.en_anm || e.anm || 'Japan region', maxIntensity: parseInt(e.maxi) || 0, eventTime, ageHours };
-      }).filter(e => e.mag >= 4.0 && e.ageHours <= 72);
-      for (const e of events) {
-        evidenceIndex.sourceCoverage['JPN'] = evidenceIndex.sourceCoverage['JPN'] || {};
-        const existing = evidenceIndex.sourceCoverage['JPN'].emsc?.mag || 0;
-        if (e.mag > existing) evidenceIndex.sourceCoverage['JPN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-      }
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchBMKG() {
-  try {
-    const r = await safeFetch(fetch("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json").then(r => r.json()));
-    if (r.ok && r.data?.Infogempa?.gempa) {
-      const events = r.data.Infogempa.gempa.slice(0, 20).map(e => {
-        const eventTime = e.DateTime ? new Date(e.DateTime).getTime() : null;
-        const ageHours = eventTime ? (Date.now() - eventTime) / 36e5 : 24;
-        return { mag: parseFloat(e.Magnitude) || 0, place: e.Wilayah || 'Indonesia region', depth: e.Kedalaman || null, eventTime, ageHours };
-      }).filter(e => e.mag >= 4.5 && e.ageHours <= 72);
-      for (const e of events) {
-        evidenceIndex.sourceCoverage['IDN'] = evidenceIndex.sourceCoverage['IDN'] || {};
-        const existing = evidenceIndex.sourceCoverage['IDN'].emsc?.mag || 0;
-        if (e.mag > existing) evidenceIndex.sourceCoverage['IDN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-      }
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchGEOFON() {
-  try {
-    const r = await safeFetch(fetch("https://geofon.gfz-potsdam.de/fdsnws/event/1/query?format=text&limit=20&minmag=4.5").then(r => r.text()));
-    if (r.ok && typeof r.data === 'string') {
-      const lines = r.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
-      const events = lines.map(line => {
-        const parts = line.split('|');
-        if (parts.length < 13) return null;
-        const mag = parseFloat(parts[10]) || 0;
-        const time = parts[1] ? new Date(parts[1]).getTime() : null;
-        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return { mag, place: parts[12] || 'Unknown', eventTime: time, ageHours };
-      }).filter(e => e && e.mag >= 4.5);
-      for (const e of events) {
-        for (const [isoKey, c] of Object.entries(COUNTRIES)) {
-          if (matchesCountryPlace(isoKey, e.place)) {
-            evidenceIndex.sourceCoverage[isoKey] = evidenceIndex.sourceCoverage[isoKey] || {};
-            const existing = evidenceIndex.sourceCoverage[isoKey].emsc?.mag || 0;
-            if (e.mag > existing) evidenceIndex.sourceCoverage[isoKey].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-            break;
-          }
-        }
-      }
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchINGV() {
-  try {
-    const r = await safeFetch(fetch("https://webservices.ingv.it/fdsnws/event/1/query?format=json&limit=10&minmag=4").then(r => r.json()));
-    if (r.ok && r.data?.features?.length) {
-      const events = r.data.features.map(f => {
-        const p = f.properties || {};
-        const mag = p.mag || 0;
-        const time = p.time ? new Date(p.time).getTime() : null;
-        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return { mag, place: p.place || 'Mediterranean', eventTime: time, ageHours };
-      }).filter(e => e.mag >= 4.0);
-      for (const e of events) {
-        for (const iso of MEDITERRANEAN_ISOS) {
-          if (matchesCountryPlace(iso, e.place)) {
-            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-            const existing = evidenceIndex.sourceCoverage[iso].emsc?.mag || 0;
-            if (e.mag > existing) evidenceIndex.sourceCoverage[iso].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-          }
-        }
-      }
-      return { data: events, live: events.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchGeoNet() {
-  try {
-    const r = await safeFetch(fetch("https://api.geonet.org.nz/quake?MMI=-1", { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
-    if (r.ok && r.data?.features?.length) {
-      const events = r.data.features.map(f => {
-        const p = f.properties || {};
-        const mag = p.magnitude || 0;
-        const time = p.time ? new Date(p.time).getTime() : null;
-        const ageHours = time ? (Date.now() - time) / 36e5 : 24;
-        return { mag, place: p.locality || 'New Zealand', eventTime: time, ageHours };
-      }).filter(e => e.mag >= 3.5);
-      for (const e of events) {
-        if (matchesCountryPlace('NZL', e.place)) {
-          evidenceIndex.sourceCoverage['NZL'] = evidenceIndex.sourceCoverage['NZL'] || {};
-          const existing = evidenceIndex.sourceCoverage['NZL'].emsc?.mag || 0;
-          if (e.mag > existing) evidenceIndex.sourceCoverage['NZL'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-        }
-      }
-      return { data: events, live: events.length > 0 };
     }
   } catch {}
   return { data: [], live: false };
@@ -1730,6 +1916,8 @@ async function fetchSentinel() {
         acquisitionDate: v.ContentDate?.Start || null,
         ageHours: v.ContentDate?.Start ? (Date.now() - new Date(v.ContentDate.Start).getTime()) / 36e5 : 72,
       }));
+      evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
+      evidenceIndex.sourceCoverage['YEM'].sentinel = { count: items.length };
       return { data: items, live: true };
     }
   } catch {}
@@ -1750,7 +1938,7 @@ async function fetchUSDrought() {
   return { data: {}, live: false };
 }
 
-// ── RELIEFWEB (IPC / FEWS NET / CONFLICT heuristic) ──
+// ── RELIEFWEB ──
 async function fetchReliefWebIPC() {
   try {
     const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=40&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
@@ -1822,7 +2010,7 @@ async function fetchReliefWebFewsNet() {
   } catch { return { data: [], live: false }; }
 }
 
-// ── OSM HEALTH INFRASTRUCTURE ──
+// ── OSM ──
 async function fetchOSMHospitals() {
   try {
     const r = await safeFetch(fetch("https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;").then(r => r.json()));
@@ -1859,132 +2047,15 @@ async function fetchEMDAT() {
         const iso = findIsoByName(country);
         if (iso) {
           evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-          evidenceIndex.sourceCoverage[iso].emdat = { disaster: d.disaster_type || "Disaster", year: d.year || "2024", deaths: d.total_deaths || 0 };
+          if (!evidenceIndex.sourceCoverage[iso].emdat) {
+            evidenceIndex.sourceCoverage[iso].emdat = { disaster: d.disaster_type || "Disaster", year: d.year || "2024", deaths: d.total_deaths || 0 };
+          }
         }
       }
       return { data: r.data, live: disasters.length > 0 };
     }
   } catch {}
   return { data: { data: [] }, live: false };
-}
-
-// ── UNHCR OPERATIONS ──
-async function fetchUNHCROperations() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/operations/v1/operations?limit=20").then(r => r.json()));
-    if (r.ok && (r.data?.items || r.data?.data)) {
-      const ops = r.data.items || r.data.data || [];
-      for (const op of ops) {
-        const iso = op.country_iso || op.country?.iso3;
-        if (!iso || !COUNTRIES[iso]) continue;
-        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-        evidenceIndex.sourceCoverage[iso].unhcr_op = { name: op.name || "UNHCR operation", status: op.status || "active" };
-      }
-      return { data: ops, live: ops.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchUNHCREmergency() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=20").then(r => r.json()));
-    if (r.ok && (r.data?.items || r.data?.data)) {
-      const emergencies = r.data.items || r.data.data || [];
-      for (const em of emergencies) {
-        const iso = em.country_iso || em.country?.iso3;
-        if (!iso || !COUNTRIES[iso]) continue;
-        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-        evidenceIndex.sourceCoverage[iso].unhcr_emergency = { name: em.name || "Emergency response", status: em.status || "active", level: em.level || "unknown" };
-      }
-      return { data: emergencies, live: emergencies.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchUNHCRStatistics() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=20").then(r => r.json()));
-    if (r.ok && (r.data?.data || r.data?.items)) {
-      const stats = r.data.data || r.data.items || [];
-      for (const stat of stats) {
-        const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
-        if (!iso || !COUNTRIES[iso]) continue;
-        if (stat.refugees > 1000) {
-          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-          evidenceIndex.sourceCoverage[iso].unhcr_stats = { refugees: stat.refugees, asylum_seekers: stat.asylum_seekers || 0, year: stat.year || '2024' };
-        }
-      }
-      return { data: stats, live: stats.length > 0 };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-// ── WORLD BANK FOOD / WATER / TRADE ──
-async function fetchWorldBankFoodPrices() {
-  try {
-    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=300&mrv=1").then(r => r.json()));
-    if (r.ok && r.data?.[1]) {
-      for (const item of r.data[1]) {
-        if (item.country?.id && item.value != null) {
-          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
-          evidenceIndex.sourceCoverage[item.country.id].food_prices = [{ value: parseFloat(item.value), date: item.date }];
-        }
-      }
-      return { data: r.data[1], live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchWorldBankWater() {
-  try {
-    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=300&mrv=1").then(r => r.json()));
-    if (r.ok && r.data?.[1]) {
-      for (const item of r.data[1]) {
-        if (item.country?.id && item.value != null) {
-          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
-          evidenceIndex.sourceCoverage[item.country.id].water_stress = parseFloat(item.value);
-        }
-      }
-      return { data: r.data[1], live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchWorldBankTrade() {
-  try {
-    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=300&mrv=1").then(r => r.json()));
-    if (r.ok && r.data?.[1]) {
-      for (const item of r.data[1]) {
-        if (item.country?.id && item.value != null) {
-          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
-          evidenceIndex.sourceCoverage[item.country.id].trade_gdp = parseFloat(item.value);
-        }
-      }
-      return { data: r.data[1], live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
-}
-
-async function fetchWorldBankRefugees() {
-  try {
-    const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&per_page=300&mrv=1").then(r => r.json()));
-    if (r.ok && r.data?.[1]) {
-      for (const item of r.data[1]) {
-        if (item.country?.id && item.value) {
-          evidenceIndex.sourceCoverage[item.country.id] = evidenceIndex.sourceCoverage[item.country.id] || {};
-          evidenceIndex.sourceCoverage[item.country.id].refugees_wb = parseInt(item.value);
-        }
-      }
-      return { data: r.data[1], live: true };
-    }
-  } catch {}
-  return { data: [], live: false };
 }
 
 // ── MASTER FETCH ──
@@ -2385,7 +2456,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / ML / FORECAST (unchanged)
+//  ANOMALY / ML / FORECAST
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -2634,13 +2705,13 @@ class AlertManager {
 const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
-//  BUILD STORE — EXACT HTML ORDER, EXACT HTML FORMULAS
+//  BUILD STORE — EXACT HTML ORDER
 // ════════════════════════════════════════════════════════════════════════════
 
 async function buildStore(liveData) {
   const store = {};
 
-  // ── STEP 1: structural baseline per country (HTML: base=score*multipliers) ──
+  // STEP 1: structural baseline
   for (const iso of Object.keys(COUNTRIES)) {
     const c = COUNTRIES[iso];
     const base = BASE_SCORES[iso] || 30;
@@ -2650,29 +2721,15 @@ async function buildStore(liveData) {
     let score = Math.max(1, Math.min(99, Math.round(structuralRaw)));
 
     store[iso] = {
-      ...c,
-      dims,
-      score,
-      priorScore: score,
-      structural_score: score,
-      liveBoost: 0,
-      audit: [],
-      signals: {},
-      spillover: 0,
-      historical_scores: [],
-      __live_breaking: null,
-      __effective_score: null,
-      // Evidence metadata
-      evidence_score: 0,
-      evidence_confidence: 0,
-      evidence_source_count: 0,
-      evidence_ledger: [],
-      evidence_sources: [],
-      is_low_instrumentation: false,
+      ...c, dims, score, priorScore: score, structural_score: score,
+      liveBoost: 0, audit: [], signals: {}, spillover: 0, historical_scores: [],
+      __live_breaking: null, __effective_score: null,
+      evidence_score: 0, evidence_confidence: 0, evidence_source_count: 0,
+      evidence_ledger: [], evidence_sources: [], is_low_instrumentation: false,
     };
   }
 
-  // ── STEP 2: EXACT HTML SCORING (evidence → structural blend) ──
+  // STEP 2: evidence + structural blend (HTML exact)
   for (const iso of Object.keys(store)) {
     const c = store[iso];
     const evidence = computeEvidenceScore(iso);
@@ -2680,9 +2737,7 @@ async function buildStore(liveData) {
     const structuralComponent = composite(c.dims) * structuralWeight;
     let rawTotal = structuralComponent + evidence.score;
     const score = Math.max(1, Math.min(99, Math.round(
-      rawTotal <= 70
-        ? rawTotal
-        : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
+      rawTotal <= 70 ? rawTotal : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
     )));
     c.score = score;
     c.structural_score = score;
@@ -2695,7 +2750,7 @@ async function buildStore(liveData) {
     c.is_low_instrumentation = evidence.sourceCount < CFG.LOW_INSTRUMENTATION_THRESHOLD;
   }
 
-  // ── STEP 3: spilloverScore — EXACT HTML (0.13 rate, floor 50, cap 20, dampened) ──
+  // STEP 3: spilloverScore (HTML exact)
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) { store[iso].spillover = 0; continue; }
@@ -2707,14 +2762,14 @@ async function buildStore(liveData) {
     store[iso].structural_score = store[iso].score;
   }
 
-  // ── STEP 4: seedHistory — EXACT HTML (28-day) ──
+  // STEP 4: seedHistory
   for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score).map(h => h.s);
 
-  // ── STEP 5: ML forecast ──
+  // STEP 5: ML
   if (CFG.ML_ENABLED) await trainMLModel(store);
   for (const iso in store) if (CFG.ML_ENABLED) store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].score, store);
 
-  // ── STEP 6: build per-country signals object (for live-breaking tier) ──
+  // STEP 6: signals for live-breaking tier
   for (const iso in store) {
     const cov = evidenceIndex.sourceCoverage[iso] || {};
     store[iso].signals = {
@@ -2777,18 +2832,17 @@ async function buildStore(liveData) {
     };
   }
 
-  // ── STEP 7: live-breaking tier (does NOT touch score) ──
+  // STEP 7: live-breaking tier
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ── STEP 8: effective score (equal to score after step 3, kept for API shape) ──
+  // STEP 8: effective score (equals score) + metadata-only annotations
   for (const iso in store) {
     store[iso].__effective_score = store[iso].score;
-    // Metadata-only: pop multiplier & resolution credit do NOT modify score
     store[iso].__pop_multiplier = +popExposureMultiplier(store[iso].signals?.population || 0).toFixed(3);
     store[iso].__resolution_credit = +resolutionCredit(store, iso).toFixed(2);
   }
 
-  // ── STEP 9: sentiment + history ──
+  // STEP 9: sentiment + history
   for (const iso in store) {
     if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
     if (CFG.HISTORY_ENABLED) await storeHistoricalData(iso, store);
@@ -3217,7 +3271,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "HTML_PARITY_v15.0.0",
+        ranking_mode: "HTML_PARITY_v16.0.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -3234,6 +3288,7 @@ export default async function handler(req, res) {
           pop_exposure: "metadata only — does not affect score",
           resolution_credit: "metadata only — does not affect score",
           final_order: "evidence → structural blend → spillover → clamp (HTML order)",
+          all_v13_fetchers_restored: true,
         },
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
@@ -3312,7 +3367,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v15.0.0]", err);
+    console.error("[top-story v16.0.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
