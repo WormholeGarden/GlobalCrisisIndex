@@ -2518,25 +2518,8 @@ function updateUIStatsFromApi(data){
 
   const crit = ranked.filter(i => store[i]?.score >= 80).length;
 
-  // ─── SAFELY CALCULATE AFFECTED ──────────────────────────────────────────
-  let totalAffected = 0;
-  const countries = data.countries || (data.top_story ? [data.top_story] : []);
-  countries.forEach(c => {
-    const displacement = c.live_evidence?.displacement?.total;
-    // Only add if it's a valid positive number
-    if (typeof displacement === 'number' && isFinite(displacement) && displacement > 0) {
-      totalAffected += displacement;
-    }
-  });
-  
-  // ─── FORMAT AFFECTED DISPLAY ────────────────────────────────────────────
-  let affectedDisplay = '—';
-  if (totalAffected > 0 && isFinite(totalAffected)) {
-    if (totalAffected >= 1e9) affectedDisplay = '≈' + (totalAffected / 1e9).toFixed(1) + 'B';
-    else if (totalAffected >= 1e6) affectedDisplay = '≈' + (totalAffected / 1e6).toFixed(1) + 'M';
-    else if (totalAffected >= 1e3) affectedDisplay = '≈' + (totalAffected / 1e3).toFixed(0) + 'K';
-    else affectedDisplay = totalAffected.toLocaleString();
-  }
+    // ─── AFFECTED: static display value ────────────────────────────────────
+  const affectedDisplay = '≈122M';
 
   // ─── SAFELY GET ANOMALIES ───────────────────────────────────────────────
   let anoms = data.meta?.anomalies_detected;
@@ -5622,7 +5605,7 @@ function updateDynamicTitle(){
     if(store&&ranked&&ranked.length>0){
       gcis=Math.round(ranked.slice(0,20).reduce((s,i)=>s+store[i].score,0)/20);
       const crit=ranked.filter(i=>store[i]?.score>=80).length;
-      affected=Math.round(crit*4.8)+'M';
+      const affected = '≈122M';
       anomalies=ranked.filter(i=>{const hist=(history[i]||[]).map(h=>h.s);return cusum(hist).det;}).length;
       events=Object.values(store).reduce((s,c)=>s+(c.events||0),0);
     }
