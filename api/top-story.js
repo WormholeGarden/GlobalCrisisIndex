@@ -1,25 +1,29 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v14.0.0 — EVIDENCE-LEDGER SCORING
+//  TOP-STORY API — v15.0.0 — HTML PARITY (DECIMAL-EXACT)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED
-//  ═══ v14.0.0 CHANGE ═══
-//  ✅ ALL scoring now flows through the HTML's computeEvidenceScore() logic
-//  ✅ Every point in the score traces to a real API value in sourceCoverage
-//  ✅ 40+ fetchers preserved — each one populates evidenceIndex.sourceCoverage
-//  ✅ Evidence Ledger, confidence, and sourceCount exposed in payload
-//  ═══ Ranking cascade ═══
-//  effective_score → has_fresh → live_score → freshness
+//  ═══ v15.0.0 — PARITY WITH HTML SCORING ═══
+//  ✅ composite() now includes conflictDisp + foodHealth interaction terms
+//  ✅ buildDims() ported verbatim from HTML (same +10/+12/+8/+8 offsets)
+//  ✅ spilloverScore() ported verbatim (0.13 rate, floor 50, cap 20)
+//  ✅ seedHistory() ported verbatim (28-day, 0.12 pull, 5-point noise)
+//  ✅ Final order: evidence → spillover → clamp (matches HTML exactly)
+//  ✅ popExposureMultiplier & resolutionCredit demoted to METADATA ONLY
+//     (they were causing the API to inflate/deflate scores HTML never saw)
+//  ✅ All 40+ fetchers preserved — every one writes evidenceIndex.sourceCoverage
+//  ✅ base = BASE_SCORES[iso] (HTML) NOT fsi_score/120*100 (old API)
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
   SEED_INTERVAL_MS: 300_000,
   FETCH_TIMEOUT_MS: 15_000,
   MAX_TOP_N: 179,
-  SPILLOVER_RATE: 0.08,
-  SPILLOVER_FLOOR: 55,
+  SPILLOVER_RATE: 0.13,            // ← HTML: 0.13 (was 0.08)
+  SPILLOVER_FLOOR: 50,             // ← HTML: 50   (was 55)
+  SPILLOVER_MAX: 20,               // ← HTML: Math.min(20, ...)
   PRIOR_JITTER: 1,
   MIN_LIVE_EVIDENCE_SOURCES: 1,
   ANOMALY_WINDOW: 28,
@@ -61,6 +65,7 @@ const CFG = {
   HISTORY_GRANULARITY_HOURS: 1,
   HISTORY_MAX_POINTS: 2160,
 
+  // v15: popExposure & resolutionCredit are METADATA ONLY (do not affect score)
   POP_EXPOSURE_ENABLED: true,
   POP_EXPOSURE_MIN_MULT: 0.85,
   POP_EXPOSURE_MAX_MULT: 1.15,
@@ -197,6 +202,92 @@ const DIMS = [
   { k:"access",       l:"Access",        w:0.02, icon:"🚧", color:"#8bbdd8" },
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
+
+// ═══ HTML's BASE_SCORES — the authoritative structural baseline ═══
+const BASE_SCORES = {
+  PSE:96, SOM:94, SYR:93, YEM:92, SSD:91, AFG:90, SDN:88, HTI:86, UKR:85, COD:86,
+  ETH:79, MMR:73, IRQ:72, LBN:75, PAK:69, NGA:66, IRN:61, VEN:63, COL:57, BGD:57,
+  IDN:79, PHL:73, NPL:58, KEN:42, MOZ:44, TUR:59, IND:56, BRA:53, ZAF:51, EGY:49,
+  JOR:41, SAU:38, KAZ:32, CHN:55, JPN:66, CHL:63, NZL:56, ITA:59, GRC:57, RUS:66,
+  AUS:29, CAN:27, FRA:26, DEU:22, GBR:25, ESP:28, SWE:18, NOR:17, FIN:17, DNK:15,
+  NLD:16, BEL:15, CHE:12, AUT:14, PRT:22, IRL:18, KOR:31, POL:22, HUN:21, CZE:19,
+  ECU:45, ISL:19, PNG:55, FJI:44, SLB:50, MEX:48, ARG:35, PER:49, DZA:38, LBY:72,
+  MAR:34, TUN:41, BDI:67, COM:42, DJI:48, ERI:61, MDG:55, MUS:18, MWI:52, RWA:44,
+  SYC:15, TZA:46, UGA:51, ZMB:47, ZWE:58, BEN:43, BFA:78, CPV:16, CIV:55, GMB:39,
+  GHA:36, GIN:54, GNB:57, LBR:52, MLI:82, MRT:59, NER:76, SEN:38, SLE:49, TGO:44,
+  CAF:84, CMR:62, COG:48, GAB:32, GNQ:36, STP:18, TCD:74, AGO:48, BWA:22, LSO:38,
+  NAM:26, SWZ:35, UZB:42, TJK:51, TKM:48, KGZ:44, MNG:28, PRK:72, BRN:14, KHM:48,
+  LAO:38, MYS:26, SGP:9, THA:41, TLS:52, VNM:36, BTN:22, LKA:44, MDV:18, ARE:22,
+  ARM:48, AZE:44, BHR:35, CYP:29, GEO:46, ISR:62, KWT:28, OMN:24, QAT:18, BLZ:38,
+  CRI:22, SLV:55, GTM:58, HND:62, NIC:48, PAN:32, ATG:14, BHS:22, BRB:12, CUB:52,
+  DMA:18, DOM:45, GRD:14, JAM:44, KNA:12, LCA:16, TTO:36, VCT:18, BOL:48, GUY:38,
+  PRY:42, SUR:34, URY:19, ALB:38, BIH:42, BGR:28, BLR:55, EST:18, HRV:22, LVA:19,
+  LIE:8, LTU:18, LUX:8, MDA:44, MKD:35, MLT:12, MNE:28, ROU:32, SRB:36, SVK:18,
+  SVN:14, AND:8, SMR:8, GRL:12, VUT:32, TON:26, WSM:24, KIR:38, FSM:28, MHL:32,
+  PLW:18, NRU:22, TUV:36, COK:18, TWN:35, HKG:18, XKX:45, ESH:32, USA:29,
+};
+
+// ═══ HTML's CTYPES — authoritative crisis-type map ═══
+const CTYPES = {
+  PSE:["CE","CW","REF","HEAT"], SOM:["CE","CW","DR","FN","REF","HEAT"], SYR:["CE","CW","REF","EP","HEAT"],
+  YEM:["CE","CW","FN","DR","REF"], AFG:["CE","CW","DR","FN","REF"], UKR:["CE","CW","REF","HEAT"],
+  SSD:["CE","CW","FL","FN","REF"], SDN:["CE","CW","DR","FL","REF"], COD:["CE","CW","EP","FL","REF"],
+  HTI:["CE","EQ","EP","ST","REF"], ETH:["CE","CW","DR","FN","REF"], MMR:["CE","CW","FL","REF","EP"],
+  LBN:["CE","REF","EP","HEAT"], NGA:["CE","CW","FL","EP","REF"], PAK:["FL","EQ","DR","REF","HEAT","LS"],
+  IRQ:["CE","CW","REF","HEAT"], IRN:["EQ","DR","REF","HEAT","LS"], VEN:["CE","REF","DR","HEAT"],
+  COL:["CE","CW","FL","REF","LS"], BGD:["FL","TC","REF","EP","LS","HEAT"], IDN:["EQ","TSU","VLC","FL","LS","TC","HEAT"],
+  PHL:["TC","FL","EQ","VLC","TSU","LS","HEAT"], JPN:["EQ","TSU","TC","VLC","FL","HEAT"],
+  CHL:["EQ","VLC","TSU","WF","HEAT"], PER:["EQ","FL","LS","VLC","TSU","HEAT"], MEX:["EQ","ST","VLC","FL","TSU","HEAT"],
+  USA:["WF","ST","EQ","TC","TSU","HEAT"], NZL:["EQ","TSU","VLC","FL","HEAT"], ITA:["EQ","VLC","WF","FL","TSU","HEAT"],
+  GRC:["EQ","VLC","WF","FL","HEAT","REF"], ISL:["VLC","FL","ST","HEAT"], ECU:["EQ","VLC","FL","TSU","HEAT"],
+  PNG:["EQ","TSU","VLC","FL","HEAT"], FJI:["TC","TSU","FL","HEAT"], SLB:["EQ","TSU","TC","HEAT"],
+  NPL:["EQ","LS","FL","HEAT"], TUR:["EQ","FL","REF","CW","LS","HEAT"], IND:["FL","TC","DR","EQ","HEAT","LS"],
+  CHN:["FL","EQ","TC","LS","TSU","HEAT"], RUS:["WF","FL","CW","ST","HEAT"], BRA:["FL","WF","DR","EP","LS","HEAT"],
+  ZAF:["DR","FL","EP","HEAT"], EGY:["DR","REF","HEAT"], JOR:["REF","DR","HEAT"], SAU:["DR","ST","HEAT","REF"],
+  KAZ:["FL","DR","WF","HEAT"], ARG:["FL","DR","ST","HEAT"], CAN:["WF","FL","ST","HEAT"], AUS:["WF","FL","TC","DR","HEAT"],
+  FRA:["WF","ST","HEAT"], DEU:["FL","ST","HEAT"], GBR:["ST","FL","HEAT"], ESP:["WF","DR","ST","HEAT"],
+  PRT:["WF","FL","HEAT"], SWE:["FL","ST","WF","HEAT"], NOR:["FL","ST","WF","HEAT"], FIN:["FL","ST","WF","HEAT"],
+  DNK:["ST","FL","HEAT"], NLD:["FL","ST","HEAT"], BEL:["FL","ST","HEAT"], CHE:["FL","LS","ST","HEAT"],
+  AUT:["FL","LS","ST","HEAT"], POL:["FL","ST","WF","HEAT"], CZE:["FL","ST","WF","HEAT"], HUN:["FL","ST","HEAT","WF"],
+  IRL:["ST","FL","HEAT"], KOR:["ST","FL","HEAT","EQ"], MOZ:["TC","FL","HEAT"], DZA:["DR","WF","HEAT","EP"],
+  LBY:["CE","CW","REF","HEAT"], MAR:["EQ","DR","HEAT","FL"], TUN:["DR","HEAT","FL"],
+  BDI:["CE","CW","EP","FL","REF"], COM:["TC","FL","EP","HEAT"], DJI:["DR","HEAT","REF","FL"], ERI:["CE","DR","REF","HEAT"],
+  KEN:["DR","FL","EP","REF","HEAT"], MDG:["TC","FL","DR","EP","HEAT"], MUS:["TC","FL","HEAT"],
+  MWI:["FL","DR","EP","HEAT"], RWA:["FL","LS","EP","REF"], SYC:["TC","FL","HEAT"], TZA:["FL","DR","EP","HEAT"],
+  UGA:["FL","EP","REF","LS"], ZMB:["FL","DR","EP","HEAT"], ZWE:["DR","FL","EP","HEAT"], BEN:["FL","DR","EP","HEAT"],
+  BFA:["CE","CW","DR","EP","REF","HEAT"], CPV:["DR","HEAT","ST"], CIV:["FL","EP","CE","HEAT"], GMB:["DR","HEAT","FL"],
+  GHA:["FL","DR","EP","HEAT"], GIN:["FL","EP","LS","HEAT"], GNB:["FL","EP","DR","HEAT"], LBR:["FL","EP","CE","HEAT"],
+  MLI:["CE","CW","DR","FN","REF","HEAT"], MRT:["DR","FN","HEAT","FL"], NER:["DR","FN","CE","HEAT","FL"],
+  SEN:["DR","FL","EP","HEAT"], SLE:["FL","EP","LS","HEAT"], TGO:["FL","DR","EP","HEAT"], CAF:["CE","CW","EP","FL","REF"],
+  CMR:["CE","CW","FL","EP","REF"], COG:["FL","EP","CE","HEAT"], GAB:["FL","EP","HEAT"], GNQ:["FL","EP","HEAT"],
+  STP:["FL","EP","HEAT"], AGO:["FL","DR","EP","HEAT"], BWA:["DR","HEAT","FL"], LSO:["DR","FL","HEAT"],
+  NAM:["DR","HEAT","FL"], SWZ:["DR","FL","EP","HEAT"], TCD:["CE","CW","DR","REF","HEAT"],
+  UZB:["DR","HEAT","FL","EQ"], TJK:["EQ","FL","LS","DR","HEAT"], TKM:["DR","HEAT","FL"],
+  KGZ:["EQ","FL","LS","DR","HEAT"], MNG:["DR","ST","HEAT","FL"], PRK:["DR","FL","HEAT","ST"],
+  TWN:["TC","EQ","TSU","FL","HEAT"], HKG:["TC","FL","HEAT"], BRN:["FL","HEAT"], KHM:["FL","DR","HEAT","EP"],
+  LAO:["FL","DR","LS","HEAT"], MYS:["FL","LS","HEAT","EP"], SGP:["HEAT","FL"], THA:["FL","DR","HEAT","EP"],
+  TLS:["FL","DR","EP","HEAT"], VNM:["FL","TC","DR","LS","HEAT","EP"], BTN:["FL","LS","EQ","HEAT"],
+  LKA:["FL","TC","DR","EP","HEAT"], MDV:["TC","FL","HEAT"], ARE:["DR","HEAT","ST"], ARM:["EQ","DR","CW","HEAT"],
+  AZE:["EQ","FL","CW","HEAT"], BHR:["DR","HEAT"], CYP:["DR","WF","HEAT"], GEO:["EQ","FL","LS","CW","HEAT"],
+  ISR:["DR","WF","HEAT","CW"], KWT:["DR","HEAT","ST"], OMN:["TC","DR","HEAT","ST"], QAT:["DR","HEAT"],
+  BLZ:["TC","FL","ST","HEAT"], CRI:["EQ","FL","LS","TC","HEAT"], SLV:["EQ","FL","DR","ST","HEAT"],
+  GTM:["EQ","FL","LS","ST","DR","HEAT"], HND:["ST","FL","DR","LS","HEAT"], NIC:["ST","FL","DR","EQ","HEAT"],
+  PAN:["FL","LS","ST","HEAT"], ATG:["TC","ST","HEAT"], BHS:["TC","ST","FL","HEAT"], BRB:["TC","ST","HEAT"],
+  CUB:["TC","FL","ST","HEAT"], DMA:["TC","VLC","ST","HEAT"], DOM:["TC","FL","EQ","ST","HEAT"],
+  GRD:["TC","ST","HEAT"], JAM:["TC","FL","ST","HEAT"], KNA:["TC","VLC","ST","HEAT"], LCA:["TC","VLC","ST","HEAT"],
+  TTO:["FL","ST","HEAT"], VCT:["TC","VLC","FL","HEAT"], BOL:["FL","DR","LS","HEAT"], GUY:["FL","ST","HEAT"],
+  PRY:["FL","DR","HEAT"], SUR:["FL","ST","HEAT"], URY:["FL","DR","ST","HEAT"], ALB:["EQ","FL","LS","HEAT"],
+  BIH:["FL","LS","ST","HEAT"], BGR:["FL","WF","ST","HEAT"], BLR:["FL","ST","WF","HEAT"], EST:["ST","FL","HEAT"],
+  HRV:["EQ","FL","ST","HEAT"], LVA:["ST","FL","HEAT"], LIE:["FL","LS","HEAT"], LTU:["ST","FL","HEAT"],
+  LUX:["FL","ST","HEAT"], MDA:["FL","DR","HEAT"], MKD:["EQ","FL","WF","HEAT"], MLT:["DR","HEAT","ST"],
+  MNE:["EQ","FL","WF","HEAT"], ROU:["EQ","FL","DR","HEAT"], SRB:["FL","ST","WF","HEAT"], SVK:["FL","ST","WF","HEAT"],
+  SVN:["EQ","FL","LS","HEAT"], AND:["LS","HEAT"], SMR:["HEAT","FL"], GRL:["ST","FL","HEAT"],
+  VUT:["TC","EQ","TSU","VLC","FL","HEAT"], TON:["TC","TSU","FL","HEAT"], WSM:["TC","TSU","FL","HEAT"],
+  KIR:["TC","FL","HEAT"], FSM:["TC","TSU","FL","HEAT"], MHL:["TC","TSU","FL","HEAT"], PLW:["TC","TSU","FL","HEAT"],
+  NRU:["TC","FL","HEAT"], TUV:["TC","FL","HEAT"], COK:["TC","FL","HEAT"], XKX:["FL","ST","HEAT"], ESH:["DR","HEAT"],
+};
+
+const DEFAULT_T = ["EQ","FL","ST","HEAT"];
 
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
@@ -389,44 +480,85 @@ const REGION_ALIASES = {
   oceania:    ["oceania","pacific"],
 };
 
+// ═══ COUNTRIES built from HTML source of truth ═══
 const COUNTRIES = {};
-for (const [iso, fsi] of Object.entries(FSI_2024)) {
-  const types = [];
-  const score = fsi.fsi_score;
-  if (score >= 90) types.push("CE", "CW");
-  else if (score >= 80) types.push("CE", "REF");
-  else if (score >= 70) types.push("REF", "DR");
-  else if (score >= 60) types.push("DR", "ECO");
-  else if (score >= 50) types.push("ECO");
-  else types.push("POL");
-  if (fsi.region === "africa" && score >= 80) types.push("FN");
-  if (fsi.region === "asia" && score >= 70) types.push("FL");
-  if (fsi.region === "americas" && score >= 70) types.push("HEAT");
-  if (fsi.region === "middleeast" && score >= 70) types.push("REF");
-
-  const uniqueTypes = [...new Set(types)];
+for (const iso of Object.keys(BASE_SCORES)) {
+  const fsi = FSI_2024[iso];
+  const name = fsi?.name || iso;
+  const flag = fsi?.flag || "🌍";
+  const region = fsi?.region || "other";
+  const types = CTYPES[iso] || DEFAULT_T;
   const adj = [];
   for (const [otherIso, otherFsi] of Object.entries(FSI_2024)) {
-    if (otherIso !== iso && otherFsi.region === fsi.region) adj.push(otherIso);
+    if (otherIso !== iso && otherFsi.region === region) adj.push(otherIso);
   }
   COUNTRIES[iso] = {
-    name: fsi.name, flag: fsi.flag, prior: Math.round(score),
-    fsi_score: score, fsi_rank: fsi.rank, fsi_band: fsi.fsi_band,
-    region: fsi.region, types: uniqueTypes.slice(0, 4), adj: adj.slice(0, 8),
+    name, flag, region,
+    types: types.slice(0, 4),
+    adj: adj.slice(0, 8),
     cent: COUNTRY_CENTROIDS[iso] || [0, 0],
+    fsi_score: fsi?.fsi_score ?? 50,
+    fsi_rank: fsi?.rank ?? 999,
+    fsi_band: fsi?.fsi_band ?? "Unknown",
   };
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  UTILITIES — ported verbatim from HTML
+// ════════════════════════════════════════════════════════════════════════════
 
 function lcg(seed) { return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000; }
 function strHash(str) { return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0; }
 const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
 function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
-function median(arr) { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; }
 function stddev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length) || 1; }
-function composite(dims) { return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0); }
 function fmtPop(n) { if (!n) return null; if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`; if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`; return `${n}`; }
 function slugify(str) { return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function estimateReadTime(text) { const words = text.trim().split(/\s+/).length; return { words, minutes: Math.max(1, Math.ceil(words / 225)) }; }
+
+// ═══ HTML: composite() — WITH INTERACTION TERMS ═══
+function composite(d) {
+  const raw = DIMS.reduce((s, dim) => s + dim.w * (d[dim.k] || 0), 0);
+  const conflictDisp = ((d.conflict||0)/100) * ((d.displacement||0)/100) * 12;
+  const foodHealth   = ((d.food||0)/100) * ((d.health||0)/100) * 8;
+  const econMult = d.economic >= 70 ? 1.06 : d.economic >= 50 ? 1.03 : 1.0;
+  return Math.max(1, (raw + conflictDisp + foodHealth) * econMult);
+}
+
+// ═══ HTML: buildDims() — VERBATIM ═══
+function buildDims(base, types) {
+  const has = t => types.includes(t);
+  const clampV = v => Math.min(99, Math.max(5, Math.round(v)));
+  return {
+    conflict:     clampV(base * ((has("CW")||has("CE")) ? 1.1 : has("REF") ? 0.65 : 0.28)),
+    displacement: clampV(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.8 : 0.38)),
+    food:         clampV(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.9 : has("FL") ? 0.7 : 0.42)),
+    health:       clampV(base * ((has("EP")||has("FN")) ? 1.1 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
+    economic:     clampV(base * ((has("CE")||has("CW")||has("FN")||has("DR")) ? 0.82 : 0.42) + 10),
+    climate:      clampV(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
+    access:       clampV(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
+    political:    clampV(base * ((has("CE")||has("CW")||has("REF")) ? 0.85 : 0.42) + 8),
+  };
+}
+
+// ═══ HTML: seedHistory() — VERBATIM (28-day, 0.12 pull, 5-point noise) ═══
+function seedHistory(iso, currentScore) {
+  const N = 28;
+  const seed = iso.split("").reduce((s, c, i) => s + c.charCodeAt(0) * (i + 1) * 17, 0);
+  let score = Math.min(99, Math.max(5, currentScore + Math.round((seededRand(seed) - 0.5) * 18)));
+  const hist = [];
+  for (let i = 0; i <= N; i++) {
+    hist.push({ t: Date.now() - (N - i) * 86400000, s: score });
+    const r = seededRand(seed + i * 31 + 7);
+    const pull = (currentScore - score) * 0.12;
+    const noise = (r - 0.5) * 5;
+    score = Math.min(99, Math.max(5, Math.round(score + pull + noise)));
+  }
+  hist[hist.length - 1].s = currentScore;
+  return hist;
+}
+function seededRand(n) { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); }
+
 function findIsoByName(name) {
   if (!name) return null;
   const lower = name.toLowerCase().trim();
@@ -522,48 +654,21 @@ function deduplicateEvents(signals, iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EVIDENCE INDEX — PORTED DIRECTLY FROM HTML
-//  Every fetcher writes here. Every point in the score traces here.
+//  EVIDENCE INDEX — writes only, never reads (scoring reads via computeEvidenceScore)
 // ════════════════════════════════════════════════════════════════════════════
 
 const evidenceIndex = {
   sourceCoverage: {},
   population: {},
-  conflict: [],
-  ipc: [],
-  heat: [],
-  disease: [],
-  gdelt: [],
-  reliefweb: [],
-  nasa: [],
-  usgs: [],
-  wb_inflation: [],
-  imf: [],
-  unhcr: [],
-  wfp: [],
-  acled_events: [],
 };
 
-// Reset per-request so we never leak stale evidence between refreshes
 function resetEvidenceIndex() {
   evidenceIndex.sourceCoverage = {};
   evidenceIndex.population = {};
-  evidenceIndex.conflict = [];
-  evidenceIndex.ipc = [];
-  evidenceIndex.heat = [];
-  evidenceIndex.disease = [];
-  evidenceIndex.gdelt = [];
-  evidenceIndex.reliefweb = [];
-  evidenceIndex.nasa = [];
-  evidenceIndex.usgs = [];
-  evidenceIndex.wb_inflation = [];
-  evidenceIndex.unhcr = [];
-  evidenceIndex.wfp = [];
-  evidenceIndex.acled_events = [];
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  SCORING HELPERS — PORTED EXACTLY FROM HTML
+//  SCORING HELPERS — VERBATIM FROM HTML
 // ════════════════════════════════════════════════════════════════════════════
 
 function logScale(value, floor, ceiling, maxPts) {
@@ -580,8 +685,7 @@ function coverageScale(value, floor, ceiling, maxPts) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  computeEvidenceScore — PORTED DIRECTLY FROM HTML
-//  All 40+ sources below. Every point traces to a real API value.
+//  computeEvidenceScore — VERBATIM FROM HTML
 // ════════════════════════════════════════════════════════════════════════════
 
 function computeEvidenceScore(iso) {
@@ -594,8 +698,7 @@ function computeEvidenceScore(iso) {
     totalPts += pts * weight;
     totalWeight += weight;
     ledger.push({
-      source,
-      label,
+      source, label,
       rawValue: typeof rawValue === "number" ? +rawValue.toFixed(1) : rawValue,
       pts: +pts.toFixed(1),
       weight: +weight.toFixed(2),
@@ -604,254 +707,207 @@ function computeEvidenceScore(iso) {
 
   const coverage = evidenceIndex.sourceCoverage[iso] || {};
 
-  // ── 1. USGS Earthquakes ──
+  // 1. USGS
   if (coverage.usgs) {
     const mag = coverage.usgs.mag || 0;
     if (mag >= 4.5) {
       const w = Math.min(1, (mag - 4) / 4);
-      add("USGS", `M${mag.toFixed(1)} earthquake`, mag,
-          logScale(mag, 4.5, 8, 12), w * 0.9);
+      add("USGS", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 4.5, 8, 12), w * 0.9);
     }
   }
-
-  // ── 2. NASA EONET ──
-  if (coverage.nasa) {
-    add("NASA", `Natural event: ${coverage.nasa.title?.substring(0, 30) || "active"}`, 1, 6, 0.7);
-  }
-
-  // ── 3. NASA Wildfires ──
-  if (coverage.wildfire) {
-    add("NASA", `Wildfire: ${coverage.wildfire.title?.substring(0, 30) || "active"}`, 1, 7, 0.75);
-  }
-
-  // ── 4. GDACS Alerts ──
+  // 2. NASA EONET
+  if (coverage.nasa) add("NASA", `Natural event: ${coverage.nasa.title?.substring(0, 30) || "active"}`, 1, 6, 0.7);
+  // 3. NASA Wildfires
+  if (coverage.wildfire) add("NASA", `Wildfire: ${coverage.wildfire.title?.substring(0, 30) || "active"}`, 1, 7, 0.75);
+  // 4. GDACS
   if (coverage.gdacs) {
     const severity = coverage.gdacs.alert || "Orange";
     const pts = severity === "Red" ? 10 : severity === "Orange" ? 6 : 3;
     add("GDACS", `${severity} alert: ${coverage.gdacs.event?.substring(0, 30) || "disaster"}`, 1, pts, 0.85);
   }
-
-  // ── 5. GDACS Earthquakes ──
+  // 5. GDACS EQ
   if (coverage.gdacs_eq) {
     const mag = coverage.gdacs_eq.mag || 0;
     if (mag >= 5) add("GDACS", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 5, 8, 8), 0.8);
   }
-
-  // ── 6. Extreme Heat (Open-Meteo) ──
+  // 6. Heat
   if (coverage.heat) {
     const temp = coverage.heat.temp || 0;
     if (temp >= 38) add("OPENMETEO", `${temp}°C extreme heat`, temp, logScale(temp, 38, 50, 8), 0.85);
   }
-
-  // ── 7. Flood Risk (Open-Meteo) ──
+  // 7. Flood risk
   if (coverage.flood_risk) {
     const discharge = coverage.flood_risk.discharge || 0;
     if (discharge > 100) add("OPENMETEO", `Flood risk: ${discharge}m³/s river discharge`, discharge, logScale(discharge, 100, 1000, 6), 0.7);
   }
-
-  // ── 8. Marine Hazard (Open-Meteo) ──
+  // 8. Marine
   if (coverage.marine) {
     const wave = coverage.marine.wave_height || 0;
     if (wave > 3) add("OPENMETEO", `Marine hazard: ${wave}m wave height`, wave, logScale(wave, 3, 10, 5), 0.7);
   }
-
-  // ── 9. COVID-19 (disease.sh) ──
+  // 9. COVID
   if (coverage.covid) {
     const active = coverage.covid.active || 0;
     if (active > 1000) add("DISEASE.SH", `${active.toLocaleString()} active COVID cases`, active, logScale(active, 1000, 500000, 8), 0.8);
   }
-
-  // ── 10. Population (World Bank) ──
+  // 10. Population
   if (coverage.population) {
     const pop = coverage.population;
     add("WORLDBANK", `Population ${(pop/1e6).toFixed(1)}M`, pop, coverageScale(pop, 50000, 1450000000, 6), 0.95);
   }
-
-  // ── 11. Poverty (World Bank) ──
+  // 11. Poverty
   if (coverage.poverty !== undefined && coverage.poverty !== null) {
     const pov = coverage.poverty;
     if (pov > 5) add("WORLDBANK", `Poverty rate ${pov.toFixed(1)}%`, pov, logScale(pov, 5, 60, 6), 0.85);
   }
-
-  // ── 12. GDP Growth (World Bank) ──
+  // 12. GDP
   if (coverage.gdp_growth !== undefined && coverage.gdp_growth !== null) {
     const gdp = coverage.gdp_growth;
     if (gdp < 0) add("WORLDBANK", `GDP growth ${gdp.toFixed(1)}% (negative)`, gdp, logScale(Math.abs(gdp), 1, 10, 5), 0.75);
   }
-
-  // ── 13. Unemployment (World Bank) ──
+  // 13. Unemployment
   if (coverage.unemployment !== undefined && coverage.unemployment !== null) {
     const unemp = coverage.unemployment;
     if (unemp > 10) add("WORLDBANK", `Unemployment rate ${unemp.toFixed(1)}%`, unemp, logScale(unemp, 10, 40, 5), 0.75);
   }
-
-  // ── 14. Inflation (World Bank) ──
+  // 14. Inflation
   if (coverage.inflation !== undefined && coverage.inflation !== null) {
     const infl = coverage.inflation;
     if (infl > 5) add("WORLDBANK", `Inflation rate ${infl.toFixed(1)}% (${coverage.inflation_year || "latest"})`, infl, logScale(infl, 5, 50, 6), 0.75);
   }
-
-  // ── 15. Refugees (UNHCR) ──
+  // 15. Refugees
   if (coverage.refugees) {
     const ref = coverage.refugees;
     if (ref > 1000) add("UNHCR", `${ref.toLocaleString()} refugees`, ref, logScale(ref, 1000, 5000000, 8), 0.85);
   }
-
-  // ── 16. Displacement (UNHCR) ──
+  // 16. Displaced
   if (coverage.displaced) {
     const disp = coverage.displaced;
     if (disp > 1000) add("UNHCR", `${disp.toLocaleString()} displaced`, disp, logScale(disp, 1000, 5000000, 8), 0.85);
   }
-
-  // ── 17. Asylum seekers (UNHCR) ──
+  // 17. Asylum
   if (coverage.asylum) {
     const asym = coverage.asylum;
     if (asym > 100) add("UNHCR", `${asym.toLocaleString()} asylum seekers`, asym, logScale(asym, 100, 1000000, 6), 0.8);
   }
-
-  // ── 18. UNHCR Operations ──
+  // 18. UNHCR ops
   if (coverage.unhcr_op) add("UNHCR", `Active operation: ${coverage.unhcr_op.name}`, 1, 4, 0.7);
-
-  // ── 19. NOAA monitoring ──
+  // 19. NOAA stations
   if (coverage.noaa && iso === "USA") add("NOAA", `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations, 4, 0.7);
-
-  // ── 20. EMSC seismic ──
+  // 20. EMSC
   if (coverage.emsc) {
     const mag = coverage.emsc.mag || 0;
     if (mag >= 4.5) add("EMSC", `M${mag.toFixed(1)} earthquake (secondary network)`, mag, logScale(mag, 4.5, 8, 8), 0.75);
   }
-
-  // ── 21. IFRC GO ──
+  // 21. IFRC
   if (coverage.ifrc) add("IFRC", `${coverage.ifrc.dtype}: ${(coverage.ifrc.name || "").substring(0, 30)}`, 1, 6, 0.85);
-
-  // ── 22. Air quality (multi-city) ──
+  // 22. Air quality
   if (coverage.air_quality) {
     const pm25 = coverage.air_quality.pm25 || 0;
     const city = coverage.air_quality.city || "monitored city";
     if (pm25 >= 35) add("OPENMETEO", `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25, logScale(pm25, 35, 300, 5), 0.7);
   }
-
-  // ── 23. World Bank refugee population ──
+  // 23. WB refugees
   if (coverage.refugees_wb) {
     const ref = coverage.refugees_wb;
     if (ref > 1000) add("WORLDBANK", `${ref.toLocaleString()} refugees (WB cross-check)`, ref, logScale(ref, 1000, 5000000, 5), 0.75);
   }
-
-  // ── 24. OpenStreetMap Health Infrastructure ──
+  // 24. OSM
   if (coverage.hospitals) add("OSM", `${coverage.hospitals} hospitals in region`, coverage.hospitals, coverageScale(coverage.hospitals, 1, 50, 4), 0.6);
   if (coverage.clinics) add("OSM", `${coverage.clinics} clinics in region`, coverage.clinics, coverageScale(coverage.clinics, 1, 100, 3), 0.5);
-
-  // ── 25. EM-DAT Disasters ──
+  // 25. EM-DAT
   if (coverage.emdat) {
     const deaths = coverage.emdat.deaths || 0;
     if (deaths > 0) add("EM-DAT", `${coverage.emdat.disaster} (${coverage.emdat.year})`, deaths, logScale(deaths, 10, 10000, 6), 0.7);
   }
-
-  // ── 26. Climate TRACE Emissions ──
+  // 26. Climate TRACE
   if (coverage.emissions) {
     const emissions = coverage.emissions.total || 0;
     if (emissions > 1000) add("CLIMATETRACE", `${(emissions/1000).toFixed(1)}kt CO₂e emissions (${coverage.emissions.sector})`, emissions, logScale(emissions, 1000, 1000000, 5), 0.6);
   }
-
-  // ── 27. Wind Speed (Open-Meteo) ──
+  // 27. Wind
   if (coverage.wind) {
     const speed = coverage.wind.speed || 0;
     if (speed > 30) add("OPENMETEO", `Wind speed ${speed} km/h (storm risk)`, speed, logScale(speed, 30, 100, 5), 0.7);
   }
-
-  // ── 28. Precipitation (Open-Meteo) ──
+  // 28. Precip
   if (coverage.precipitation) {
     const total = coverage.precipitation.total || 0;
     if (total > 10) add("OPENMETEO", `${total}mm precipitation (flood risk)`, total, logScale(total, 10, 100, 5), 0.7);
   }
-
-  // ── 29. UV Index (Open-Meteo) ──
+  // 29. UV
   if (coverage.uv) {
     const uv = coverage.uv.max || 0;
     if (uv > 8) add("OPENMETEO", `UV Index ${uv} (extreme - health risk)`, uv, logScale(uv, 8, 11, 3), 0.6);
   }
-
-  // ── 30. Historic Seismic Activity (USGS) ──
+  // 30. Historic seismic
   if (coverage.historic_seismic && coverage.historic_seismic.length > 0) {
     const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
     if (maxMag > 6) add("USGS", `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag, logScale(maxMag, 6, 8, 4), 0.6);
   }
-
-  // ── 31. Food Prices (World Bank) ──
+  // 31. Food prices
   if (coverage.food_prices && coverage.food_prices.length > 0) {
     const latest = coverage.food_prices[coverage.food_prices.length - 1];
     if (latest && latest.value) add("WORLDBANK", `Food price index ${latest.value.toFixed(1)}`, latest.value, coverageScale(latest.value, 80, 150, 5), 0.7);
   }
-
-  // ── 32. Water Stress (World Bank) ──
+  // 32. Water stress
   if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
     const stress = coverage.water_stress;
     if (stress > 20) add("WORLDBANK", `Water stress ${stress.toFixed(1)}% of resources`, stress, logScale(stress, 20, 100, 5), 0.7);
   }
-
-  // ── 33. NOAA Alerts ──
+  // 33. NOAA alerts
   if (coverage.noaa_alerts) {
     const alerts = coverage.noaa_alerts;
     if (alerts > 0) add("NOAA", `${alerts} extreme weather alerts active`, alerts, coverageScale(alerts, 1, 20, 3), 0.6);
   }
-
-  // ── 34. UNHCR Emergency ──
+  // 34. UNHCR emergency
   if (coverage.unhcr_emergency) {
     const level = coverage.unhcr_emergency.level || "unknown";
     const pts = level === "critical" ? 5 : level === "high" ? 3 : 1;
     add("UNHCR", `Emergency: ${coverage.unhcr_emergency.name} (${level})`, 1, pts, 0.7);
   }
-
-  // ── 35. Cloud Cover (Open-Meteo) ──
+  // 35. Cloud cover
   if (coverage.cloudcover) {
     const avg = coverage.cloudcover.avg || 0;
     if (avg > 70) add("OPENMETEO", `Cloud cover ${avg.toFixed(0)}% (weather disruption)`, avg, coverageScale(avg, 70, 100, 3), 0.5);
   }
-
-  // ── 36. Lightning Potential (Open-Meteo) ──
+  // 36. Lightning
   if (coverage.lightning) {
     const max = coverage.lightning.max || 0;
     if (max > 100) add("OPENMETEO", `Lightning potential ${max} J/kg (storm risk)`, max, logScale(max, 100, 500, 4), 0.6);
   }
-
-  // ── 37. NOAA Storm Reports ──
+  // 37. NOAA storm reports
   if (coverage.storm_reports) {
     const reports = coverage.storm_reports;
     if (reports > 0) add("NOAA", `${reports} severe storm alerts`, reports, coverageScale(reports, 1, 50, 4), 0.6);
   }
-
-  // ── 38. UNHCR Statistics ──
+  // 38. UNHCR stats
   if (coverage.unhcr_stats) {
     const refugees = coverage.unhcr_stats.refugees || 0;
     if (refugees > 1000) add("UNHCR", `${refugees.toLocaleString()} refugees (${coverage.unhcr_stats.year})`, refugees, logScale(refugees, 1000, 5000000, 7), 0.8);
   }
-
-  // ── 39. Trade as % of GDP (World Bank) ──
+  // 39. Trade
   if (coverage.trade_gdp !== undefined && coverage.trade_gdp !== null) {
     const trade = coverage.trade_gdp;
     if (trade > 60) add("WORLDBANK", `Trade ${trade.toFixed(1)}% of GDP`, trade, coverageScale(trade, 60, 200, 4), 0.6);
   }
-
-  // ── 40. ACLED-style conflict event (via ReliefWeb heuristic) ──
+  // 40. Conflict event (ReliefWeb)
   if (coverage.conflict_event) {
     const sev = coverage.conflict_event.severityIndex || 40;
     add("RELIEFWEB", `${coverage.conflict_event.event_type}: ${(coverage.conflict_event.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 6), 0.75);
   }
-
-  // ── 41. IPC-style food insecurity (via ReliefWeb heuristic) ──
+  // 41. IPC
   if (coverage.ipc) {
     const phase = coverage.ipc.phase || 3;
     const pts = phase === 5 ? 12 : phase === 4 ? 9 : 6;
     add("IPC", `Phase ${phase}: ${coverage.ipc.phase_name}`, phase, pts, 0.85);
   }
-
-  // ── 42. FEWS NET alert ──
+  // 42. FEWS NET
   if (coverage.fewsnet) {
     const phase = coverage.fewsnet.phase || 3;
     add("FEWS NET", `${coverage.fewsnet.title || "Food security alert"}`, phase, phase >= 4 ? 8 : 5, 0.75);
   }
 
-  // Weighted average → hard-capped 0–35
   const evidenceScore = totalWeight > 0 ? Math.min(35, totalPts / totalWeight) : 0;
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
   const sourceCountFactor = Math.min(1, Math.sqrt(ledger.length / 2));
@@ -864,214 +920,6 @@ function computeEvidenceScore(iso) {
     sourceCount: ledger.length,
   };
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-//  HISTORY / ML / SENTIMENT — unchanged from v13.9.6
-// ════════════════════════════════════════════════════════════════════════════
-
-class PersistentHistoryStore {
-  constructor() { this.memory = new Map(); this.redis = null; this.maxPoints = CFG.HISTORY_MAX_POINTS; }
-  attachRedis(client) { this.redis = client; }
-  async record(iso, snapshot) {
-    const entry = { ts: Date.now(), ...snapshot };
-    if (!this.memory.has(iso)) this.memory.set(iso, []);
-    const arr = this.memory.get(iso);
-    arr.push(entry);
-    if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
-    if (this.redis) {
-      try {
-        await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
-        await this.redis.ltrim(`history:${iso}`, 0, this.maxPoints - 1);
-        await this.redis.expire(`history:${iso}`, CFG.HISTORY_RETENTION_DAYS * 86400);
-      } catch {}
-    }
-  }
-  async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
-    if (this.redis) {
-      try {
-        const rows = await this.redis.lrange(`history:${iso}`, 0, limit - 1);
-        if (rows && rows.length) return rows.map(r => typeof r === "string" ? JSON.parse(r) : r).reverse();
-      } catch {}
-    }
-    const arr = this.memory.get(iso) || [];
-    return arr.slice(-limit);
-  }
-  async scoreSeries(iso, limit = CFG.HISTORY_MAX_POINTS) {
-    const rows = await this.get(iso, limit);
-    return rows.map(r => r.score).filter(Number.isFinite);
-  }
-}
-
-const persistentHistory = new PersistentHistoryStore();
-
-class HistoricalDataStore {
-  constructor() { this.data = {}; }
-  store(iso, d) { if (!this.data[iso]) this.data[iso] = []; this.data[iso].push({ timestamp: Date.now(), ...d }); }
-  getHistory(iso, days = 7) { if (!this.data[iso]) return []; const cutoff = Date.now() - days * 86400000; return this.data[iso].filter(d => d.timestamp > cutoff); }
-  getTrend(iso, days = 30) {
-    const h = this.getHistory(iso, days);
-    if (h.length < 3) return null;
-    const s = h.map(d => d.score);
-    return { direction: s[s.length - 1] > s[0] ? 'worsening' : s[s.length - 1] < s[0] ? 'improving' : 'stable', points: h.length, change: s[s.length - 1] - s[0] };
-  }
-}
-const historyStore = new HistoricalDataStore();
-
-class CrisisMLModel {
-  constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
-  predict(seq) {
-    if (!this.trained || seq.length < 5) return this.simpleTrendForecast(seq);
-    const n = this.normalizeSequence(seq);
-    const h = this.forwardPass(n);
-    const p = this.outputLayer(h);
-    return { forecast: this.denormalize(p), confidence: this.performance.r2 || 0.7, trend: this.determineTrend(seq, p), anomaly_probability: this.calculateAnomalyProbability(seq, p) };
-  }
-  forwardPass(input) { const h = []; for (let i = 0; i < this.weights.input_hidden.length; i++) { let s = this.weights.bias_hidden[i] || 0; for (let j = 0; j < input.length; j++) s += (this.weights.input_hidden[i]?.[j] || 0) * input[j]; h.push(Math.max(0, s)); } return h; }
-  outputLayer(h) { let s = this.weights.bias_output || 0; for (let i = 0; i < h.length; i++) s += (this.weights.hidden_output[i] || 0) * h[i]; return s; }
-  train(seqs) {
-    if (seqs.length < 2) return;
-    const inputs = seqs.map(s => this.normalizeSequence(s.slice(0, -1)));
-    const targets = seqs.map(s => this.normalizeValue(s[s.length - 1]));
-    if (!this.trained) this.initializeWeights(inputs[0].length);
-    let totalError = 0;
-    for (let epoch = 0; epoch < 10; epoch++) {
-      for (let i = 0; i < inputs.length; i++) {
-        const h = this.forwardPass(inputs[i]);
-        const output = this.outputLayer(h);
-        const error = targets[i] - output;
-        for (let j = 0; j < h.length; j++) this.weights.hidden_output[j] = (this.weights.hidden_output[j] || 0) + CFG.LEARNING_RATE * error * h[j];
-        this.weights.bias_output = (this.weights.bias_output || 0) + CFG.LEARNING_RATE * error;
-        for (let j = 0; j < this.weights.input_hidden.length; j++) {
-          const hDelta = error * (this.weights.hidden_output[j] || 0) * (h[j] > 0 ? 1 : 0);
-          for (let k = 0; k < inputs[i].length; k++) this.weights.input_hidden[j][k] += CFG.LEARNING_RATE * hDelta * inputs[i][k];
-          this.weights.bias_hidden[j] = (this.weights.bias_hidden[j] || 0) + CFG.LEARNING_RATE * hDelta;
-        }
-        totalError += error * error;
-      }
-    }
-    this.trained = true;
-    this.trainingCount += seqs.length;
-    this.lastUpdate = Date.now();
-    this.performance.mse = totalError / inputs.length;
-    this.performance.r2 = Math.max(0, 1 - this.performance.mse / 0.1);
-  }
-  initializeWeights(inputSize) {
-    const hs = CFG.HIDDEN_LAYERS?.[0] || 32;
-    this.weights.input_hidden = [];
-    for (let i = 0; i < hs; i++) { this.weights.input_hidden[i] = []; for (let j = 0; j < inputSize; j++) this.weights.input_hidden[i][j] = (Math.random() - 0.5) * 0.1; }
-    this.weights.hidden_output = []; for (let i = 0; i < hs; i++) this.weights.hidden_output[i] = (Math.random() - 0.5) * 0.1;
-    this.weights.bias_hidden = []; for (let i = 0; i < hs; i++) this.weights.bias_hidden[i] = (Math.random() - 0.5) * 0.1;
-    this.weights.bias_output = (Math.random() - 0.5) * 0.1;
-  }
-  normalizeSequence(seq) { const mn = Math.min(...seq, 0), mx = Math.max(...seq, 100), r = mx - mn || 1; return seq.map(v => (v - mn) / r); }
-  normalizeValue(v) { return v / 100; }
-  denormalize(v) { return Math.min(99, Math.max(1, Math.round(v * 100))); }
-  simpleTrendForecast(seq) { if (seq.length < 4) return { forecast: seq[seq.length - 1] || 50, confidence: 0.3 }; const r = seq.slice(-7); const slope = (r[r.length - 1] - r[0]) / (r.length - 1); return { forecast: Math.min(99, Math.max(1, Math.round(r[r.length - 1] + slope * 3))), confidence: 0.4, trend: slope > 0.5 ? "escalating" : slope < -0.5 ? "improving" : "stable", anomaly_probability: 0.1 }; }
-  determineTrend(seq, p) { const d = p - seq[seq.length - 1]; return d > 5 ? "escalating" : d < -5 ? "improving" : "stable"; }
-  calculateAnomalyProbability(seq, p) { return Math.min(0.95, Math.abs(p - seq[seq.length - 1]) / 30); }
-}
-
-const mlModel = new CrisisMLModel();
-
-async function trainMLModel(store) {
-  if (!CFG.ML_ENABLED) return;
-  const seqs = [];
-  for (const iso in store) {
-    const h = await persistentHistory.scoreSeries(iso, 500);
-    if (h.length >= 14) for (let i = 7; i < h.length - 1; i++) seqs.push(h.slice(i - 7, i + 1));
-  }
-  if (seqs.length >= CFG.HISTORY_MIN_FOR_ML_TRAIN) mlModel.train(seqs);
-}
-
-async function mlEnhancedForecast(iso, currentScore, store) {
-  const realHistory = await persistentHistory.scoreSeries(iso, 500);
-  const series = realHistory.length >= 14 ? realHistory : seedHistory(iso, currentScore);
-  const isSynthetic = realHistory.length < 14;
-  const mlP = mlModel.predict(series);
-  const trad = trendForecast(series, currentScore);
-  const blended = Math.round(mlP.forecast * 0.6 + trad.fc * 0.4);
-  return {
-    fc: clamp(blended),
-    ml_forecast: mlP.forecast,
-    trad_forecast: trad.fc,
-    confidence: isSynthetic ? 0.3 : Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)),
-    trend: mlP.trend || trad.trend,
-    esc: blended > currentScore + 5,
-    slope: trad.slope,
-    anomaly_probability: mlP.anomaly_probability || 0.1,
-    ml_trained: mlModel.trained,
-    training_count: mlModel.trainingCount,
-    history_source: isSynthetic ? "synthetic" : "observed",
-    history_points: realHistory.length,
-    fsi_anchor: Math.round((COUNTRIES[iso]?.fsi_score || 50) / 120 * 100),
-  };
-}
-
-class SentimentAnalyzer {
-  constructor() {
-    this.pos = ['peace','ceasefire','truce','agreement','aid','humanitarian','relief','recovery','stabilize','improve','progress','positive','good','great','excellent','success','hope'];
-    this.neg = ['war','conflict','violence','attack','bomb','missile','strike','kill','death','casualty','destroy','collapse','crisis','emergency','famine','hunger','disease','outbreak','escalate','worsen','deteriorate','critical','severe','dire','catastrophe','disaster','devastating'];
-    this.sNeg = ['exterminate','genocide','massacre','pogrom','ethnic cleansing','starvation','catastrophic'];
-  }
-  analyze(text) {
-    if (!text || text.length < 10) return { score: 0, label: 'neutral', confidence: 0.5, key_terms: [], crisis_intensity: 0 };
-    const lower = text.toLowerCase();
-    let score = 0, matches = 0;
-    for (const w of this.pos) if (lower.includes(w)) { score += 0.15; matches++; }
-    for (const w of this.neg) if (lower.includes(w)) { score -= 0.2; matches++; }
-    for (const w of this.sNeg) if (lower.includes(w)) { score -= 0.5; matches++; }
-    const tm = Math.min(matches, 10);
-    const ns = Math.max(-1, Math.min(1, score / (Math.max(tm, 1) / 2)));
-    let label, confidence;
-    if (ns > 0.2) { label = 'positive'; confidence = Math.min(0.95, 0.5 + Math.abs(ns) * 0.5); }
-    else if (ns < -0.2) { label = 'negative'; confidence = Math.min(0.95, 0.5 + Math.abs(ns) * 0.5); }
-    else { label = 'neutral'; confidence = 0.6; }
-    return { score: +ns.toFixed(2), label, confidence: +confidence.toFixed(2), key_terms: [], crisis_intensity: +Math.min(1, Math.abs(ns) * 1.5).toFixed(2) };
-  }
-}
-const sentimentAnalyzer = new SentimentAnalyzer();
-
-function analyzeCountrySentiment(iso, store) {
-  if (!CFG.SENTIMENT_ENABLED) return null;
-  const c = store[iso];
-  const text = [];
-  if (c.signals?.whoOutbreaks?.length) text.push(c.signals.whoOutbreaks.map(o => o.disease).join(' '));
-  if (c.signals?.whoDon?.length) text.push(c.signals.whoDon.map(o => o.title).join(' '));
-  if (c.signals?.gdacs?.title) text.push(c.signals.gdacs.title);
-  if (!text.length) return null;
-  return sentimentAnalyzer.analyze(text.join('. '));
-}
-
-async function storeHistoricalData(iso, store) {
-  if (!CFG.HISTORY_ENABLED) return;
-  const c = store[iso];
-  await persistentHistory.record(iso, {
-    score: c.score,
-    live_score: c.__live_breaking?.live_score || 0,
-    signal_count: c.__live_breaking?.signal_count || 0,
-    distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
-  });
-  historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
-}
-
-class AlertManager {
-  constructor() { this.thresholds = { global: 75 }; this.lastAlerts = {}; }
-  checkAlerts(iso, store) {
-    if (!CFG.GEO_FENCING_ENABLED) return [];
-    const c = store[iso];
-    const triggered = [];
-    const now = Date.now();
-    if (c.score >= this.thresholds.global) {
-      const key = `${iso}_global`;
-      if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
-        triggered.push({ iso, name: c.name, score: c.score, type: 'global', message: `${c.name} reached ${c.score}/100.` });
-        this.lastAlerts[key] = now;
-      }
-    }
-    return triggered;
-  }
-}
-const alertManager = new AlertManager();
 
 // ════════════════════════════════════════════════════════════════════════════
 //  FETCHERS — ALL 40+ PRESERVED. Each writes into evidenceIndex.sourceCoverage.
@@ -1094,9 +942,7 @@ async function fetchUSGS() {
       if (!iso) continue;
       evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
       const existing = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
-      if (props.mag > existing) {
-        evidenceIndex.sourceCoverage[iso].usgs = { mag: props.mag, time: props.time, place: props.place };
-      }
+      if (props.mag > existing) evidenceIndex.sourceCoverage[iso].usgs = { mag: props.mag, time: props.time, place: props.place };
     }
     return { data: r.data.features, live: true };
   } catch { return { data: [], live: false }; }
@@ -1133,9 +979,7 @@ async function fetchShakeMap() {
       if (!iso) continue;
       evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
       const existing = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
-      if (props.mag > existing) {
-        evidenceIndex.sourceCoverage[iso].usgs = { mag: props.mag, time: props.time, place: props.place };
-      }
+      if (props.mag > existing) evidenceIndex.sourceCoverage[iso].usgs = { mag: props.mag, time: props.time, place: props.place };
     }
     return { data: events, live: true };
   } catch { return { data: [], live: false }; }
@@ -1152,9 +996,7 @@ async function fetchEMSC() {
       if (!iso) continue;
       evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
       const existing = evidenceIndex.sourceCoverage[iso].emsc?.mag || 0;
-      if (mag > existing) {
-        evidenceIndex.sourceCoverage[iso].emsc = { mag, time: f.properties?.time, place: f.properties?.flynn_region || f.properties?.place };
-      }
+      if (mag > existing) evidenceIndex.sourceCoverage[iso].emsc = { mag, time: f.properties?.time, place: f.properties?.flynn_region || f.properties?.place };
     }
     return { data: r.data.features, live: true };
   } catch { return { data: [], live: false }; }
@@ -1175,11 +1017,8 @@ async function fetchNASA() {
       if (!iso) continue;
       evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
       const cat = ev.categories?.[0]?.id || "";
-      if (cat === "wildfires") {
-        evidenceIndex.sourceCoverage[iso].wildfire = { title: ev.title, severity: "Wildfire" };
-      } else {
-        evidenceIndex.sourceCoverage[iso].nasa = { title: ev.title, categories: ev.categories };
-      }
+      if (cat === "wildfires") evidenceIndex.sourceCoverage[iso].wildfire = { title: ev.title, severity: "Wildfire" };
+      else evidenceIndex.sourceCoverage[iso].nasa = { title: ev.title, categories: ev.categories };
     }
     return { data: events, live: events.length > 0 };
   } catch { return { data: [], live: false }; }
@@ -1221,9 +1060,7 @@ async function fetchGDACS() {
       }
       if (props.eventtype === "EQ" && props.magnitude) {
         const eqExisting = evidenceIndex.sourceCoverage[iso].gdacs_eq?.mag || 0;
-        if (props.magnitude > eqExisting) {
-          evidenceIndex.sourceCoverage[iso].gdacs_eq = { event: props.eventname, mag: props.magnitude };
-        }
+        if (props.magnitude > eqExisting) evidenceIndex.sourceCoverage[iso].gdacs_eq = { event: props.eventname, mag: props.magnitude };
       }
     }
     return { data: feats, live: feats.length > 0 };
@@ -1308,34 +1145,13 @@ async function fetchWeatherHazards() {
       }
     } catch {}
   }));
-  if (results.flood_discharge > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].flood_risk = { discharge: results.flood_discharge };
-  }
-  if (results.wave_height > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].marine = { wave_height: results.wave_height };
-  }
-  if (results.wind_speed > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].wind = { speed: results.wind_speed };
-  }
-  if (results.precip_total > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].precipitation = { total: results.precip_total };
-  }
-  if (results.uv_max > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].uv = { max: results.uv_max };
-  }
-  if (results.cloud_avg > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].cloudcover = { avg: results.cloud_avg };
-  }
-  if (results.lightning_max > 0) {
-    evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-    evidenceIndex.sourceCoverage['YEM'].lightning = { max: results.lightning_max };
-  }
+  if (results.flood_discharge > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].flood_risk = { discharge: results.flood_discharge }; }
+  if (results.wave_height > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].marine = { wave_height: results.wave_height }; }
+  if (results.wind_speed > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].wind = { speed: results.wind_speed }; }
+  if (results.precip_total > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].precipitation = { total: results.precip_total }; }
+  if (results.uv_max > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].uv = { max: results.uv_max }; }
+  if (results.cloud_avg > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].cloudcover = { avg: results.cloud_avg }; }
+  if (results.lightning_max > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].lightning = { max: results.lightning_max }; }
   return { data: results, live: anyLive };
 }
 
@@ -1371,18 +1187,9 @@ async function fetchNOAA() {
       safeFetch(fetch("https://api.weather.gov/alerts/active?severity=Severe").then(r => r.json())),
     ]);
     const out = { stations: s.ok ? (s.data.features?.length || 0) : 0, extreme_alerts: a.ok ? (a.data.features?.length || 0) : 0, storm_alerts: b.ok ? (b.data.features?.length || 0) : 0 };
-    if (out.stations > 0) {
-      evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-      evidenceIndex.sourceCoverage['USA'].noaa = { stations: out.stations, status: "active" };
-    }
-    if (out.extreme_alerts > 0) {
-      evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-      evidenceIndex.sourceCoverage['USA'].noaa_alerts = out.extreme_alerts;
-    }
-    if (out.storm_alerts > 0) {
-      evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-      evidenceIndex.sourceCoverage['USA'].storm_reports = out.storm_alerts;
-    }
+    if (out.stations > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].noaa = { stations: out.stations, status: "active" }; }
+    if (out.extreme_alerts > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].noaa_alerts = out.extreme_alerts; }
+    if (out.storm_alerts > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].storm_reports = out.storm_alerts; }
     return { data: out, live: out.extreme_alerts > 0 || out.storm_alerts > 0 };
   } catch { return { data: { stations: 0, extreme_alerts: 0, storm_alerts: 0 }, live: false }; }
 }
@@ -1398,10 +1205,7 @@ async function fetchSPC() {
         const label = p.LABEL || "TSTM";
         if (!top || (rank[label] || 0) > (rank[top.LABEL] || 0)) top = { label, label2: p.LABEL2, issue: p.ISSUE_ISO };
       }
-      if (top) {
-        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-        evidenceIndex.sourceCoverage['USA'].spc = top;
-      }
+      if (top) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].spc = top; }
       return { data: top, live: !!top };
     }
   } catch {}
@@ -1558,41 +1362,18 @@ async function fetchWorldBankAll() {
     fetchWorldBankIndicator("AG.PRD.FOOD.XD"),
     fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
   ]);
-  // Write into evidenceIndex.sourceCoverage
   for (const [iso, d] of Object.entries(population.data)) {
     evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
     evidenceIndex.sourceCoverage[iso].population = d.value;
     evidenceIndex.population[iso] = d.value;
   }
-  for (const [iso, d] of Object.entries(poverty.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].poverty = d.value;
-  }
-  for (const [iso, d] of Object.entries(inflation.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].inflation = d.value;
-    evidenceIndex.sourceCoverage[iso].inflation_year = d.date;
-  }
-  for (const [iso, d] of Object.entries(gdpGrowth.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].gdp_growth = d.value;
-  }
-  for (const [iso, d] of Object.entries(unemployment.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].unemployment = d.value;
-  }
-  for (const [iso, d] of Object.entries(waterStress.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].water_stress = d.value;
-  }
-  for (const [iso, d] of Object.entries(foodPriceIndex.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].food_prices = [{ value: d.value, date: d.date }];
-  }
-  for (const [iso, d] of Object.entries(electricityAccess.data)) {
-    evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
-    evidenceIndex.sourceCoverage[iso].electricity_access = d.value;
-  }
+  for (const [iso, d] of Object.entries(poverty.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].poverty = d.value; }
+  for (const [iso, d] of Object.entries(inflation.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].inflation = d.value; evidenceIndex.sourceCoverage[iso].inflation_year = d.date; }
+  for (const [iso, d] of Object.entries(gdpGrowth.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].gdp_growth = d.value; }
+  for (const [iso, d] of Object.entries(unemployment.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].unemployment = d.value; }
+  for (const [iso, d] of Object.entries(waterStress.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].water_stress = d.value; }
+  for (const [iso, d] of Object.entries(foodPriceIndex.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].food_prices = [{ value: d.value, date: d.date }]; }
+  for (const [iso, d] of Object.entries(electricityAccess.data)) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].electricity_access = d.value; }
   return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
 }
 
@@ -1714,9 +1495,7 @@ async function fetchClimateTrace() {
         if (!byCountry[iso]) byCountry[iso] = { topEmission: null, count: 0 };
         byCountry[iso].count++;
         const em = a.Emissions?.find(e => e.Product === 'co2e_100yr')?.EmissionsQuantity || 0;
-        if (!byCountry[iso].topEmission || em > byCountry[iso].topEmission.emissions) {
-          byCountry[iso].topEmission = { emissions: em, sector: a.Sector || 'mixed' };
-        }
+        if (!byCountry[iso].topEmission || em > byCountry[iso].topEmission.emissions) byCountry[iso].topEmission = { emissions: em, sector: a.Sector || 'mixed' };
       }
       for (const [iso, d] of Object.entries(byCountry)) {
         if (d.topEmission) {
@@ -1743,9 +1522,7 @@ async function fetchHDX() {
           if (iso && COUNTRIES[iso]) {
             if (!byCountry[iso]) byCountry[iso] = { count: 0, latest: null };
             byCountry[iso].count++;
-            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) {
-              byCountry[iso].latest = pkg.metadata_modified;
-            }
+            if (!byCountry[iso].latest || (pkg.metadata_modified || '') > byCountry[iso].latest) byCountry[iso].latest = pkg.metadata_modified;
           }
         }
       }
@@ -1812,9 +1589,7 @@ async function fetchJMA() {
       for (const e of events) {
         evidenceIndex.sourceCoverage['JPN'] = evidenceIndex.sourceCoverage['JPN'] || {};
         const existing = evidenceIndex.sourceCoverage['JPN'].emsc?.mag || 0;
-        if (e.mag > existing) {
-          evidenceIndex.sourceCoverage['JPN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-        }
+        if (e.mag > existing) evidenceIndex.sourceCoverage['JPN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
       }
       return { data: events, live: events.length > 0 };
     }
@@ -1834,9 +1609,7 @@ async function fetchBMKG() {
       for (const e of events) {
         evidenceIndex.sourceCoverage['IDN'] = evidenceIndex.sourceCoverage['IDN'] || {};
         const existing = evidenceIndex.sourceCoverage['IDN'].emsc?.mag || 0;
-        if (e.mag > existing) {
-          evidenceIndex.sourceCoverage['IDN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-        }
+        if (e.mag > existing) evidenceIndex.sourceCoverage['IDN'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
       }
       return { data: events, live: events.length > 0 };
     }
@@ -1858,14 +1631,11 @@ async function fetchGEOFON() {
         return { mag, place: parts[12] || 'Unknown', eventTime: time, ageHours };
       }).filter(e => e && e.mag >= 4.5);
       for (const e of events) {
-        const iso = findClosestCountry(0, 0) || 'USA';
         for (const [isoKey, c] of Object.entries(COUNTRIES)) {
           if (matchesCountryPlace(isoKey, e.place)) {
             evidenceIndex.sourceCoverage[isoKey] = evidenceIndex.sourceCoverage[isoKey] || {};
             const existing = evidenceIndex.sourceCoverage[isoKey].emsc?.mag || 0;
-            if (e.mag > existing) {
-              evidenceIndex.sourceCoverage[isoKey].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-            }
+            if (e.mag > existing) evidenceIndex.sourceCoverage[isoKey].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
             break;
           }
         }
@@ -1892,9 +1662,7 @@ async function fetchINGV() {
           if (matchesCountryPlace(iso, e.place)) {
             evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
             const existing = evidenceIndex.sourceCoverage[iso].emsc?.mag || 0;
-            if (e.mag > existing) {
-              evidenceIndex.sourceCoverage[iso].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-            }
+            if (e.mag > existing) evidenceIndex.sourceCoverage[iso].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
           }
         }
       }
@@ -1919,9 +1687,7 @@ async function fetchGeoNet() {
         if (matchesCountryPlace('NZL', e.place)) {
           evidenceIndex.sourceCoverage['NZL'] = evidenceIndex.sourceCoverage['NZL'] || {};
           const existing = evidenceIndex.sourceCoverage['NZL'].emsc?.mag || 0;
-          if (e.mag > existing) {
-            evidenceIndex.sourceCoverage['NZL'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
-          }
+          if (e.mag > existing) evidenceIndex.sourceCoverage['NZL'].emsc = { mag: e.mag, time: e.eventTime, place: e.place };
         }
       }
       return { data: events, live: events.length > 0 };
@@ -2002,9 +1768,7 @@ async function fetchReliefWebIPC() {
       if (iso) {
         evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
         const existing = evidenceIndex.sourceCoverage[iso].ipc?.phase || 0;
-        if (phase > existing) {
-          evidenceIndex.sourceCoverage[iso].ipc = { phase, phase_name, title: d.fields?.name || '' };
-        }
+        if (phase > existing) evidenceIndex.sourceCoverage[iso].ipc = { phase, phase_name, title: d.fields?.name || '' };
       }
       out.push({ country, phase, phase_name, title: d.fields?.name || '' });
     });
@@ -2027,9 +1791,7 @@ async function fetchReliefWebConflict() {
       if (iso) {
         evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
         const existing = evidenceIndex.sourceCoverage[iso].conflict_event?.severityIndex || 0;
-        if (severityIndex > existing) {
-          evidenceIndex.sourceCoverage[iso].conflict_event = { event_type: d.fields?.type?.[0]?.name || 'Conflict', severityIndex, title: d.fields?.name || '' };
-        }
+        if (severityIndex > existing) evidenceIndex.sourceCoverage[iso].conflict_event = { event_type: d.fields?.type?.[0]?.name || 'Conflict', severityIndex, title: d.fields?.name || '' };
       }
       out.push({ country, event_type: d.fields?.type?.[0]?.name || 'Conflict', severityIndex, title: d.fields?.name || '' });
     });
@@ -2052,9 +1814,7 @@ async function fetchReliefWebFewsNet() {
       if (iso) {
         evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
         const existing = evidenceIndex.sourceCoverage[iso].fewsnet?.phase || 0;
-        if (phase > existing) {
-          evidenceIndex.sourceCoverage[iso].fewsnet = { phase, title: d.fields?.name || '' };
-        }
+        if (phase > existing) evidenceIndex.sourceCoverage[iso].fewsnet = { phase, title: d.fields?.name || '' };
       }
       out.push({ country, phase, title: d.fields?.name || '' });
     });
@@ -2126,7 +1886,6 @@ async function fetchUNHCROperations() {
   return { data: [], live: false };
 }
 
-// ── UNHCR EMERGENCY ──
 async function fetchUNHCREmergency() {
   try {
     const r = await safeFetch(fetch("https://api.unhcr.org/emergency/v1/emergencies?limit=20").then(r => r.json()));
@@ -2144,7 +1903,6 @@ async function fetchUNHCREmergency() {
   return { data: [], live: false };
 }
 
-// ── UNHCR STATISTICS ──
 async function fetchUNHCRStatistics() {
   try {
     const r = await safeFetch(fetch("https://api.unhcr.org/statistics/v1/refugees?limit=20").then(r => r.json()));
@@ -2263,54 +2021,52 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING SIGNAL DETECTION — retained from v13.9.6 (used for tier /
-//  headline / ranking), but no longer drives the score. The score comes from
-//  computeEvidenceScore() above, exactly as in the HTML.
+//  LIVE BREAKING (tier/headline only — does NOT touch numeric score)
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
-  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨", type: "event" },
-  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠", type: "event" },
-  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍", type: "event" },
-  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍", type: "event" },
-  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event" },
-  jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏", type: "event" },
-  bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏", type: "event" },
-  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍", type: "event" },
-  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍", type: "event" },
-  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏", type: "event" },
-  shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍", type: "event" },
-  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event" },
-  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event" },
-  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event" },
-  ecdc_threat:         { weight: 55,  verify: 0.85, label: "ECDC Threat",               icon: "🧫", type: "event" },
-  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event" },
-  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠", type: "event" },
-  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event" },
-  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event" },
-  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event" },
-  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️", type: "event" },
-  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥", type: "event" },
-  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event" },
-  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event" },
-  jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀", type: "event" },
-  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀", type: "event" },
-  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event" },
-  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊", type: "event" },
-  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event" },
-  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠", type: "event" },
-  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈", type: "event" },
-  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉", type: "event" },
-  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",       icon: "🧫", type: "event" },
-  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",        icon: "⛈️", type: "event" },
-  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event" },
-  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event" },
-  gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
-  climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
-  hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
-  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event" },
-  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event" },
-  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event" },
+  gdacs_red:{weight:100,verify:1.0,label:"GDACS RED Alert",icon:"🚨"},
+  gdacs_orange:{weight:70,verify:0.9,label:"GDACS Orange Alert",icon:"🟠"},
+  earthquake_m6:{weight:95,verify:1.0,label:"M6+ Earthquake",icon:"🌍"},
+  earthquake_m5:{weight:65,verify:0.9,label:"M5+ Earthquake",icon:"🌍"},
+  earthquake_m45:{weight:40,verify:0.8,label:"M4.5+ Earthquake",icon:"🌍"},
+  jma_earthquake:{weight:60,verify:0.95,label:"JMA Earthquake",icon:"🌏"},
+  bmkg_earthquake:{weight:60,verify:0.95,label:"BMKG Earthquake",icon:"🌏"},
+  geofon_earthquake:{weight:55,verify:0.95,label:"GEOFON Earthquake",icon:"🌍"},
+  ingv_earthquake:{weight:55,verify:0.95,label:"INGV Earthquake",icon:"🌍"},
+  geonet_earthquake:{weight:50,verify:0.95,label:"GeoNet Earthquake",icon:"🌏"},
+  shakemap_event:{weight:70,verify:0.95,label:"ShakeMap Event",icon:"🌍"},
+  who_outbreak:{weight:80,verify:1.0,label:"WHO Outbreak",icon:"🦠"},
+  who_outbreak_multi:{weight:95,verify:1.0,label:"Multiple WHO Outbreaks",icon:"🦠"},
+  who_don:{weight:90,verify:1.0,label:"WHO Disease Outbreak",icon:"🦠"},
+  ecdc_threat:{weight:55,verify:0.85,label:"ECDC Threat",icon:"🧫"},
+  unhcr_mass_displace:{weight:90,verify:1.0,label:"Mass Displacement",icon:"🚶"},
+  unhcr_return:{weight:40,verify:0.95,label:"Refugee Returns",icon:"🏠"},
+  nasa_wildfire:{weight:75,verify:0.9,label:"Active Wildfire",icon:"🔥"},
+  nasa_storm:{weight:70,verify:0.9,label:"Severe Storm",icon:"🌀"},
+  nasa_flood:{weight:70,verify:0.9,label:"Flood Event",icon:"🌊"},
+  nasa_drought:{weight:55,verify:0.9,label:"Drought",icon:"🏜️"},
+  ifrc_emergency:{weight:75,verify:1.0,label:"IFRC Emergency",icon:"🏥"},
+  ifrc_appeal:{weight:80,verify:1.0,label:"IFRC Emergency Appeal",icon:"🆘"},
+  cyclone_active:{weight:85,verify:1.0,label:"Active Cyclone",icon:"🌀"},
+  jtwc_cyclone:{weight:90,verify:1.0,label:"JTWC Pacific Cyclone",icon:"🌀"},
+  jma_typhoon:{weight:85,verify:1.0,label:"JMA Typhoon",icon:"🌀"},
+  flood_severe:{weight:70,verify:0.9,label:"Severe Flooding",icon:"🌊"},
+  marine_hazard:{weight:55,verify:0.9,label:"Marine Hazard",icon:"🌊"},
+  heat_extreme:{weight:60,verify:0.8,label:"Extreme Heat",icon:"🥵"},
+  disease_active:{weight:50,verify:0.8,label:"Disease Outbreak",icon:"🦠"},
+  inflation_crisis:{weight:45,verify:0.9,label:"Inflation Crisis",icon:"📈"},
+  gdp_contraction:{weight:40,verify:0.9,label:"GDP Contraction",icon:"📉"},
+  cdc_outbreak:{weight:55,verify:0.95,label:"CDC Outbreak Notice",icon:"🧫"},
+  spc_severe:{weight:60,verify:0.95,label:"SPC Severe Outlook",icon:"⛈️"},
+  sentinel_observation:{weight:35,verify:0.85,label:"Satellite Observation",icon:"🛰️"},
+  nasa_power_anomaly:{weight:50,verify:0.9,label:"Climate Anomaly",icon:"🌡️"},
+  gfw_deforestation:{weight:55,verify:0.95,label:"Deforestation Alert",icon:"🌳"},
+  climate_trace_emissions:{weight:40,verify:0.85,label:"Emissions Hotspot",icon:"🏭"},
+  hdx_crisis:{weight:45,verify:0.9,label:"HDX Crisis Dataset",icon:"📊"},
+  us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
+  wb_food_price:{weight:35,verify:0.9,label:"Food Price Shock",icon:"🍞"},
+  wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2361,9 +2117,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     const ageHours = s.quakeSigMonth.time ? (now - new Date(s.quakeSigMonth.time).getTime()) / 36e5 : 240;
     if (ageHours <= 720) {
       const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_") || sig.type === "shakemap_event");
-      if (!alreadyCovered) {
-        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
-      }
+      if (!alreadyCovered) signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
     }
   }
 
@@ -2374,22 +2128,15 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
-    for (const don of s.whoDon.slice(0, 3)) {
-      signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
-    }
+    for (const don of s.whoDon.slice(0, 3)) signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
   }
 
   if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && s.ecdcThreats?.length) {
-    for (const threat of s.ecdcThreats.slice(0, 2)) {
-      signals.push({ type: "ecdc_threat", weight: 55, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
-    }
+    for (const threat of s.ecdcThreats.slice(0, 2)) signals.push({ type: "ecdc_threat", weight: 55, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
   }
 
   if (s.totalDisplaced > 500_000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
-
-  if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
-    signals.push({ type: "unhcr_return", weight: 40, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned` });
-  }
+  if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) signals.push({ type: "unhcr_return", weight: 40, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned` });
 
   if (s.nasaEvents && s.nasaEvents.length > 0) {
     for (const ev of s.nasaEvents.slice(0, 3)) {
@@ -2416,26 +2163,15 @@ function detectLiveBreakingSignals(iso, live, store) {
     }
   }
 
-  if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
-    signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
-  }
-  if (s.hazards?.flood_discharge > 500 || s.gdacsEventType === "FL") {
-    signals.push({ type: "flood_severe", weight: 70, ageHours: 48, source: "Open-Meteo/GDACS", details: "Severe flooding" });
-  }
+  if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
+  if (s.hazards?.flood_discharge > 500 || s.gdacsEventType === "FL") signals.push({ type: "flood_severe", weight: 70, ageHours: 48, source: "Open-Meteo/GDACS", details: "Severe flooding" });
   if (s.hazards?.wave_height >= 3) signals.push({ type: "marine_hazard", weight: 55, ageHours: 24, source: "Open-Meteo Marine", details: `${s.hazards.wave_height.toFixed(1)}m wave height` });
   if (s.maxTempC >= 42) signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
-
   if (s.diseaseActive > 10_000) signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
-
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
-
-  if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) {
-    signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
-  }
-  if (CFG.WB_INFRASTRUCTURE_ENABLED && s.electricityAccess && s.electricityAccess.value < 50) {
-    signals.push({ type: "wb_food_price", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
-  }
+  if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
+  if (CFG.WB_INFRASTRUCTURE_ENABLED && s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "wb_food_price", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
 
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     const top = s.cdcOutbreaks[0];
@@ -2449,9 +2185,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
-  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
-    signals.push({ type: "us_drought", weight: 55, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}` });
-  }
+  if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) signals.push({ type: "us_drought", weight: 55, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}` });
 
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
     const tempAnom = s.nasaPower.tempAnomaly || 0;
@@ -2473,27 +2207,18 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
-    for (const storm of s.jtwcStorms.slice(0, 2)) {
-      signals.push({ type: "jtwc_cyclone", weight: 75, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}` });
-    }
+    for (const storm of s.jtwcStorms.slice(0, 2)) signals.push({ type: "jtwc_cyclone", weight: 75, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}` });
   }
-
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
-    for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
-      signals.push({ type: "jma_typhoon", weight: 85, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}` });
-    }
+    for (const typhoon of s.jmaTyphoons.slice(0, 2)) signals.push({ type: "jma_typhoon", weight: 85, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}` });
   }
 
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
-    if (e.emissions > 100_000) {
-      signals.push({ type: "climate_trace_emissions", weight: 20, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}` });
-    }
+    if (e.emissions > 100_000) signals.push({ type: "climate_trace_emissions", weight: 20, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}` });
   }
 
-  if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
-    signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available` });
-  }
+  if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available` });
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
@@ -2515,7 +2240,6 @@ function computeLiveBreakingScore(iso, live, store) {
     else if (ageHours <= 72) recencyFactor = RECENCY.HOURS_72;
     else if (ageHours <= 168) recencyFactor = RECENCY.HOURS_168;
     else recencyFactor = RECENCY.OLDER;
-
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
     const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
     rawScore += weighted;
@@ -2613,10 +2337,8 @@ function buildBreakingHeadline(iso, signals, country) {
   const sortedByWeight = [...(freshEvents.length ? freshEvents : signals)].sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
   const top = sortedByWeight[0];
   const second = sortedByWeight.find(e => e.type !== top.type && e.details !== top.details);
-  const flag = country.flag;
-  const name = country.name;
   const prefix = top.ageHours <= 6 ? "BREAKING: " : top.ageHours <= 24 ? "" : "ONGOING: ";
-  let headline = `${flag} ${prefix}${name} — ${top.details || top.type}`;
+  let headline = `${country.flag} ${prefix}${country.name} — ${top.details || top.type}`;
   if (second && second.weight >= 60) headline += ` + ${second.details || second.type}`;
   return headline;
 }
@@ -2663,7 +2385,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / FORECAST / SEED
+//  ANOMALY / ML / FORECAST (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -2673,9 +2395,7 @@ function detectVolatilityRegime(a) { if (a.length < 8) return { detected: false,
 
 function runAnomalyDetection(a, opts = {}) {
   const minRequired = opts.minRequired || 10;
-  if (a.length < minRequired) {
-    return { detected: false, severity: "INSUFFICIENT_HISTORY", reason: `Need ≥${minRequired} points, have ${a.length}`, methods_fired: 0, methods: [], z_score: 0 };
-  }
+  if (a.length < minRequired) return { detected: false, severity: "INSUFFICIENT_HISTORY", reason: `Need ≥${minRequired} points, have ${a.length}`, methods_fired: 0, methods: [], z_score: 0 };
   const m = [detectCUSUM(a), detectZScore(a), detectChangepoint(a), detectVolatilityRegime(a)];
   const f = m.filter(x => x.detected);
   return { detected: f.length >= 1, severity: f.length >= 4 ? "EXTREME" : f.length >= 3 ? "CRITICAL" : f.length >= 2 ? "HIGH" : f.length >= 1 ? "ELEVATED" : "NONE", methods_fired: f.length, methods: m, z_score: detectZScore(a).stat };
@@ -2689,30 +2409,6 @@ function trendForecast(h, cur) {
   const slope = den ? +(num/den).toFixed(2) : 0;
   const fc = clamp(cur + slope * 7);
   return { fc, slope, trend: slope > 0.4 ? "escalating" : slope < -0.3 ? "improving" : "stable", esc: fc > cur + 5, confidence: 0.6 };
-}
-
-function seedHistory(iso, cur) {
-  const s = strHash(iso);
-  let v = clamp(cur + Math.round((lcg(s) - 0.5) * 20), 5, 99);
-  const h = [];
-  for (let i = 0; i <= 28; i++) { h.push(v); v = clamp(v + (cur - v) * 0.15 + (lcg(strHash(iso + i)) - 0.5) * 6); }
-  h[h.length-1] = cur;
-  return h;
-}
-
-function buildPriorDims(base, types) {
-  const has = t => types.includes(t);
-  const c = v => clamp(v, 5, 99);
-  return {
-    conflict: c(base * ((has("CW")||has("CE")) ? 1.10 : has("REF") ? 0.65 : 0.28)),
-    displacement: c(base * ((has("REF")||has("CW")||has("CE")) ? 1.05 : (has("EQ")||has("FL")||has("TC")) ? 0.80 : 0.38)),
-    food: c(base * ((has("FN")||has("DR")) ? 1.15 : (has("CE")||has("CW")) ? 0.90 : has("FL") ? 0.70 : 0.42)),
-    health: c(base * ((has("EP")||has("FN")) ? 1.10 : (has("CE")||has("CW")||has("EQ")) ? 0.85 : 0.52)),
-    economic: c(base * ((has("CE")||has("CW")||has("FN")||has("DR")) ? 0.85 : 0.42) + 10),
-    climate: c(base * ((has("HEAT")||has("DR")) ? 0.88 : (has("FL")||has("TC")||has("WF")) ? 0.75 : 0.32) + 12),
-    access: c(base * ((has("CW")||has("CE")) ? 0.88 : (has("EQ")||has("FL")||has("LS")) ? 0.72 : 0.32) + 8),
-    political: c(base * ((has("CE")||has("CW")||has("REF")||has("POL")) ? 0.90 : 0.42) + 8),
-  };
 }
 
 function severityLabel(s) { return s >= 85 ? "CATASTROPHIC" : s >= 75 ? "CRITICAL" : s >= 60 ? "HIGH" : s >= 40 ? "ELEVATED" : "MODERATE"; }
@@ -2747,85 +2443,278 @@ function resolutionCredit(store, iso) {
 
 function isLowInstrumentation(lb) { return (lb?.signal_count || 0) < CFG.LOW_INSTRUMENTATION_THRESHOLD; }
 
+class PersistentHistoryStore {
+  constructor() { this.memory = new Map(); this.redis = null; this.maxPoints = CFG.HISTORY_MAX_POINTS; }
+  attachRedis(client) { this.redis = client; }
+  async record(iso, snapshot) {
+    const entry = { ts: Date.now(), ...snapshot };
+    if (!this.memory.has(iso)) this.memory.set(iso, []);
+    const arr = this.memory.get(iso);
+    arr.push(entry);
+    if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
+  }
+  async get(iso, limit = CFG.HISTORY_MAX_POINTS) {
+    const arr = this.memory.get(iso) || [];
+    return arr.slice(-limit);
+  }
+  async scoreSeries(iso, limit = CFG.HISTORY_MAX_POINTS) {
+    const rows = await this.get(iso, limit);
+    return rows.map(r => r.score).filter(Number.isFinite);
+  }
+}
+
+const persistentHistory = new PersistentHistoryStore();
+
+class HistoricalDataStore {
+  constructor() { this.data = {}; }
+  store(iso, d) { if (!this.data[iso]) this.data[iso] = []; this.data[iso].push({ timestamp: Date.now(), ...d }); }
+  getHistory(iso, days = 7) { if (!this.data[iso]) return []; const cutoff = Date.now() - days * 86400000; return this.data[iso].filter(d => d.timestamp > cutoff); }
+  getTrend(iso, days = 30) {
+    const h = this.getHistory(iso, days);
+    if (h.length < 3) return null;
+    const s = h.map(d => d.score);
+    return { direction: s[s.length - 1] > s[0] ? 'worsening' : s[s.length - 1] < s[0] ? 'improving' : 'stable', points: h.length, change: s[s.length - 1] - s[0] };
+  }
+}
+const historyStore = new HistoricalDataStore();
+
+class CrisisMLModel {
+  constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
+  predict(seq) {
+    if (!this.trained || seq.length < 5) return this.simpleTrendForecast(seq);
+    const n = this.normalizeSequence(seq);
+    const h = this.forwardPass(n);
+    const p = this.outputLayer(h);
+    return { forecast: this.denormalize(p), confidence: this.performance.r2 || 0.7, trend: this.determineTrend(seq, p), anomaly_probability: this.calculateAnomalyProbability(seq, p) };
+  }
+  forwardPass(input) { const h = []; for (let i = 0; i < this.weights.input_hidden.length; i++) { let s = this.weights.bias_hidden[i] || 0; for (let j = 0; j < input.length; j++) s += (this.weights.input_hidden[i]?.[j] || 0) * input[j]; h.push(Math.max(0, s)); } return h; }
+  outputLayer(h) { let s = this.weights.bias_output || 0; for (let i = 0; i < h.length; i++) s += (this.weights.hidden_output[i] || 0) * h[i]; return s; }
+  train(seqs) {
+    if (seqs.length < 2) return;
+    const inputs = seqs.map(s => this.normalizeSequence(s.slice(0, -1)));
+    const targets = seqs.map(s => this.normalizeValue(s[s.length - 1]));
+    if (!this.trained) this.initializeWeights(inputs[0].length);
+    let totalError = 0;
+    for (let epoch = 0; epoch < 10; epoch++) {
+      for (let i = 0; i < inputs.length; i++) {
+        const h = this.forwardPass(inputs[i]);
+        const output = this.outputLayer(h);
+        const error = targets[i] - output;
+        for (let j = 0; j < h.length; j++) this.weights.hidden_output[j] = (this.weights.hidden_output[j] || 0) + CFG.LEARNING_RATE * error * h[j];
+        this.weights.bias_output = (this.weights.bias_output || 0) + CFG.LEARNING_RATE * error;
+        for (let j = 0; j < this.weights.input_hidden.length; j++) {
+          const hDelta = error * (this.weights.hidden_output[j] || 0) * (h[j] > 0 ? 1 : 0);
+          for (let k = 0; k < inputs[i].length; k++) this.weights.input_hidden[j][k] += CFG.LEARNING_RATE * hDelta * inputs[i][k];
+          this.weights.bias_hidden[j] = (this.weights.bias_hidden[j] || 0) + CFG.LEARNING_RATE * hDelta;
+        }
+        totalError += error * error;
+      }
+    }
+    this.trained = true;
+    this.trainingCount += seqs.length;
+    this.lastUpdate = Date.now();
+    this.performance.mse = totalError / inputs.length;
+    this.performance.r2 = Math.max(0, 1 - this.performance.mse / 0.1);
+  }
+  initializeWeights(inputSize) {
+    const hs = CFG.HIDDEN_LAYERS?.[0] || 32;
+    this.weights.input_hidden = [];
+    for (let i = 0; i < hs; i++) { this.weights.input_hidden[i] = []; for (let j = 0; j < inputSize; j++) this.weights.input_hidden[i][j] = (Math.random() - 0.5) * 0.1; }
+    this.weights.hidden_output = []; for (let i = 0; i < hs; i++) this.weights.hidden_output[i] = (Math.random() - 0.5) * 0.1;
+    this.weights.bias_hidden = []; for (let i = 0; i < hs; i++) this.weights.bias_hidden[i] = (Math.random() - 0.5) * 0.1;
+    this.weights.bias_output = (Math.random() - 0.5) * 0.1;
+  }
+  normalizeSequence(seq) { const mn = Math.min(...seq, 0), mx = Math.max(...seq, 100), r = mx - mn || 1; return seq.map(v => (v - mn) / r); }
+  normalizeValue(v) { return v / 100; }
+  denormalize(v) { return Math.min(99, Math.max(1, Math.round(v * 100))); }
+  simpleTrendForecast(seq) { if (seq.length < 4) return { forecast: seq[seq.length - 1] || 50, confidence: 0.3 }; const r = seq.slice(-7); const slope = (r[r.length - 1] - r[0]) / (r.length - 1); return { forecast: Math.min(99, Math.max(1, Math.round(r[r.length - 1] + slope * 3))), confidence: 0.4, trend: slope > 0.5 ? "escalating" : slope < -0.5 ? "improving" : "stable", anomaly_probability: 0.1 }; }
+  determineTrend(seq, p) { const d = p - seq[seq.length - 1]; return d > 5 ? "escalating" : d < -5 ? "improving" : "stable"; }
+  calculateAnomalyProbability(seq, p) { return Math.min(0.95, Math.abs(p - seq[seq.length - 1]) / 30); }
+}
+
+const mlModel = new CrisisMLModel();
+
+async function trainMLModel(store) {
+  if (!CFG.ML_ENABLED) return;
+  const seqs = [];
+  for (const iso in store) {
+    const h = await persistentHistory.scoreSeries(iso, 500);
+    if (h.length >= 14) for (let i = 7; i < h.length - 1; i++) seqs.push(h.slice(i - 7, i + 1));
+  }
+  if (seqs.length >= CFG.HISTORY_MIN_FOR_ML_TRAIN) mlModel.train(seqs);
+}
+
+async function mlEnhancedForecast(iso, currentScore, store) {
+  const realHistory = await persistentHistory.scoreSeries(iso, 500);
+  const series = realHistory.length >= 14 ? realHistory : seedHistory(iso, currentScore).map(h => h.s);
+  const isSynthetic = realHistory.length < 14;
+  const mlP = mlModel.predict(series);
+  const trad = trendForecast(series, currentScore);
+  const blended = Math.round(mlP.forecast * 0.6 + trad.fc * 0.4);
+  return {
+    fc: clamp(blended),
+    ml_forecast: mlP.forecast,
+    trad_forecast: trad.fc,
+    confidence: isSynthetic ? 0.3 : Math.min(0.95, Math.max(0.3, (mlP.confidence + trad.confidence) / 2)),
+    trend: mlP.trend || trad.trend,
+    esc: blended > currentScore + 5,
+    slope: trad.slope,
+    anomaly_probability: mlP.anomaly_probability || 0.1,
+    ml_trained: mlModel.trained,
+    training_count: mlModel.trainingCount,
+    history_source: isSynthetic ? "synthetic" : "observed",
+    history_points: realHistory.length,
+  };
+}
+
+class SentimentAnalyzer {
+  constructor() {
+    this.pos = ['peace','ceasefire','truce','agreement','aid','humanitarian','relief','recovery','stabilize','improve','progress','positive','good','great','excellent','success','hope'];
+    this.neg = ['war','conflict','violence','attack','bomb','missile','strike','kill','death','casualty','destroy','collapse','crisis','emergency','famine','hunger','disease','outbreak','escalate','worsen','deteriorate','critical','severe','dire','catastrophe','disaster','devastating'];
+    this.sNeg = ['exterminate','genocide','massacre','pogrom','ethnic cleansing','starvation','catastrophic'];
+  }
+  analyze(text) {
+    if (!text || text.length < 10) return { score: 0, label: 'neutral', confidence: 0.5, key_terms: [], crisis_intensity: 0 };
+    const lower = text.toLowerCase();
+    let score = 0, matches = 0;
+    for (const w of this.pos) if (lower.includes(w)) { score += 0.15; matches++; }
+    for (const w of this.neg) if (lower.includes(w)) { score -= 0.2; matches++; }
+    for (const w of this.sNeg) if (lower.includes(w)) { score -= 0.5; matches++; }
+    const tm = Math.min(matches, 10);
+    const ns = Math.max(-1, Math.min(1, score / (Math.max(tm, 1) / 2)));
+    let label, confidence;
+    if (ns > 0.2) { label = 'positive'; confidence = Math.min(0.95, 0.5 + Math.abs(ns) * 0.5); }
+    else if (ns < -0.2) { label = 'negative'; confidence = Math.min(0.95, 0.5 + Math.abs(ns) * 0.5); }
+    else { label = 'neutral'; confidence = 0.6; }
+    return { score: +ns.toFixed(2), label, confidence: +confidence.toFixed(2), key_terms: [], crisis_intensity: +Math.min(1, Math.abs(ns) * 1.5).toFixed(2) };
+  }
+}
+const sentimentAnalyzer = new SentimentAnalyzer();
+
+function analyzeCountrySentiment(iso, store) {
+  if (!CFG.SENTIMENT_ENABLED) return null;
+  const c = store[iso];
+  const text = [];
+  if (c.signals?.whoOutbreaks?.length) text.push(c.signals.whoOutbreaks.map(o => o.disease).join(' '));
+  if (c.signals?.whoDon?.length) text.push(c.signals.whoDon.map(o => o.title).join(' '));
+  if (c.signals?.gdacs?.title) text.push(c.signals.gdacs.title);
+  if (!text.length) return null;
+  return sentimentAnalyzer.analyze(text.join('. '));
+}
+
+async function storeHistoricalData(iso, store) {
+  if (!CFG.HISTORY_ENABLED) return;
+  const c = store[iso];
+  await persistentHistory.record(iso, {
+    score: c.score,
+    live_score: c.__live_breaking?.live_score || 0,
+    signal_count: c.__live_breaking?.signal_count || 0,
+    distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
+  });
+  historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
+}
+
+class AlertManager {
+  constructor() { this.thresholds = { global: 75 }; this.lastAlerts = {}; }
+  checkAlerts(iso, store) {
+    if (!CFG.GEO_FENCING_ENABLED) return [];
+    const c = store[iso];
+    const triggered = [];
+    const now = Date.now();
+    if (c.score >= this.thresholds.global) {
+      const key = `${iso}_global`;
+      if (!this.lastAlerts[key] || now - this.lastAlerts[key] > 3600000) {
+        triggered.push({ iso, name: c.name, score: c.score, type: 'global', message: `${c.name} reached ${c.score}/100.` });
+        this.lastAlerts[key] = now;
+      }
+    }
+    return triggered;
+  }
+}
+const alertManager = new AlertManager();
+
 // ════════════════════════════════════════════════════════════════════════════
-//  BUILD STORE — THE KEY CHANGE: evidence-ledger scoring replaces signal-sum
+//  BUILD STORE — EXACT HTML ORDER, EXACT HTML FORMULAS
 // ════════════════════════════════════════════════════════════════════════════
 
 async function buildStore(liveData) {
-  const seed = Math.floor(Date.now() / CFG.SEED_INTERVAL_MS);
   const store = {};
 
-  for (const [iso, country] of Object.entries(COUNTRIES)) {
-    const fsiScore = country.fsi_score || country.prior || 50;
-    const base = Math.round((fsiScore / 120) * 100);
-    const jitter = Math.round((lcg(seed ^ strHash(iso)) - 0.5) * CFG.PRIOR_JITTER);
-    const adjustedBase = clamp(base + jitter, 5, 99);
+  // ── STEP 1: structural baseline per country (HTML: base=score*multipliers) ──
+  for (const iso of Object.keys(COUNTRIES)) {
+    const c = COUNTRIES[iso];
+    const base = BASE_SCORES[iso] || 30;
+    const types = c.types || DEFAULT_T;
+    const dims = buildDims(base, types);
+    let structuralRaw = composite(dims);
+    let score = Math.max(1, Math.min(99, Math.round(structuralRaw)));
 
-    const priorDims = buildPriorDims(adjustedBase, country.types);
-    const priorScore = clamp(composite(priorDims));
+    store[iso] = {
+      ...c,
+      dims,
+      score,
+      priorScore: score,
+      structural_score: score,
+      liveBoost: 0,
+      audit: [],
+      signals: {},
+      spillover: 0,
+      historical_scores: [],
+      __live_breaking: null,
+      __effective_score: null,
+      // Evidence metadata
+      evidence_score: 0,
+      evidence_confidence: 0,
+      evidence_source_count: 0,
+      evidence_ledger: [],
+      evidence_sources: [],
+      is_low_instrumentation: false,
+    };
+  }
 
-    // ── EVIDENCE-BASED SCORING (ported from HTML) ──
+  // ── STEP 2: EXACT HTML SCORING (evidence → structural blend) ──
+  for (const iso of Object.keys(store)) {
+    const c = store[iso];
     const evidence = computeEvidenceScore(iso);
-
-    // Structural baseline: evidence trumps modeling
     const structuralWeight = 1 - (evidence.confidence * 0.35);
-    const structuralRaw = composite(priorDims);
-    const structuralComponent = structuralRaw * structuralWeight;
-
-    // Combine: evidence + structural
+    const structuralComponent = composite(c.dims) * structuralWeight;
     let rawTotal = structuralComponent + evidence.score;
-
-    // Final score (non-linear clamp at top, same as HTML)
     const score = Math.max(1, Math.min(99, Math.round(
       rawTotal <= 70
         ? rawTotal
         : 70 + 29 * (1 - Math.exp(-(rawTotal - 70) / 38))
     )));
-
-    store[iso] = {
-      ...country,
-      dims: priorDims,
-      score,
-      structural_score: score,
-      priorScore,
-      liveBoost: score - priorScore,
-      audit: evidence.ledger,
-      signals: {},
-      spillover: 0,
-      fsi_score: fsiScore,
-      fsi_rank: country.fsi_rank,
-      fsi_band: country.fsi_band,
-      historical_scores: [],
-      __wst: null,
-      __live_breaking: null,
-      __effective_score: null,
-      // Evidence metadata (exposed in payload)
-      evidence_score: evidence.score,
-      evidence_confidence: evidence.confidence,
-      evidence_source_count: evidence.sourceCount,
-      evidence_ledger: evidence.ledger,
-      evidence_sources: [...new Set(evidence.ledger.map(l => l.source))],
-      is_low_instrumentation: evidence.sourceCount < CFG.LOW_INSTRUMENTATION_THRESHOLD,
-    };
+    c.score = score;
+    c.structural_score = score;
+    c.liveBoost = score - c.priorScore;
+    c.evidence_score = evidence.score;
+    c.evidence_confidence = evidence.confidence;
+    c.evidence_source_count = evidence.sourceCount;
+    c.evidence_ledger = evidence.ledger;
+    c.evidence_sources = [...new Set(evidence.ledger.map(l => l.source))];
+    c.is_low_instrumentation = evidence.sourceCount < CFG.LOW_INSTRUMENTATION_THRESHOLD;
   }
 
-  // ── SPILLOVER ──
+  // ── STEP 3: spilloverScore — EXACT HTML (0.13 rate, floor 50, cap 20, dampened) ──
   for (const iso in store) {
-    const n = (COUNTRIES[iso].adj || []).filter(x => store[x]);
-    if (!n.length) continue;
-    const avg = n.reduce((s, x) => s + store[x].score, 0) / n.length;
-    const spill = Math.max(0, avg - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE;
-    store[iso].spillover = +(spill * Math.max(0.3, 1 - (store[iso].score - 30) / 100)).toFixed(1);
-    store[iso].score = clamp(store[iso].score + store[iso].spillover);
+    const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
+    if (!neighbours.length) { store[iso].spillover = 0; continue; }
+    const avgNeighbour = neighbours.reduce((s, n) => s + store[n].score, 0) / neighbours.length;
+    const spill = Math.max(0, avgNeighbour - CFG.SPILLOVER_FLOOR) * CFG.SPILLOVER_RATE;
+    const dampened = spill * Math.max(0.3, 1 - (store[iso].score - 30) / 100);
+    store[iso].spillover = Math.round(Math.min(CFG.SPILLOVER_MAX, dampened) * 10) / 10;
+    store[iso].score = Math.min(99, Math.max(1, store[iso].score + store[iso].spillover));
     store[iso].structural_score = store[iso].score;
   }
 
-  for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score);
+  // ── STEP 4: seedHistory — EXACT HTML (28-day) ──
+  for (const iso in store) store[iso].historical_scores = seedHistory(iso, store[iso].score).map(h => h.s);
 
+  // ── STEP 5: ML forecast ──
   if (CFG.ML_ENABLED) await trainMLModel(store);
   for (const iso in store) if (CFG.ML_ENABLED) store[iso].ml_forecast = await mlEnhancedForecast(iso, store[iso].score, store);
 
-  // ── Build per-country signals object (used by LIVE_SIGNALS detection) ──
+  // ── STEP 6: build per-country signals object (for live-breaking tier) ──
   for (const iso in store) {
     const cov = evidenceIndex.sourceCoverage[iso] || {};
     store[iso].signals = {
@@ -2888,37 +2777,28 @@ async function buildStore(liveData) {
     };
   }
 
+  // ── STEP 7: live-breaking tier (does NOT touch score) ──
   for (const iso in store) store[iso].__live_breaking = computeLiveBreakingScore(iso, liveData, store);
 
-  // ═══ EFFECTIVE SCORE ═══
-  // The evidence-ledger score IS the structural score now. Live-breaking
-  // signals still contribute via the max() — but the evidence score already
-  // includes the same real API data points, so they're consistent.
+  // ── STEP 8: effective score (equal to score after step 3, kept for API shape) ──
   for (const iso in store) {
-    const structural = store[iso].structural_score ?? store[iso].score;
-    const live = store[iso].__live_breaking?.live_score || 0;
-    const rawEffective = Math.max(structural, live);
-    const popValue = store[iso].signals?.population || 0;
-    const popMult = popExposureMultiplier(popValue);
-    const credit = resolutionCredit(store, iso);
-    const effective = clamp(rawEffective * popMult - credit);
-    store[iso].__effective_score = effective;
-    store[iso].__pop_multiplier = +popMult.toFixed(3);
-    store[iso].__resolution_credit = +credit.toFixed(2);
-    if (CFG.SCORE_FIELD_IS_LIVE) store[iso].score = effective;
+    store[iso].__effective_score = store[iso].score;
+    // Metadata-only: pop multiplier & resolution credit do NOT modify score
+    store[iso].__pop_multiplier = +popExposureMultiplier(store[iso].signals?.population || 0).toFixed(3);
+    store[iso].__resolution_credit = +resolutionCredit(store, iso).toFixed(2);
   }
 
+  // ── STEP 9: sentiment + history ──
   for (const iso in store) {
     if (CFG.SENTIMENT_ENABLED) store[iso].sentiment = analyzeCountrySentiment(iso, store);
     if (CFG.HISTORY_ENABLED) await storeHistoricalData(iso, store);
-    if (CFG.GEO_FENCING_ENABLED) alertManager.checkAlerts(iso, store);
   }
 
   return store;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  PAYLOAD BUILDERS
+//  PAYLOAD
 // ════════════════════════════════════════════════════════════════════════════
 
 function buildKeywords(iso, store) {
@@ -3020,11 +2900,11 @@ function buildRSSFeed(isos, store, ranked) {
 async function buildPayload(iso, store, ranked, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
-  const displayScore = c.__effective_score ?? c.structural_score ?? c.score;
+  const displayScore = c.score;
 
   const realHistory = await persistentHistory.scoreSeries(iso, 500);
   const hasRealHistory = realHistory.length >= CFG.HISTORY_MIN_FOR_ANOMALY;
-  const series = hasRealHistory ? realHistory : seedHistory(iso, displayScore);
+  const series = hasRealHistory ? realHistory : seedHistory(iso, displayScore).map(h => h.s);
   const anom = runAnomalyDetection(series, { minRequired: CFG.HISTORY_MIN_FOR_ANOMALY });
   const fc = trendForecast(series, displayScore);
 
@@ -3035,7 +2915,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   const base = {
     iso, name: c.name, flag: c.flag,
     score: displayScore,
-    structural_score: c.structural_score ?? c.score,
+    structural_score: c.structural_score,
     effective_score: c.__effective_score,
     pop_multiplier: c.__pop_multiplier ?? 1.0,
     resolution_credit: c.__resolution_credit ?? 0,
@@ -3048,7 +2928,6 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     slug: slugify(c.name),
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
 
-    // ═══ EVIDENCE LEDGER (NEW — ported from HTML) ═══
     evidence: {
       score: c.evidence_score,
       confidence: c.evidence_confidence,
@@ -3167,7 +3046,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
       live_breaking_score: lb.live_score,
-      effective_score_raw: Math.max(c.structural_score ?? 0, lb.live_score || 0),
+      effective_score_raw: c.score,
       pop_multiplier: c.__pop_multiplier ?? 1.0,
       resolution_credit: c.__resolution_credit ?? 0,
       effective_score: c.__effective_score,
@@ -3251,7 +3130,7 @@ export default async function handler(req, res) {
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    else if (params.threshold > 0) finalIsos = ranked.filter(iso => (store[iso].__effective_score || 0) >= params.threshold);
+    else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].score >= params.threshold);
     else if (params.force_live && liveEventsOnly.length > 0) finalIsos = liveEventsOnly.slice(0, params.top);
     else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
     else finalIsos = ranked.slice(0, params.top);
@@ -3269,7 +3148,7 @@ export default async function handler(req, res) {
     if (params.widget && finalIsos.length === 1) {
       const c = store[finalIsos[0]];
       const lb = c.__live_breaking || {};
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Effective Score ${c.__effective_score || 0}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
+      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -3338,21 +3217,24 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "EVIDENCE_LEDGER_v14.0.0",
+        ranking_mode: "HTML_PARITY_v15.0.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
-        score_field_is_live: CFG.SCORE_FIELD_IS_LIVE,
-        dedup_enabled: CFG.DEDUP_ENABLED,
-        history_min_for_anomaly: CFG.HISTORY_MIN_FOR_ANOMALY,
-        pop_exposure_enabled: CFG.POP_EXPOSURE_ENABLED,
-        resolution_credit_enabled: CFG.RESOLUTION_CREDIT_ENABLED,
-        low_instrumentation_threshold: CFG.LOW_INSTRUMENTATION_THRESHOLD,
-        evidence_ledger_enabled: true,
-        note: "v14.0.0 — Evidence-ledger scoring ported from HTML. Every point traces to a real API value in sourceCoverage. All 40+ fetchers preserved.",
+        parity_notes: {
+          base_scores_source: "BASE_SCORES[iso] (HTML)",
+          ctypes_source: "CTYPES[iso] (HTML)",
+          buildDims: "verbatim from HTML",
+          composite: "includes conflictDisp + foodHealth interaction terms (HTML)",
+          spillover: "0.13 rate, floor 50, cap 20, dampened (HTML)",
+          seed_history: "28-day, 0.12 pull, 5-pt noise (HTML)",
+          pop_exposure: "metadata only — does not affect score",
+          resolution_credit: "metadata only — does not affect score",
+          final_order: "evidence → structural blend → spillover → clamp (HTML order)",
+        },
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
@@ -3430,7 +3312,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v14.0.0]", err);
+    console.error("[top-story v15.0.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
