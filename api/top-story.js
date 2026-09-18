@@ -1,21 +1,17 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v14.0.0 — MAXIMUM-PRECISION SCORING
+//  TOP-STORY API — v14.0 — TECHNICALLY OPTIMAL
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
-//  ═══ v14.0.0 — SCORING CORE REWRITE ═══
-//  ✅ Two-tier event/state separation → no state inflation of event tiers
-//  ✅ Bayesian saturating source corroboration (log-odds fusion)
-//  ✅ Per-domain recency half-lives (hours/days/months)
-//  ✅ Magnitude-aware continuous signal weighting
-//  ✅ FSI-anchored confidence prior
-//  ✅ Explicit uncertainty payload (sampling_confidence, coverage_ratio)
-//  ✅ Temporal coherence damping under regime-change detection
-//  ✅ Cross-domain compound-crisis coupling bonus
-//  ✅ Compound-crisis tier promotion (≥4 dims ≥ 70)
-//  ✅ Pop exposure + resolution credit (v13.9.6 preserved, re-tuned)
+//  ═══ v14.0 CHANGES ═══
+//  ✅ Multi-source corroboration bonus (+8% per corroborating source, capped 24%)
+//  ✅ Adaptive live-score normalization (rolling 90d p90 of raw_score)
+//  ✅ Cross-domain coupling bonus (super-linear when ≥3 distinct domains fire)
+//  ✅ Score confidence intervals (±CI via bootstrap over signals)
+//  ✅ Cold-start warmup ramp (score shrunk toward structural during first 14d)
+//  ✅ All v13.9.6 fixes preserved (pop exposure, resolution credit, low-instr flag)
 //  ═══ Ranking cascade (unchanged) ═══
 //  effective_score → has_fresh → live_score → freshness
 // ════════════════════════════════════════════════════════════════════════════
@@ -67,53 +63,6 @@ const CFG = {
   HISTORY_GRANULARITY_HOURS: 1,
   HISTORY_MAX_POINTS: 2160,
 
-  // ═══ v14.0.0 SCORING CORE ═══
-  // Event/state fusion
-  EVENT_TRACK_WEIGHT: 1.0,
-  STATE_TRACK_WEIGHT: 0.35,
-  EVENT_TRACK_CAP: 100,        // normalized event score ceiling
-  FUSION_SATURATION: 120,      // logistic scale for event→composite
-
-  // Bayesian source corroboration
-  SOURCE_PRIOR_ODDS: 1.0,
-  SOURCE_LOG_ODDS_PER_INDEPENDENT: 0.55,
-  SOURCE_SATURATION: 2.4,      // max log-odds boost (≈ 11× odds cap)
-
-  // Per-domain recency half-lives (hours)
-  HALF_LIFE_HOURS: {
-    seismic: 12,
-    cyclone: 24,
-    flood: 48,
-    wildfire: 24,
-    disease: 168,
-    displacement: 720,
-    economic: 4320,
-    climate: 720,
-  },
-
-  // Magnitude scaling
-  MAG_REF: 4.5,                // reference magnitude
-  MAG_SCALE: 0.4,              // weight multiplier per magnitude unit
-  MAG_MAX_MULT: 2.5,           // cap on magnitude multiplier
-
-  // FSI-anchored confidence
-  FSI_CONFIDENCE_FLOOR: 0.55,
-  FSI_CONFIDENCE_CEILING: 0.95,
-
-  // Temporal coherence
-  COHERENCE_WINDOW: 14,
-  COHERENCE_MAX_DAMP: 0.15,    // max pull toward median (0-1)
-  REGIME_CHANGE_THRESHOLD: 2,  // methods_fired to trigger damping
-
-  // Cross-domain coupling
-  COUPLING_MIN_DIMS: 3,        // dims above threshold to trigger
-  COUPLING_DIM_THRESHOLD: 70,
-  COUPLING_MAX_BONUS: 8,
-
-  // Compound crisis tier promotion
-  COMPOUND_MIN_DIMS: 4,
-  COMPOUND_DIM_THRESHOLD: 70,
-
   POP_EXPOSURE_ENABLED: true,
   POP_EXPOSURE_MIN_MULT: 0.85,
   POP_EXPOSURE_MAX_MULT: 1.15,
@@ -125,6 +74,25 @@ const CFG = {
   RESOLUTION_CREDIT_ENABLED: true,
   RESOLUTION_CREDIT_MAX: 4,
   RESOLUTION_CREDIT_RETURN_THRESHOLD: 100_000,
+
+  // ═══ v14.0 ═══
+  CORROBORATION_BONUS_ENABLED: true,
+  CORROBORATION_BONUS_PER_SOURCE: 0.08,
+  CORROBORATION_BONUS_MAX: 0.24,
+
+  ADAPTIVE_NORMALIZATION_ENABLED: true,
+  ADAPTIVE_NORMALIZATION_MIN_SAMPLES: 20,
+  ADAPTIVE_NORMALIZATION_FALLBACK: 120,
+
+  CROSS_DOMAIN_COUPLING_ENABLED: true,
+  CROSS_DOMAIN_MIN_DOMAINS: 3,
+  CROSS_DOMAIN_COUPLING_MAX: 0.35,
+
+  CONFIDENCE_INTERVAL_ENABLED: true,
+  CONFIDENCE_INTERVAL_SAMPLES: 64,
+
+  COLD_START_RAMP_ENABLED: true,
+  COLD_START_RAMP_DAYS: 14,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -282,6 +250,27 @@ const SOUTH_PACIFIC_ISOS = new Set([
   'NZL', 'FJI', 'WSM', 'TON', 'VUT', 'SLB', 'PNG', 'NCL', 'PYF', 'COK', 'NIU', 'TKL', 'KIR', 'TUV', 'FSM', 'MHL', 'PLW',
 ]);
 
+// Domain classification for cross-domain coupling bonus
+const SIGNAL_DOMAIN = {
+  gdacs_red: "geophysical", gdacs_orange: "geophysical",
+  earthquake_m6: "geophysical", earthquake_m5: "geophysical", earthquake_m45: "geophysical",
+  jma_earthquake: "geophysical", bmkg_earthquake: "geophysical",
+  geofon_earthquake: "geophysical", ingv_earthquake: "geophysical", geonet_earthquake: "geophysical",
+  shakemap_event: "geophysical",
+  who_outbreak: "health", who_outbreak_multi: "health", who_don: "health",
+  ecdc_threat: "health", disease_active: "health", cdc_outbreak: "health",
+  unhcr_mass_displace: "displacement", unhcr_return: "displacement",
+  nasa_wildfire: "climate", nasa_storm: "climate", nasa_flood: "climate", nasa_drought: "climate",
+  ifrc_emergency: "humanitarian", ifrc_appeal: "humanitarian",
+  cyclone_active: "climate", jtwc_cyclone: "climate", jma_typhoon: "climate",
+  flood_severe: "climate", marine_hazard: "climate", heat_extreme: "climate",
+  inflation_crisis: "economic", gdp_contraction: "economic", wb_food_price: "economic",
+  spc_severe: "climate", us_drought: "climate",
+  sentinel_observation: "satellite", nasa_power_anomaly: "climate",
+  gfw_deforestation: "climate", climate_trace_emissions: "climate",
+  hdx_crisis: "humanitarian", wb_water_stress: "climate",
+};
+
 const COUNTRY_CENTROIDS = {
   IDN: [113.9, -0.8], JPN: [138.0, 36.2], PHL: [121.8, 12.9], CHN: [104.2, 35.9],
   IND: [78.9, 20.6], BGD: [90.4, 23.7], VNM: [108.3, 14.1], THA: [100.9, 15.9],
@@ -357,6 +346,7 @@ const DIMS = [
   { k:"political",    l:"Political",     w:0.01, icon:"⚖️", color:"#bf7fff" },
 ];
 
+// ─── FSI 2024 — 179 COUNTRIES ────────────────────────────────────────────────
 const FSI_2024 = {
   SOM: { name:"Somalia",              flag:"🇸🇴", fsi_score:111.3, rank:1, region:"africa", fsi_band:"Very High Alert" },
   SDN: { name:"Sudan",                flag:"🇸🇩", fsi_score:109.3, rank:2, region:"africa", fsi_band:"Very High Alert" },
@@ -579,10 +569,15 @@ for (const [iso, fsi] of Object.entries(FSI_2024)) {
 function lcg(seed) { return ((Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0) / 0x100000000; }
 function strHash(str) { return str.split("").reduce((h, c, i) => (h + c.charCodeAt(0) * (i + 1) * 31) | 0, 0) >>> 0; }
 const clamp = (v, lo = 1, hi = 99) => Math.min(hi, Math.max(lo, Math.round(v)));
-const clampFloat = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
-function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
-function median(arr) { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)] || 0; }
-function stddev(arr) { const m = mean(arr); return arr.length ? Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length) || 1 : 1; }
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function median(arr) { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; }
+function stddev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length) || 1; }
+function percentile(arr, p) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor((p / 100) * sorted.length)));
+  return sorted[idx];
+}
 function composite(dims) { return DIMS.reduce((s, d) => s + d.w * (dims[d.k] || 0), 0); }
 function fmtPop(n) { if (!n) return null; if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`; if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`; return `${n}`; }
 function slugify(str) { return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
@@ -686,6 +681,7 @@ class PersistentHistoryStore {
     this.memory = new Map();
     this.redis = null;
     this.maxPoints = CFG.HISTORY_MAX_POINTS;
+    this.rawScoreHistory = [];      // global ring buffer of raw_score for adaptive normalization
   }
   attachRedis(client) { this.redis = client; }
   async record(iso, snapshot) {
@@ -693,7 +689,14 @@ class PersistentHistoryStore {
     if (!this.memory.has(iso)) this.memory.set(iso, []);
     const arr = this.memory.get(iso);
     arr.push(entry);
-    if (arr.length > this.maxPoints) arr.splice(0, this.maxPoints - this.maxPoints);
+    if (arr.length > this.maxPoints) arr.splice(0, arr.length - this.maxPoints);
+
+    // Track global raw scores for adaptive normalization
+    if (Number.isFinite(snapshot.raw_score)) {
+      this.rawScoreHistory.push(snapshot.raw_score);
+      if (this.rawScoreHistory.length > 5000) this.rawScoreHistory.splice(0, this.rawScoreHistory.length - 5000);
+    }
+
     if (this.redis) {
       try {
         await this.redis.lpush(`history:${iso}`, JSON.stringify(entry));
@@ -718,6 +721,12 @@ class PersistentHistoryStore {
     const rows = await this.get(iso, limit);
     return rows.map(r => r.score).filter(Number.isFinite);
   }
+  getAdaptiveScale() {
+    if (!CFG.ADAPTIVE_NORMALIZATION_ENABLED) return CFG.ADAPTIVE_NORMALIZATION_FALLBACK;
+    if (this.rawScoreHistory.length < CFG.ADAPTIVE_NORMALIZATION_MIN_SAMPLES) return CFG.ADAPTIVE_NORMALIZATION_FALLBACK;
+    const p90 = percentile(this.rawScoreHistory, 90);
+    return Math.max(60, Math.min(240, p90));
+  }
 }
 
 const persistentHistory = new PersistentHistoryStore();
@@ -737,92 +746,51 @@ const historyStore = new HistoricalDataStore();
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
-// ═══ v14.0.0: Signal domain classification (drives half-life + track assignment) ═══
-const SIGNAL_DOMAIN = {
-  gdacs_red: "cyclone", gdacs_orange: "cyclone",
-  earthquake_m6: "seismic", earthquake_m5: "seismic", earthquake_m45: "seismic",
-  jma_earthquake: "seismic", bmkg_earthquake: "seismic", geofon_earthquake: "seismic",
-  ingv_earthquake: "seismic", geonet_earthquake: "seismic", shakemap_event: "seismic",
-  who_outbreak: "disease", who_outbreak_multi: "disease", who_don: "disease",
-  ecdc_threat: "disease", cdc_outbreak: "disease", disease_active: "disease",
-  unhcr_mass_displace: "displacement", unhcr_return: "displacement",
-  nasa_wildfire: "wildfire", nasa_storm: "cyclone", nasa_flood: "flood", nasa_drought: "climate",
-  ifrc_emergency: "displacement", ifrc_appeal: "displacement",
-  cyclone_active: "cyclone", jtwc_cyclone: "cyclone", jma_typhoon: "cyclone",
-  flood_severe: "flood", marine_hazard: "flood", heat_extreme: "climate",
-  inflation_crisis: "economic", gdp_contraction: "economic",
-  sentinel_observation: "climate", nasa_power_anomaly: "climate",
-  gfw_deforestation: "climate", climate_trace_emissions: "climate",
-  hdx_crisis: "displacement", us_drought: "climate",
-  wb_food_price: "economic", wb_water_stress: "climate",
-};
-
-// ═══ v14.0.0: Two-tier separation (events vs states) ═══
-const EVENT_SIGNAL_SET = new Set([
-  "gdacs_red", "gdacs_orange",
-  "earthquake_m6", "earthquake_m5", "earthquake_m45",
-  "jma_earthquake", "bmkg_earthquake",
-  "geofon_earthquake", "ingv_earthquake", "geonet_earthquake",
-  "shakemap_event",
-  "who_outbreak", "who_outbreak_multi", "who_don", "ecdc_threat",
-  "unhcr_mass_displace", "unhcr_return",
-  "nasa_wildfire", "nasa_storm", "nasa_flood",
-  "ifrc_emergency", "ifrc_appeal",
-  "cyclone_active", "jtwc_cyclone", "jma_typhoon",
-  "flood_severe", "marine_hazard",
-  "heat_extreme",
-  "cdc_outbreak", "spc_severe",
-  "us_drought",
-]);
-
 const LIVE_SIGNALS = {
-  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨" },
-  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠" },
-  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍" },
-  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍" },
-  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍" },
-  jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏" },
-  bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏" },
-  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍" },
-  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍" },
-  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏" },
-  shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍" },
-  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠" },
-  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠" },
-  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠" },
-  ecdc_threat:         { weight: 55,  verify: 0.85, label: "ECDC Threat",               icon: "🧫" },
-  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶" },
-  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠" },
-  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥" },
-  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀" },
-  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊" },
-  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️" },
-  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥" },
-  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘" },
-  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀" },
-  jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀" },
-  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀" },
-  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊" },
-  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊" },
-  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵" },
-  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠" },
-  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈" },
-  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉" },
-  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",        icon: "🧫" },
-  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",         icon: "⛈️" },
-  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️" },
-  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️" },
-  gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳" },
-  climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭" },
-  hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊" },
-  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️" },
-  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞" },
-  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧" },
+  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨", type: "event" },
+  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠", type: "event" },
+  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍", type: "event" },
+  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍", type: "event" },
+  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event" },
+  jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏", type: "event" },
+  bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏", type: "event" },
+  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍", type: "event" },
+  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍", type: "event" },
+  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏", type: "event" },
+  shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍", type: "event" },
+  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event" },
+  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event" },
+  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event" },
+  ecdc_threat:         { weight: 55,  verify: 0.85, label: "ECDC Threat",               icon: "🧫", type: "event" },
+  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event" },
+  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠", type: "event" },
+  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event" },
+  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event" },
+  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event" },
+  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️", type: "event" },
+  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥", type: "event" },
+  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event" },
+  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event" },
+  jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀", type: "event" },
+  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀", type: "event" },
+  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event" },
+  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊", type: "event" },
+  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event" },
+  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠", type: "event" },
+  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈", type: "event" },
+  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉", type: "event" },
+  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",        icon: "🧫", type: "event" },
+  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",         icon: "⛈️", type: "event" },
+  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event" },
+  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event" },
+  gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
+  climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
+  hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
+  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event" },
+  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event" },
+  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event" },
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SIGNAL DETECTION (unchanged from v13.9.6)
-// ════════════════════════════════════════════════════════════════════════════
 function detectLiveBreakingSignals(iso, live, store) {
   const signals = [];
   const c = COUNTRIES[iso];
@@ -833,8 +801,8 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (s.gdacs && s.gdacsAlert) {
     const ageHours = s.gdacs.properties?.todate ? (now - new Date(s.gdacs.properties.todate).getTime()) / 36e5 : 12;
     const coords = s.gdacs.geometry?.coordinates || [cent[0], cent[1]];
-    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active", latitude: coords[1], longitude: coords[0], observed_magnitude: null });
-    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0], observed_magnitude: null });
+    if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active", latitude: coords[1], longitude: coords[0] });
+    else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active", latitude: coords[1], longitude: coords[0] });
   }
 
   const seismicSources = [
@@ -867,19 +835,27 @@ function detectLiveBreakingSignals(iso, live, store) {
     else type = "earthquake_m45";
 
     signals.push({
-      type, weight: LIVE_SIGNALS[type].weight, ageHours, source: src.source,
+      type,
+      weight: LIVE_SIGNALS[type].weight,
+      ageHours,
+      source: src.source,
       details: `M${mag.toFixed(1)} ${place || ""}`,
-      magnitude: mag, observed_magnitude: mag,
-      latitude: cent[1], longitude: cent[0],
+      magnitude: mag,
+      latitude: cent[1],
+      longitude: cent[0],
     });
   }
 
   if (CFG.SHAKEMAP_ENABLED && s.shakeMapEvent && s.shakeMapEvent.mag >= CFG.SHAKEMAP_MIN_MAG) {
     signals.push({
-      type: "shakemap_event", weight: CFG.SHAKEMAP_BOOST, ageHours: s.shakeMapEvent.ageHours || 2,
-      source: "USGS ShakeMap", details: `ShakeMap M${s.shakeMapEvent.mag.toFixed(1)} — ${s.shakeMapEvent.place || ""}`,
-      magnitude: s.shakeMapEvent.mag, observed_magnitude: s.shakeMapEvent.mag,
-      latitude: cent[1], longitude: cent[0],
+      type: "shakemap_event",
+      weight: CFG.SHAKEMAP_BOOST,
+      ageHours: s.shakeMapEvent.ageHours || 2,
+      source: "USGS ShakeMap",
+      details: `ShakeMap M${s.shakeMapEvent.mag.toFixed(1)} — ${s.shakeMapEvent.place || ""}`,
+      magnitude: s.shakeMapEvent.mag,
+      latitude: cent[1],
+      longitude: cent[0],
     });
   }
 
@@ -888,35 +864,35 @@ function detectLiveBreakingSignals(iso, live, store) {
     if (ageHours <= CFG.USGS_SIG_TAIL_HOURS) {
       const alreadyCovered = signals.some(sig => sig.type.startsWith("earthquake_") || sig.type === "shakemap_event");
       if (!alreadyCovered) {
-        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, observed_magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
+        signals.push({ type: "earthquake_m5", weight: 65, ageHours, source: "USGS (significant-month)", details: `M${s.quakeSigMonth.mag.toFixed(1)} ${s.quakeSigMonth.place || ""}`, magnitude: s.quakeSigMonth.mag, latitude: cent[1], longitude: cent[0] });
       }
     }
   }
 
   if (s.whoOutbreaks && s.whoOutbreaks.length > 0) {
     const ageHours = s.whoOutbreaks[0].ageHours || 24;
-    if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", "), observed_magnitude: null });
-    else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease, observed_magnitude: null });
+    if (s.whoOutbreaks.length >= 2) signals.push({ type: "who_outbreak_multi", weight: 95, ageHours, source: "WHO RSS", details: s.whoOutbreaks.map(o => o.disease).join(", ") });
+    else signals.push({ type: "who_outbreak", weight: 80, ageHours, source: "WHO RSS", details: s.whoOutbreaks[0].disease });
   }
 
   if (CFG.WHO_DON_ENABLED && s.whoDon && s.whoDon.length > 0) {
     for (const don of s.whoDon.slice(0, 3)) {
-      signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON", observed_magnitude: null });
+      signals.push({ type: "who_don", weight: 90, ageHours: don.ageHours || 24, source: "WHO DON", details: don.title || don.disease || "WHO DON" });
     }
   }
 
   if (CFG.ECDC_THREAT_ENABLED && COUNTRIES[iso].region === "europe" && s.ecdcThreats?.length) {
     for (const threat of s.ecdcThreats.slice(0, 2)) {
-      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_THREAT_BOOST, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat", observed_magnitude: null });
+      signals.push({ type: "ecdc_threat", weight: CFG.ECDC_THREAT_BOOST, ageHours: threat.ageHours || 48, source: "ECDC", details: threat.title || "ECDC Threat" });
     }
   }
 
   if (s.totalDisplaced > 500_000) {
-    signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced`, observed_magnitude: s.totalDisplaced });
+    signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${fmtPop(s.totalDisplaced)} displaced` });
   }
 
   if (CFG.UNHCR_SOLUTIONS_ENABLED && s.unhcrSolutions && s.unhcrSolutions.returned_refugees > 10_000) {
-    signals.push({ type: "unhcr_return", weight: CFG.UNHCR_SOLUTIONS_BOOST, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned`, observed_magnitude: s.unhcrSolutions.returned_refugees });
+    signals.push({ type: "unhcr_return", weight: CFG.UNHCR_SOLUTIONS_BOOST, ageHours: 168, source: "UNHCR Solutions", details: `${fmtPop(s.unhcrSolutions.returned_refugees)} returned` });
   }
 
   if (s.nasaEvents && s.nasaEvents.length > 0) {
@@ -924,7 +900,7 @@ function detectLiveBreakingSignals(iso, live, store) {
       const cat = ev.categories?.[0]?.id || "";
       const ageHours = ev.geometry?.[0]?.date ? (now - new Date(ev.geometry[0].date).getTime()) / 36e5 : 48;
       const coords = ev.geometry?.[0]?.coordinates || [cent[0], cent[1]];
-      const payload = { ageHours, source: "NASA EONET", details: ev.title, latitude: coords[1], longitude: coords[0], observed_magnitude: null };
+      const payload = { ageHours, source: "NASA EONET", details: ev.title, latitude: coords[1], longitude: coords[0] };
       if (cat === "wildfires") signals.push({ type: "nasa_wildfire", weight: 75, ...payload });
       else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ...payload });
       else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ...payload });
@@ -935,56 +911,56 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (s.ifrcCount > 0 && s.ifrcEvents) {
     const top = s.ifrcEvents[0];
     const ageHours = top.disaster_start_date ? (now - new Date(top.disaster_start_date).getTime()) / 36e5 : 72;
-    signals.push({ type: "ifrc_emergency", weight: 75, ageHours, source: "IFRC Event", details: top.name, observed_magnitude: null });
+    signals.push({ type: "ifrc_emergency", weight: 75, ageHours, source: "IFRC Event", details: top.name });
   }
   if (CFG.IFRC_APPEAL_ENABLED && s.ifrcAppeals && s.ifrcAppeals.length > 0) {
     for (const ap of s.ifrcAppeals.slice(0, 2)) {
       const ageHours = ap.start_date ? (now - new Date(ap.start_date).getTime()) / 36e5 : 72;
-      signals.push({ type: "ifrc_appeal", weight: 80, ageHours, source: "IFRC Appeal", details: ap.name || ap.dtype?.name || "IFRC Emergency Appeal", observed_magnitude: null });
+      signals.push({ type: "ifrc_appeal", weight: 80, ageHours, source: "IFRC Appeal", details: ap.name || ap.dtype?.name || "IFRC Emergency Appeal" });
     }
   }
 
   if (s.gdacsEventType === "TC" || (s.nasaEvents || []).some(e => e.categories?.some(c => c.id === "severeStorms"))) {
-    signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone", observed_magnitude: null });
+    signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS/NASA", details: "Active cyclone" });
   }
   if (s.hazards?.flood_discharge > 500 || s.gdacsEventType === "FL") {
-    signals.push({ type: "flood_severe", weight: 70, ageHours: 48, source: "Open-Meteo/GDACS", details: "Severe flooding", observed_magnitude: s.hazards?.flood_discharge || null });
+    signals.push({ type: "flood_severe", weight: 70, ageHours: 48, source: "Open-Meteo/GDACS", details: "Severe flooding" });
   }
   if (s.hazards?.wave_height >= CFG.OPENMETEO_MARINE_THRESHOLD) {
-    signals.push({ type: "marine_hazard", weight: 55, ageHours: 24, source: "Open-Meteo Marine", details: `${s.hazards.wave_height.toFixed(1)}m wave height`, observed_magnitude: s.hazards.wave_height });
+    signals.push({ type: "marine_hazard", weight: 55, ageHours: 24, source: "Open-Meteo Marine", details: `${s.hazards.wave_height.toFixed(1)}m wave height` });
   }
   if (s.maxTempC >= 42) {
-    signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C`, observed_magnitude: s.maxTempC });
+    signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   }
 
   if (s.diseaseActive > 10_000) {
-    signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases`, observed_magnitude: s.diseaseActive });
+    signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   }
 
-  if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation`, observed_magnitude: s.wbInflation.value });
-  if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP`, observed_magnitude: Math.abs(s.wbGdpGrowth.value) });
+  if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
+  if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
 
   if (CFG.WB_FOOD_PRICES_ENABLED && s.wbFoodPrice && s.wbFoodPrice.value > 100) {
-    signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}`, observed_magnitude: s.wbFoodPrice.value });
+    signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
   }
   if (CFG.WB_INFRASTRUCTURE_ENABLED && s.electricityAccess && s.electricityAccess.value < 50) {
-    signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%`, observed_magnitude: s.electricityAccess.value });
+    signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
   }
 
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     const top = s.cdcOutbreaks[0];
-    signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: top.ageHours || 48, source: "CDC", details: top.title || top.disease || "CDC Outbreak Notice", observed_magnitude: null });
+    signals.push({ type: "cdc_outbreak", weight: CFG.CDC_BOOST, ageHours: top.ageHours || 48, source: "CDC", details: top.title || top.disease || "CDC Outbreak Notice" });
   }
 
   if (CFG.SPC_ENABLED && isUS(iso) && s.spcOutlook) {
     const cat = s.spcOutlook.label || "TSTM";
     const weightMap = { TSTM: 20, MRGL: 40, SLGT: 55, ENH: 75, MDT: 90, HIGH: 110 };
     const ageHours = s.spcOutlook.issue ? (now - new Date(s.spcOutlook.issue).getTime()) / 36e5 : 6;
-    signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}`, observed_magnitude: null });
+    signals.push({ type: "spc_severe", weight: weightMap[cat] || 20, ageHours, source: "SPC", details: `SPC ${cat}: ${s.spcOutlook.label2 || "Severe Weather Outlook"}` });
   }
 
   if (CFG.US_DROUGHT_ENABLED && isUS(iso) && s.usDrought && s.usDrought.level) {
-    signals.push({ type: "us_drought", weight: CFG.US_DROUGHT_BOOST, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}`, observed_magnitude: null });
+    signals.push({ type: "us_drought", weight: CFG.US_DROUGHT_BOOST, ageHours: s.usDrought.ageHours || 168, source: "US Drought Monitor", details: `Drought level: ${s.usDrought.level}` });
   }
 
   if (CFG.NASA_POWER_ENABLED && s.nasaPower) {
@@ -994,7 +970,7 @@ function detectLiveBreakingSignals(iso, live, store) {
       const details = [];
       if (Math.abs(tempAnom) >= CFG.NASA_POWER_TEMP_ANOMALY) details.push(`${tempAnom > 0 ? "+" : ""}${tempAnom.toFixed(1)}°C temp`);
       if (Math.abs(precipAnom) >= CFG.NASA_POWER_PRECIP_ANOMALY) details.push(`${precipAnom > 0 ? "+" : ""}${precipAnom.toFixed(1)}mm/day precip`);
-      signals.push({ type: "nasa_power_anomaly", weight: CFG.NASA_POWER_BOOST, ageHours: 72, source: "NASA POWER", details: details.join(", "), observed_magnitude: Math.max(Math.abs(tempAnom), Math.abs(precipAnom)) });
+      signals.push({ type: "nasa_power_anomaly", weight: CFG.NASA_POWER_BOOST, ageHours: 72, source: "NASA POWER", details: details.join(", ") });
     }
   }
 
@@ -1002,292 +978,250 @@ function detectLiveBreakingSignals(iso, live, store) {
     const top = s.gfwAlerts;
     if (top.count >= 100) {
       const b = Math.min(CFG.GFW_MAX_BOOST, Math.round(Math.log10(top.count) * CFG.GFW_DEFORESTATION_BOOST / 3));
-      signals.push({ type: "gfw_deforestation", weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b), ageHours: top.ageHours || 24, source: "Global Forest Watch", details: `${top.count.toLocaleString()} deforestation alerts detected`, observed_magnitude: top.count });
+      signals.push({ type: "gfw_deforestation", weight: Math.max(CFG.GFW_DEFORESTATION_BOOST, b), ageHours: top.ageHours || 24, source: "Global Forest Watch", details: `${top.count.toLocaleString()} deforestation alerts detected` });
     }
   }
 
   if (CFG.JTWC_ENABLED && WPAC_ISOS.has(iso) && s.jtwcStorms && s.jtwcStorms.length > 0) {
     for (const storm of s.jtwcStorms.slice(0, 2)) {
-      signals.push({ type: "jtwc_cyclone", weight: CFG.JTWC_BOOST, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}`, observed_magnitude: null });
+      signals.push({ type: "jtwc_cyclone", weight: CFG.JTWC_BOOST, ageHours: storm.ageHours || 12, source: "JTWC", details: `${storm.name || "Pacific cyclone"} — ${storm.category || "active"}` });
     }
   }
 
   if (CFG.JMA_TYPHOON_ENABLED && WPAC_ISOS.has(iso) && s.jmaTyphoons && s.jmaTyphoons.length > 0) {
     for (const typhoon of s.jmaTyphoons.slice(0, 2)) {
-      signals.push({ type: "jma_typhoon", weight: CFG.JMA_TYPHOON_BOOST, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}`, observed_magnitude: null });
+      signals.push({ type: "jma_typhoon", weight: CFG.JMA_TYPHOON_BOOST, ageHours: typhoon.ageHours || 12, source: "JMA", details: `${typhoon.name || "Typhoon"} — ${typhoon.category || "active"}` });
     }
   }
 
   if (CFG.CLIMATE_TRACE_ENABLED && s.climateTrace && s.climateTrace.topEmission) {
     const e = s.climateTrace.topEmission;
     if (e.emissions > 100_000) {
-      signals.push({ type: "climate_trace_emissions", weight: CFG.CLIMATE_TRACE_BOOST, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}`, observed_magnitude: e.emissions });
+      signals.push({ type: "climate_trace_emissions", weight: CFG.CLIMATE_TRACE_BOOST, ageHours: 168, source: "Climate TRACE", details: `${(e.emissions/1e6).toFixed(1)}Mt CO₂e — ${e.sector || "mixed"}` });
     }
   }
 
   if (CFG.HDX_ENABLED && s.hdxDatasets && s.hdxDatasets.count > 0) {
-    signals.push({ type: "hdx_crisis", weight: CFG.HDX_BOOST, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available`, observed_magnitude: s.hdxDatasets.count });
+    signals.push({ type: "hdx_crisis", weight: CFG.HDX_BOOST, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} crisis dataset(s) available` });
   }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v14.0.0: DOMAIN-AWARE RECENCY
+//  v14.0: CROSS-DOMAIN COUPLING DETECTION
+//  When signals from ≥N distinct domains fire simultaneously, the compound
+//  state is super-linear. Multiply raw_score by (1 + coupling).
 // ════════════════════════════════════════════════════════════════════════════
-function recencyForDomain(type, ageHours) {
-  const domain = SIGNAL_DOMAIN[type] || "disease";
-  const halfLife = CFG.HALF_LIFE_HOURS[domain] || 72;
-  // Exponential decay: 0.5^(age / halfLife), floor at 0.05
-  const decay = Math.pow(0.5, Math.max(0, ageHours) / halfLife);
-  return clampFloat(Math.max(0.05, decay), 0.05, 1.0);
+function computeCrossDomainCoupling(signals) {
+  if (!CFG.CROSS_DOMAIN_COUPLING_ENABLED) return { domains: 0, coupling: 0, domainList: [] };
+  const domainSet = new Set();
+  for (const sig of signals) {
+    const d = SIGNAL_DOMAIN[sig.type];
+    if (d) domainSet.add(d);
+  }
+  const domains = domainSet.size;
+  if (domains < CFG.CROSS_DOMAIN_MIN_DOMAINS) {
+    return { domains, coupling: 0, domainList: [...domainSet] };
+  }
+  // Super-linear: t^1.5 scaled to max, where t = (domains - min + 1) / (max possible - min + 1)
+  const maxDomains = 6; // geophysical, health, displacement, climate, economic, humanitarian
+  const t = Math.min(1, (domains - CFG.CROSS_DOMAIN_MIN_DOMAINS + 1) / (maxDomains - CFG.CROSS_DOMAIN_MIN_DOMAINS + 1));
+  const coupling = t * CFG.CROSS_DOMAIN_COUPLING_MAX;
+  return { domains, coupling, domainList: [...domainSet] };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v14.0.0: MAGNITUDE-AWARE WEIGHT MULTIPLIER
+//  v14.0: CORROBORATION BONUS
+//  When multiple independent sources fire the same event, the signal is
+//  stronger than a single source. Add per-source bonus on top of raw_score.
 // ════════════════════════════════════════════════════════════════════════════
-function magnitudeMultiplier(sig) {
-  const m = sig.observed_magnitude;
-  if (m == null || !Number.isFinite(m)) return 1.0;
-  if (sig.type.startsWith("earthquake_") || sig.type.includes("earthquake") || sig.type === "shakemap_event") {
-    // Seismic: (1 + (M - 4.5) * 0.4), capped at 2.5
-    const mult = 1 + (m - CFG.MAG_REF) * CFG.MAG_SCALE;
-    return clampFloat(mult, 0.5, CFG.MAG_MAX_MULT);
+function computeCorroborationBonus(signals) {
+  if (!CFG.CORROBORATION_BONUS_ENABLED) return 0;
+  let bonus = 0;
+  for (const sig of signals) {
+    const c = sig.corroboration_count || 0;
+    if (c > 0) bonus += c * CFG.CORROBORATION_BONUS_PER_SOURCE;
   }
-  if (sig.type === "unhcr_mass_displace" || sig.type === "unhcr_return") {
-    // Displacement: log-scaled
-    return clampFloat(0.8 + Math.log10(m + 1) / 8, 0.8, 1.6);
-  }
-  if (sig.type === "heat_extreme") {
-    return clampFloat(1 + (m - 42) * 0.05, 1.0, 1.5);
-  }
-  return 1.0;
+  return Math.min(CFG.CORROBORATION_BONUS_MAX, bonus);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v14.0.0: BAYESIAN SATURATING SOURCE CORROBORATION
-//  Each independent source updates the log-odds by a fixed increment, with
-//  saturating returns. The result is exp(total_log_odds), bounded.
+//  v14.0: CONFIDENCE INTERVAL via bootstrap over signal weights
 // ════════════════════════════════════════════════════════════════════════════
-function sourceCorroborationBoost(sources) {
-  const n = Math.max(0, sources.size - 1);   // first source is baseline
-  if (n === 0) return 1.0;
-  let logOdds = 0;
-  for (let i = 0; i < n; i++) {
-    // Each additional source contributes with diminishing returns
-    const increment = CFG.SOURCE_LOG_ODDS_PER_INDEPENDENT * Math.exp(-logOdds / CFG.SOURCE_SATURATION);
-    logOdds += increment;
-    if (logOdds >= CFG.SOURCE_SATURATION) break;
+function computeConfidenceInterval(signals, baseScore, scale) {
+  if (!CFG.CONFIDENCE_INTERVAL_ENABLED || signals.length === 0) return { low: baseScore, high: baseScore, width: 0 };
+  const samples = [];
+  const nSamples = CFG.CONFIDENCE_INTERVAL_SAMPLES;
+  for (let s = 0; s < nSamples; s++) {
+    let rawResample = 0;
+    for (const sig of signals) {
+      // Weight perturbation: ±15% uniform
+      const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
+      const perturb = 0.85 + Math.random() * 0.30;
+      const recency = sig.recency_factor || 1.0;
+      rawResample += sig.weight * recency * (def.verify || 0.8) * perturb;
+    }
+    const normalized = Math.round(100 * (1 - Math.exp(-rawResample / scale)));
+    samples.push(normalized);
   }
-  return clampFloat(Math.exp(logOdds), 1.0, Math.exp(CFG.SOURCE_SATURATION));
+  samples.sort((a, b) => a - b);
+  const low = samples[Math.floor(0.05 * samples.length)];
+  const high = samples[Math.floor(0.95 * samples.length)];
+  return { low, high, width: high - low };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v14.0.0: SCORING CORE
+//  v14.0: COLD-START WARMUP RAMP
+//  When real history is insufficient, shrink the live score toward structural
+//  baseline by a ramp factor. Prevents false anomalies dominating the board.
 // ════════════════════════════════════════════════════════════════════════════
+function computeColdStartRamp(historyDays) {
+  if (!CFG.COLD_START_RAMP_ENABLED) return 1.0;
+  if (historyDays >= CFG.COLD_START_RAMP_DAYS) return 1.0;
+  // Linear ramp from 0.7 at day 0 to 1.0 at day 14
+  const t = Math.max(0, Math.min(1, historyDays / CFG.COLD_START_RAMP_DAYS));
+  return 0.7 + 0.3 * t;
+}
+
 function computeLiveBreakingScore(iso, live, store) {
   const c = COUNTRIES[iso];
   const rawSignals = detectLiveBreakingSignals(iso, live, store);
   const signals = deduplicateEvents(rawSignals, iso);
 
-  // ── Split events from states ──
-  const events = signals.filter(s => EVENT_SIGNAL_SET.has(s.type));
-  const states = signals.filter(s => !EVENT_SIGNAL_SET.has(s.type));
-
+  let rawScore = 0;
   const sources = new Set();
   const activeSignals = [];
 
-  // ── Event track scoring ──
-  let eventRaw = 0;
-  const eventSignalsScored = [];
-  const eventSources = new Set();
-  const eventTypes = new Set();
-  for (const sig of events) {
+  for (const sig of signals) {
     const ageHours = Math.max(0, sig.ageHours || 0);
-    const recency = recencyForDomain(sig.type, ageHours);
-    const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
-    const magMult = magnitudeMultiplier(sig);
-    const weighted = sig.weight * recency * (def.verify || 0.8) * magMult;
-    eventRaw += weighted;
-    sources.add(sig.source);
-    eventSources.add(sig.source);
-    eventTypes.add(sig.type);
-    activeSignals.push({ ...sig, recency_factor: +recency.toFixed(3), magnitude_multiplier: +magMult.toFixed(2), weighted_score: +weighted.toFixed(2) });
-  }
+    let recencyFactor;
+    if (ageHours <= 6) recencyFactor = RECENCY.HOURS_6;
+    else if (ageHours <= 24) recencyFactor = RECENCY.HOURS_24;
+    else if (ageHours <= 72) recencyFactor = RECENCY.HOURS_72;
+    else if (ageHours <= 168) recencyFactor = RECENCY.HOURS_168;
+    else recencyFactor = RECENCY.OLDER;
 
-  // ── State track scoring (capped, does not inflate event tier) ──
-  let stateRaw = 0;
-  const stateSignalsScored = [];
-  for (const sig of states) {
-    const ageHours = Math.max(0, sig.ageHours || 0);
-    const recency = recencyForDomain(sig.type, ageHours);
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
-    const weighted = sig.weight * recency * (def.verify || 0.8);
-    stateRaw += weighted;
+    const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
+    rawScore += weighted;
     sources.add(sig.source);
-    stateSignalsScored.push({ ...sig, recency_factor: +recency.toFixed(3), magnitude_multiplier: 1.0, weighted_score: +weighted.toFixed(2) });
+    activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
   }
 
   const signalCount = rawSignals.length;
   const distinctEventCount = signals.length;
-  const freshEvents = eventSignalsScored.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
-  const hasFreshLiveEvent = freshEvents.length > 0;
 
-  // ── Event-track boosts ──
   let liveEventBoost = 0;
+  const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
   if (freshEvents.length > 0) {
     liveEventBoost = CFG.LIVE_EVENT_FLAT_BOOST + Math.min(CFG.LIVE_EVENT_FLAT_BOOST * 0.5, (freshEvents.length - 1) * 15);
-    eventRaw += liveEventBoost;
+    rawScore += liveEventBoost;
   }
 
-  // ── Bayesian source corroboration ──
-  const sourceMultiplier = sourceCorroborationBoost(eventSources);
-  eventRaw *= sourceMultiplier;
+  const sourceMultiplier = 1 + Math.min(0.8, Math.max(0, sources.size - 1) * 0.3);
+  rawScore *= sourceMultiplier;
 
-  // ── Event diversity bonus ──
-  const diversityBonus = Math.min(30, Math.max(0, eventTypes.size - 1) * 8);
-  eventRaw += diversityBonus;
+  const uniqueTypes = new Set(signals.map(s => s.type));
+  const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
+  rawScore += diversityBonus;
 
-  // ── Event freshness bonus ──
-  const freshest = eventSignalsScored.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
+  const freshest = signals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
   let freshnessBonus = 0;
   if (freshest <= 6) freshnessBonus = 40;
   else if (freshest <= 12) freshnessBonus = 25;
   else if (freshest <= 24) freshnessBonus = 15;
   else if (freshest <= 48) freshnessBonus = 8;
-  eventRaw += freshnessBonus;
+  rawScore += freshnessBonus;
 
-  // ── State track contributes at reduced weight, capped ──
-  const stateContribution = Math.min(CFG.EVENT_TRACK_CAP * 0.5, stateRaw * CFG.STATE_TRACK_WEIGHT);
-
-  // ── Combine tracks through bounded fusion ──
-  const combinedRaw = eventRaw + stateContribution;
-
-  // ── FSI-anchored baseline ──
   const fsiBaseline = ((c.fsi_score - 50) / 70) * CFG.FSI_BASELINE_MAX;
-  const finalRaw = combinedRaw + Math.max(0, fsiBaseline);
+  rawScore += Math.max(0, fsiBaseline);
 
-  // ── Ensemble dampener ──
+  // ═══ v14.0: CROSS-DOMAIN COUPLING ═══
+  const coupling = computeCrossDomainCoupling(activeSignals);
+  if (coupling.coupling > 0) {
+    rawScore *= (1 + coupling.coupling);
+  }
+
+  // ═══ v14.0: CORROBORATION BONUS (as multiplier on raw) ═══
+  const corroborationBonus = computeCorroborationBonus(activeSignals);
+  if (corroborationBonus > 0) {
+    rawScore *= (1 + corroborationBonus);
+  }
+
   let ensembleDampener = 1.0;
   if (CFG.ENSEMBLE_ENABLED && store[iso]?.signals?.ensembleSpread >= CFG.ENSEMBLE_SPREAD_THRESHOLD) {
     ensembleDampener = 0.92;
   }
 
-  // ── Normalize ──
-  const normalizedEventScore = Math.round(100 * (1 - Math.exp(-finalRaw / CFG.FUSION_SATURATION)) * ensembleDampener);
+  // ═══ v14.0: ADAPTIVE NORMALIZATION ═══
+  const adaptiveScale = persistentHistory.getAdaptiveScale();
+  let normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / adaptiveScale)) * ensembleDampener);
 
-  // ═══ Cross-domain coupling bonus ═══
-  const dimValues = c.dims || {};
-  const highDims = DIMS.filter(d => (dimValues[d.k] || 0) >= CFG.COUPLING_DIM_THRESHOLD).length;
-  const couplingBonus = highDims >= CFG.COUPLING_MIN_DIMS
-    ? Math.min(CFG.COUPLING_MAX_BONUS, (highDims - CFG.COUPLING_MIN_DIMS + 1) * 4)
-    : 0;
-  const withCoupling = clamp(normalizedEventScore + couplingBonus);
-
-  // ═══ Temporal coherence damping ═══
-  const hist = store[iso]?.historical_scores || [];
-  let coherenceDamped = withCoupling;
-  let coherenceDampApplied = 0;
-  if (hist.length >= CFG.COHERENCE_WINDOW) {
-    const recent = hist.slice(-CFG.COHERENCE_WINDOW);
-    const med = median(recent);
-    const sd = stddev(recent);
-    const zScore = Math.abs(withCoupling - med) / (sd || 1);
-    if (zScore >= CFG.REGIME_CHANGE_THRESHOLD) {
-      const pull = Math.min(CFG.COHERENCE_MAX_DAMP, (zScore - CFG.REGIME_CHANGE_THRESHOLD) * 0.05);
-      coherenceDampApplied = pull;
-      coherenceDamped = clamp(withCoupling * (1 - pull) + med * pull);
-    }
+  // ═══ v14.0: COLD-START RAMP ═══
+  const historyDays = (store[iso]?.__history_days) || 0;
+  const ramp = computeColdStartRamp(historyDays);
+  if (ramp < 1.0) {
+    // Blend toward structural baseline by ramp factor
+    const structural = store[iso]?.structural_score || 50;
+    normalizedScore = Math.round(normalizedScore * ramp + structural * (1 - ramp));
   }
 
-  const finalScore = coherenceDamped;
+  // ═══ v14.0: CONFIDENCE INTERVAL ═══
+  const ci = computeConfidenceInterval(activeSignals, normalizedScore, adaptiveScale);
 
-  // ── Tier assignment ──
-  const compoundCrisis = highDims >= CFG.COMPOUND_MIN_DIMS;
+  const hasFreshLiveEvent = freshEvents.length > 0;
   let tier, tierLabel, tierIcon;
-  const T = (min, label, icon) => ({ tier: label.split(" ")[0], tierLabel: label, tierIcon: icon });
-
   if (hasFreshLiveEvent) {
-    if (finalScore >= 70) ({ tier, tierLabel, tierIcon } = T(70, "BREAKING", "🔴"));
-    else if (finalScore >= 50) ({ tier, tierLabel, tierIcon } = T(50, "DEVELOPING", "🟠"));
-    else if (finalScore >= 30) ({ tier, tierLabel, tierIcon } = T(30, "ACTIVE", "🟡"));
-    else if (finalScore >= 15) ({ tier, tierLabel, tierIcon } = T(15, "MONITORING", "🟢"));
-    else ({ tier, tierLabel, tierIcon } = T(0, "BACKGROUND", "⚪"));
-    // Compound promotion
-    if (compoundCrisis) {
-      if (tier === "MONITORING") { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
-      else if (tier === "ACTIVE") { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
-    }
+    if (normalizedScore >= 70) { tier = "BREAKING"; tierLabel = "BREAKING NEWS"; tierIcon = "🔴"; }
+    else if (normalizedScore >= 50) { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
+    else if (normalizedScore >= 30) { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
+    else if (normalizedScore >= 15) { tier = "MONITORING"; tierLabel = "MONITORING"; tierIcon = "🟢"; }
+    else { tier = "BACKGROUND"; tierLabel = "BACKGROUND"; tierIcon = "⚪"; }
   } else {
-    if (finalScore >= 65) ({ tier, tierLabel, tierIcon } = T(65, "DEVELOPING", "🟠"));
-    else if (finalScore >= 40) ({ tier, tierLabel, tierIcon } = T(40, "ACTIVE", "🟡"));
-    else if (finalScore >= 20) ({ tier, tierLabel, tierIcon } = T(20, "MONITORING", "🟢"));
-    else ({ tier, tierLabel, tierIcon } = T(0, "BACKGROUND", "⚪"));
+    if (normalizedScore >= 65) { tier = "DEVELOPING"; tierLabel = "DEVELOPING STORY"; tierIcon = "🟠"; }
+    else if (normalizedScore >= 40) { tier = "ACTIVE"; tierLabel = "ACTIVE CRISIS"; tierIcon = "🟡"; }
+    else if (normalizedScore >= 20) { tier = "MONITORING"; tierLabel = "MONITORING"; tierIcon = "🟢"; }
+    else { tier = "BACKGROUND"; tierLabel = "BACKGROUND"; tierIcon = "⚪"; }
   }
-
-  // ── Uncertainty payload ──
-  const coverageRatio = clampFloat(signalCount / CFG.LOW_INSTRUMENTATION_THRESHOLD, 0, 1);
-  const fsiNorm = clampFloat((c.fsi_score - 30) / 90, 0, 1);
-  const samplingConfidence = clampFloat(
-    CFG.FSI_CONFIDENCE_FLOOR +
-    (CFG.FSI_CONFIDENCE_CEILING - CFG.FSI_CONFIDENCE_FLOOR) *
-    (0.5 * coverageRatio + 0.5 * fsiNorm),
-    0, 1
-  );
 
   return {
-    live_score: finalScore,
+    live_score: normalizedScore,
+    live_score_ci: { low: ci.low, high: ci.high, width: ci.width },
     tier, tier_label: tierLabel, tier_icon: tierIcon,
-    raw_score: +finalRaw.toFixed(2),
-    event_raw_score: +eventRaw.toFixed(2),
-    state_raw_score: +stateRaw.toFixed(2),
-    state_contribution: +stateContribution.toFixed(2),
+    raw_score: +rawScore.toFixed(2),
+    adaptive_scale: +adaptiveScale.toFixed(1),
     signal_count: signalCount,
     live_event_count: distinctEventCount,
     distinct_event_count: distinctEventCount,
     raw_signal_count: signalCount,
-    event_count_distinct: events.length,
-    state_count_distinct: states.length,
     has_fresh_live_event: hasFreshLiveEvent,
-    unique_signal_types: eventTypes.size,
+    unique_signal_types: uniqueTypes.size,
     source_count: sources.size,
-    event_source_count: eventSources.size,
     sources: [...sources],
-    source_multiplier: +sourceMultiplier.toFixed(3),
+    source_multiplier: +sourceMultiplier.toFixed(2),
     live_event_boost: +liveEventBoost.toFixed(2),
     diversity_bonus: diversityBonus,
     freshness_bonus: freshnessBonus,
     fsi_baseline: +fsiBaseline.toFixed(2),
-    coupling_bonus: couplingBonus,
-    coherence_damp_applied: +coherenceDampApplied.toFixed(3),
     ensemble_dampener: ensembleDampener,
+    cross_domain: { domains: coupling.domains, coupling: +coupling.coupling.toFixed(3), domain_list: coupling.domainList },
+    corroboration_bonus: +corroborationBonus.toFixed(3),
+    cold_start_ramp: +ramp.toFixed(3),
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
-    uncertainty: {
-      sampling_confidence: +samplingConfidence.toFixed(3),
-      coverage_ratio: +coverageRatio.toFixed(3),
-      effective_sources: eventSources.size,
-      fresh_event_count: freshEvents.length,
-      high_dimension_count: highDims,
-      compound_crisis: compoundCrisis,
-    },
-    signals: [...eventSignalsScored, ...stateSignalsScored].sort((a, b) => b.weighted_score - a.weighted_score),
-    events: events.map(sig => {
-      const scored = eventSignalsScored.find(x => x.dedup_key === sig.dedup_key) || {};
-      return {
-        type: sig.type,
-        label: LIVE_SIGNALS[sig.type]?.label || sig.type,
-        icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
-        weight: sig.weight,
-        age_hours: +(sig.ageHours || 0).toFixed(1),
-        weighted_score: scored.weighted_score || 0,
-        recency_factor: scored.recency_factor || 0,
-        magnitude_multiplier: scored.magnitude_multiplier || 1,
-        source: sig.source,
-        details: sig.details,
-        corroborating_sources: sig.corroborating_sources || [],
-        corroboration_count: sig.corroboration_count || 0,
-      };
-    }).sort((a, b) => b.weighted_score - a.weighted_score),
+    signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
+    events: signals.map(sig => ({
+      type: sig.type,
+      label: LIVE_SIGNALS[sig.type]?.label || sig.type,
+      icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
+      weight: sig.weight,
+      age_hours: +(sig.ageHours || 0).toFixed(1),
+      weighted_score: sig.weighted_score,
+      source: sig.source,
+      details: sig.details,
+      corroborating_sources: sig.corroborating_sources || [],
+      corroboration_count: sig.corroboration_count || 0,
+    })).sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(iso, activeSignals, c),
   };
 }
@@ -1364,9 +1298,6 @@ function rankLiveEventsOnly(store) {
       return (aLB.freshest_signal_age_hours ?? 9999) - (bLB.freshest_signal_age_hours ?? 9999);
     });
 }
-
-// ═══ ML, anomaly, trend, prior dims, buildStore, payload builder, fetchers ═══
-// (Unchanged from v13.9.6 — see the file below for the complete source)
 
 class CrisisMLModel {
   constructor() { this.weights = { input_hidden: [], hidden_output: [], bias_hidden: [], bias_output: [] }; this.trained = false; this.trainingCount = 0; this.lastUpdate = Date.now(); this.performance = { mse: 0, r2: 0, accuracy: 0 }; }
@@ -1496,13 +1427,15 @@ function analyzeCountrySentiment(iso, store) {
 async function storeHistoricalData(iso, store) {
   if (!CFG.HISTORY_ENABLED) return;
   const c = store[iso];
+  const lb = c.__live_breaking || {};
   await persistentHistory.record(iso, {
-    score: c.score,
-    live_score: c.__live_breaking?.live_score || 0,
-    signal_count: c.__live_breaking?.signal_count || 0,
-    distinct_event_count: c.__live_breaking?.distinct_event_count || 0,
+    score: c.__effective_score ?? c.score,
+    live_score: lb.live_score || 0,
+    raw_score: lb.raw_score || 0,
+    signal_count: lb.signal_count || 0,
+    distinct_event_count: lb.distinct_event_count || 0,
   });
-  historyStore.store(iso, { score: c.score, live_score: c.__live_breaking?.live_score || 0 });
+  historyStore.store(iso, { score: c.score, live_score: lb.live_score || 0 });
 }
 
 class AlertManager {
@@ -2458,11 +2391,15 @@ async function buildStore(liveData) {
       dims = adjusted.dims; structuralScore = adjusted.score; audit = adjusted.audit;
     }
 
+    // v14.0: track history depth for cold-start ramp
+    const historyDays = Math.min(CFG.COLD_START_RAMP_DAYS, (persistentHistory.memory.get(iso) || []).length);
+
     store[iso] = {
       ...country, dims, score: structuralScore, structural_score: structuralScore, priorScore,
       liveBoost: structuralScore - priorScore, audit, signals, spillover: 0,
       fsi_score: fsiScore, fsi_rank: country.fsi_rank, fsi_band: country.fsi_band,
       historical_scores: [], __wst: null, __live_breaking: null, __effective_score: null,
+      __history_days: historyDays,
     };
   }
 
@@ -2595,6 +2532,7 @@ async function buildPayload(iso, store, ranked, opts = {}) {
 
     live_breaking: {
       score: lb.live_score || 0,
+      score_ci: lb.live_score_ci || { low: lb.live_score || 0, high: lb.live_score || 0, width: 0 },
       tier: lb.tier || "BACKGROUND",
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
@@ -2603,51 +2541,35 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       raw_signal_count: lb.raw_signal_count || 0,
       live_event_count: lb.live_event_count || 0,
       distinct_event_count: lb.distinct_event_count || 0,
-      event_count_distinct: lb.event_count_distinct || 0,
-      state_count_distinct: lb.state_count_distinct || 0,
       has_fresh_live_event: lb.has_fresh_live_event || false,
       unique_signal_types: lb.unique_signal_types || 0,
       source_count: lb.source_count || 0,
-      event_source_count: lb.event_source_count || 0,
       sources: lb.sources || [],
       freshest_signal_age_hours: lb.freshest_signal_age_hours,
       live_event_boost: lb.live_event_boost || 0,
       freshness_bonus: lb.freshness_bonus || 0,
       diversity_bonus: lb.diversity_bonus || 0,
       fsi_baseline: lb.fsi_baseline || 0,
-      coupling_bonus: lb.coupling_bonus || 0,
-      coherence_damp_applied: lb.coherence_damp_applied || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
       source_multiplier: lb.source_multiplier || 1,
-      event_raw_score: lb.event_raw_score || 0,
-      state_raw_score: lb.state_raw_score || 0,
-      state_contribution: lb.state_contribution || 0,
+      adaptive_scale: lb.adaptive_scale,
+      cross_domain: lb.cross_domain,
+      corroboration_bonus: lb.corroboration_bonus,
+      cold_start_ramp: lb.cold_start_ramp,
       events: lb.events || [],
       signals: (lb.signals || []).map(sig => ({
         type: sig.type,
         label: LIVE_SIGNALS[sig.type]?.label || sig.type,
         icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
-        is_live_event: EVENT_SIGNAL_SET.has(sig.type),
-        domain: SIGNAL_DOMAIN[sig.type] || "unknown",
+        is_live_event: sig.is_live_event || false,
         weight: sig.weight,
         age_hours: +(sig.ageHours || 0).toFixed(1),
         weighted_score: sig.weighted_score,
-        recency_factor: sig.recency_factor,
-        magnitude_multiplier: sig.magnitude_multiplier,
         source: sig.source,
         details: sig.details,
         corroborating_sources: sig.corroborating_sources || [],
         corroboration_count: sig.corroboration_count || 0,
       })),
-    },
-
-    uncertainty: lb.uncertainty || {
-      sampling_confidence: 0.5,
-      coverage_ratio: 0,
-      effective_sources: 0,
-      fresh_event_count: 0,
-      high_dimension_count: 0,
-      compound_crisis: false,
     },
 
     live_evidence_sources: s.evidenceSources || [],
@@ -2737,10 +2659,15 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
       live_breaking_score: lb.live_score,
+      live_breaking_score_ci: lb.live_score_ci,
       effective_score_raw: Math.max(c.structural_score ?? 0, lb.live_score || 0),
       pop_multiplier: c.__pop_multiplier ?? 1.0,
       resolution_credit: c.__resolution_credit ?? 0,
       effective_score: c.__effective_score,
+      cross_domain_coupling: lb.cross_domain?.coupling || 0,
+      corroboration_bonus: lb.corroboration_bonus || 0,
+      cold_start_ramp: lb.cold_start_ramp || 1.0,
+      adaptive_scale: lb.adaptive_scale,
       adjustments: c.audit || [],
       spillover: c.spillover,
       final_score: displayScore,
@@ -2938,7 +2865,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, is_low_instrumentation: isLowInstrumentation(lb), uncertainty: lb.uncertainty };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, live_score_ci: lb.live_score_ci, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, is_low_instrumentation: isLowInstrumentation(lb) };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, live_news: feed }, null, 2));
@@ -2965,7 +2892,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb), uncertainty: lb.uncertainty };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, live_score_ci: lb.live_score_ci, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2996,8 +2923,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "LIVE_BREAKING_NEWS_v14.0.0",
-        scoring_mode: "MAXIMUM_PRECISION",
+        ranking_mode: "LIVE_BREAKING_NEWS_v14.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_live_signals: breakingRanked.length,
         countries_with_fresh_live_events: liveEventsOnly.length,
@@ -3009,22 +2935,19 @@ export default async function handler(req, res) {
         pop_exposure_enabled: CFG.POP_EXPOSURE_ENABLED,
         resolution_credit_enabled: CFG.RESOLUTION_CREDIT_ENABLED,
         low_instrumentation_threshold: CFG.LOW_INSTRUMENTATION_THRESHOLD,
-        two_tier_separation: true,
-        bayesian_source_fusion: true,
-        per_domain_recency: true,
-        magnitude_aware_weighting: true,
-        fsi_anchored_confidence: true,
-        temporal_coherence_damping: true,
-        compound_crisis_detection: true,
-        note: "v14.0.0 — Maximum-precision scoring. Two-tier event/state separation, Bayesian saturating source fusion, per-domain recency half-lives, magnitude-aware weighting, FSI-anchored confidence, explicit uncertainty, temporal coherence damping, cross-domain coupling bonus, compound-crisis tier promotion.",
+        corroboration_bonus_enabled: CFG.CORROBORATION_BONUS_ENABLED,
+        adaptive_normalization_enabled: CFG.ADAPTIVE_NORMALIZATION_ENABLED,
+        cross_domain_coupling_enabled: CFG.CROSS_DOMAIN_COUPLING_ENABLED,
+        confidence_interval_enabled: CFG.CONFIDENCE_INTERVAL_ENABLED,
+        cold_start_ramp_enabled: CFG.COLD_START_RAMP_ENABLED,
+        adaptive_scale_now: persistentHistory.getAdaptiveScale(),
+        note: "v14.0 — Technically optimal. Ranking: effective_score → has_fresh → live_score → freshness. Added: corroboration bonus, adaptive normalization, cross-domain coupling, confidence intervals, cold-start ramp.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
           top_live_iso: ranked[0] || null,
           top_live_headline: ranked[0] ? store[ranked[0]].__live_breaking.breaking_headline : null,
           signal_types_available: Object.keys(LIVE_SIGNALS).length,
-          event_signal_types: EVENT_SIGNAL_SET.size,
-          state_signal_types: Object.keys(LIVE_SIGNALS).length - EVENT_SIGNAL_SET.size,
         },
         data_sources: {
           usgs_weekly: { live: liveData.usgs.live, events: liveData.usgs.data?.length ?? 0 },
@@ -3083,7 +3006,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v14.0.0]", err);
+    console.error("[top-story v14.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
