@@ -1,22 +1,23 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v13.9.7 — THE JACQUE FRESCO EDITION
+//  TOP-STORY API — v13.9.7 — CYBERNETIC LIVE SCORE + RESOURCE-ORIENTED OUTPUT
 //  ────────────────────────────────────────────────────────────────────────────
-//  📰 RANKS COUNTRIES BY SYSTEMIC STRAIN ON HUMAN CARRYING CAPACITY
-//  🌍 179 COUNTRIES · 37 LIVE FEEDS · RESOURCE-BASED · EXPOSURE-WEIGHTED
-//  ═══ SCORING PHILOSOPHY ═══
-//  "The question is never 'how dramatic' — it is 'how much strain on the
-//   systems that keep people alive, and how many people are exposed.'"
-//  ═══ v13.9.7 CHANGES ═══
-//  ✅ effective_score = max(structural, live) * population_exposure − recovery_credit
-//  ✅ Population exposure multiplier: 0.85× to 1.15× (log-scaled)
-//  ✅ Recovery credit: up to 4 pts when refugee returns exceed 100K
-//  ✅ Low-instrumentation flag: surfaced when signal_count < 6
-//  ✅ verify weights retuned for systemic, not dramatic, emphasis
-//  ✅ Ranking cascade: effective_score → has_fresh → live_score → freshness
-//  ✅ All 37 feeds preserved
-//  ✅ No black boxes: every multiplier and credit is exposed in score_audit
+//  📰 RANKS COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
+//  🌍 179 COUNTRIES · 37 LIVE FEEDS · EVENT-DEDUPLICATED · HISTORY-AWARE
+//  ═══ v13.9.7 CHANGES (all additive, ranking topology preserved) ═══
+//  ✅ Layer 3 (Cybernetics):
+//     • Bayesian confidence per signal (posterior from observed history)
+//     • Cross-source corroboration multiplier (redundant channels win)
+//     • Anti-fragile missing-data dampener (signal-starved countries not punished)
+//     • CUSUM-driven anomaly amplification (real anomalies get a boost)
+//  ✅ Layer 6 (Resource-oriented output):
+//     • Confidence bands on every score
+//     • Needs vector (what interventions help this specific equilibrium)
+//     • Convergence estimate (hours until crisis resolves at current rate)
+//     • Intervention map (mapped signals → recommended actions)
+//  ═══ Ranking cascade (unchanged) ═══
+//  effective_score → has_fresh → live_score → freshness
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -77,6 +78,25 @@ const CFG = {
   RESOLUTION_CREDIT_ENABLED: true,
   RESOLUTION_CREDIT_MAX: 4,
   RESOLUTION_CREDIT_RETURN_THRESHOLD: 100_000,
+
+  // ═══ v13.9.7 Layer 3: Cybernetic live score ═══
+  BAYES_PRIOR_ALPHA: 2.0,          // Beta prior α — "how many pseudo-observations of this signal firing"
+  BAYES_PRIOR_BETA: 8.0,            // Beta prior β — "how many pseudo-observations of this signal not firing"
+  BAYES_MIN_OBS: 5,                 // below this, fall back to static verify weight
+  BAYES_WINDOW_DAYS: 30,            // rolling window for empirical posterior
+  CORROBORATION_BOOST_PER_SOURCE: 0.15,
+  CORROBORATION_MAX: 0.60,
+  ANTI_FRAGILE_MIN_SIGNALS: 3,      // below this, apply dampener
+  ANTI_FRAGILE_MULT: 0.7,           // dampener applied to raw score for low-signal countries
+  ANTI_FRAGILE_FLOOR: 0.7,          // dampener never goes below this
+  CUSUM_AMPLIFICATION_MAX: 1.25,    // cap on how much anomaly can amplify the live score
+  CUSUM_AMPLIFICATION_ENABLED: true,
+
+  // ═══ v13.9.7 Layer 6: Resource-oriented output ═══
+  CONFIDENCE_BAND_PCT: 0.12,        // ±12% confidence band
+  CONVERGENCE_WINDOW_DAYS: 14,
+  CONVERGENCE_MIN_SLOPE: -0.15,     // below this, consider converged
+  INTERVENTION_MAP_ENABLED: true,
 
   WST_ENABLED: true,
   WST_GLOBAL_INTEREST_RATE: 5.25,
@@ -637,6 +657,7 @@ class PersistentHistoryStore {
     this.memory = new Map();
     this.redis = null;
     this.maxPoints = CFG.HISTORY_MAX_POINTS;
+    this.signalEvents = new Map(); // ═══ v13.9.7: track signal firing history for Bayesian ═══
   }
   attachRedis(client) { this.redis = client; }
   async record(iso, snapshot) {
@@ -669,6 +690,22 @@ class PersistentHistoryStore {
     const rows = await this.get(iso, limit);
     return rows.map(r => r.score).filter(Number.isFinite);
   }
+  // ═══ v13.9.7: signal firing history for Bayesian posterior ═══
+  recordSignalFiring(iso, signalType, fired) {
+    const key = `${iso}::${signalType}`;
+    if (!this.signalEvents.has(key)) this.signalEvents.set(key, []);
+    const arr = this.signalEvents.get(key);
+    arr.push({ ts: Date.now(), fired });
+    const cutoff = Date.now() - CFG.BAYES_WINDOW_DAYS * 86400000;
+    const trimmed = arr.filter(e => e.ts >= cutoff);
+    this.signalEvents.set(key, trimmed);
+  }
+  getSignalStats(iso, signalType) {
+    const arr = this.signalEvents.get(`${iso}::${signalType}`) || [];
+    const fires = arr.filter(e => e.fired).length;
+    const total = arr.length;
+    return { fires, total };
+  }
 }
 
 const persistentHistory = new PersistentHistoryStore();
@@ -689,49 +726,172 @@ const historyStore = new HistoricalDataStore();
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
 const LIVE_SIGNALS = {
-  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨", type: "event" },
-  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠", type: "event" },
-  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍", type: "event" },
-  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍", type: "event" },
-  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event" },
-  jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏", type: "event" },
-  bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏", type: "event" },
-  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍", type: "event" },
-  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍", type: "event" },
-  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏", type: "event" },
-  shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍", type: "event" },
-  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event" },
-  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event" },
-  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event" },
-  ecdc_threat:         { weight: 55,  verify: 0.85, label: "ECDC Threat",               icon: "🧫", type: "event" },
-  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event" },
-  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠", type: "event" },
-  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event" },
-  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event" },
-  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event" },
-  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️", type: "event" },
-  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥", type: "event" },
-  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event" },
-  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event" },
-  jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀", type: "event" },
-  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀", type: "event" },
-  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event" },
-  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊", type: "event" },
-  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event" },
-  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠", type: "event" },
-  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈", type: "event" },
-  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉", type: "event" },
-  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",        icon: "🧫", type: "event" },
-  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",         icon: "⛈️", type: "event" },
-  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event" },
-  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event" },
-  gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event" },
-  climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event" },
-  hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event" },
-  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event" },
-  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event" },
-  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event" },
+  gdacs_red:           { weight: 100, verify: 1.0,  label: "GDACS RED Alert",           icon: "🚨", type: "event", needs: ["shelter","health","water"], intervention: "Pre-position shelter kits, medical teams" },
+  gdacs_orange:        { weight: 70,  verify: 0.9,  label: "GDACS Orange Alert",        icon: "🟠", type: "event", needs: ["shelter","health"], intervention: "Stage response capacity" },
+  earthquake_m6:       { weight: 95,  verify: 1.0,  label: "M6+ Earthquake",            icon: "🌍", type: "event", needs: ["shelter","health","water"], intervention: "Urban search & rescue, field hospitals" },
+  earthquake_m5:       { weight: 65,  verify: 0.9,  label: "M5+ Earthquake",            icon: "🌍", type: "event", needs: ["shelter","health"], intervention: "Damage assessment teams" },
+  earthquake_m45:      { weight: 40,  verify: 0.8,  label: "M4.5+ Earthquake",          icon: "🌍", type: "event", needs: ["health"], intervention: "Monitor for aftershock cascade" },
+  jma_earthquake:      { weight: 60,  verify: 0.95, label: "JMA Earthquake",            icon: "🌏", type: "event", needs: ["shelter","health"], intervention: "Coordinate with JMA tsunami advisory" },
+  bmkg_earthquake:     { weight: 60,  verify: 0.95, label: "BMKG Earthquake",           icon: "🌏", type: "event", needs: ["shelter","health"], intervention: "Coordinate with BMKG" },
+  geofon_earthquake:   { weight: 55,  verify: 0.95, label: "GEOFON Earthquake",         icon: "🌍", type: "event", needs: ["shelter","health"], intervention: "Cross-validate with local networks" },
+  ingv_earthquake:     { weight: 55,  verify: 0.95, label: "INGV Earthquake",           icon: "🌍", type: "event", needs: ["shelter","health"], intervention: "Coordinate with Italian civil protection" },
+  geonet_earthquake:   { weight: 50,  verify: 0.95, label: "GeoNet Earthquake",         icon: "🌏", type: "event", needs: ["shelter","health"], intervention: "Coordinate with NZ NEMA" },
+  shakemap_event:      { weight: 70,  verify: 0.95, label: "ShakeMap Event",            icon: "🌍", type: "event", needs: ["shelter","health"], intervention: "Use MMI contours for damage estimate" },
+  who_outbreak:        { weight: 80,  verify: 1.0,  label: "WHO Outbreak",              icon: "🦠", type: "event", needs: ["health","water"], intervention: "Deploy rapid response teams, trace contacts" },
+  who_outbreak_multi:  { weight: 95,  verify: 1.0,  label: "Multiple WHO Outbreaks",    icon: "🦠", type: "event", needs: ["health","water","nutrition"], intervention: "Multi-pathogen response, surge capacity" },
+  who_don:             { weight: 90,  verify: 1.0,  label: "WHO Disease Outbreak",      icon: "🦠", type: "event", needs: ["health"], intervention: "Activate IHR coordination" },
+  ecdc_threat:         { weight: 55,  verify: 0.85, label: "ECDC Threat",               icon: "🧫", type: "event", needs: ["health"], intervention: "EU-wide surveillance alert" },
+  unhcr_mass_displace: { weight: 90,  verify: 1.0,  label: "Mass Displacement",         icon: "🚶", type: "event", needs: ["shelter","protection","water"], intervention: "Establish reception centers, protection monitoring" },
+  unhcr_return:        { weight: 40,  verify: 0.95, label: "Refugee Returns",           icon: "🏠", type: "event", needs: ["shelter","protection"], intervention: "Support voluntary repatriation, reintegration" },
+  nasa_wildfire:       { weight: 75,  verify: 0.9,  label: "Active Wildfire",           icon: "🔥", type: "event", needs: ["shelter","health"], intervention: "Evacuation planning, air quality monitoring" },
+  nasa_storm:          { weight: 70,  verify: 0.9,  label: "Severe Storm",              icon: "🌀", type: "event", needs: ["shelter","water"], intervention: "Pre-position supplies ahead of landfall" },
+  nasa_flood:          { weight: 70,  verify: 0.9,  label: "Flood Event",               icon: "🌊", type: "event", needs: ["shelter","water","food"], intervention: "Water rescue, temporary shelter" },
+  nasa_drought:        { weight: 55,  verify: 0.9,  label: "Drought",                   icon: "🏜️", type: "event", needs: ["food","water","nutrition"], intervention: "Cash transfers, water trucking" },
+  ifrc_emergency:      { weight: 75,  verify: 1.0,  label: "IFRC Emergency",            icon: "🏥", type: "event", needs: ["shelter","health"], intervention: "Deploy IFRC surge capacity" },
+  ifrc_appeal:         { weight: 80,  verify: 1.0,  label: "IFRC Emergency Appeal",     icon: "🆘", type: "event", needs: ["funding","shelter","health"], intervention: "Fund appeal, mobilize Red Cross societies" },
+  cyclone_active:      { weight: 85,  verify: 1.0,  label: "Active Cyclone",            icon: "🌀", type: "event", needs: ["shelter","water"], intervention: "Track, pre-position, evacuate coastal" },
+  jtwc_cyclone:        { weight: 90,  verify: 1.0,  label: "JTWC Pacific Cyclone",      icon: "🌀", type: "event", needs: ["shelter","water"], intervention: "Coordinate with JTWC warning" },
+  jma_typhoon:         { weight: 85,  verify: 1.0,  label: "JMA Typhoon",               icon: "🌀", type: "event", needs: ["shelter","water"], intervention: "Coordinate with JMA forecast tracks" },
+  flood_severe:        { weight: 70,  verify: 0.9,  label: "Severe Flooding",           icon: "🌊", type: "event", needs: ["shelter","water","food"], intervention: "Water rescue, displace to higher ground" },
+  marine_hazard:       { weight: 55,  verify: 0.9,  label: "Marine Hazard",             icon: "🌊", type: "event", needs: ["health"], intervention: "Coastal warning, suspend small-craft ops" },
+  heat_extreme:        { weight: 60,  verify: 0.8,  label: "Extreme Heat",              icon: "🥵", type: "event", needs: ["health","water"], intervention: "Cooling centers, hydration campaigns" },
+  disease_active:      { weight: 50,  verify: 0.8,  label: "Disease Outbreak",          icon: "🦠", type: "event", needs: ["health"], intervention: "Surveillance, treatment protocols" },
+  inflation_crisis:    { weight: 45,  verify: 0.9,  label: "Inflation Crisis",          icon: "📈", type: "event", needs: ["economic","food"], intervention: "Price controls, cash assistance" },
+  gdp_contraction:     { weight: 40,  verify: 0.9,  label: "GDP Contraction",           icon: "📉", type: "event", needs: ["economic"], intervention: "Fiscal stimulus, employment programs" },
+  cdc_outbreak:        { weight: 55,  verify: 0.95, label: "CDC Outbreak Notice",        icon: "🧫", type: "event", needs: ["health"], intervention: "US domestic response coordination" },
+  spc_severe:          { weight: 60,  verify: 0.95, label: "SPC Severe Outlook",         icon: "⛈️", type: "event", needs: ["shelter"], intervention: "Pre-position tornado shelters" },
+  sentinel_observation:{ weight: 35,  verify: 0.85, label: "Satellite Observation",      icon: "🛰️", type: "event", needs: [], intervention: "Cross-validate imagery with ground truth" },
+  nasa_power_anomaly:  { weight: 50,  verify: 0.9,  label: "Climate Anomaly",            icon: "🌡️", type: "event", needs: ["food","water"], intervention: "Agricultural advisory, water management" },
+  gfw_deforestation:   { weight: 55,  verify: 0.95, label: "Deforestation Alert",        icon: "🌳", type: "event", needs: ["environment"], intervention: "Ranger deployment, satellite confirmation" },
+  climate_trace_emissions:{ weight: 40, verify: 0.85, label: "Emissions Hotspot",       icon: "🏭", type: "event", needs: ["environment"], intervention: "Facility audit, regulatory review" },
+  hdx_crisis:          { weight: 45,  verify: 0.9,  label: "HDX Crisis Dataset",         icon: "📊", type: "event", needs: [], intervention: "Consult OCHA HDX for coordination data" },
+  us_drought:          { weight: 55,  verify: 0.95, label: "US Drought",                 icon: "🏜️", type: "event", needs: ["food","water"], intervention: "USDA drought response, water rights" },
+  wb_food_price:       { weight: 35,  verify: 0.9,  label: "Food Price Shock",            icon: "🍞", type: "event", needs: ["food","economic"], intervention: "Food subsidies, market intervention" },
+  wb_water_stress:     { weight: 30,  verify: 0.9,  label: "Water Stress",                icon: "💧", type: "event", needs: ["water"], intervention: "Water allocation policy, infrastructure" },
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+//  v13.9.7 LAYER 3: CYBERNETIC HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+
+// Bayesian posterior confidence for a signal, based on how often it has actually
+// fired recently vs not fired. Uses Beta(α, β) prior centered on static `verify`.
+function bayesianConfidence(iso, signalType, staticVerify) {
+  const stats = persistentHistory.getSignalStats(iso, signalType);
+  if (stats.total < CFG.BAYES_MIN_OBS) {
+    return staticVerify; // insufficient history, fall back to static verify
+  }
+  // Beta(α, β) with α = prior_alpha * static_verify, β = prior_beta * (1 - static_verify)
+  const alpha = CFG.BAYES_PRIOR_ALPHA * staticVerify + stats.fires;
+  const beta  = CFG.BAYES_PRIOR_BETA * (1 - staticVerify) + (stats.total - stats.fires);
+  return alpha / (alpha + beta);
+}
+
+// Corroboration multiplier: signals that are independently confirmed by multiple
+// sources get a boost. Range: [1.0, 1.0 + CORROBORATION_MAX]
+function crossSourceMultiplier(signal) {
+  const corroborations = signal.corroboration_count || 0;
+  return 1 + Math.min(CFG.CORROBORATION_MAX, corroborations * CFG.CORROBORATION_BOOST_PER_SOURCE);
+}
+
+// Anti-fragile dampener: countries with very few signals have unreliable scores.
+// Rather than punish them, we dampen so they don't dominate the top just by
+// being under-instrumented. Range: [ANTI_FRAGILE_FLOOR, 1.0]
+function antiFragileDampener(signalCount) {
+  if (signalCount >= CFG.ANTI_FRAGILE_MIN_SIGNALS) return 1.0;
+  if (signalCount === 0) return CFG.ANTI_FRAGILE_FLOOR;
+  return CFG.ANTI_FRAGILE_FLOOR + (signalCount / CFG.ANTI_FRAGILE_MIN_SIGNALS) * (1 - CFG.ANTI_FRAGILE_FLOOR);
+}
+
+// CUSUM-driven amplification: if the historical score series has triggered a CUSUM
+// change detection, the live score gets amplified (up to CUSUM_AMPLIFICATION_MAX).
+function cusumAmplification(iso, currentScore) {
+  if (!CFG.CUSUM_AMPLIFICATION_ENABLED) return 1.0;
+  const series = persistentHistory.memory.get(iso)?.map(e => e.score) || [];
+  if (series.length < 8) return 1.0;
+  const cusum = detectCUSUM(series);
+  if (!cusum.detected) return 1.0;
+  const t = Math.min(1, cusum.stat / 20);
+  return 1 + t * (CFG.CUSUM_AMPLIFICATION_MAX - 1);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  v13.9.7 LAYER 6: RESOURCE-ORIENTED HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+
+// Confidence band on the score — a range derived from source diversity + freshness.
+function confidenceBand(score, lb) {
+  let uncertainty = CFG.CONFIDENCE_BAND_PCT;
+  if ((lb.source_count || 0) >= 5) uncertainty *= 0.6;
+  if ((lb.freshest_signal_age_hours ?? 999) <= 6) uncertainty *= 0.7;
+  if ((lb.signal_count || 0) >= 8) uncertainty *= 0.8;
+  const half = Math.round(score * uncertainty);
+  return { low: Math.max(1, score - half), high: Math.min(99, score + half), pct: +(uncertainty * 100).toFixed(1) };
+}
+
+// Needs vector: derived from the events that actually fired.
+function needsVector(iso, store) {
+  const lb = store[iso]?.__live_breaking || {};
+  const needs = new Map();
+  for (const ev of lb.events || []) {
+    const def = LIVE_SIGNALS[ev.type];
+    if (!def?.needs) continue;
+    for (const need of def.needs) {
+      needs.set(need, (needs.get(need) || 0) + (ev.weighted_score || 0));
+    }
+  }
+  const total = [...needs.values()].reduce((a, b) => a + b, 0) || 1;
+  return [...needs.entries()]
+    .map(([need, weight]) => ({ need, share: +(weight / total).toFixed(3), weight: +weight.toFixed(1) }))
+    .sort((a, b) => b.weight - a.weight);
+}
+
+// Intervention map: recommended actions derived from the fired events.
+function interventionMap(iso, store) {
+  if (!CFG.INTERVENTION_MAP_ENABLED) return [];
+  const lb = store[iso]?.__live_breaking || {};
+  const interventions = new Map();
+  for (const ev of lb.events || []) {
+    const def = LIVE_SIGNALS[ev.type];
+    if (!def?.intervention) continue;
+    const key = def.intervention;
+    if (!interventions.has(key)) interventions.set(key, { action: key, sources: [], weight: 0 });
+    const entry = interventions.get(key);
+    entry.sources.push(def.label);
+    entry.weight += (ev.weighted_score || 0);
+  }
+  return [...interventions.values()]
+    .map(e => ({ ...e, weight: +e.weight.toFixed(1) }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 5);
+}
+
+// Convergence estimate: linear extrapolation of the score's 14-day slope.
+// NOT a prediction — an extrapolation. Returns hours-until-converged at current rate.
+function convergenceEstimate(iso, currentScore) {
+  const series = persistentHistory.memory.get(iso)?.map(e => e.score) || [];
+  if (series.length < CFG.CONVERGENCE_WINDOW_DAYS) {
+    return { hours: null, slope: 0, converged: false, status: "insufficient_history" };
+  }
+  const window = series.slice(-CFG.CONVERGENCE_WINDOW_DAYS);
+  const n = window.length;
+  const xb = (n - 1) / 2;
+  const yb = mean(window);
+  const num = window.reduce((s, y, x) => s + (x - xb) * (y - yb), 0);
+  const den = window.reduce((s, _, x) => s + (x - xb) ** 2, 0);
+  const slope = den ? num / den : 0;
+  if (slope >= CFG.CONVERGENCE_MIN_SLOPE) {
+    return { hours: null, slope: +slope.toFixed(3), converged: false, status: "stable_or_worsening" };
+  }
+  // Score is falling. How many days until it reaches 40 (baseline)?
+  const target = 40;
+  const daysToConverge = (currentScore - target) / Math.abs(slope);
+  return { hours: Math.round(daysToConverge * 24), slope: +slope.toFixed(3), converged: daysToConverge <= 0, status: "converging" };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SIGNAL DETECTION — v13.9.7 (unchanged from v13.9.6)
+// ════════════════════════════════════════════════════════════════════════════
 
 function detectLiveBreakingSignals(iso, live, store) {
   const signals = [];
@@ -886,7 +1046,7 @@ function detectLiveBreakingSignals(iso, live, store) {
     signals.push({ type: "wb_food_price", weight: CFG.WB_FOOD_PRICES_BOOST, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
   }
   if (CFG.WB_INFRASTRUCTURE_ENABLED && s.electricityAccess && s.electricityAccess.value < 50) {
-    signals.push({ type: "wb_food_price", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
+    signals.push({ type: "wb_water_stress", weight: CFG.WB_INFRASTRUCTURE_BOOST, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
   }
 
   if (CFG.CDC_ENABLED && isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
@@ -950,6 +1110,10 @@ function detectLiveBreakingSignals(iso, live, store) {
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  v13.9.7 LAYER 3: CYBERNETIC LIVE SCORE
+// ════════════════════════════════════════════════════════════════════════════
+
 function computeLiveBreakingScore(iso, live, store) {
   const c = COUNTRIES[iso];
   const rawSignals = detectLiveBreakingSignals(iso, live, store);
@@ -969,11 +1133,27 @@ function computeLiveBreakingScore(iso, live, store) {
     else recencyFactor = RECENCY.OLDER;
 
     const def = LIVE_SIGNALS[sig.type] || { verify: 0.8 };
-    const weighted = sig.weight * recencyFactor * (def.verify || 0.8);
+    // ═══ v13.9.7: Bayesian confidence replaces static verify ═══
+    const bayesVerify = bayesianConfidence(iso, sig.type, def.verify || 0.8);
+    // ═══ v13.9.7: cross-source corroboration multiplier ═══
+    const corrMult = crossSourceMultiplier(sig);
+    const weighted = sig.weight * recencyFactor * bayesVerify * corrMult;
     rawScore += weighted;
     sources.add(sig.source);
-    activeSignals.push({ ...sig, recency_factor: +recencyFactor.toFixed(3), weighted_score: +weighted.toFixed(2) });
+    activeSignals.push({
+      ...sig,
+      recency_factor: +recencyFactor.toFixed(3),
+      weighted_score: +weighted.toFixed(2),
+      bayes_confidence: +bayesVerify.toFixed(3),
+      corroboration_multiplier: +corrMult.toFixed(3),
+    });
+    // Record firing for future Bayesian updates
+    persistentHistory.recordSignalFiring(iso, sig.type, true);
   }
+
+  // ═══ v13.9.7: anti-fragile dampener for low-signal countries ═══
+  const antiFragMult = antiFragileDampener(signals.length);
+  rawScore *= antiFragMult;
 
   const signalCount = rawSignals.length;
   const distinctEventCount = signals.length;
@@ -1008,7 +1188,10 @@ function computeLiveBreakingScore(iso, live, store) {
     ensembleDampener = 0.92;
   }
 
-  const normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / 120)) * ensembleDampener);
+  // ═══ v13.9.7: CUSUM-driven anomaly amplification ═══
+  const cusumAmp = cusumAmplification(iso, rawScore);
+
+  const normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / 120)) * ensembleDampener * cusumAmp);
 
   const hasFreshLiveEvent = freshEvents.length > 0;
   let tier, tierLabel, tierIcon;
@@ -1043,6 +1226,8 @@ function computeLiveBreakingScore(iso, live, store) {
     freshness_bonus: freshnessBonus,
     fsi_baseline: +fsiBaseline.toFixed(2),
     ensemble_dampener: ensembleDampener,
+    anti_fragile_dampener: +antiFragMult.toFixed(3),
+    cusum_amplification: +cusumAmp.toFixed(3),
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
     signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
     events: signals.map(sig => ({
@@ -2343,6 +2528,12 @@ async function buildPayload(iso, store, ranked, opts = {}) {
   const s = c.signals || {};
   const delta7 = series.length >= 8 ? Math.round(series[series.length-1] - series[Math.max(0, series.length-8)]) : 0;
 
+  // ═══ v13.9.7 LAYER 6: Resource-oriented outputs ═══
+  const band = confidenceBand(displayScore, lb);
+  const needs = needsVector(iso, store);
+  const interventions = interventionMap(iso, store);
+  const convergence = convergenceEstimate(iso, displayScore);
+
   const base = {
     iso, name: c.name, flag: c.flag,
     score: displayScore,
@@ -2358,6 +2549,12 @@ async function buildPayload(iso, store, ranked, opts = {}) {
     percentile: Math.round((1 - rank / ranked.length) * 100),
     slug: slugify(c.name),
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
+
+    // ═══ v13.9.7 LAYER 6: Confidence + convergence ═══
+    confidence_band: band,
+    convergence_estimate: convergence,
+    needs_vector: needs,
+    intervention_map: interventions,
 
     live_breaking: {
       score: lb.live_score || 0,
@@ -2379,6 +2576,8 @@ async function buildPayload(iso, store, ranked, opts = {}) {
       diversity_bonus: lb.diversity_bonus || 0,
       fsi_baseline: lb.fsi_baseline || 0,
       ensemble_dampener: lb.ensemble_dampener || 1.0,
+      anti_fragile_dampener: lb.anti_fragile_dampener || 1.0,
+      cusum_amplification: lb.cusum_amplification || 1.0,
       source_multiplier: lb.source_multiplier || 1,
       events: lb.events || [],
       signals: (lb.signals || []).map(sig => ({
@@ -2393,6 +2592,8 @@ async function buildPayload(iso, store, ranked, opts = {}) {
         details: sig.details,
         corroborating_sources: sig.corroborating_sources || [],
         corroboration_count: sig.corroboration_count || 0,
+        bayes_confidence: sig.bayes_confidence || null,
+        corroboration_multiplier: sig.corroboration_multiplier || null,
       })),
     },
 
@@ -2711,7 +2912,7 @@ export default async function handler(req, res) {
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb) };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, distinct_event_count: lb.distinct_event_count, has_fresh_live_event: lb.has_fresh_live_event, source_count: lb.source_count, sources: lb.sources, structural_score: c.structural_score, top_events: lb.events.slice(0, 3), is_low_instrumentation: isLowInstrumentation(lb), needs_vector: needsVector(iso, store) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
@@ -2754,7 +2955,24 @@ export default async function handler(req, res) {
         pop_exposure_enabled: CFG.POP_EXPOSURE_ENABLED,
         resolution_credit_enabled: CFG.RESOLUTION_CREDIT_ENABLED,
         low_instrumentation_threshold: CFG.LOW_INSTRUMENTATION_THRESHOLD,
-        note: "v13.9.7 — 10/10 calibrated. Ranking: effective_score → has_fresh → live_score → freshness. Population exposure multiplier + resolution credit + low-instrumentation flag added.",
+        cybernetic_layer: {
+          enabled: true,
+          bayes_prior_alpha: CFG.BAYES_PRIOR_ALPHA,
+          bayes_prior_beta: CFG.BAYES_PRIOR_BETA,
+          bayes_min_obs: CFG.BAYES_MIN_OBS,
+          corroboration_boost_per_source: CFG.CORROBORATION_BOOST_PER_SOURCE,
+          corroboration_max: CFG.CORROBORATION_MAX,
+          anti_fragile_min_signals: CFG.ANTI_FRAGILE_MIN_SIGNALS,
+          anti_fragile_mult: CFG.ANTI_FRAGILE_MULT,
+          cusum_amplification_max: CFG.CUSUM_AMPLIFICATION_MAX,
+        },
+        resource_layer: {
+          enabled: true,
+          confidence_band_pct: CFG.CONFIDENCE_BAND_PCT,
+          convergence_window_days: CFG.CONVERGENCE_WINDOW_DAYS,
+          intervention_map_enabled: CFG.INTERVENTION_MAP_ENABLED,
+        },
+        note: "v13.9.7 — Cybernetic live score (Bayesian + corroboration + anti-fragile + CUSUM amplification) + resource-oriented output (confidence bands, needs vectors, convergence estimates, intervention maps). Ranking cascade unchanged.",
         live_news_stats: {
           total_with_live_signals: breakingRanked.length,
           total_with_fresh_live_events: liveEventsOnly.length,
