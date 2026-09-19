@@ -1,26 +1,11 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v17.0.2 — DEFINITIVE
+//  TOP-STORY API — v17.0.0 — DEFINITIVE
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v17.0.2 CHANGES (this patch) ═══
-//  ✅ fetchGFW: added TCD (Chad) to the deforestation-alert country list.
-//     MMR (Myanmar) was already present, so it needed no change here.
-//  ✅ fetchAirQuality: added N'Djamena (TCD) and Yangon (MMR) to the
-//     multi-city PM2.5 loop. Both cities had zero AQ coverage before.
-//  ✅ fetchNASAPower: added TCD, MMR, NER, MLI anchors to the NASA POWER
-//     climate-anomaly loop. The Sahel belt (TCD/NER/MLI) is climatically
-//     coherent, so all three are added rather than just Chad.
-//  ✅ fetchHazardLoop / HAZARD_LOOP_ISOS: added TCD, MMR, LBY, CAF, CMR,
-//     BFA, TZA, MOZ — all countries with CRITICAL-tier FSI scores that
-//     were receiving no hazard-loop coverage at all.
-//  ── Rationale: none of these edits change BASE_SCORES or any scoring
-//     formula. They only make the pipeline SEE real evidence that already
-//     exists in the public feeds for these countries. Any resulting score
-//     movement is fully traceable in each country's evidence.ledger.
-//  ═══ v17.0.1 CHANGES ═══
+//  ═══ v17.0.1 CHANGES (this patch) ═══
 //  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
 //     ReliefWeb/ACLED-style feeds that use alternate country names
 //     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
@@ -98,18 +83,9 @@ const CORS = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v17.0.2: expanded HAZARD_LOOP_ISOS.
-//  Previously 25 countries. Now 33. The 8 additions (TCD, MMR, LBY, CAF,
-//  CMR, BFA, TZA, MOZ) all have CRITICAL-tier FSI scores but were receiving
-//  no hazard-loop coverage — meaning 7 real evidence rows per country
-//  (flood risk, marine, wind, precipitation, UV, cloud cover, lightning)
-//  were being silently skipped for them.
-// ════════════════════════════════════════════════════════════════════════════
 const HAZARD_LOOP_ISOS = [
   'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU',
-  'EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER',
-  'TCD','MMR','LBY','CAF','CMR','BFA','TZA','MOZ'
+  'EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'
 ];
 
 const WPAC_ISOS = new Set(['PHL','TWN','JPN','CHN','VNM','KOR','PRK','IDN','MYS','THA','KHM','LAO','MMR','BGD','IND','LKA','MDV']);
@@ -1413,13 +1389,6 @@ async function fetchHazardLoop() {
   return { data: results, live: anyLive };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v17.0.2: fetchAirQuality now includes N'Djamena (Chad) and Yangon (Myanmar).
-//  Neither city had any AQ coverage before, meaning Chad and Myanmar could
-//  never earn the OPENMETEO PM2.5 evidence row even when their air quality
-//  was genuinely hazardous. Yangon's seasonal PM2.5 spikes are well-documented;
-//  N'Djamena's Sahel dust events are too. Both are real, ongoing signals.
-// ════════════════════════════════════════════════════════════════════════════
 async function fetchAirQuality() {
   const cities = [
     {iso:'NGA',lat:6.5,lon:3.4},{iso:'IND',lat:28.6,lon:77.2},{iso:'CHN',lat:39.9,lon:116.4},
@@ -1427,7 +1396,6 @@ async function fetchAirQuality() {
     {iso:'IDN',lat:-6.2,lon:106.8},{iso:'MEX',lat:19.4,lon:-99.1},{iso:'BRA',lat:-23.5,lon:-46.6},
     {iso:'ZAF',lat:-26.2,lon:28.0},{iso:'THA',lat:13.8,lon:100.5},{iso:'TUR',lat:41.0,lon:28.9},
     {iso:'ARG',lat:-34.6,lon:-58.4},{iso:'RUS',lat:55.8,lon:37.6},{iso:'IND',lat:19.1,lon:72.9},
-    {iso:'TCD',lat:12.1,lon:15.0},{iso:'MMR',lat:16.8,lon:96.2},
   ];
   const results = {}; let anyLive = false;
   await Promise.all(cities.map(async c => {
@@ -1790,15 +1758,9 @@ async function fetchUNHCRStatistics() {
   return { data: [], live: false };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v17.0.2: fetchGFW now includes TCD (Chad) in the deforestation-alert loop.
-//  Chad's Sahel belt has had escalating tree-cover loss for the last three
-//  years, tracked by GFW's GLAD alerts but never queried by this pipeline.
-//  MMR (Myanmar) was already in the list — this patch confirms it stays.
-// ════════════════════════════════════════════════════════════════════════════
 async function fetchGFW() {
   try {
-    const deforCountries = ['BRA','COD','IDN','COL','PER','BOL','MEX','MMR','MOZ','GHA','TCD'];
+    const deforCountries = ['BRA','COD','IDN','COL','PER','BOL','MEX','MMR','MOZ','GHA'];
     const results = {};
     let anyLive = false;
     await poolMap(deforCountries, CFG.FETCH_CONCURRENCY, async iso => {
@@ -1918,27 +1880,8 @@ async function fetchJMATyphoon() {
   return { data: [], live: false };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v17.0.2: fetchNASAPower anchors expanded from 5 to 9.
-//  Added: TCD (Chad), MMR (Myanmar), NER (Niger), MLI (Mali).
-//  The three Sahel anchors (TCD/NER/MLI) are climatically coherent — the
-//  same belt, same monsoon system, same drought regime — so adding all three
-//  is a regional sampling decision, not a single-country tuning.
-//  Myanmar is added separately because the Irrawaddy delta has been hit by
-//  catastrophic floods and heat anomalies that never reached this pipeline.
-// ════════════════════════════════════════════════════════════════════════════
 async function fetchNASAPower() {
-  const anchors = [
-    {iso:'IND',lat:20,lon:77},
-    {iso:'BGD',lat:24,lon:90},
-    {iso:'SDN',lat:15,lon:30},
-    {iso:'ETH',lat:9,lon:40},
-    {iso:'SOM',lat:5,lon:45},
-    {iso:'TCD',lat:15,lon:19},
-    {iso:'MMR',lat:19,lon:96},
-    {iso:'NER',lat:17,lon:9},
-    {iso:'MLI',lat:17,lon:-4},
-  ];
+  const anchors = [{iso:'IND',lat:20,lon:77},{iso:'BGD',lat:24,lon:90},{iso:'SDN',lat:15,lon:30},{iso:'ETH',lat:9,lon:40},{iso:'SOM',lat:5,lon:45}];
   const results = {}; let anyLive = false;
   await Promise.all(anchors.map(async a => {
     try {
@@ -3219,7 +3162,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v17.0.2",
+        ranking_mode: "DEFINITIVE_v17.0.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
@@ -3244,7 +3187,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v17.0.2]", err);
+    console.error("[top-story v17.0.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
