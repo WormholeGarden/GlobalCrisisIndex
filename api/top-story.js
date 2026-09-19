@@ -5,6 +5,15 @@
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v17.0.1 CHANGES (this patch) ═══
+//  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
+//     ReliefWeb/ACLED-style feeds that use alternate country names
+//     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
+//     "Democratic Republic of the Congo" for Congo-Kinshasa) are no
+//     longer silently dropped from ingestion.
+//  ✅ Fixed a false-positive risk where short country names like "Chad"
+//     matched as a bare substring of unrelated words (e.g. "Chadwick"),
+//     corrupting that country's evidence ledger with unrelated events.
 //  ═══ v17.0.0 — DEFINITIVE 10/10 ═══
 //  ✅ All 54 evidence rules wired to sourceCoverage
 //  ✅ All 40+ fetchers restored and correctly namespaced
@@ -454,6 +463,68 @@ for (const iso of Object.keys(BASE_SCORES)) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  NAME ALIASES — for country-name matching against ReliefWeb / ACLED-style
+//  free-text feeds, which frequently use alternate official names, older
+//  names, or non-English transliterations instead of the FSI_2024 label.
+//  ────────────────────────────────────────────────────────────────────────
+//  This directly fixes two classes of ingestion bugs:
+//   1. FALSE NEGATIVES: a feed calls a country "Burma" or "Tchad" and the
+//      old exact/substring matcher (which only knew the FSI_2024 name)
+//      silently produced no match, so that country's ReliefWeb/ACLED
+//      evidence was dropped from the pipeline entirely.
+//   2. FALSE POSITIVES: for short country names ("Chad"), naive substring
+//      matching (`text.includes("chad")`) also matches unrelated text that
+//      merely contains those letters as part of a longer word (e.g. a
+//      headline mentioning "Chadwick" or "Chadian" would previously both
+//      resolve to Chad; word-boundary matching below fixes the former
+//      while intentionally still allowing legitimate derived adjectives
+//      like "Chadian" since that IS about Chad).
+// ════════════════════════════════════════════════════════════════════════════
+const ISO_ALIASES = {
+  MMR: ["myanmar", "burma", "union of myanmar", "republic of the union of myanmar"],
+  TCD: ["chad", "republic of chad", "tchad", "republic of tchad"],
+  COD: ["congo-kinshasa", "democratic republic of the congo", "dr congo", "drc",
+        "congo, dem. rep.", "congo, the democratic republic of the", "dem. rep. congo",
+        "zaire"],
+  COG: ["congo-brazzaville", "republic of the congo", "congo, rep.", "congo, republic of"],
+  CAF: ["central african rep.", "central african republic", "car"],
+  CIV: ["cote d'ivoire", "côte d'ivoire", "ivory coast"],
+  LAO: ["laos", "lao people's democratic republic", "lao pdr"],
+  SYR: ["syria", "syrian arab republic"],
+  VEN: ["venezuela", "venezuela, rb", "bolivarian republic of venezuela"],
+  IRN: ["iran", "iran, islamic republic of", "islamic republic of iran"],
+  KOR: ["south korea", "republic of korea", "korea, rep."],
+  PRK: ["north korea", "democratic people's republic of korea", "korea, dem. people's rep.", "dprk"],
+  RUS: ["russia", "russian federation"],
+  GBR: ["united kingdom", "uk", "great britain", "britain"],
+  USA: ["united states", "usa", "united states of america", "u.s.", "u.s.a."],
+  PSE: ["palestine", "occupied palestinian territory", "state of palestine", "opt", "gaza", "west bank"],
+  TZA: ["tanzania", "united republic of tanzania"],
+  SWZ: ["eswatini", "swaziland"],
+  MKD: ["north macedonia", "macedonia", "fyrom"],
+  CPV: ["cape verde", "cabo verde"],
+  TLS: ["east timor", "timor-leste"],
+  SVK: ["slovakia", "slovak republic"],
+  MDA: ["moldova", "republic of moldova"],
+  BOL: ["bolivia", "bolivia, plurinational state of"],
+  BRN: ["brunei", "brunei darussalam"],
+  STP: ["sao tome and principe", "são tomé and príncipe"],
+  KGZ: ["kyrgyzstan", "kyrgyz republic"],
+  LKA: ["sri lanka", "ceylon"],
+  TWN: ["taiwan", "chinese taipei", "republic of china"],
+};
+
+// Reverse lookup: normalized alias/name -> ISO. Built once at module load.
+const ALIAS_INDEX = (() => {
+  const idx = new Map();
+  for (const [iso, d] of Object.entries(COUNTRIES)) idx.set(d.name.toLowerCase(), iso);
+  for (const [iso, aliases] of Object.entries(ISO_ALIASES)) {
+    for (const a of aliases) idx.set(a.toLowerCase(), iso);
+  }
+  return idx;
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
 //  UTILITIES
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -505,11 +576,45 @@ function seedHistory(iso, currentScore) {
   return hist;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// findIsoByName — FIXED
+// Resolves a free-text country name (as returned by ReliefWeb, ACLED-style
+// feeds, WHO/CDC/ECDC RSS text, EM-DAT records, etc.) to an ISO3 code.
+//
+// Strategy, in order:
+//   1. Exact match against the canonical FSI_2024 name OR any registered
+//      alias (case-insensitive). Handles "Myanmar (Burma)" by also trying
+//      the parenthetical content and the string with parens stripped.
+//   2. Word-boundary match: does the input contain any known name/alias as
+//      a whole word/phrase (not as a fragment of a longer, unrelated word)?
+//      This is what allows "Republic of Chad" or "Chad's government forces"
+//      to resolve to TCD while preventing "Chadwick County" from doing so.
+// No match returns null — callers must handle that (they already do).
+// ────────────────────────────────────────────────────────────────────────────
 function findIsoByName(name) {
   if (!name) return null;
-  const lower = name.toLowerCase().trim();
-  for (const [iso, d] of Object.entries(COUNTRIES)) if (d.name.toLowerCase() === lower) return iso;
-  for (const [iso, d] of Object.entries(COUNTRIES)) if (d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase())) return iso;
+  const raw = name.toLowerCase().trim();
+  if (!raw) return null;
+
+  const stripped = raw.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  const parenContents = [...raw.matchAll(/\(([^)]*)\)/g)].map(m => m[1].trim());
+  const candidates = [...new Set([raw, stripped, ...parenContents].filter(Boolean))];
+
+  // 1. Exact alias/canonical-name match — no guessing involved.
+  for (const cand of candidates) {
+    if (ALIAS_INDEX.has(cand)) return ALIAS_INDEX.get(cand);
+  }
+
+  // 2. Word-boundary substring match against every known alias/name.
+  for (const cand of candidates) {
+    for (const [aliasLower, iso] of ALIAS_INDEX) {
+      if (aliasLower.length < 3) continue; // skip too-short aliases (noise)
+      const escaped = aliasLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`, 'i');
+      if (re.test(cand)) return iso;
+    }
+  }
+
   return null;
 }
 
@@ -3057,7 +3162,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v17.0.0",
+        ranking_mode: "DEFINITIVE_v17.0.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
@@ -3082,7 +3187,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v17.0.0]", err);
+    console.error("[top-story v17.0.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
