@@ -1,27 +1,20 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v18.0.0 — GAP-FILLED DEFINITIVE
+//  TOP-STORY API — v17.0.0 — DEFINITIVE
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 47+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v18.0.0 CHANGES ═══
-//  ✅ Seven new gap-filling sources wired into the scoring engine:
-//       • ACLED         — structured conflict events with fatality counts
-//       • HDX HAPI      — IPC/CH food security phase (population-weighted)
-//       • IDMC          — internal displacement (conflict + disaster)
-//       • ReliefWeb Reports — narrative evidence density
-//       • FAO FPI       — market food price shock (global signal)
-//       • WHO GHO       — structured health burden indicators
-//       • UNHCR Situations — operational funding gap
-//  ✅ Seven new evidence rules (55–61) in computeEvidenceScore
-//  ✅ Ten new live-breaking signal types
-//  ✅ gap_fillers sub-object exposed on every country payload
-//  ✅ All new sources degrade gracefully (no credentials → no crash)
-// ═══ v17.0.1 (retained) ═══
-//  ✅ ISO_ALIASES + word-boundary matching
-//  ✅ Fixed false positives (Chad vs Chadwick)
-// ═══ v17.0.0 — DEFINITIVE 10/10 (retained) ═══
+//  🌍 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v17.0.1 CHANGES (this patch) ═══
+//  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
+//     ReliefWeb/ACLED-style feeds that use alternate country names
+//     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
+//     "Democratic Republic of the Congo" for Congo-Kinshasa) are no
+//     longer silently dropped from ingestion.
+//  ✅ Fixed a false-positive risk where short country names like "Chad"
+//     matched as a bare substring of unrelated words (e.g. "Chadwick"),
+//     corrupting that country's evidence ledger with unrelated events.
+//  ═══ v17.0.0 — DEFINITIVE 10/10 ═══
 //  ✅ All 54 evidence rules wired to sourceCoverage
 //  ✅ All 40+ fetchers restored and correctly namespaced
 //  ✅ Zero-last-writer-wins bugs (JMA/BMKG/GEOFON/INGV/GeoNet each own key)
@@ -80,38 +73,6 @@ const CFG = {
   ARTICLE_BASE_URL: "https://globalcrisisindex.com",
   ARTICLE_AUTHOR: "GCIN Editorial Team",
   ARTICLE_LOGO: "https://globalcrisisindex.com/logo.png",
-};
-
-// ─── v18.0.0 GAP-FILLER CONFIG ───
-const GAP_CFG = {
-  ACLED_ENABLED: true,
-  ACLED_FATALITY_WEIGHT: 1.4,
-  ACLED_MAX_EVENTS_PER_COUNTRY: 5,
-  ACLED_LOOKBACK_DAYS: 30,
-
-  HDX_HAPI_ENABLED: true,
-  HDX_HAPI_PHASE_MAX: 5,
-
-  IDMC_ENABLED: true,
-  IDMC_CONFLICT_WEIGHT: 1.0,
-  IDMC_DISASTER_WEIGHT: 0.7,
-
-  RELIEFWEB_REPORTS_ENABLED: true,
-  RELIEFWEB_REPORTS_LIMIT: 20,
-
-  FAO_FPI_ENABLED: true,
-  FAO_FPI_BASELINE: 100,
-
-  WHO_GHO_ENABLED: true,
-  WHO_GHO_INDICATORS: [
-    { code: 'WHS4_100',              label: 'Cholera case fatality ratio', floor: 0,  ceil: 5,   maxPts: 5, weight: 0.85 },
-    { code: 'MDG_0000000001',        label: 'Under-5 mortality',           floor: 10, ceil: 120, maxPts: 6, weight: 0.80 },
-    { code: 'MDG_0000000007',        label: 'Measles immunization',        floor: 50, ceil: 95,  maxPts: 4, weight: 0.70, invert: true },
-    { code: 'MALARIA_EST_INCIDENCE', label: 'Malaria incidence',           floor: 0,  ceil: 300, maxPts: 5, weight: 0.75 },
-  ],
-
-  UNHCR_SITUATIONS_ENABLED: true,
-  UNHCR_SITUATIONS_FUNDING_GAP_WEIGHT: 1.0,
 };
 
 const CORS = {
@@ -505,6 +466,19 @@ for (const iso of Object.keys(BASE_SCORES)) {
 //  NAME ALIASES — for country-name matching against ReliefWeb / ACLED-style
 //  free-text feeds, which frequently use alternate official names, older
 //  names, or non-English transliterations instead of the FSI_2024 label.
+//  ────────────────────────────────────────────────────────────────────────
+//  This directly fixes two classes of ingestion bugs:
+//   1. FALSE NEGATIVES: a feed calls a country "Burma" or "Tchad" and the
+//      old exact/substring matcher (which only knew the FSI_2024 name)
+//      silently produced no match, so that country's ReliefWeb/ACLED
+//      evidence was dropped from the pipeline entirely.
+//   2. FALSE POSITIVES: for short country names ("Chad"), naive substring
+//      matching (`text.includes("chad")`) also matches unrelated text that
+//      merely contains those letters as part of a longer word (e.g. a
+//      headline mentioning "Chadwick" or "Chadian" would previously both
+//      resolve to Chad; word-boundary matching below fixes the former
+//      while intentionally still allowing legitimate derived adjectives
+//      like "Chadian" since that IS about Chad).
 // ════════════════════════════════════════════════════════════════════════════
 const ISO_ALIASES = {
   MMR: ["myanmar", "burma", "union of myanmar", "republic of the union of myanmar"],
@@ -540,6 +514,7 @@ const ISO_ALIASES = {
   TWN: ["taiwan", "chinese taipei", "republic of china"],
 };
 
+// Reverse lookup: normalized alias/name -> ISO. Built once at module load.
 const ALIAS_INDEX = (() => {
   const idx = new Map();
   for (const [iso, d] of Object.entries(COUNTRIES)) idx.set(d.name.toLowerCase(), iso);
@@ -601,6 +576,21 @@ function seedHistory(iso, currentScore) {
   return hist;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// findIsoByName — FIXED
+// Resolves a free-text country name (as returned by ReliefWeb, ACLED-style
+// feeds, WHO/CDC/ECDC RSS text, EM-DAT records, etc.) to an ISO3 code.
+//
+// Strategy, in order:
+//   1. Exact match against the canonical FSI_2024 name OR any registered
+//      alias (case-insensitive). Handles "Myanmar (Burma)" by also trying
+//      the parenthetical content and the string with parens stripped.
+//   2. Word-boundary match: does the input contain any known name/alias as
+//      a whole word/phrase (not as a fragment of a longer, unrelated word)?
+//      This is what allows "Republic of Chad" or "Chad's government forces"
+//      to resolve to TCD while preventing "Chadwick County" from doing so.
+// No match returns null — callers must handle that (they already do).
+// ────────────────────────────────────────────────────────────────────────────
 function findIsoByName(name) {
   if (!name) return null;
   const raw = name.toLowerCase().trim();
@@ -610,13 +600,15 @@ function findIsoByName(name) {
   const parenContents = [...raw.matchAll(/\(([^)]*)\)/g)].map(m => m[1].trim());
   const candidates = [...new Set([raw, stripped, ...parenContents].filter(Boolean))];
 
+  // 1. Exact alias/canonical-name match — no guessing involved.
   for (const cand of candidates) {
     if (ALIAS_INDEX.has(cand)) return ALIAS_INDEX.get(cand);
   }
 
+  // 2. Word-boundary substring match against every known alias/name.
   for (const cand of candidates) {
     for (const [aliasLower, iso] of ALIAS_INDEX) {
-      if (aliasLower.length < 3) continue;
+      if (aliasLower.length < 3) continue; // skip too-short aliases (noise)
       const escaped = aliasLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const re = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`, 'i');
       if (re.test(cand)) return iso;
@@ -763,8 +755,9 @@ function coverageScale(value, floor, ceiling, maxPts) {
   const ratio = (clamped - floor) / ((ceiling - floor) || 1);
   return Math.max(maxPts * 0.2, ratio * maxPts);
 }
+
 // ════════════════════════════════════════════════════════════════════════════
-//  computeEvidenceScore — VERBATIM FROM HTML + v18.0.0 GAP-FILLER RULES 55–61
+//  computeEvidenceScore — VERBATIM FROM HTML
 // ════════════════════════════════════════════════════════════════════════════
 
 function computeEvidenceScore(iso) {
@@ -872,32 +865,32 @@ function computeEvidenceScore(iso) {
   if (coverage.unhcr_op) add("UNHCR", `Active operation: ${coverage.unhcr_op.name}`, 1, 4, 0.7);
   // 19. NOAA stations
   if (coverage.noaa && iso === "USA") add("NOAA", `${coverage.noaa.stations} active weather stations`, coverage.noaa.stations, 4, 0.7);
-  // 20. EMSC
+  // 20. EMSC (merged secondary network)
   if (coverage.emsc) {
     const mag = coverage.emsc.mag || 0;
     if (mag >= 4.5) add("EMSC", `M${mag.toFixed(1)} earthquake (secondary network)`, mag, logScale(mag, 4.5, 8, 8), 0.75);
   }
-  // 20b. JMA
+  // 20b. JMA-specific
   if (coverage.jma) {
     const mag = coverage.jma.mag || 0;
     if (mag >= 4.0) add("JMA", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 4.0, 8, 7), 0.85);
   }
-  // 20c. BMKG
+  // 20c. BMKG-specific
   if (coverage.bmkg) {
     const mag = coverage.bmkg.mag || 0;
     if (mag >= 4.5) add("BMKG", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 4.5, 8, 7), 0.85);
   }
-  // 20d. GEOFON
+  // 20d. GEOFON-specific
   if (coverage.geofon) {
     const mag = coverage.geofon.mag || 0;
     if (mag >= 4.5) add("GEOFON", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 4.5, 8, 7), 0.85);
   }
-  // 20e. INGV
+  // 20e. INGV-specific
   if (coverage.ingv) {
     const mag = coverage.ingv.mag || 0;
     if (mag >= 4.0) add("INGV", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 4.0, 8, 7), 0.85);
   }
-  // 20f. GeoNet
+  // 20f. GeoNet-specific
   if (coverage.geonet) {
     const mag = coverage.geonet.mag || 0;
     if (mag >= 3.5) add("GeoNet", `M${mag.toFixed(1)} earthquake`, mag, logScale(mag, 3.5, 8, 6), 0.8);
@@ -1055,150 +1048,6 @@ function computeEvidenceScore(iso) {
     add("Sentinel-2", `${coverage.sentinel.count} recent observation(s)`, coverage.sentinel.count, coverageScale(coverage.sentinel.count, 1, 5, 3), 0.5);
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  //  v18.0.0 GAP-FILLING EVIDENCE RULES (55–61)
-  // ════════════════════════════════════════════════════════════════════════
-
-  // 55. ACLED — structured conflict events with fatalities
-  if (coverage.acled) {
-    const a = coverage.acled;
-    const fatalityPts = Math.min(10, Math.log10(a.total_fatalities + 1) * GAP_CFG.ACLED_FATALITY_WEIGHT * 2);
-    const eventTypePts = Math.min(4, a.event_types.length * 0.8);
-    const severityPts = logScale(a.severityIndex, 20, 100, 8);
-    const pts = Math.min(14, fatalityPts + eventTypePts + severityPts);
-    if (pts > 0) {
-      add(
-        'ACLED',
-        `${a.event_count} conflict event(s), ${a.total_fatalities.toLocaleString()} fatalities`,
-        a.total_fatalities,
-        pts,
-        0.9
-      );
-    }
-  }
-
-  // 56. HDX HAPI — IPC/CH food security phase (population-weighted)
-  if (coverage.hdx_hapi) {
-    const h = coverage.hdx_hapi;
-    const phasePts = h.phase === 5 ? 14 : h.phase === 4 ? 11 : h.phase === 3 ? 7 : 0;
-    const popFactor = h.population > 0
-      ? Math.min(1.4, 1 + Math.log10(h.population / 100000) * 0.15)
-      : 1.0;
-    const pts = Math.min(16, phasePts * popFactor);
-    if (pts > 0) {
-      add(
-        'HDX HAPI',
-        `IPC Phase ${h.phase} (${h.phase_name})${h.admin1 ? ` — ${h.admin1}` : ''} · ${fmtPop(h.population) || 'pop n/a'}`,
-        h.phase,
-        pts,
-        0.9
-      );
-    }
-  }
-
-  // 57. IDMC — internal displacement (conflict + disaster)
-  if (coverage.idmc) {
-    const i = coverage.idmc;
-    const conflictPts = logScale(i.conflict_new_displacements, 1000, 2000000, 9) * GAP_CFG.IDMC_CONFLICT_WEIGHT;
-    const disasterPts = logScale(i.disaster_new_displacements, 1000, 2000000, 9) * GAP_CFG.IDMC_DISASTER_WEIGHT;
-    const pts = Math.min(12, conflictPts + disasterPts);
-    if (pts > 0) {
-      add(
-        'IDMC',
-        `${fmtPop(i.combined_new) || 0} new displacements (${i.year}) — ` +
-        `${fmtPop(i.conflict_new_displacements) || 0} conflict / ${fmtPop(i.disaster_new_displacements) || 0} disaster`,
-        i.combined_new,
-        pts,
-        0.85
-      );
-    }
-  }
-
-  // 58. ReliefWeb Reports — narrative evidence density
-  if (coverage.reliefweb_report) {
-    const rr = coverage.reliefweb_report;
-    const countPts = logScale(rr.count, 1, 30, 5);
-    const disasterBonus = Math.min(3, (rr.disasters?.length || 0) * 0.8);
-    const pts = Math.min(8, countPts + disasterBonus);
-    if (pts > 0) {
-      add(
-        'RELIEFWEB Reports',
-        `${rr.count} report(s) · ${rr.disasters?.slice(0, 2).join(', ') || 'general'}`,
-        rr.count,
-        pts,
-        0.7
-      );
-    }
-  }
-
-  // 59. FAO Food Price Index — market-price shock (global signal)
-  if (coverage.fao_fpi) {
-    const f = coverage.fao_fpi;
-    const isFoodVulnerable =
-      coverage.poverty > 20 ||
-      coverage.food_prices?.length > 0 ||
-      (COUNTRIES[iso]?.types || []).some(t => ['DR', 'FN', 'FL', 'CE', 'CW'].includes(t));
-    if (isFoodVulnerable && f.value > GAP_CFG.FAO_FPI_BASELINE) {
-      const deviation = f.value - GAP_CFG.FAO_FPI_BASELINE;
-      const pts = logScale(deviation, 0, 40, 5);
-      if (pts > 0) {
-        add(
-          'FAO FPI',
-          `Food price index ${f.value.toFixed(1)} (+${deviation.toFixed(1)} vs baseline)`,
-          f.value,
-          pts,
-          0.7
-        );
-      }
-    }
-  }
-
-  // 60. WHO GHO — structured health burden indicators
-  if (coverage.who_gho) {
-    const gho = coverage.who_gho;
-    let ghoTotalPts = 0;
-    let ghoLabels = [];
-    for (const ind of GAP_CFG.WHO_GHO_INDICATORS) {
-      const rec = gho[ind.code];
-      if (!rec) continue;
-      let pts;
-      if (ind.invert) {
-        const inverted = ind.ceil - rec.value;
-        pts = coverageScale(inverted, 0, ind.ceil - ind.floor, ind.maxPts) * 0.5;
-      } else {
-        pts = logScale(rec.value, ind.floor, ind.ceil, ind.maxPts);
-      }
-      if (pts > 0) {
-        ghoTotalPts += pts * ind.weight;
-        ghoLabels.push(`${ind.label} ${rec.value.toFixed(1)}`);
-      }
-    }
-    if (ghoTotalPts > 0) {
-      add(
-        'WHO GHO',
-        ghoLabels.slice(0, 2).join(' · '),
-        ghoTotalPts,
-        Math.min(10, ghoTotalPts),
-        0.8
-      );
-    }
-  }
-
-  // 61. UNHCR Situations — operational funding gap
-  if (coverage.unhcr_situation) {
-    const s = coverage.unhcr_situation;
-    if (s.funding_gap_pct != null && s.funding_gap_pct > 20) {
-      const pts = logScale(s.funding_gap_pct, 20, 90, 6) * GAP_CFG.UNHCR_SITUATIONS_FUNDING_GAP_WEIGHT;
-      add(
-        'UNHCR Situation',
-        `${s.name} — ${s.funding_gap_pct}% underfunded`,
-        s.funding_gap_pct,
-        Math.min(6, pts),
-        0.75
-      );
-    }
-  }
-
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
   const sourceCountFactor = Math.min(1, Math.sqrt(ledger.length / 2));
@@ -1213,7 +1062,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS — ALL 47+ (40 ORIGINAL + 7 v18.0.0 GAP-FILLERS)
+//  FETCHERS — ALL 40+ RESTORED, EACH WITH OWN NAMESPACE
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -2062,10 +1911,12 @@ async function fetchSentinel() {
         acquisitionDate: v.ContentDate?.Start || null,
         ageHours: v.ContentDate?.Start ? (Date.now() - new Date(v.ContentDate.Start).getTime()) / 36e5 : 72,
       }));
+      // Assign to closest country based on GeoFootprint if present
       let assigned = false;
       for (const v of r.data.value) {
         const footprint = v.GeoFootprint;
         if (footprint && footprint.length >= 2) {
+          // Extract first coordinate pair
           const match = String(footprint).match(/-?\d+\.?\d*\s+-?\d+\.?\d*/);
           if (match) {
             const [lon, lat] = match[0].split(/\s+/).map(Number);
@@ -2211,309 +2062,10 @@ async function fetchEMDAT() {
   return { data: { data: [] }, live: false };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v18.0.0 GAP-FILLING FETCHERS
-// ════════════════════════════════════════════════════════════════════════════
-
-// ─── 1. ACLED — conflict events with fatality counts ───────────────────────
-async function fetchACLED() {
-  const key = (typeof process !== 'undefined' && process.env?.ACLED_API_KEY) || null;
-  const email = (typeof process !== 'undefined' && process.env?.ACLED_EMAIL) || null;
-  if (!GAP_CFG.ACLED_ENABLED || !key || !email) {
-    return { data: [], live: false, reason: 'no_acled_credentials' };
-  }
-  try {
-    const since = new Date(Date.now() - GAP_CFG.ACLED_LOOKBACK_DAYS * 86400000)
-      .toISOString().slice(0, 10);
-    const url = `https://api.acleddata.com/acled/read?key=${encodeURIComponent(key)}` +
-                `&email=${encodeURIComponent(email)}&limit=500&event_date=${since}` +
-                `&event_date_where=%3E&fields=event_id|event_date|event_type|sub_event_type|` +
-                `country|iso3|latitude|longitude|fatalities|actor1|actor2|notes`;
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: [], live: false };
-
-    const byIso = {};
-    for (const ev of r.data.data) {
-      const iso = ev.iso3 || findIsoByName(ev.country);
-      if (!iso || !COUNTRIES[iso]) continue;
-      if (!byIso[iso]) byIso[iso] = [];
-      byIso[iso].push(ev);
-    }
-
-    for (const [iso, events] of Object.entries(byIso)) {
-      const cov = ensureCoverage(iso);
-      const sorted = events
-        .map(e => ({ ...e, fatalities: parseInt(e.fatalities) || 0 }))
-        .sort((a, b) => b.fatalities - a.fatalities)
-        .slice(0, GAP_CFG.ACLED_MAX_EVENTS_PER_COUNTRY);
-
-      const totalFatalities = events.reduce((s, e) => s + (parseInt(e.fatalities) || 0), 0);
-      const maxFatalities = sorted[0]?.fatalities || 0;
-      const violentTypes = new Set(events.map(e => e.event_type));
-      const severityIndex = Math.min(100, Math.round(
-        Math.log10(totalFatalities + 1) * 22 +
-        Math.log10(maxFatalities + 1) * 15 +
-        violentTypes.size * 4
-      ));
-
-      cov.acled = {
-        event_count: events.length,
-        total_fatalities: totalFatalities,
-        max_fatalities: maxFatalities,
-        event_types: [...violentTypes],
-        severityIndex,
-        top_events: sorted.map(e => ({
-          event_id: e.event_id,
-          date: e.event_date,
-          type: e.event_type,
-          sub_type: e.sub_event_type,
-          fatalities: e.fatalities,
-          actor1: e.actor1,
-          actor2: e.actor2,
-          lat: parseFloat(e.latitude),
-          lon: parseFloat(e.longitude),
-          notes: (e.notes || '').slice(0, 200),
-        })),
-      };
-    }
-    return { data: r.data.data, live: true };
-  } catch (e) {
-    return { data: [], live: false, error: e.message };
-  }
-}
-
-// ─── 2. HDX HAPI — IPC / Cadre Harmonisé food security phases ──────────────
-async function fetchHDXHAPI() {
-  if (!GAP_CFG.HDX_HAPI_ENABLED) return { data: [], live: false };
-  try {
-    const url = 'https://hapi.humdata.org/api/v1/food-security/food-security-phase' +
-                '?output_format=json&limit=1000';
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok) return { data: [], live: false };
-
-    const rows = Array.isArray(r.data) ? r.data : (r.data?.data || []);
-    if (!rows.length) return { data: [], live: false };
-
-    for (const row of rows) {
-      const iso = row.location_code || row.iso3 || findIsoByName(row.location_name);
-      if (!iso || !COUNTRIES[iso]) continue;
-      const phase = parseInt(row.ipc_phase) || 0;
-      if (phase < 3) continue;
-
-      const cov = ensureCoverage(iso);
-      const popInPhase = parseInt(row.population_in_phase) || 0;
-
-      if (!cov.hdx_hapi || phase > cov.hdx_hapi.phase ||
-          (phase === cov.hdx_hapi.phase && popInPhase > cov.hdx_hapi.population)) {
-        cov.hdx_hapi = {
-          phase,
-          phase_name: phase === 5 ? 'Famine' : phase === 4 ? 'Emergency' : 'Crisis',
-          population: popInPhase,
-          admin1: row.admin1_name || null,
-          reference_start: row.reference_period_start,
-          reference_end: row.reference_period_end,
-          ipc_type: row.ipc_type || 'current',
-        };
-      }
-    }
-    return { data: rows, live: true };
-  } catch { return { data: [], live: false }; }
-}
-
-// ─── 3. IDMC — internal displacement (conflict + disaster) ─────────────────
-async function fetchIDMC() {
-  if (!GAP_CFG.IDMC_ENABLED) return { data: [], live: false };
-  try {
-    const url = 'https://api.idmcdb.org/api/displacement_data?limit=200' +
-                '&year=2024&type_of_displacement=CONFLICT,DISASTER';
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok) return { data: [], live: false };
-    const rows = Array.isArray(r.data) ? r.data : (r.data?.data || r.data?.results || []);
-    if (!rows.length) return { data: [], live: false };
-
-    for (const row of rows) {
-      const iso = row.iso3 || row.country_iso3 || findIsoByName(row.country);
-      if (!iso || !COUNTRIES[iso]) continue;
-      const cov = ensureCoverage(iso);
-
-      const conflictNew = parseInt(row.conflict_new_displacements || row.conflict_new || 0);
-      const disasterNew = parseInt(row.disaster_new_displacements || row.disaster_new || 0);
-      const total = parseInt(row.total_displacements || row.total || 0);
-
-      cov.idmc = {
-        year: parseInt(row.year) || 2024,
-        conflict_new_displacements: conflictNew,
-        disaster_new_displacements: disasterNew,
-        total_displacements: total,
-        combined_new: conflictNew + disasterNew,
-      };
-    }
-    return { data: rows, live: true };
-  } catch { return { data: [], live: false }; }
-}
-
-// ─── 4. ReliefWeb Reports — situation reports, assessments, appeals ────────
-async function fetchReliefWebReports() {
-  if (!GAP_CFG.RELIEFWEB_REPORTS_ENABLED) return { data: [], live: false };
-  try {
-    const url = `https://api.reliefweb.int/v1/reports?appname=gcisfusion` +
-                `&profile=list&slim=1&limit=${GAP_CFG.RELIEFWEB_REPORTS_LIMIT}` +
-                `&sort[]=date.created:desc` +
-                `&fields[include][]=title&fields[include][]=body` +
-                `&fields[include][]=date.created&fields[include][]=country` +
-                `&fields[include][]=source.shortname&fields[include][]=disaster_type`;
-    const r = await safeFetch(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: [], live: false };
-
-    for (const item of r.data.data) {
-      const countries = item.fields?.country || [];
-      for (const c of countries) {
-        const iso = findIsoByName(c.name) || c.iso3;
-        if (!iso || !COUNTRIES[iso]) continue;
-        const cov = ensureCoverage(iso);
-
-        if (!cov.reliefweb_report) {
-          cov.reliefweb_report = {
-            count: 0,
-            latest_title: null,
-            latest_date: null,
-            sources: new Set(),
-            disasters: new Set(),
-          };
-        }
-        const rr = cov.reliefweb_report;
-        rr.count++;
-        rr.sources.add(item.fields?.source?.[0]?.shortname || 'Unknown');
-        const dt = item.fields?.disaster_type?.[0]?.name;
-        if (dt) rr.disasters.add(dt);
-        const created = item.fields?.date?.created;
-        if (created && (!rr.latest_date || created > rr.latest_date)) {
-          rr.latest_date = created;
-          rr.latest_title = item.fields?.title || null;
-        }
-      }
-    }
-
-    for (const iso of Object.keys(evidenceIndex.sourceCoverage)) {
-      const rr = evidenceIndex.sourceCoverage[iso]?.reliefweb_report;
-      if (rr) {
-        rr.sources = [...rr.sources];
-        rr.disasters = [...rr.disasters];
-      }
-    }
-    return { data: r.data.data, live: true };
-  } catch { return { data: [], live: false }; }
-}
-
-// ─── 5. FAO Food Price Index (global, used as market-price shock proxy) ────
-async function fetchFAOFoodPriceIndex() {
-  if (!GAP_CFG.FAO_FPI_ENABLED) return { data: null, live: false };
-  try {
-    const url = 'https://fenixservices.fao.org/faostat/api/v1/en/data/FP?area=5000&item=23013&element=7001&year=2024,2025&format=json';
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (r.ok && r.data?.data?.length) {
-      const sorted = r.data.data.sort((a, b) => (b.Year || 0) - (a.Year || 0));
-      const latest = sorted[0];
-      const value = parseFloat(latest.Value) || null;
-      if (value) {
-        for (const iso of Object.keys(COUNTRIES)) {
-          const cov = ensureCoverage(iso);
-          cov.fao_fpi = { value, year: latest.Year, baseline: GAP_CFG.FAO_FPI_BASELINE };
-        }
-        return { data: { value, year: latest.Year }, live: true };
-      }
-    }
-  } catch { /* fall through */ }
-
-  const fallbackValue = 124.5;
-  for (const iso of Object.keys(COUNTRIES)) {
-    const cov = ensureCoverage(iso);
-    if (!cov.fao_fpi) cov.fao_fpi = { value: fallbackValue, year: 2025, baseline: 100, fallback: true };
-  }
-  return { data: { value: fallbackValue, year: 2025, fallback: true }, live: false };
-}
-
-// ─── 6. WHO GHO OData — structured health burden indicators ────────────────
-async function fetchWHOGHO() {
-  if (!GAP_CFG.WHO_GHO_ENABLED) return { data: {}, live: false };
-  const out = {};
-  let anyLive = false;
-
-  await poolMap(GAP_CFG.WHO_GHO_INDICATORS, 3, async (ind) => {
-    try {
-      const url = `https://ghoapi.azureedge.net/api/${ind.code}?$filter=SpatialDimType eq 'COUNTRY'&$top=300`;
-      const r = await safeFetch(fetch(url).then(r => r.json()));
-      if (!r.ok || !r.data?.value?.length) return;
-      anyLive = true;
-
-      const byIso = {};
-      for (const row of r.data.value) {
-        const iso = row.SpatialDim;
-        if (!iso || !COUNTRIES[iso]) continue;
-        const year = parseInt(row.TimeDim) || 0;
-        const val = parseFloat(row.NumericValue);
-        if (!Number.isFinite(val)) continue;
-        if (!byIso[iso] || year > byIso[iso].year) byIso[iso] = { value: val, year };
-      }
-      for (const [iso, d] of Object.entries(byIso)) {
-        const cov = ensureCoverage(iso);
-        if (!cov.who_gho) cov.who_gho = {};
-        cov.who_gho[ind.code] = { value: d.value, year: d.year, label: ind.label };
-      }
-      out[ind.code] = byIso;
-    } catch { /* individual indicator failed; continue */ }
-  });
-  return { data: out, live: anyLive };
-}
-
-// ─── 7. UNHCR Situations — operational context (funding, appeals) ──────────
-async function fetchUNHCRSituations() {
-  if (!GAP_CFG.UNHCR_SITUATIONS_ENABLED) return { data: [], live: false };
-  try {
-    const url = 'https://api.unhcr.org/situations/v1/situations?limit=50';
-    const r = await safeFetch(fetch(url).then(r => r.json()));
-    if (!r.ok) return { data: [], live: false };
-    const items = r.data?.items || r.data?.data || (Array.isArray(r.data) ? r.data : []);
-    if (!items.length) return { data: [], live: false };
-
-    for (const sit of items) {
-      const countries = sit.countries || sit.country_iso3 || [];
-      const isoList = Array.isArray(countries)
-        ? countries.map(c => typeof c === 'string' ? c : (c.iso3 || c.iso))
-        : [];
-      const funded = sit.appeal?.funded ?? sit.funding?.funded ?? null;
-      const requested = sit.appeal?.requested ?? sit.funding?.requested ?? null;
-      const fundingGapPct = (funded != null && requested != null && requested > 0)
-        ? Math.round(100 * (1 - funded / requested))
-        : null;
-
-      for (const iso of isoList) {
-        if (!iso || !COUNTRIES[iso]) continue;
-        const cov = ensureCoverage(iso);
-        const entry = {
-          name: sit.name || sit.title || 'Situation',
-          funding_gap_pct: fundingGapPct,
-          funded, requested,
-          description: (sit.description || '').slice(0, 200),
-          updated: sit.updated_at || sit.updated || null,
-        };
-        if (!cov.unhcr_situation ||
-            (fundingGapPct != null && fundingGapPct > (cov.unhcr_situation.funding_gap_pct ?? -1))) {
-          cov.unhcr_situation = entry;
-        }
-      }
-    }
-    return { data: items, live: true };
-  } catch { return { data: [], live: false }; }
-}
-// ════════════════════════════════════════════════════════════════════════════
-//  MASTER FETCH — allSettled, so one dead fetch never kills the response
-// ════════════════════════════════════════════════════════════════════════════
-
+// ── MASTER FETCH — allSettled, so one dead fetch never kills the response ──
 async function fetchAllLive() {
   resetEvidenceIndex();
   const tasks = {
-    // ─── v17.0.0 core fetchers ───
     usgs: fetchUSGS(),
     usgsSig: fetchUSGSSignificant(),
     shakemap: fetchShakeMap(),
@@ -2563,15 +2115,6 @@ async function fetchAllLive() {
     wbWater: fetchWorldBankWater(),
     wbTrade: fetchWorldBankTrade(),
     wbRefugees: fetchWorldBankRefugees(),
-
-    // ─── v18.0.0 GAP-FILLERS ───
-    acled: fetchACLED(),
-    hdxHapi: fetchHDXHAPI(),
-    idmc: fetchIDMC(),
-    reliefReports: fetchReliefWebReports(),
-    faoFpi: fetchFAOFoodPriceIndex(),
-    whoGho: fetchWHOGHO(),
-    unhcrSituations: fetchUNHCRSituations(),
   };
   const keys = Object.keys(tasks);
   const settled = await Promise.allSettled(Object.values(tasks));
@@ -2587,7 +2130,6 @@ async function fetchAllLive() {
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
-  // ─── v17.0.0 signals ───
   gdacs_red:{weight:100,verify:1.0,label:"GDACS RED Alert",icon:"🚨"},
   gdacs_orange:{weight:70,verify:0.9,label:"GDACS Orange Alert",icon:"🟠"},
   earthquake_m6:{weight:95,verify:1.0,label:"M6+ Earthquake",icon:"🌍"},
@@ -2630,18 +2172,6 @@ const LIVE_SIGNALS = {
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
   wb_food_price:{weight:35,verify:0.9,label:"Food Price Shock",icon:"🍞"},
   wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
-
-  // ─── v18.0.0 GAP-FILLER SIGNALS ───
-  acled_mass_casualty:   { weight: 95,  verify: 1.00, label: "ACLED Mass-Casualty Event",   icon: "⚔️" },
-  acled_armed_clash:     { weight: 70,  verify: 0.95, label: "ACLED Armed Clash",           icon: "⚔️" },
-  acled_violence_civ:    { weight: 80,  verify: 0.95, label: "ACLED Violence vs Civilians", icon: "⚠️" },
-  hdx_hapi_famine:       { weight: 100, verify: 1.00, label: "IPC Phase 5 (Famine)",         icon: "🍚" },
-  hdx_hapi_emergency:    { weight: 80,  verify: 1.00, label: "IPC Phase 4 (Emergency)",      icon: "🍚" },
-  idmc_mass_displacement:{ weight: 90,  verify: 1.00, label: "IDMC Mass Displacement",       icon: "🚶" },
-  reliefweb_report_flood:{ weight: 45,  verify: 0.85, label: "ReliefWeb Report Surge",       icon: "📄" },
-  fao_price_shock:       { weight: 55,  verify: 0.85, label: "FAO Food Price Shock",         icon: "🌾" },
-  who_gho_cholera:       { weight: 70,  verify: 0.90, label: "WHO GHO Cholera Signal",       icon: "🦠" },
-  unhcr_underfunded:     { weight: 50,  verify: 0.90, label: "UNHCR Situation Underfunded",  icon: "📋" },
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2776,86 +2306,6 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (s.hdxDatasets && s.hdxDatasets.count > 0) signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} datasets` });
-
-  // ════════════════════════════════════════════════════════════════════════
-  //  v18.0.0 GAP-FILLER LIVE SIGNALS
-  // ════════════════════════════════════════════════════════════════════════
-
-  if (s.acled && s.acled.event_count > 0) {
-    const a = s.acled;
-    if (a.max_fatalities >= 25) {
-      signals.push({
-        type: 'acled_mass_casualty', weight: 95, ageHours: 24,
-        source: 'ACLED',
-        details: `${a.max_fatalities} fatalities — ${a.top_events[0]?.type || 'conflict'}`,
-      });
-    } else if (a.max_fatalities >= 5) {
-      signals.push({
-        type: 'acled_armed_clash', weight: 70, ageHours: 24,
-        source: 'ACLED',
-        details: `${a.event_count} events, ${a.total_fatalities} fatalities`,
-      });
-    }
-    if (a.event_types?.some(t => /violence against civilians/i.test(t))) {
-      signals.push({
-        type: 'acled_violence_civ', weight: 80, ageHours: 24,
-        source: 'ACLED', details: 'Violence against civilians reported',
-      });
-    }
-  }
-
-  if (s.hdx_hapi && s.hdx_hapi.phase >= 4) {
-    signals.push({
-      type: s.hdx_hapi.phase === 5 ? 'hdx_hapi_famine' : 'hdx_hapi_emergency',
-      weight: s.hdx_hapi.phase === 5 ? 100 : 80,
-      ageHours: 72,
-      source: 'HDX HAPI',
-      details: `IPC Phase ${s.hdx_hapi.phase} — ${fmtPop(s.hdx_hapi.population) || 'pop n/a'}`,
-    });
-  }
-
-  if (s.idmc && s.idmc.combined_new >= 100000) {
-    signals.push({
-      type: 'idmc_mass_displacement', weight: 90, ageHours: 720,
-      source: 'IDMC',
-      details: `${fmtPop(s.idmc.combined_new)} new displacements (${s.idmc.year})`,
-    });
-  }
-
-  if (s.reliefweb_report && s.reliefweb_report.count >= 10) {
-    signals.push({
-      type: 'reliefweb_report_flood', weight: 45, ageHours: 72,
-      source: 'ReliefWeb Reports',
-      details: `${s.reliefweb_report.count} reports in window`,
-    });
-  }
-
-  if (s.fao_fpi && s.fao_fpi.value > 120) {
-    signals.push({
-      type: 'fao_price_shock', weight: 55, ageHours: 720,
-      source: 'FAO FPI',
-      details: `Global food price index ${s.fao_fpi.value.toFixed(1)}`,
-    });
-  }
-
-  if (s.who_gho) {
-    const cholera = s.who_gho['WHS4_100'];
-    if (cholera && cholera.value >= 1) {
-      signals.push({
-        type: 'who_gho_cholera', weight: 70, ageHours: 720,
-        source: 'WHO GHO',
-        details: `Cholera CFR ${cholera.value.toFixed(1)}% (${cholera.year})`,
-      });
-    }
-  }
-
-  if (s.unhcr_situation && s.unhcr_situation.funding_gap_pct >= 50) {
-    signals.push({
-      type: 'unhcr_underfunded', weight: 50, ageHours: 720,
-      source: 'UNHCR Situation',
-      details: `${s.unhcr_situation.name} — ${s.unhcr_situation.funding_gap_pct}% underfunded`,
-    });
-  }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
@@ -3212,11 +2662,6 @@ function analyzeCountrySentiment(iso, store) {
   const text = [];
   if (c.signals?.whoOutbreaks?.length) text.push(c.signals.whoOutbreaks.map(o => o.disease).join(' '));
   if (c.signals?.whoDon?.length) text.push(c.signals.whoDon.map(o => o.title).join(' '));
-  // v18.0.0: include ReliefWeb Reports narrative
-  if (c.signals?.reliefweb_report?.latest_title) text.push(c.signals.reliefweb_report.latest_title);
-  if (c.signals?.acled?.top_events?.length) {
-    text.push(c.signals.acled.top_events.map(e => `${e.type}: ${e.notes || ''}`).join(' '));
-  }
   if (!text.length) return null;
   return sentimentAnalyzer.analyze(text.join('. '));
 }
@@ -3232,13 +2677,14 @@ async function storeHistoricalData(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  BUILD STORE — FINAL, CLEAN, HTML-EXACT + v18.0.0 GAP-FILLERS WIRED
+//  BUILD STORE — FINAL, CLEAN, HTML-EXACT
 // ════════════════════════════════════════════════════════════════════════════
 
 async function buildStore(liveData) {
   const store = {};
 
   // STEP 1: Initialize each country with structural baseline ONLY.
+  // No score assigned yet — that happens in Step 2 with the evidence blend.
   for (const iso of Object.keys(COUNTRIES)) {
     const c = COUNTRIES[iso];
     const base = BASE_SCORES[iso] || 30;
@@ -3279,7 +2725,7 @@ async function buildStore(liveData) {
     c.is_low_instrumentation = evidence.sourceCount < CFG.LOW_INSTRUMENTATION_THRESHOLD;
   }
 
-  // STEP 3: spillover
+  // STEP 3: spillover (HTML-exact)
   for (const iso in store) {
     const neighbours = (COUNTRIES[iso].adj || []).filter(n => store[n]);
     if (!neighbours.length) { store[iso].spillover = 0; continue; }
@@ -3347,23 +2793,6 @@ async function buildStore(liveData) {
       climateTrace: cov.emissions ? { topEmission: cov.emissions } : null,
       hdxDatasets: cov.hdx || null,
       usDrought: cov.us_drought || null,
-
-      // ═══ v18.0.0 GAP-FILLER SIGNALS ═══
-      acled: cov.acled || null,
-      hdx_hapi: cov.hdx_hapi || null,
-      idmc: cov.idmc || null,
-      reliefweb_report: cov.reliefweb_report
-        ? {
-            count: cov.reliefweb_report.count,
-            latest_title: cov.reliefweb_report.latest_title,
-            latest_date: cov.reliefweb_report.latest_date,
-            sources: cov.reliefweb_report.sources,
-            disasters: cov.reliefweb_report.disasters,
-          }
-        : null,
-      fao_fpi: cov.fao_fpi || null,
-      who_gho: cov.who_gho || null,
-      unhcr_situation: cov.unhcr_situation || null,
     };
   }
 
@@ -3390,6 +2819,7 @@ async function buildStore(liveData) {
 
   return store;
 }
+
 // ════════════════════════════════════════════════════════════════════════════
 //  PAYLOAD
 // ════════════════════════════════════════════════════════════════════════════
@@ -3408,12 +2838,6 @@ function buildKeywords(iso, store) {
   if (s.gfwAlerts) kws.add(`${c.name} deforestation`);
   if (s.jtwcStorms?.length) kws.add(`${c.name} typhoon`);
   if (s.usDrought) kws.add(`${c.name} drought`);
-  // v18.0.0 keywords
-  if (s.acled?.event_count > 0) kws.add(`${c.name} conflict fatalities`);
-  if (s.hdx_hapi) kws.add(`${c.name} food insecurity IPC phase ${s.hdx_hapi.phase}`);
-  if (s.idmc?.combined_new > 100000) kws.add(`${c.name} internal displacement`);
-  if (s.reliefweb_report?.count > 0) kws.add(`${c.name} situation report`);
-  if (s.unhcr_situation?.funding_gap_pct > 40) kws.add(`${c.name} humanitarian funding gap`);
   return [...kws].slice(0, 15);
 }
 
@@ -3422,14 +2846,9 @@ function buildMetaDescription(iso, store) {
   const lb = c.__live_breaking || {};
   const severity = severityLabel(c.score);
   let parts = [`${c.name} crisis update: score ${c.score}/100 (${severity})`];
-  // v18.0.0: append gap-filler context
-  const gf = c.signals || {};
-  if (gf.hdx_hapi?.phase >= 4) parts.push(`IPC Phase ${gf.hdx_hapi.phase}`);
-  if (gf.acled?.total_fatalities > 0) parts.push(`${gf.acled.total_fatalities} conflict fatalities (30d)`);
-  if (gf.idmc?.combined_new > 100000) parts.push(`${fmtPop(gf.idmc.combined_new)} newly displaced`);
   if (lb.tier === "BREAKING") parts.unshift(`🔴 BREAKING: ${lb.breaking_headline}`);
   else if (lb.tier === "DEVELOPING") parts.unshift(`🟠 DEVELOPING: ${lb.breaking_headline}`);
-  return parts.slice(0, 4).join('. ') + '.';
+  return parts.slice(0, 3).join('. ') + '.';
 }
 
 function buildRelatedStories(iso, store, ranked) {
@@ -3465,22 +2884,9 @@ function buildSEOArticle(iso, store, ranked) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
   const headline = lb.breaking_headline || `${c.name} Crisis Monitor — ${c.score}/100`;
-  let articleBody = `## Overview\n\n${c.name} scores ${c.score}/100 (${severityLabel(c.score)}).\n\n`;
-  // v18.0.0: append gap-filler narrative
-  if (c.signals?.hdx_hapi) {
-    articleBody += `## Food Security\n\nCurrent IPC Phase ${c.signals.hdx_hapi.phase} (${c.signals.hdx_hapi.phase_name}) affecting ${fmtPop(c.signals.hdx_hapi.population) || 'unknown'} people.\n\n`;
-  }
-  if (c.signals?.acled?.event_count > 0) {
-    articleBody += `## Conflict\n\n${c.signals.acled.event_count} conflict event(s) recorded in the last 30 days, with ${c.signals.acled.total_fatalities.toLocaleString()} reported fatalities.\n\n`;
-  }
-  if (c.signals?.idmc?.combined_new > 0) {
-    articleBody += `## Displacement\n\n${fmtPop(c.signals.idmc.combined_new)} new displacements in ${c.signals.idmc.year} (${fmtPop(c.signals.idmc.conflict_new_displacements)} conflict, ${fmtPop(c.signals.idmc.disaster_new_displacements)} disaster).\n\n`;
-  }
-  if (c.signals?.unhcr_situation?.funding_gap_pct != null) {
-    articleBody += `## Funding\n\nUNHCR situation "${c.signals.unhcr_situation.name}" is ${c.signals.unhcr_situation.funding_gap_pct}% underfunded.\n\n`;
-  }
+  const articleBody = `## Overview\n\n${c.name} scores ${c.score}/100 (${severityLabel(c.score)}).`;
   const { words, minutes } = estimateReadTime(articleBody);
-  return { headline, dek: `Score ${c.score}/100 · ${lb.distinct_event_count || 0} events`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><pre>${articleBody}</pre></article>`, word_count: words, read_time_minutes: minutes };
+  return { headline, dek: `Score ${c.score}/100 · ${lb.distinct_event_count || 0} events`, slug: slugify(c.name), url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), body_markdown: articleBody, body_html: `<article><h1>${headline}</h1><p>${articleBody}</p></article>`, word_count: words, read_time_minutes: minutes };
 }
 
 function buildSitemap(payloads) {
@@ -3593,60 +2999,6 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       history_points: c.ml_forecast.history_points,
     } : null,
     sentiment: c.sentiment ? { score: c.sentiment.score, label: c.sentiment.label, confidence: c.sentiment.confidence } : null,
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  v18.0.0 GAP-FILLERS PAYLOAD
-    // ════════════════════════════════════════════════════════════════════════
-    gap_fillers: {
-      acled: c.signals?.acled
-        ? {
-            event_count: c.signals.acled.event_count,
-            total_fatalities: c.signals.acled.total_fatalities,
-            max_fatalities: c.signals.acled.max_fatalities,
-            event_types: c.signals.acled.event_types,
-            severity_index: c.signals.acled.severityIndex,
-            top_events: c.signals.acled.top_events,
-          }
-        : null,
-      hdx_hapi: c.signals?.hdx_hapi
-        ? {
-            phase: c.signals.hdx_hapi.phase,
-            phase_name: c.signals.hdx_hapi.phase_name,
-            population: c.signals.hdx_hapi.population,
-            admin1: c.signals.hdx_hapi.admin1,
-            reference_period: [c.signals.hdx_hapi.reference_start, c.signals.hdx_hapi.reference_end],
-          }
-        : null,
-      idmc: c.signals?.idmc
-        ? {
-            year: c.signals.idmc.year,
-            conflict_new_displacements: c.signals.idmc.conflict_new_displacements,
-            disaster_new_displacements: c.signals.idmc.disaster_new_displacements,
-            total_displacements: c.signals.idmc.total_displacements,
-            combined_new: c.signals.idmc.combined_new,
-          }
-        : null,
-      reliefweb_reports: c.signals?.reliefweb_report
-        ? {
-            count: c.signals.reliefweb_report.count,
-            latest_title: c.signals.reliefweb_report.latest_title,
-            latest_date: c.signals.reliefweb_report.latest_date,
-            sources: c.signals.reliefweb_report.sources,
-            disasters: c.signals.reliefweb_report.disasters,
-          }
-        : null,
-      fao_food_price_index: c.signals?.fao_fpi
-        ? {
-            value: c.signals.fao_fpi.value,
-            year: c.signals.fao_fpi.year,
-            baseline: c.signals.fao_fpi.baseline,
-            fallback: c.signals.fao_fpi.fallback || false,
-          }
-        : null,
-      who_gho: c.signals?.who_gho || null,
-      unhcr_situation: c.signals?.unhcr_situation || null,
-    },
-
     score_audit: {
       prior_score: c.priorScore,
       structural_score: c.structural_score,
@@ -3703,7 +3055,6 @@ export default async function handler(req, res) {
       live: url.searchParams.get("format") === "live",
       rss: url.searchParams.get("format") === "rss",
       wst: url.searchParams.get("format") === "wst",
-      gaps: url.searchParams.get("gaps") === "true",
     };
     if (Number.isNaN(params.top)) params.top = 179;
     if (Number.isNaN(params.threshold)) params.threshold = 0;
@@ -3729,30 +3080,6 @@ export default async function handler(req, res) {
     const breakingRanked = rankBreakingOnly(store, 1);
     const liveEventsOnly = rankLiveEventsOnly(store);
 
-    // v18.0.0: gap coverage summary endpoint
-    if (params.gaps) {
-      const coverage = {
-        acled: 0, hdx_hapi: 0, idmc: 0, reliefweb_report: 0, fao_fpi: 0, who_gho: 0, unhcr_situation: 0,
-      };
-      for (const iso of Object.keys(store)) {
-        const s = store[iso].signals || {};
-        if (s.acled) coverage.acled++;
-        if (s.hdx_hapi) coverage.hdx_hapi++;
-        if (s.idmc) coverage.idmc++;
-        if (s.reliefweb_report) coverage.reliefweb_report++;
-        if (s.fao_fpi) coverage.fao_fpi++;
-        if (s.who_gho) coverage.who_gho++;
-        if (s.unhcr_situation) coverage.unhcr_situation++;
-      }
-      res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), countries_tracked: Object.keys(store).length },
-        coverage,
-        note: "Counts of countries with live data for each v18.0.0 gap-filling source.",
-      }, null, 2));
-      return;
-    }
-
     let finalIsos;
     if (isoList.length) finalIsos = isoList;
     else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
@@ -3765,7 +3092,7 @@ export default async function handler(req, res) {
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const s = store[iso];
-      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, effective_score: s.__effective_score, live_breaking: s.__live_breaking, evidence: s.evidence_ledger, dimensions: s.dims, gap_fillers: s.signals };
+      const data = { iso, name: s.name, score: s.score, structural_score: s.structural_score, effective_score: s.__effective_score, live_breaking: s.__live_breaking, evidence: s.evidence_ledger, dimensions: s.dims };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -3774,9 +3101,7 @@ export default async function handler(req, res) {
     if (params.widget && finalIsos.length === 1) {
       const c = store[finalIsos[0]];
       const lb = c.__live_breaking || {};
-      const gf = c.signals || {};
-      const gfBadge = gf.hdx_hapi?.phase >= 4 ? `IPC ${gf.hdx_hapi.phase} · ` : '';
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${gfBadge}${lb.breaking_headline || ""}</small></div>`;
+      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${c.flag} ${c.name}</b> — Score ${c.score}/100 (${lb.tier_label || "—"})<br><small>${lb.breaking_headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -3790,7 +3115,7 @@ export default async function handler(req, res) {
         return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, source_count: lb.source_count };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v18.0.0" }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news" }, live_news: feed }, null, 2));
       return;
     }
 
@@ -3816,7 +3141,7 @@ export default async function handler(req, res) {
         return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, source_count: lb.source_count, top_events: lb.events.slice(0, 3) };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, version: "v18.0.0" }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -3832,32 +3157,18 @@ export default async function handler(req, res) {
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
 
-    // v18.0.0: compute live gap-source coverage for meta
-    const gapCoverage = { acled: 0, hdx_hapi: 0, idmc: 0, reliefweb_report: 0, fao_fpi: 0, who_gho: 0, unhcr_situation: 0 };
-    for (const iso of Object.keys(store)) {
-      const s = store[iso].signals || {};
-      if (s.acled) gapCoverage.acled++;
-      if (s.hdx_hapi) gapCoverage.hdx_hapi++;
-      if (s.idmc) gapCoverage.idmc++;
-      if (s.reliefweb_report) gapCoverage.reliefweb_report++;
-      if (s.fao_fpi) gapCoverage.fao_fpi++;
-      if (s.who_gho) gapCoverage.who_gho++;
-      if (s.unhcr_situation) gapCoverage.unhcr_situation++;
-    }
-
     const body = {
       meta: {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v18.0.0",
+        ranking_mode: "DEFINITIVE_v17.0.1",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field: "HTML-exact evidence-ledger score",
         effective_score_field: "score × pop_exposure − resolution_credit (metadata)",
-        gap_filler_coverage: gapCoverage,
         endpoints: {
           single: "GET /api/top-story",
           live_news: "GET /api/top-story?format=live",
@@ -3867,8 +3178,6 @@ export default async function handler(req, res) {
           region: "GET /api/top-story?region=africa",
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
-          sitemap: "GET /api/top-story?format=sitemap",
-          gap_coverage: "GET /api/top-story?gaps=true",
         },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
@@ -3878,7 +3187,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v18.0.0]", err);
+    console.error("[top-story v17.0.1]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
