@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GCIN — Global Crisis Wire</title>
+<style>
+  :root{
+    --bg:#0a0d13; --panel:#10141d; --panel2:#141a26; --line:#232a3a; --ink:#e9e7de; --dim:#8890a3;
+    --red:#ff4d5e; --orange:#ff9a3d; --amber:#ffc94d; --blue:#4fc3ff; --green:#5fd7a3; --violet:#b48bff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:14px}
+  a{color:inherit}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#242c3d;border-radius:4px}
+
+  header{border-bottom:1px solid var(--line);padding:20px 24px 14px;display:flex;justify-content:space-between;
+    align-items:flex-end;flex-wrap:wrap;gap:10px}
+  .wordmark{font-family:Georgia,serif;font-size:25px}
+  .wordmark b{font-style:italic;color:var(--red)}
+  .sub{color:var(--dim);font-size:11.5px;margin-top:4px}
+  .clock{font-size:11.5px;color:var(--dim);text-align:right}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+  .ticker{border-bottom:1px solid var(--line);background:#0d1119;overflow:hidden;white-space:nowrap;padding:8px 0}
+  .ticker span{display:inline-block;padding-right:60px;font-size:12px;color:var(--dim)}
+  .ticker b{color:var(--red)}
+  .ticker-track{display:inline-block;animation:scroll 40s linear infinite}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--line);
+    border-bottom:1px solid var(--line)}
+  .stat{background:var(--panel);padding:12px 16px}
+  .stat .n{font-size:22px;font-weight:600}
+  .stat .l{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+  .toolbar{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:5;align-items:center}
+  .toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    font-family:inherit;font-size:12.5px;padding:7px 10px;border-radius:6px}
+  .toolbar input{flex:1;min-width:150px}
+  .toolbar label{font-size:11px;color:var(--dim);display:flex;gap:6px;align-items:center}
+  .toolbar input[type=range]{width:100px;padding:0}
+  .modebtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);font-size:11.5px;
+    padding:7px 12px;border-radius:6px;cursor:pointer}
+  .modebtn.active{color:var(--ink);border-color:var(--blue);background:#132030}
+
+  main{max-width:1220px;margin:0 auto;padding:0 24px}
+  #status{color:var(--dim);font-size:11.5px;padding:14px 0 4px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:12px 0 30px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;cursor:pointer;
+    transition:border-color .15s,transform .1s}
+  .card:hover{border-color:#4a5570;transform:translateY(-1px)}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .name{font-size:14.5px}
+  .name .flag{margin-right:6px}
+  .rank{color:var(--dim);font-size:10.5px;text-align:right}
+  .scorewrap{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+  .score{font-size:27px;font-weight:600;line-height:1}
+  .delta{font-size:11px}
+  .delta.up{color:var(--red)} .delta.down{color:var(--green)} .delta.flat{color:var(--dim)}
+  .sev{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .bar{height:4px;background:#1c2231;border-radius:2px;margin-top:9px;overflow:hidden}
+  .bar>div{height:100%}
+  .chips{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  .headline{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cmpbtn{position:absolute;top:10px;right:10px;font-size:10px;color:var(--dim)}
+
+  #overlay{position:fixed;inset:0;background:rgba(5,7,11,.75);display:none;align-items:flex-start;justify-content:center;
+    z-index:50;padding:40px 20px;overflow:auto}
+  #detail{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:600px;width:100%;
+    padding:22px}
+  #detail .close{float:right;color:var(--dim);cursor:pointer;font-size:20px;line-height:1}
+  #detail h2{font-family:Georgia,serif;font-style:italic;margin:0 0 2px;font-size:22px}
+  #detail h3{font-size:11px;color:var(--dim);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+  .row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .dimrow{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:4px 0}
+  .dimrow .dl{width:96px;color:var(--dim)}
+  .dimbar{flex:1;height:6px;background:#1c2231;border-radius:3px;overflow:hidden}
+  .dimbar>div{height:100%;background:var(--blue)}
+  .evrow{font-size:11px;color:var(--dim);padding:3px 0;border-bottom:1px dashed var(--line)}
+  .evrow b{color:var(--ink)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  footer{text-align:center;color:var(--dim);font-size:10.5px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="wordmark">GCIN <b>Wire</b></div>
+    <div class="sub">Global Crisis Index — structural + live-evidence instability monitor, 179 countries</div>
+  </div>
+  <div class="clock"><span class="dot"></span><span id="src">connecting…</span><br><span id="time"></span></div>
+</header>
+
+<div class="ticker"><div class="ticker-track" id="ticker"></div></div>
+
+<div class="stats" id="stats"></div>
+
+<div class="toolbar">
+  <input id="q" type="text" placeholder="Search a country…">
+  <select id="region">
+    <option value="">All regions</option>
+    <option value="africa">Africa</option><option value="asia">Asia</option>
+    <option value="europe">Europe</option><option value="middleeast">Middle East</option>
+    <option value="americas">Americas</option><option value="oceania">Oceania</option>
+  </select>
+  <select id="sort">
+    <option value="score">Sort: composite score</option>
+    <option value="live">Sort: live signal</option>
+    <option value="delta">Sort: 7d trend</option>
+    <option value="evidence">Sort: evidence sources</option>
+    <option value="name">Sort: name</option>
+  </select>
+  <label>Min score <input id="thresh" type="range" min="0" max="99" value="0"><span id="threshv">0</span></label>
+  <button class="modebtn active" data-m="all" onclick="setMode('all')">All</button>
+  <button class="modebtn" data-m="breaking" onclick="setMode('breaking')">Breaking only</button>
+</div>
+
+<main>
+  <div id="status">Loading feed…</div>
+  <div class="grid" id="grid"></div>
+</main>
+<footer>Source: globalcrisisindex.com/api/top-story — scores blend structural risk factors with 40+ live evidence feeds (USGS, GDACS, WHO, UNHCR, World Bank, ReliefWeb…)</footer>
+
+<div id="overlay"><div id="detail"></div></div>
+
+<script>
+const API = "http://globalcrisisindex.com/api/top-story?top=80";
+let DATA = [], MODE = 'all';
+
+const sevVar = s => s>=75?'--red':s>=60?'--orange':s>=40?'--amber':'--blue';
+const cv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const deltaClass = d => d>0?'up':d<0?'down':'flat';
+const deltaArrow = d => d>0?'▲':d<0?'▼':'—';
+
+function renderStats(list){
+  const avg = Math.round(list.reduce((s,c)=>s+c.score,0)/list.length);
+  const breaking = list.filter(c=>c.live_breaking?.tier==='BREAKING'||c.live_breaking?.tier==='DEVELOPING').length;
+  const catastrophic = list.filter(c=>c.score>=85).length;
+  const evidenced = list.filter(c=>(c.evidence?.source_count||0)>0).length;
+  const regions = {}; list.forEach(c=>regions[c.region]=(regions[c.region]||0)+1);
+  const topRegion = Object.entries(regions).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('stats').innerHTML = [
+    [list.length,'Countries tracked'],[avg,'Avg composite score'],
+    [breaking,'Active/developing stories'],[catastrophic,'Catastrophic (≥85)'],
+    [evidenced,'With live evidence'],[topRegion?topRegion[0]:'—','Most represented region']
+  ].map(([n,l])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function renderTicker(list){
+  const items = list.filter(c=>c.live_breaking?.headline).sort((a,b)=>(b.live_breaking.score||0)-(a.live_breaking.score||0)).slice(0,10);
+  const html = items.map(c=>`<span><b>${c.live_breaking.tier_icon||''} ${c.live_breaking.tier}</b> — ${c.live_breaking.headline}</span>`).join('');
+  document.getElementById('ticker').innerHTML = html + html;
+}
+
+function renderGrid(list){
+  const grid = document.getElementById('grid'); grid.innerHTML = '';
+  if(!list.length){ grid.innerHTML = '<div style="color:var(--dim);padding:30px 0">No matches.</div>'; return; }
+  list.forEach(c=>{
+    const col = cv(sevVar(c.score));
+    const lb = c.live_breaking || {};
+    const dcls = deltaClass(c.trend?.delta_7d||0);
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `
+      <div class="card-top">
+        <div class="name"><span class="flag">${c.flag||''}</span>${c.name}</div>
+        <div class="rank">#${c.rank}/${c.total_countries}<br>${c.region||''}</div>
+      </div>
+      <div class="scorewrap">
+        <div class="score" style="color:${col}">${c.score}</div>
+        <div class="delta ${dcls}">${deltaArrow(c.trend?.delta_7d||0)} ${Math.abs(c.trend?.delta_7d||0)} /7d</div>
+      </div>
+      <div class="sev" style="color:${col}">${c.severity}</div>
+      <div class="bar"><div style="width:${c.score}%;background:${col}"></div></div>
+      <div class="chips">
+        ${lb.tier?`<span class="chip" style="color:${col};border-color:${col}55">${lb.tier_icon||''} ${lb.tier_label||lb.tier}</span>`:''}
+        <span class="chip">${c.evidence?.source_count||0} src</span>
+        ${c.anomaly?.detected?`<span class="chip" style="color:var(--violet)">⚠ anomaly</span>`:''}
+        ${c.sentiment?`<span class="chip">${c.sentiment.label}</span>`:''}
+      </div>
+      ${lb.headline?`<div class="headline">${lb.headline}</div>`:''}
+    `;
+    el.onclick = ()=>openDetail(c);
+    grid.appendChild(el);
+  });
+}
+
+function openDetail(c){
+  const lb=c.live_breaking||{}, dims=c.dimensions||{}, ev=c.evidence||{}, sa=c.score_audit||{}, ml=c.ml||{};
+  const dimHtml = Object.values(dims).map(d=>`<div class="dimrow"><div class="dl">${d.icon||''} ${d.label}</div>
+    <div class="dimbar"><div style="width:${d.value}%"></div></div><div style="width:24px;text-align:right">${d.value}</div></div>`).join('');
+  const evHtml = (ev.ledger||[]).slice(0,8).map(l=>`<div class="evrow"><b>${l.source}</b> — ${l.label}</div>`).join('')
+    || '<div class="evrow">No live evidence sources currently reporting for this country.</div>';
+  const evtHtml = (lb.events||[]).slice(0,5).map(e=>`<div class="evrow">${e.icon||''} <b>${e.label}</b> — ${e.details||''}
+    <span style="color:#5a6478">(${e.source}, ${e.age_hours}h ago, w=${e.weighted_score})</span></div>`).join('') || '<div class="evrow">No fresh live signals.</div>';
+  const types = (c.crisis_types||[]).map(t=>`<span class="chip">${t.icon} ${t.label}</span>`).join('');
+  const sp = c.spillover||{};
+  document.getElementById('detail').innerHTML = `
+    <span class="close" onclick="document.getElementById('overlay').style.display='none'">&times;</span>
+    <h2>${c.flag||''} ${c.name}</h2>
+    <div style="color:var(--dim);font-size:11.5px;margin-bottom:10px">Rank #${c.rank} of ${c.total_countries} · ${c.percentile}th percentile · FSI ${c.fsi?.band||'—'} (${c.fsi?.score??'—'})</div>
+    <div class="grid2">
+      <div>
+        <div class="row"><span>Composite</span><b>${c.score}/100</b></div>
+        <div class="row"><span>Structural</span><span>${sa.structural_score??'—'}</span></div>
+        <div class="row"><span>Effective (pop-adj)</span><span>${c.effective_score} ×${c.pop_multiplier}</span></div>
+        <div class="row"><span>Spillover</span><span>+${sp.value??0}</span></div>
+      </div>
+      <div>
+        <div class="row"><span>Live tier</span><span>${lb.tier_icon||''} ${lb.tier_label||'Background'}</span></div>
+        <div class="row"><span>7d trend</span><span>${c.trend?.direction} → ${c.trend?.forecast_7d}</span></div>
+        <div class="row"><span>Anomaly</span><span>${c.anomaly?.detected?c.anomaly.severity:'none'}</span></div>
+        <div class="row"><span>ML forecast</span><span>${ml.forecast??'—'} (${Math.round((ml.confidence||0)*100)}%)</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px">${types}</div>
+    <h3>Risk dimensions</h3>${dimHtml}
+    <h3>Active live signals (${lb.signal_count||0})</h3>${evtHtml}
+    <h3>Evidence ledger — ${ev.source_count||0} sources, ${Math.round((ev.confidence||0)*100)}% confidence</h3>${evHtml}
+    ${c.recommendation?`<h3>Recommendation</h3><div class="row"><span>${c.recommendation.tier}</span><span style="text-align:right;max-width:70%">${c.recommendation.text}</span></div>`:''}
+  `;
+  document.getElementById('overlay').style.display='flex';
+}
+document.getElementById('overlay').onclick = e=>{ if(e.target.id==='overlay') e.target.style.display='none'; };
+
+function setMode(m){ MODE=m; document.querySelectorAll('.modebtn').forEach(b=>b.classList.toggle('active',b.dataset.m===m)); applyFilters(); }
+
+function applyFilters(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const region=document.getElementById('region').value;
+  const sort=document.getElementById('sort').value;
+  const thresh=+document.getElementById('thresh').value;
+  document.getElementById('threshv').textContent = thresh;
+  let list = DATA.filter(c=>c.name.toLowerCase().includes(q) && (!region||c.region===region) && c.score>=thresh);
+  if(MODE==='breaking') list = list.filter(c=>['BREAKING','DEVELOPING','ACTIVE'].includes(c.live_breaking?.tier));
+  if(sort==='live') list.sort((a,b)=>(b.live_breaking?.score||0)-(a.live_breaking?.score||0));
+  else if(sort==='delta') list.sort((a,b)=>(b.trend?.delta_7d||0)-(a.trend?.delta_7d||0));
+  else if(sort==='evidence') list.sort((a,b)=>(b.evidence?.source_count||0)-(a.evidence?.source_count||0));
+  else if(sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
+  else list.sort((a,b)=>b.score-a.score);
+  renderGrid(list);
+}
+['q','region','sort','thresh'].forEach(id=>document.getElementById(id).addEventListener('input',applyFilters));
+
+function setClock(){ document.getElementById('time').textContent = new Date().toLocaleTimeString(); }
+setInterval(setClock,1000); setClock();
+
+const DEMO = [
+ {iso:'SOM',name:'Somalia',flag:'🇸🇴',score:94,severity:'CATASTROPHIC',rank:1,total_countries:179,percentile:99,region:'africa',
+  fsi:{band:'Very High Alert',score:111.3},trend:{direction:'escalating',delta_7d:3,forecast_7d:96},
+  effective_score:97,pop_multiplier:1.03,spillover:{value:4.2},
+  score_audit:{structural_score:90},anomaly:{detected:true,severity:'HIGH'},ml:{forecast:95,confidence:.7},
+  live_breaking:{tier:'ACTIVE',tier_label:'Active Crisis',tier_icon:'🟡',signal_count:3,
+    headline:'Somalia — drought and displacement pressure intensifying',
+    events:[{icon:'🏜️',label:'Drought',details:'Food security phase 4',source:'FEWS NET',age_hours:18,weighted_score:41}]},
+  evidence:{source_count:4,confidence:.62,ledger:[{source:'WORLDBANK',label:'Poverty rate 68%'},{source:'UNHCR',label:'1.2M displaced'}]},
+  crisis_types:[{icon:'⚔️',label:'Complex Emergency'},{icon:'🏜️',label:'Drought'}],
+  dimensions:{conflict:{icon:'⚔️',label:'Conflict',value:88},food:{icon:'🌾',label:'Food',value:80},displacement:{icon:'🚶',label:'Displacement',value:84}},
+  recommendation:{tier:'URGENT',text:'Urgent response needed. Anomaly detected (HIGH).'},sentiment:{label:'negative'}},
+ {iso:'UKR',name:'Ukraine',flag:'🇺🇦',score:85,severity:'CRITICAL',rank:9,total_countries:179,percentile:95,region:'europe',
+  fsi:{band:'Alert',score:93.1},trend:{direction:'stable',delta_7d:0,forecast_7d:85},
+  effective_score:86,pop_multiplier:1.01,spillover:{value:1.1},
+  score_audit:{structural_score:84},anomaly:{detected:false,severity:'NONE'},ml:{forecast:85,confidence:.55},
+  live_breaking:{tier:'MONITORING',tier_label:'Monitoring',tier_icon:'🟢',signal_count:1,
+    headline:'Ukraine — conflict displacement remains elevated',events:[]},
+  evidence:{source_count:2,confidence:.5,ledger:[{source:'RELIEFWEB',label:'Complex Emergency: ongoing'}]},
+  crisis_types:[{icon:'⚔️',label:'Civil War'}],
+  dimensions:{conflict:{icon:'⚔️',label:'Conflict',value:90},displacement:{icon:'🚶',label:'Displacement',value:82}},
+  recommendation:{tier:'HIGH',text:'Elevated concern.'},sentiment:{label:'negative'}},
+];
+
+fetch(API).then(r=>r.json()).then(data=>{
+  const list = data.countries || (data.top_story?[data.top_story]:[]);
+  if(!list.length) throw new Error('empty');
+  DATA = list;
+  document.getElementById('src').textContent = 'live feed connected';
+  document.getElementById('status').textContent = `${list.length} countries · updated ${new Date(data.meta?.generated_at||Date.now()).toLocaleTimeString()}`;
+  renderStats(DATA); renderTicker(DATA); applyFilters();
+}).catch(()=>{
+  DATA = DEMO;
+  document.getElementById('src').textContent = 'demo data (live feed unreachable from this browser)';
+  document.getElementById('status').textContent = 'Showing sample data — open this file directly in a browser to reach the live API.';
+  renderStats(DATA); renderTicker(DATA); applyFilters();
+});
+</script>
+</body>
+</html>
