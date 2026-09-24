@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Top-Story Engine — How It Works (Plain English)</title>
+  <style>
+    :root {
+      --bg: #0a0e18;
+      --bg2: #0d1322;
+      --panel: #101830;
+      --panel-hover: #16203c;
+      --line: #26314a;
+      --line-soft: #1e2740;
+      --ink: #e8ecf5;
+      --ink-dim: #8792a8;
+      --ink-faint: #576078;
+      --mono: "SF Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
+      --sans: -apple-system, "Inter", system-ui, sans-serif;
+      --red: #ff375f;
+      --orange: #ff8c42;
+      --amber: #ffb020;
+      --cyan: #3ec5ff;
+      --purple: #bf7fff;
+      --green: #39d98a;
+      --magenta: #e879f9;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f3f4f8;
+        --bg2: #eceef4;
+        --panel: #ffffff;
+        --panel-hover: #f8f9fc;
+        --line: #dce0ea;
+        --line-soft: #e8eaf0;
+        --ink: #131722;
+        --ink-dim: #565f77;
+        --ink-faint: #9099ad;
+        --shadow: 0 4px 24px rgba(0,0,0,0.06);
+      }
+    }
+    :root[data-theme="light"] {
+      --bg: #f3f4f8;
+      --bg2: #eceef4;
+      --panel: #ffffff;
+      --panel-hover: #f8f9fc;
+      --line: #dce0ea;
+      --line-soft: #e8eaf0;
+      --ink: #131722;
+      --ink-dim: #565f77;
+      --ink-faint: #9099ad;
+      --shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+      scroll-behavior: smooth;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      background-image:
+        radial-gradient(ellipse 900px 500px at 15% -5%, rgba(62, 197, 255, 0.08), transparent),
+        radial-gradient(ellipse 700px 500px at 100% 10%, rgba(191, 127, 255, 0.06), transparent);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    /* ---------- HERO ---------- */
+    .hero {
+      padding: 64px 0 44px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 80px;
+      height: 2px;
+      background: var(--cyan);
+      border-radius: 1px;
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--cyan);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(30px, 5.4vw, 48px);
+      line-height: 1.08;
+      margin: 16px 0 18px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    h1 em {
+      font-style: normal;
+      color: var(--ink-dim);
+    }
+    .lede {
+      max-width: 64ch;
+      color: var(--ink-dim);
+      font-size: 16.5px;
+      line-height: 1.65;
+    }
+    .lede strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ---------- ANALOGY CALLOUT ---------- */
+    .analogy {
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--amber);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      margin: 20px 0 0;
+      font-size: 14.5px;
+      color: var(--ink-dim);
+      line-height: 1.7;
+    }
+    .analogy strong {
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    /* ---------- PIPELINE ---------- */
+    .pipeline {
+      position: relative;
+      margin-top: 8px;
+    }
+    .pipeline::before {
+      content: "";
+      position: absolute;
+      left: 23px;
+      top: 14px;
+      bottom: 14px;
+      width: 2px;
+      background: linear-gradient(
+        var(--red),
+        var(--orange),
+        var(--amber),
+        var(--cyan),
+        var(--purple),
+        var(--green)
+      );
+      opacity: 0.3;
+      border-radius: 1px;
+    }
+    .stage {
+      position: relative;
+      padding: 44px 0 44px 68px;
+      border-bottom: 1px solid var(--line);
+      transition: background 0.2s ease;
+    }
+    .stage:hover {
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .stage:last-child {
+      border-bottom: none;
+    }
+    .num {
+      position: absolute;
+      left: 0;
+      top: 46px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-dim);
+      z-index: 1;
+      transition: all 0.2s ease;
+    }
+    .stage:hover .num {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 0 4px rgba(62, 197, 255, 0.1);
+    }
+    .stage h2 {
+      font-size: 21px;
+      margin: 0 0 10px;
+      letter-spacing: -0.01em;
+      font-weight: 650;
+    }
+    .stage .tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+      margin-bottom: 4px;
+      display: block;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .stage p {
+      color: var(--ink-dim);
+      font-size: 15px;
+      max-width: 62ch;
+      margin: 0 0 22px;
+      line-height: 1.65;
+    }
+
+    /* ---------- SOURCE CARDS ---------- */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .cat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      transition: all 0.2s ease;
+    }
+    .cat:hover {
+      border-color: var(--line-soft);
+      background: var(--panel-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    .cat h3 {
+      margin: 0 0 8px;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex: none;
+      display: inline-block;
+    }
+    .cat .plain {
+      font-size: 13px;
+      color: var(--ink-faint);
+      line-height: 1.65;
+    }
+    .cat .plain em {
+      color: var(--ink-dim);
+      font-style: normal;
+    }
+
+    /* ---------- SIMPLE EXPLANATION BOX ---------- */
+    .simple-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .simple-box .label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .simple-box .row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 14px;
+    }
+    .simple-box .row:last-child {
+      border-bottom: none;
+    }
+    .simple-box .row .icon {
+      flex: none;
+      width: 26px;
+      text-align: center;
+      font-size: 16px;
+    }
+    .simple-box .row .text {
+      color: var(--ink-dim);
+      line-height: 1.55;
+    }
+    .simple-box .row .text b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ---------- SCORE VISUAL ---------- */
+    .score-visual {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+    .score-block {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 110px;
+      flex: 1;
+    }
+    .score-block .big {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .score-block .small {
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      margin-top: 2px;
+    }
+    .score-arrow {
+      font-size: 20px;
+      color: var(--ink-faint);
+      flex: none;
+    }
+
+    /* ---------- LEDGER BARS ---------- */
+    .ledger {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lrow {
+      display: grid;
+      grid-template-columns: 1fr 90px;
+      gap: 16px;
+      align-items: center;
+    }
+    .lrow .label {
+      font-size: 13px;
+      color: var(--ink-dim);
+    }
+    .lrow .label b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .bar {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg2);
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+    }
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ---------- STACKED BAR ---------- */
+    .stacked {
+      display: flex;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      gap: 1px;
+    }
+    .stacked div {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: #0a0e18;
+      font-weight: 600;
+      transition: filter 0.2s ease;
+    }
+    .stacked div:hover {
+      filter: brightness(1.15);
+    }
+    .dim-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 22px;
+      margin-top: 12px;
+      font-size: 12.5px;
+      color: var(--ink-dim);
+    }
+    .dim-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dim-legend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      flex: none;
+    }
+
+    /* ---------- SPILLOVER DIAGRAM ---------- */
+    .spillmap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 24px 0;
+      flex-wrap: wrap;
+    }
+    .node {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      flex: none;
+      position: relative;
+      z-index: 1;
+      transition: all 0.2s ease;
+    }
+    .node:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 4px rgba(62, 197, 255, 0.08);
+    }
+    .node.center {
+      width: 100px;
+      height: 100px;
+      border-color: var(--red);
+      box-shadow: 0 0 0 8px rgba(255, 55, 95, 0.08);
+    }
+    .node.center:hover {
+      box-shadow: 0 0 0 8px rgba(255, 55, 95, 0.15);
+      border-color: var(--red);
+    }
+    .node b {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .node span {
+      font-size: 9.5px;
+      color: var(--ink-faint);
+      letter-spacing: 0.03em;
+      text-align: center;
+      line-height: 1.2;
+      padding: 0 4px;
+    }
+    .spoke {
+      width: 64px;
+      height: 2px;
+      background: var(--line);
+      flex: none;
+      position: relative;
+    }
+    .spoke::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--line);
+      opacity: 0.3;
+    }
+    .spillmap .satellite {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* ---------- TIER LADDER ---------- */
+    .ladder {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .tier {
+      display: grid;
+      grid-template-columns: 160px 1fr 70px;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      transition: all 0.2s ease;
+    }
+    .tier:hover {
+      background: var(--panel-hover);
+      border-color: var(--line-soft);
+      transform: translateX(3px);
+    }
+    .tier .name {
+      font-family: var(--mono);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .tier .desc {
+      font-size: 12.5px;
+      color: var(--ink-dim);
+    }
+    .tier .score {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      text-align: right;
+    }
+    .decay {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .decay div {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      transition: all 0.15s ease;
+    }
+    .decay div:hover {
+      border-color: var(--amber);
+      color: var(--ink);
+    }
+    .decay b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ---------- OUTPUT GRID ---------- */
+    .out-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+    .out {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      transition: all 0.2s ease;
+    }
+    .out:hover {
+      border-color: var(--green);
+      background: var(--panel-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .out .what {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .out .how {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+      word-break: break-all;
+    }
+    .out .desc {
+      font-size: 12px;
+      color: var(--ink-faint);
+      margin-top: 5px;
+    }
+
+    footer {
+      padding: 40px 0 10px;
+      text-align: center;
+      color: var(--ink-faint);
+      font-size: 12px;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      border-top: 1px solid var(--line);
+      margin-top: 20px;
+    }
+    ::selection {
+      background: rgba(62, 197, 255, 0.25);
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 640px) {
+      .wrap {
+        padding: 0 16px 80px;
+      }
+      .hero {
+        padding: 48px 0 32px;
+      }
+      .stage {
+        padding: 36px 0 36px 56px;
+      }
+      .num {
+        width: 40px;
+        height: 40px;
+        font-size: 12px;
+        top: 38px;
+      }
+      .pipeline::before {
+        left: 19px;
+      }
+      .tier {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .tier .score {
+        text-align: left;
+      }
+      .tier .desc {
+        grid-column: 1 / -1;
+      }
+      .lrow {
+        grid-template-columns: 1fr 60px;
+        gap: 10px;
+      }
+      .node {
+        width: 68px;
+        height: 68px;
+      }
+      .node.center {
+        width: 84px;
+        height: 84px;
+      }
+      .spoke {
+        width: 32px;
+      }
+      .cat-grid {
+        grid-template-columns: 1fr;
+      }
+      .out-grid {
+        grid-template-columns: 1fr;
+      }
+      .stacked div {
+        font-size: 8.5px;
+      }
+      .score-visual {
+        gap: 10px;
+      }
+      .score-block {
+        min-width: 80px;
+        padding: 12px 14px;
+      }
+      .score-block .big {
+        font-size: 22px;
+      }
+    }
+    @media (max-width: 400px) {
+      .stage {
+        padding-left: 48px;
+      }
+      .num {
+        width: 36px;
+        height: 36px;
+        font-size: 11px;
+        top: 36px;
+      }
+      .pipeline::before {
+        left: 17px;
+      }
+      .spillmap {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .spoke {
+        width: 2px;
+        height: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- HERO -->
+    <div class="hero">
+      <span class="eyebrow">Plain-English Explainer</span>
+      <h1>How <em>one crisis score</em><br>gets built from 40 live feeds</h1>
+      <p class="lede">
+        This page walks through how the Top-Story API turns raw information from
+        <strong>40+ sources</strong> into a single <strong>1–99 score</strong> for
+        <strong>179 countries</strong>, refreshed every five minutes.
+      </p>
+      <div class="analogy">
+        <strong>Think of it like a hospital triage system.</strong>
+        Ambulances bring in patients (data feeds). Nurses assess each one
+        (evidence rules). Doctors combine that with the patient's medical history
+        (baseline). The final triage score decides who gets seen first — but it
+        never replaces the full medical chart.
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="pipeline">
+
+      <!-- 01 INTAKE -->
+      <div class="stage">
+        <div class="num">01</div>
+        <span class="tag">Collect</span>
+        <h2>40+ sources send in their reports</h2>
+        <p>
+          Imagine 40+ different newsrooms, each watching a different type of event.
+          They all send updates to the same inbox. If one source is late or fails,
+          the others still get through — nothing waits for a single slow reporter.
+        </p>
+        <div class="cat-grid">
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--red)"></i>Earthquakes</h3>
+            <div class="plain">
+              <em>USGS, EMSC, JMA, BMKG, GEOFON, INGV, GeoNet</em><br>
+              These agencies detect and report earthquakes worldwide.
+            </div>
+          </div>
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--cyan)"></i>Weather &amp; climate</h3>
+            <div class="plain">
+              <em>Open-Meteo, NOAA, SPC, NASA POWER</em><br>
+              Heat waves, floods, storms, and long-term climate patterns.
+            </div>
+          </div>
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--purple)"></i>Health</h3>
+            <div class="plain">
+              <em>WHO, ECDC, CDC, disease.sh</em><br>
+              Outbreaks, epidemics, and public-health emergencies.
+            </div>
+          </div>
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--amber)"></i>Displacement</h3>
+            <div class="plain">
+              <em>UNHCR</em><br>
+              Refugee populations, asylum seekers, and displacement crises.
+            </div>
+          </div>
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--green)"></i>Economic</h3>
+            <div class="plain">
+              <em>World Bank</em><br>
+              Poverty rates, inflation, trade, food and water access.
+            </div>
+          </div>
+          <div class="cat">
+            <h3><i class="dot" style="background:var(--orange)"></i>Disasters &amp; satellites</h3>
+            <div class="plain">
+              <em>GDACS, IFRC, NASA EONET, Sentinel-2, GFW, ReliefWeb, EM-DAT</em><br>
+              Wildfires, floods, satellite imagery, and disaster alerts.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 02 EVIDENCE -->
+      <div class="stage">
+        <div class="num">02</div>
+        <span class="tag">Weigh</span>
+        <h2>Each report gets a trust score</h2>
+        <p>
+          54 rules turn incoming reports into points. Each rule knows how much to
+          trust its source — a confirmed WHO outbreak counts far more than a single
+          stale wildfire ping.
+        </p>
+        <div class="simple-box">
+          <div class="label">How it works in plain terms</div>
+          <div class="row">
+            <span class="icon">✅</span>
+            <span class="text"><b>Trustworthy source + strong signal</b> → high points</span>
+          </div>
+          <div class="row">
+            <span class="icon">⚠️</span>
+            <span class="text"><b>Weak source + weak signal</b> → few points</span>
+          </div>
+          <div class="row">
+            <span class="icon">📊</span>
+            <span class="text"><b>More sources agree</b> → higher confidence in the score</span>
+          </div>
+        </div>
+        <div class="ledger">
+          <div class="lrow">
+            <div class="label"><b>USGS</b> — M6.2 earthquake</div>
+            <div class="bar"><i style="width:82%; background:var(--red)"></i></div>
+          </div>
+          <div class="lrow">
+            <div class="label"><b>UNHCR</b> — 1.2M refugees</div>
+            <div class="bar"><i style="width:71%; background:var(--amber)"></i></div>
+          </div>
+          <div class="lrow">
+            <div class="label"><b>WHO DON</b> — outbreak notice</div>
+            <div class="bar"><i style="width:90%; background:var(--purple)"></i></div>
+          </div>
+          <div class="lrow">
+            <div class="label"><b>World Bank</b> — 62% poverty rate</div>
+            <div class="bar"><i style="width:48%; background:var(--green)"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 03 BASELINE -->
+      <div class="stage">
+        <div class="num">03</div>
+        <span class="tag">Background</span>
+        <h2>Every country has a long-term health record</h2>
+        <p>
+          Even before any live report arrives, each country already has a baseline
+          score built from its history: how fragile its government is, how often it
+          faces disasters, and its typical risk profile across 8 areas.
+        </p>
+        <div class="simple-box">
+          <div class="label">The 8 dimensions (like a patient's medical history)</div>
+          <div class="stacked">
+            <div style="width:28%; background:var(--red)">Conflict 28%</div>
+            <div style="width:22%; background:var(--purple)">Disp. 22%</div>
+            <div style="width:18%; background:var(--amber)">Food 18%</div>
+            <div style="width:14%; background:var(--magenta)">Health 14%</div>
+            <div style="width:10%; background:var(--orange)">Econ 10%</div>
+            <div style="width:8%; background:var(--cyan)">Other 8%</div>
+          </div>
+          <div class="dim-legend">
+            <span><i style="background:var(--red)"></i>Conflict</span>
+            <span><i style="background:var(--purple)"></i>Displacement</span>
+            <span><i style="background:var(--amber)"></i>Food security</span>
+            <span><i style="background:var(--magenta)"></i>Health</span>
+            <span><i style="background:var(--orange)"></i>Economic</span>
+            <span><i style="background:var(--cyan)"></i>Climate + access + political</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04 BLEND -->
+      <div class="stage">
+        <div class="num">04</div>
+        <span class="tag">Combine</span>
+        <h2>Live evidence and long-term risk are blended together</h2>
+        <p>
+          The stronger the live evidence, the less the long-term baseline matters.
+          And there's a safety cap: above 70, the curve flattens so one dramatic
+          report can't push a score straight to 99.
+        </p>
+        <div class="simple-box">
+          <div class="label">The blend in one picture</div>
+          <div class="score-visual">
+            <div class="score-block">
+              <div class="big" style="color:var(--purple)">70</div>
+              <div class="small">baseline risk</div>
+            </div>
+            <div class="score-arrow">+</div>
+            <div class="score-block">
+              <div class="big" style="color:var(--red)">25</div>
+              <div class="small">live evidence</div>
+            </div>
+            <div class="score-arrow">→</div>
+            <div class="score-block">
+              <div class="big" style="color:var(--amber)">85</div>
+              <div class="small">blended score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 05 SPILLOVER -->
+      <div class="stage">
+        <div class="num">05</div>
+        <span class="tag">Neighbors</span>
+        <h2>Crises leak across borders — but gently</h2>
+        <p>
+          If a neighboring country is in crisis, it nudges your score up a little.
+          But the effect is capped and dampened — especially for countries already
+          scoring high — so spillover never dominates the final number.
+        </p>
+        <div class="spillmap">
+          <div class="satellite">
+            <div class="node"><b>62</b><span>neighbor</span></div>
+          </div>
+          <div class="spoke"></div>
+          <div class="node center"><b>+8.4</b><span>spillover</span></div>
+          <div class="spoke"></div>
+          <div class="satellite">
+            <div class="node"><b>71</b><span>neighbor</span></div>
+          </div>
+        </div>
+        <div class="simple-box">
+          <div class="label">In plain terms</div>
+          <div class="row">
+            <span class="icon">🧲</span>
+            <span class="text">Neighbors pull each other's scores <b>up a little</b>, not a lot.</span>
+          </div>
+          <div class="row">
+            <span class="icon">🛑</span>
+            <span class="text">The pull is <b>capped at +20 points</b> and dampened further for high-scoring countries.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 06 LIVE OVERLAY -->
+      <div class="stage">
+        <div class="num">06</div>
+        <span class="tag">Urgency</span>
+        <h2>A separate layer decides how urgent the headline is</h2>
+        <p>
+          This layer doesn't change the score itself — it only decides how loud the
+          alert should be right now. Fresh signals count more; older ones fade away.
+        </p>
+        <div class="decay">
+          <div>≤6h <b>100%</b></div>
+          <div>≤24h <b>85%</b></div>
+          <div>≤72h <b>60%</b></div>
+          <div>≤168h <b>30%</b></div>
+          <div>older <b>10%</b></div>
+        </div>
+        <div class="ladder" style="margin-top:16px">
+          <div class="tier">
+            <span class="name"><i class="dot" style="background:var(--red)"></i>BREAKING</span>
+            <span class="desc">Fresh signal, score ≥ 70 — top of the feed</span>
+            <span class="score">≥70</span>
+          </div>
+          <div class="tier">
+            <span class="name"><i class="dot" style="background:var(--orange)"></i>DEVELOPING</span>
+            <span class="desc">Growing signal cluster, still building</span>
+            <span class="score">50–69</span>
+          </div>
+          <div class="tier">
+            <span class="name"><i class="dot" style="background:var(--amber)"></i>ACTIVE</span>
+            <span class="desc">Confirmed, ongoing crisis activity</span>
+            <span class="score">30–49</span>
+          </div>
+          <div class="tier">
+            <span class="name"><i class="dot" style="background:var(--green)"></i>MONITORING</span>
+            <span class="desc">Weak or aging signals worth watching</span>
+            <span class="score">15–29</span>
+          </div>
+          <div class="tier">
+            <span class="name"><i class="dot" style="background:var(--ink-faint)"></i>BACKGROUND</span>
+            <span class="desc">No fresh signal right now</span>
+            <span class="score">&lt;15</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 07 RANK -->
+      <div class="stage">
+        <div class="num">07</div>
+        <span class="tag">Sort</span>
+        <h2>A hidden "effective" score decides the order</h2>
+        <p>
+          For ranking purposes only — never shown as the real score — the system
+          adjusts for population size and gives credit when refugee situations
+          resolve. Then it sorts by urgency first, size second.
+        </p>
+        <div class="simple-box">
+          <div class="label">Think of it like a leaderboard tiebreaker</div>
+          <div class="row">
+            <span class="icon">👥</span>
+            <span class="text"><b>Bigger population</b> → the crisis affects more people, so it ranks slightly higher.</span>
+          </div>
+          <div class="row">
+            <span class="icon">🕊️</span>
+            <span class="text"><b>Resolved refugee situations</b> → a small credit that lowers the ranking pressure.</span>
+          </div>
+          <div class="row">
+            <span class="icon">📋</span>
+            <span class="text"><b>The displayed score never changes</b> — only the sort order does.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 08 OUTPUT -->
+      <div class="stage">
+        <div class="num">08</div>
+        <span class="tag">Deliver</span>
+        <h2>One dataset, many ways to read it</h2>
+        <p>
+          Every response format — a single country, a comparison, a whole region,
+          or a feed for other websites — is just a different view over the exact
+          same computed data.
+        </p>
+        <div class="out-grid">
+          <div class="out">
+            <div class="what">One country</div>
+            <div class="how">?iso=SOM</div>
+            <div class="desc">Full detail for a single country</div>
+          </div>
+          <div class="out">
+            <div class="what">Compare two</div>
+            <div class="how">?iso=SOM,YEM</div>
+            <div class="desc">Side-by-side comparison</div>
+          </div>
+          <div class="out">
+            <div class="what">Whole region</div>
+            <div class="how">?region=africa</div>
+            <div class="desc">All countries in a region</div>
+          </div>
+          <div class="out">
+            <div class="what">Top N</div>
+            <div class="how">?top=10</div>
+            <div class="desc">Highest-ranked countries</div>
+          </div>
+          <div class="out">
+            <div class="what">Live feed</div>
+            <div class="how">?format=live</div>
+            <div class="desc">Fresh live-event stream</div>
+          </div>
+          <div class="out">
+            <div class="what">Breaking only</div>
+            <div class="how">?format=breaking</div>
+            <div class="desc">Anything with an active signal</div>
+          </div>
+          <div class="out">
+            <div class="what">RSS feed</div>
+            <div class="how">?format=rss</div>
+            <div class="desc">Syndicated news feed</div>
+          </div>
+          <div class="out">
+            <div class="what">Sitemap</div>
+            <div class="how">?format=sitemap</div>
+            <div class="desc">XML sitemap for search engines</div>
+          </div>
+          <div class="out">
+            <div class="what">Embeddable card</div>
+            <div class="how">?widget=true</div>
+            <div class="desc">HTML widget for other sites</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>TOP-STORY ENGINE — PLAIN-ENGLISH SYSTEM SCHEMATIC</footer>
+  </div>
+</body>
+</html>
