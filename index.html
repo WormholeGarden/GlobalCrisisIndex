@@ -4650,6 +4650,21 @@ function paintMap(){
   mapGroup.selectAll('.pulse-marker').remove();
   if(!ranked||!store)return;
   const hotspots=ranked.filter(iso=>store[iso]?.score>=60).slice(0,18);
+
+  // Icons considered "conflict/sword" — skipped in favor of a more descriptive icon when possible
+  const SWORD_ICONS=new Set(['⚔️']);
+
+  function pickMarkerIcon(c){
+    if(!c.types||!c.types.length)return null;
+    // Prefer the first crisis type whose icon isn't a sword/conflict icon
+    for(const t of c.types){
+      const icon=ARC[t]?.i;
+      if(icon&&!SWORD_ICONS.has(icon))return icon;
+    }
+    // Fall back to the first type's icon (even if it's a sword) if that's all there is
+    return ARC[c.types[0]]?.i||null;
+  }
+
   hotspots.forEach((iso,idx)=>{
     const c=store[iso];if(!c)return;
     const col=sc(c.score);
@@ -4659,11 +4674,30 @@ function paintMap(){
     const g=mapGroup.append('g').attr('class','pulse-marker');
     const dur=2.4+(idx%6)*0.3;
     const dotR=c.score>=80?4:c.score>=70?3:2.5;
+    const iconSize=c.score>=80?15:c.score>=70?13:11;
+
+    // Pulse rings (unchanged)
     for(let ring=0;ring<2;ring++){
       g.append('circle').attr('cx',px).attr('cy',py).attr('r',7+ring*5).attr('fill','none').attr('stroke',col).attr('stroke-width',0.65).attr('opacity',0)
         .append('animate').attr('attributeName','opacity').attr('values','0;0.5;0').attr('dur',`${dur+ring*0.35}s`).attr('begin',`${ring*0.55+idx*0.08}s`).attr('repeatCount','indefinite');
     }
-    g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);
+
+    const icon=pickMarkerIcon(c);
+
+    if(icon){
+      // Soft backing disc so the emoji stays legible over the map
+      g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR+3).attr('fill','#030b18').attr('stroke',col).attr('stroke-width',0.75).attr('opacity',0.85);
+      g.append('text')
+        .attr('x',px).attr('y',py)
+        .attr('text-anchor','middle')
+        .attr('dominant-baseline','central')
+        .attr('font-size',iconSize)
+        .attr('style','pointer-events:none;')
+        .text(icon);
+    }else{
+      // Fallback: no crisis type/icon available, keep the plain dot
+      g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);
+    }
   });
 }
 
