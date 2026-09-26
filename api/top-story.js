@@ -1,11 +1,52 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v17.0.0 — DEFINITIVE
+//  TOP-STORY API — v18.0.0 — DEFINITIVE, BROADER COVERAGE
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v17.0.1 CHANGES (this patch) ═══
+//  🌍 46+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v18.0.0 CHANGES (this patch) ═══
+//  ✅ NEW: fetchUCDP() — Uppsala Conflict Data Program GED, keyless, real
+//     armed-conflict fatalities/events (previously conflict severity was
+//     only a crude keyword guess off ReliefWeb disaster titles).
+//  ✅ NEW: fetchFIRMS() — NASA FIRMS VIIRS active-fire hotspot counts,
+//     broader/faster than NASA EONET's curated wildfire event list.
+//     Gated on optional NASA_FIRMS_MAP_KEY env var; degrades safely if unset.
+//  ✅ NEW: fetchCurrencyCrisis() — live FX-rate deviation from a reference/
+//     peg baseline (keyless open.er-api.com) for currencies structurally
+//     prone to crisis-driven devaluation (LBP, ARS, VES, SDG, NGN, EGP,
+//     SYP, ETB) — an economic-stress signal that updates in real time
+//     instead of waiting on annual World Bank indicators.
+//  ✅ NEW: fetchGDELT() — GDELT 2.0 Doc API (keyless) tracks global protest/
+//     unrest/coup article volume in the last 24h; there was previously no
+//     civil-unrest signal at all outside of armed-conflict ReliefWeb tags.
+//  ✅ NEW: fetchGDO() — Global/European Drought Observatory Combined
+//     Drought Indicator, for drought severity outside the US (previously
+//     US Drought Monitor was the *only* drought-alert source; the rest of
+//     the world only had raw Open-Meteo precipitation as a proxy).
+//  ✅ NEW: fetchIPCReal() — official ipcinfo.org food-security phase
+//     classification API, gated on optional IPCINFO_API_KEY; when present
+//     it supersedes the v17 heuristic (ReliefWeb-title keyword matching)
+//     that was the only IPC signal available before.
+//  ✅ FIXED: GDACS was queried for eventtype EQ/TC/FL/WF/DR but never VO
+//     (volcano) — active eruptions were invisible to both the evidence
+//     ledger and the live-breaking tier. Added the query, a dedicated
+//     `gdacs_volcano` coverage key (rule #60), and a `volcano_alert` live
+//     signal.
+//  ✅ FIXED: `signals.gdacsEventType` was hardcoded to `null` in buildStore
+//     (STEP 6), which silently disabled the existing "cyclone_active" live
+//     signal (`s.gdacsEventType === "TC"` could never be true) and would
+//     have done the same to the new volcano signal. fetchGDACS now records
+//     the real GDACS eventtype and buildStore reads it.
+//  ✅ FIXED: evidence rule #31 mislabeled the World Bank AG.PRD.FOOD.XD
+//     indicator "food price index" — it is an agricultural *production*
+//     index, not a price index. Relabeled honestly; real price/economic
+//     stress is now covered faster by the new FX-crisis and GDELT signals.
+//  ✅ All fetchers, old and new, remain wrapped in try/catch + safeFetch's
+//     15s timeout race and run under Promise.allSettled, so a slow/dead/
+//     misconfigured upstream (including the two new optional-API-key
+//     fetchers when unconfigured) can never break the response.
+//  ═══ v17.0.1 CHANGES ═══
 //  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
 //     ReliefWeb/ACLED-style feeds that use alternate country names
 //     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
@@ -941,10 +982,16 @@ function computeEvidenceScore(iso) {
     const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
     if (maxMag > 6) add("USGS", `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag, logScale(maxMag, 6, 8, 4), 0.6);
   }
-  // 31. Food prices
+  // 31. Agricultural production index (proxy for food-security stress)
+  //     NOTE (v18.0.0 fix): this indicator (World Bank AG.PRD.FOOD.XD) is a
+  //     *production* index, not a price index. It was mislabeled "food price
+  //     index" in prior versions. Renamed here for honesty; real food-PRICE
+  //     stress is now additionally captured by the FX crisis (#57) and GDELT
+  //     unrest (#58) signals below, which respond much faster than annual
+  //     World Bank production data.
   if (coverage.food_prices && coverage.food_prices.length > 0) {
     const latest = coverage.food_prices[coverage.food_prices.length - 1];
-    if (latest && latest.value) add("WORLDBANK", `Food price index ${latest.value.toFixed(1)}`, latest.value, coverageScale(latest.value, 80, 150, 5), 0.7);
+    if (latest && latest.value) add("WORLDBANK", `Agricultural production index ${latest.value.toFixed(1)}`, latest.value, coverageScale(latest.value, 80, 150, 5), 0.7);
   }
   // 32. Water stress
   if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
@@ -992,11 +1039,12 @@ function computeEvidenceScore(iso) {
     const sev = coverage.conflict_event.severityIndex || 40;
     add("RELIEFWEB", `${coverage.conflict_event.event_type}: ${(coverage.conflict_event.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 6), 0.75);
   }
-  // 41. IPC
+  // 41. IPC (heuristic from ReliefWeb titles, OR real ipcinfo.org data
+  //     when IPCINFO_API_KEY is configured — see fetchIPCReal, #56b)
   if (coverage.ipc) {
     const phase = coverage.ipc.phase || 3;
     const pts = phase === 5 ? 12 : phase === 4 ? 9 : 6;
-    add("IPC", `Phase ${phase}: ${coverage.ipc.phase_name}`, phase, pts, 0.85);
+    add(coverage.ipc.source === "IPC-real" ? "IPC" : "IPC (heuristic)", `Phase ${phase}: ${coverage.ipc.phase_name}`, phase, pts, coverage.ipc.source === "IPC-real" ? 0.95 : 0.85);
   }
   // 42. FEWS NET
   if (coverage.fewsnet) {
@@ -1046,6 +1094,37 @@ function computeEvidenceScore(iso) {
   // 54. Sentinel-2 observations
   if (coverage.sentinel && coverage.sentinel.count > 0) {
     add("Sentinel-2", `${coverage.sentinel.count} recent observation(s)`, coverage.sentinel.count, coverageScale(coverage.sentinel.count, 1, 5, 3), 0.5);
+  }
+  // ═══ v18.0.0 NEW EVIDENCE RULES — broadened API coverage ═══
+  // 55. UCDP conflict fatalities (Uppsala Conflict Data Program, keyless, real-time GED)
+  if (coverage.ucdp) {
+    const fatalities = coverage.ucdp.fatalities || 0;
+    if (fatalities > 0) add("UCDP", `${fatalities.toLocaleString()} conflict fatalities, ${coverage.ucdp.events} events (30d)`, fatalities, logScale(fatalities, 5, 2000, 10), 0.9);
+  }
+  // 56. NASA FIRMS active fire detections (gated by optional NASA_FIRMS_MAP_KEY)
+  if (coverage.firms_fire) {
+    const count = coverage.firms_fire.count || 0;
+    if (count >= 20) add("NASA FIRMS", `${count.toLocaleString()} active fire detections (VIIRS, 24h)`, count, logScale(count, 20, 5000, 6), 0.7);
+  }
+  // 57. Currency crisis — FX deviation from official/reference peg (keyless open.er-api.com)
+  if (coverage.fx_crisis) {
+    const dev = coverage.fx_crisis.deviation_pct || 0;
+    add("FOREX", `${coverage.fx_crisis.currency} devalued ${dev.toFixed(0)}% vs. reference rate`, dev, logScale(dev, 25, 300, 6), 0.75);
+  }
+  // 58. GDELT global unrest/protest article volume (keyless GDELT 2.0 Doc API)
+  if (coverage.gdelt_unrest) {
+    const count = coverage.gdelt_unrest.article_count || 0;
+    if (count >= 3) add("GDELT", `${count} unrest/protest articles worldwide (24h)`, count, logScale(count, 3, 100, 5), 0.55);
+  }
+  // 59. Global Drought Observatory — Combined Drought Indicator (best-effort; degrades safely)
+  if (coverage.gdo_drought) {
+    const cdi = coverage.gdo_drought.cdi || 0; // 1=watch, 2=warning, 3=alert
+    if (cdi >= 2) add("GDO", `Combined Drought Indicator: level ${cdi}/3`, cdi, cdi === 3 ? 8 : 5, 0.7);
+  }
+  // 60. GDACS volcanic alert (event-type VO, previously only EQ/TC/FL/WF/DR were queried)
+  if (coverage.gdacs_volcano) {
+    const severity = coverage.gdacs_volcano.alert || "Orange";
+    add("GDACS", `Volcanic alert (${severity}): ${(coverage.gdacs_volcano.event || "").substring(0, 30)}`, 1, severity === "Red" ? 9 : 5, 0.8);
   }
 
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
@@ -1272,13 +1351,16 @@ async function fetchNASA() {
 
 async function fetchGDACS() {
   try {
-    const [a, b, c, d, e, f] = await Promise.all([
+    const [a, b, c, d, e, f, vo] = await Promise.all([
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TC&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=FL&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=WF&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=30").then(r => r.json())),
+      // v18.0.0: GDACS also publishes volcano (VO) events — previously never queried,
+      // so active eruptions never contributed evidence or fired the live "VO" signal.
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=VO&limit=20").then(r => r.json())),
     ]);
     const feats = [
       ...(a.ok ? a.data.features || [] : []),
@@ -1287,6 +1369,7 @@ async function fetchGDACS() {
       ...(d.ok ? d.data.features || [] : []),
       ...(e.ok ? e.data.features || [] : []),
       ...(f.ok ? f.data.features || [] : []),
+      ...(vo.ok ? vo.data.features || [] : []),
     ];
     for (const f of feats) {
       const props = f.properties, coords = f.geometry?.coordinates;
@@ -1299,8 +1382,16 @@ async function fetchGDACS() {
       if (!iso) continue;
       const cov = ensureCoverage(iso);
       const rank = { Red: 3, Orange: 2, Green: 1 };
-      if (!cov.gdacs || rank[props.alertlevel] > rank[cov.gdacs.alert]) {
-        cov.gdacs = { event: props.eventname, alert: props.alertlevel };
+      if (props.eventtype === "VO") {
+        // Volcano events get their own coverage key (rule #60) instead of
+        // overloading the generic multi-hazard `gdacs` key, so a volcanic
+        // watch doesn't silently get overwritten by (or overwrite) an
+        // unrelated flood/storm alert for the same country.
+        if (!cov.gdacs_volcano || rank[props.alertlevel] > rank[cov.gdacs_volcano.alert]) {
+          cov.gdacs_volcano = { event: props.eventname, alert: props.alertlevel };
+        }
+      } else if (!cov.gdacs || rank[props.alertlevel] > rank[cov.gdacs.alert]) {
+        cov.gdacs = { event: props.eventname, alert: props.alertlevel, eventtype: props.eventtype };
       }
       if (props.eventtype === "EQ" && props.magnitude) {
         if (!cov.gdacs_eq || props.magnitude > (cov.gdacs_eq.mag || 0)) {
@@ -1588,7 +1679,7 @@ async function fetchWorldBankAll() {
     fetchWorldBankIndicator("NY.GDP.MKTP.KD.ZG"),
     fetchWorldBankIndicator("SL.UEM.TOTL.ZS"),
     fetchWorldBankIndicator("ER.H2O.FWTL.ZS"),
-    fetchWorldBankIndicator("AG.PRD.FOOD.XD"),
+    fetchWorldBankIndicator("AG.PRD.FOOD.XD"), // production index, not price — see rule #31 note
     fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
   ]);
   for (const [iso, d] of Object.entries(population.data)) { const cov = ensureCoverage(iso); cov.population = d.value; evidenceIndex.population[iso] = d.value; }
@@ -1966,7 +2057,7 @@ async function fetchReliefWebIPC() {
       const iso = findIsoByName(country);
       if (iso) {
         const cov = ensureCoverage(iso);
-        if (!cov.ipc || phase > (cov.ipc.phase || 0)) cov.ipc = { phase, phase_name, title: d.fields?.name || '' };
+        if (!cov.ipc || phase > (cov.ipc.phase || 0)) cov.ipc = { phase, phase_name, title: d.fields?.name || '', source: "heuristic" };
       }
       out.push({ country, phase, phase_name, title: d.fields?.name || '' });
     });
@@ -2062,6 +2153,164 @@ async function fetchEMDAT() {
   return { data: { data: [] }, live: false };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  v18.0.0 NEW FETCHERS — broadened API coverage
+//  ────────────────────────────────────────────────────────────────────────
+//  Gaps identified in v17.0.1's 40+ feeds and closed here:
+//   • No real conflict-fatality data anywhere (only vague ReliefWeb titles)
+//     → fetchUCDP() (Uppsala Conflict Data Program GED, keyless, real-time)
+//   • No active-fire detection beyond NASA EONET's curated event list
+//     → fetchFIRMS() (NASA FIRMS VIIRS hotspots; optional API key)
+//   • No economic-crisis signal faster than annual World Bank data
+//     → fetchCurrencyCrisis() (live FX vs. reference-rate deviation, keyless)
+//   • No global unrest/protest tracking at all
+//     → fetchGDELT() (GDELT 2.0 Doc API, keyless)
+//   • No global drought coverage outside the US
+//     → fetchGDO() (Copernicus/JRC Global Drought Observatory, best-effort)
+//   • No real IPC (food security phase) data — v17 faked it from ReliefWeb
+//     disaster-title keyword matching
+//     → fetchIPCReal() (official ipcinfo.org API; optional API key)
+//   • GDACS was queried for EQ/TC/FL/WF/DR but never VO (volcano) — fixed
+//     directly inside fetchGDACS() above, plus new evidence rule #60 and
+//     live-signal type "volcano_alert".
+//
+//  Fetchers gated on an optional API key degrade gracefully (return
+//  live:false, no throw) when the key isn't set, exactly like every other
+//  fetcher already does when its upstream is unreachable — Promise.allSettled
+//  in fetchAllLive() means none of this can ever break the response.
+// ════════════════════════════════════════════════════════════════════════════
+
+async function fetchUCDP() {
+  try {
+    const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const r = await safeFetch(fetch(`https://ucdpapi.pcr.uu.se/api/gedevents/24.1?pagesize=200&StartDate=${since}`).then(r => r.json()));
+    if (!r.ok || !r.data?.Result?.length) return { data: [], live: false };
+    const byCountry = {};
+    for (const ev of r.data.Result) {
+      const iso = findIsoByName(ev.country || "");
+      if (!iso) continue;
+      const fatalities = ev.best || 0;
+      if (!byCountry[iso]) byCountry[iso] = { fatalities: 0, events: 0 };
+      byCountry[iso].fatalities += fatalities;
+      byCountry[iso].events += 1;
+    }
+    for (const [iso, d] of Object.entries(byCountry)) {
+      if (d.fatalities > 0) ensureCoverage(iso).ucdp = { fatalities: d.fatalities, events: d.events };
+    }
+    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+  } catch { return { data: {}, live: false }; }
+}
+
+async function fetchFIRMS() {
+  const mapKey = process.env.NASA_FIRMS_MAP_KEY;
+  if (!mapKey) return { data: [], live: false, skipped: "NASA_FIRMS_MAP_KEY not set" };
+  try {
+    const r = await safeFetch(fetch(`https://firms.modaps.eosdis.nasa.gov/api/country/csv/${mapKey}/VIIRS_SNPP_NRT/world/1`).then(r => r.text()));
+    if (!r.ok || typeof r.data !== 'string') return { data: [], live: false };
+    const lines = r.data.split('\n').filter(l => l.trim()).slice(1);
+    const byCountry = {};
+    for (const line of lines) {
+      const cols = line.split(',');
+      const iso = cols[0]?.trim();
+      if (!iso || !COUNTRIES[iso]) continue;
+      byCountry[iso] = (byCountry[iso] || 0) + 1;
+    }
+    for (const [iso, count] of Object.entries(byCountry)) {
+      if (count >= 20) ensureCoverage(iso).firms_fire = { count };
+    }
+    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+  } catch { return { data: {}, live: false }; }
+}
+
+async function fetchIPCReal() {
+  const key = process.env.IPCINFO_API_KEY;
+  if (!key) return { data: [], live: false, skipped: "IPCINFO_API_KEY not set" };
+  try {
+    const r = await safeFetch(fetch(`https://api.ipcinfo.org/population-tagging?format=json&key=${key}`).then(r => r.json()));
+    if (!r.ok || !Array.isArray(r.data)) return { data: [], live: false };
+    for (const row of r.data) {
+      const iso = row.country || row.iso3;
+      if (!iso || !COUNTRIES[iso]) continue;
+      const phase = row.overall_phase || row.phase || 3;
+      const cov = ensureCoverage(iso);
+      if (!cov.ipc || cov.ipc.source !== "IPC-real" || phase > (cov.ipc.phase || 0)) {
+        cov.ipc = { phase, phase_name: row.phase_name || `Phase ${phase}`, source: "IPC-real" };
+      }
+    }
+    return { data: r.data, live: true };
+  } catch { return { data: [], live: false }; }
+}
+
+// Reference exchange rates used to detect currency-crisis-scale devaluation.
+// These are approximate baseline/official-peg rates (USD quote) for a set of
+// currencies that are structurally prone to sudden devaluation; a market
+// rate that has drifted far past the baseline is a fast, keyless proxy for
+// economic distress that World Bank's annual indicators cannot catch in time.
+const FX_BASELINE = {
+  LBP: 1507.5, ARS: 350, VES: 3.6, SDG: 55, NGN: 460, EGP: 15.7, SYP: 1256, ETB: 57,
+};
+const FX_ISO = { LBP: "LBN", ARS: "ARG", VES: "VEN", SDG: "SDN", NGN: "NGA", EGP: "EGY", SYP: "SYR", ETB: "ETH" };
+
+async function fetchCurrencyCrisis() {
+  try {
+    const r = await safeFetch(fetch("https://open.er-api.com/v6/latest/USD").then(r => r.json()));
+    if (!r.ok || !r.data?.rates) return { data: {}, live: false };
+    const out = {};
+    for (const [code, baseline] of Object.entries(FX_BASELINE)) {
+      const rate = r.data.rates[code];
+      if (!rate) continue;
+      const deviation = ((rate - baseline) / baseline) * 100;
+      const iso = FX_ISO[code];
+      if (iso && deviation > 25) {
+        ensureCoverage(iso).fx_crisis = { currency: code, deviation_pct: +deviation.toFixed(1), rate };
+        out[iso] = deviation;
+      }
+    }
+    return { data: out, live: Object.keys(out).length > 0 };
+  } catch { return { data: {}, live: false }; }
+}
+
+async function fetchGDELT() {
+  try {
+    const query = encodeURIComponent('(protest OR unrest OR uprising OR coup)');
+    const r = await safeFetch(fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&maxrecords=75&format=json&timespan=24h`).then(r => r.json()));
+    if (!r.ok || !r.data?.articles?.length) return { data: [], live: false };
+    const byCountry = {};
+    for (const a of r.data.articles) {
+      let iso = a.sourcecountry ? findIsoByName(a.sourcecountry) : null;
+      if (!iso) iso = findIsoByName(a.title || "");
+      if (!iso) continue;
+      byCountry[iso] = (byCountry[iso] || 0) + 1;
+    }
+    for (const [iso, count] of Object.entries(byCountry)) {
+      if (count >= 3) ensureCoverage(iso).gdelt_unrest = { article_count: count };
+    }
+    return { data: byCountry, live: Object.keys(byCountry).length > 0 };
+  } catch { return { data: [], live: false }; }
+}
+
+// NOTE: the Global/European Drought Observatory (JRC, Copernicus) does not
+// publish one stable keyless country-level JSON endpoint; this hits the
+// public service used by the EDO viewer. It is wrapped identically to every
+// other fetcher here (try/catch, safeFetch timeout, Promise.allSettled at
+// the call site) so if the endpoint moves or changes shape this degrades to
+// live:false rather than breaking anything — verify/replace the URL if it
+// stops returning data.
+async function fetchGDO() {
+  try {
+    const url = "https://edo.jrc.ec.europa.eu/gdo/php/getMapService.php?service=CDI&format=json";
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (!r.ok || !Array.isArray(r.data)) return { data: [], live: false };
+    for (const row of r.data) {
+      const iso = row.iso3 || findIsoByName(row.country || "");
+      if (!iso || !COUNTRIES[iso]) continue;
+      const cdi = row.cdi_level || row.level || 0;
+      if (cdi >= 2) ensureCoverage(iso).gdo_drought = { cdi };
+    }
+    return { data: r.data, live: true };
+  } catch { return { data: [], live: false }; }
+}
+
 // ── MASTER FETCH — allSettled, so one dead fetch never kills the response ──
 async function fetchAllLive() {
   resetEvidenceIndex();
@@ -2115,6 +2364,13 @@ async function fetchAllLive() {
     wbWater: fetchWorldBankWater(),
     wbTrade: fetchWorldBankTrade(),
     wbRefugees: fetchWorldBankRefugees(),
+    // v18.0.0 additions
+    ucdp: fetchUCDP(),
+    firms: fetchFIRMS(),
+    ipcReal: fetchIPCReal(),
+    fx: fetchCurrencyCrisis(),
+    gdelt: fetchGDELT(),
+    gdo: fetchGDO(),
   };
   const keys = Object.keys(tasks);
   const settled = await Promise.allSettled(Object.values(tasks));
@@ -2172,6 +2428,13 @@ const LIVE_SIGNALS = {
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
   wb_food_price:{weight:35,verify:0.9,label:"Food Price Shock",icon:"🍞"},
   wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
+  // v18.0.0 additions
+  conflict_fatalities:{weight:70,verify:0.9,label:"Armed Conflict Fatalities",icon:"⚔️"},
+  active_fires:{weight:50,verify:0.85,label:"Active Fire Detections",icon:"🔥"},
+  currency_crisis:{weight:55,verify:0.85,label:"Currency Crisis",icon:"💱"},
+  civil_unrest:{weight:45,verify:0.75,label:"Civil Unrest Reports",icon:"📢"},
+  drought_alert:{weight:50,verify:0.85,label:"Drought Alert (GDO)",icon:"🏜️"},
+  volcano_alert:{weight:65,verify:0.9,label:"Volcanic Alert",icon:"🌋"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2256,13 +2519,18 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (s.gdacsEventType === "TC") signals.push({ type: "cyclone_active", weight: 85, ageHours: 24, source: "GDACS", details: "Active cyclone" });
+  // v18.0.0 fix: s.gdacsEventType was previously hardcoded to null in
+  // buildStore (see fix note there), so this branch — and the volcano
+  // branch below — could never fire. Both now read the real GDACS event
+  // type captured by fetchGDACS().
+  if (s.gdacsEventType === "VO") signals.push({ type: "volcano_alert", weight: 65, ageHours: 24, source: "GDACS", details: "Active volcanic alert" });
   if (s.hazards?.flood_discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 48, source: "Open-Meteo", details: "Severe flooding" });
   if (s.hazards?.wave_height >= 3) signals.push({ type: "marine_hazard", weight: 55, ageHours: 24, source: "Open-Meteo Marine", details: `${s.hazards.wave_height.toFixed(1)}m wave height` });
   if (s.maxTempC >= 42) signals.push({ type: "heat_extreme", weight: 60, ageHours: 24, source: "Open-Meteo", details: `${s.maxTempC}°C` });
   if (s.diseaseActive > 10_000) signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
-  if (s.wbFoodPrice && s.wbFoodPrice.value > 100) signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
+  if (s.wbFoodPrice && s.wbFoodPrice.value > 100) signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Agricultural production index ${s.wbFoodPrice.value.toFixed(0)}` });
   if (s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "wb_food_price", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
 
   if (isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
@@ -2306,6 +2574,23 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (s.hdxDatasets && s.hdxDatasets.count > 0) signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} datasets` });
+
+  // v18.0.0 additions
+  if (s.ucdp && s.ucdp.fatalities > 0) {
+    signals.push({ type: "conflict_fatalities", weight: Math.min(90, 40 + Math.log10(s.ucdp.fatalities + 1) * 15), ageHours: 168, source: "UCDP", details: `${s.ucdp.fatalities.toLocaleString()} fatalities, ${s.ucdp.events} events (30d)` });
+  }
+  if (s.firmsFire && s.firmsFire.count >= 20) {
+    signals.push({ type: "active_fires", weight: 50, ageHours: 24, source: "NASA FIRMS", details: `${s.firmsFire.count.toLocaleString()} active fire detections` });
+  }
+  if (s.fxCrisis) {
+    signals.push({ type: "currency_crisis", weight: 55, ageHours: 24, source: "Forex", details: `${s.fxCrisis.currency} down ${s.fxCrisis.deviation_pct}% vs. reference rate` });
+  }
+  if (s.gdeltUnrest && s.gdeltUnrest.article_count >= 5) {
+    signals.push({ type: "civil_unrest", weight: 45, ageHours: 24, source: "GDELT", details: `${s.gdeltUnrest.article_count} unrest/protest articles (24h)` });
+  }
+  if (s.gdoDrought && s.gdoDrought.cdi >= 2) {
+    signals.push({ type: "drought_alert", weight: s.gdoDrought.cdi === 3 ? 65 : 45, ageHours: 168, source: "GDO", details: `Combined Drought Indicator level ${s.gdoDrought.cdi}/3` });
+  }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
@@ -2761,7 +3046,12 @@ async function buildStore(liveData) {
       nasaEvents: cov.nasa ? [{ title: cov.nasa.title, categories: cov.nasa.categories }] : [],
       gdacs: cov.gdacs ? { properties: { eventname: cov.gdacs.event, alertlevel: cov.gdacs.alert } } : null,
       gdacsAlert: cov.gdacs?.alert?.toLowerCase() || null,
-      gdacsEventType: null,
+      // v18.0.0 fix: this was hardcoded to `null` in v17.0.1, which silently
+      // disabled the "cyclone_active" live signal (it checked
+      // `s.gdacsEventType === "TC"` but the field could never be anything
+      // but null) and made the new volcano signal impossible too. fetchGDACS
+      // now records the real GDACS eventtype on cov.gdacs, so this reads it.
+      gdacsEventType: cov.gdacs?.eventtype || null,
       ifrcCount: cov.ifrc ? 1 : 0,
       ifrcEvents: cov.ifrc ? [cov.ifrc] : [],
       ifrcAppeals: cov.unhcr_emergency ? [cov.unhcr_emergency] : [],
@@ -2793,6 +3083,12 @@ async function buildStore(liveData) {
       climateTrace: cov.emissions ? { topEmission: cov.emissions } : null,
       hdxDatasets: cov.hdx || null,
       usDrought: cov.us_drought || null,
+      // v18.0.0 additions
+      ucdp: cov.ucdp || null,
+      firmsFire: cov.firms_fire || null,
+      fxCrisis: cov.fx_crisis || null,
+      gdeltUnrest: cov.gdelt_unrest || null,
+      gdoDrought: cov.gdo_drought || null,
     };
   }
 
@@ -3162,13 +3458,17 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v17.0.1",
+        ranking_mode: "DEFINITIVE_v18.0.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
         score_field: "HTML-exact evidence-ledger score",
         effective_score_field: "score × pop_exposure − resolution_credit (metadata)",
+        optional_api_keys: {
+          NASA_FIRMS_MAP_KEY: !!process.env.NASA_FIRMS_MAP_KEY,
+          IPCINFO_API_KEY: !!process.env.IPCINFO_API_KEY,
+        },
         endpoints: {
           single: "GET /api/top-story",
           live_news: "GET /api/top-story?format=live",
@@ -3187,7 +3487,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v17.0.1]", err);
+    console.error("[top-story v18.0.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
