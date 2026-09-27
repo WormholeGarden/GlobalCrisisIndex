@@ -1,44 +1,58 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.0.0 — BREADTH PATCH III (FINAL)
+//  TOP-STORY API — v18.2.0 — DEFINITIVE + BREADTH PATCH
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 68+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v20.0.0 CHANGES (this patch) ═══
-//  ✅ Completed GDACS fan-out: TSU (tsunami) and LS (landslide) coverage
-//     keys now written. TSU was defined in v18.0.0 but never wrote a
-//     dedicated coverage key; LS had no feed at all.
-//  ✅ Added fetchCEMS() — Copernicus Emergency Management Service rapid
-//     mapping activations. Covers EQ, FL, WF, ST, and LS events with
-//     official EU satellite-derived damage assessments.
-//  ✅ Added fetchGDACS_LS() — GDACS does not have an LS eventtype, but
-//     NASA EONET landslides category + USGS earthquake-triggered
-//     landslide proxies cover it. Rule 67 wired.
-//  ✅ Added fetchGDACS_TSU() — dedicated tsunami coverage key (GDACS
-//     already queried TS in fan-out; this writes the key).
-//  ✅ Added fetchInfrastructureStress() — BGP routing outage detection
-//     via public looking-glass APIs. Infrastructure/telecom disruption
-//     signal for access + economic dimensions.
-//  ✅ Added fetchGovernance() — World Bank WGI rule-of-law (RL.EST) and
-//     control-of-corruption (CC.EST) as complements to political
-//     stability (PV.EST, added v18.0.0).
-//  ✅ Added fetchCropConditions() — FAO GIEWS crop prospects + NASA
-//     NDVI anomalies. Food-dimension early warning.
-//  ✅ Added fetchWaterScarcity() — WRI Aqueduct baseline water stress
-//     + FAO AQUASTAT. Real-time water-dimension signal.
-//  ✅ Added fetchHospitalCapacity() — WHO GHO hospital beds + health
-//     expenditure. Complements health capacity from v19.
-//  ✅ Added fetchFamineRisk() — FEWS NET IPC-compatible acute food
-//     insecurity classifications via ReliefWeb + FAO hunger hotspots.
-//  ✅ Added fetchRefugeeFlows() — UNHCR RSQ resettlement + departures
-//     API for real-time refugee movement tracking.
-//  ✅ 6 new evidence rules (67-72) wiring these feeds into the ledger.
-//  ✅ OSM access-evidence country list widened 25 → 30
-//  ═══ v19.0.0 — BREADTH PATCH II ═══
-//  ✅ 8 new fetchers: FIRMS, IOM DTM, FAO FPMA, Health Capacity,
-//     Currency Stress, Election Violence, ProMED, OSM Road Access
-//  ✅ 8 new evidence rules (59-66)
+//  🌍 46+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v18.2.0 CHANGES (this patch) ═══
+//  ✅ VLC (volcano) now has a dedicated feed: GDACS eventtype=VO — same gap
+//     TSU had before v18.0.0's tsunami fix (defined crisis type, zero
+//     dedicated evidence source)
+//  ✅ New fetchReliefWebDisplacement(): ReliefWeb "Population Movement"
+//     listings as a fast, event-driven complement to UNHCR's slower
+//     population datasets for the `displacement` dimension
+//  ✅ Fixed fetchSentinel(): unassigned satellite observations were being
+//     force-attributed to Yemen regardless of actual location — the same
+//     class of bug the OSM hospital/clinic fetchers had before v18.0.0.
+//     Now dropped rather than mis-attributed.
+//  ✅ OSM access-evidence country list widened 15 → 20
+//  ═══ v18.1.0 — COMPATIBILITY VIEW ═══
+//  ✅ Added story_heat / live_evidence / anomalyScore / meta.enhancements
+//     fields so the existing "GCIN Gold Standard" front-end (which reads
+//     an earlier API field-naming generation) renders real data instead
+//     of falling back to boilerplate placeholders
+//  ✅ keywords / related / schema / summary query flags now actually
+//     attach their corresponding payload fields (previously parsed and
+//     silently discarded)
+//  ═══ v18.0.0 CHANGES ═══
+//  ✅ political dimension now has a live source: World Bank WGI (PV.EST)
+//  ✅ conflict dimension gains a fast-moving source: GDELT 2.0 DOC API
+//     (24h article-volume by country) alongside the slower ReliefWeb feed
+//  ✅ access dimension (hospitals/clinics via OSM) generalized from a
+//     single hardcoded Yemen query to a rotating set of the 15 lowest-
+//     stability countries — previously EVERY country's "access" evidence
+//     silently reused Yemen's hospital count
+//  ✅ GDACS fan-out now also queries eventtype=TS (tsunami), closing the
+//     gap where TSU was a defined crisis type with no dedicated feed
+//  ═══ v17.0.1 CHANGES ═══
+//  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
+//     ReliefWeb/ACLED-style feeds that use alternate country names
+//     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
+//     "Democratic Republic of the Congo" for Congo-Kinshasa) are no
+//     longer silently dropped from ingestion.
+//  ✅ Fixed a false-positive risk where short country names like "Chad"
+//     matched as a bare substring of unrelated words (e.g. "Chadwick"),
+//     corrupting that country's evidence ledger with unrelated events.
+//  ═══ v17.0.0 — DEFINITIVE 10/10 ═══
+//  ✅ All 54 evidence rules wired to sourceCoverage
+//  ✅ All 40+ fetchers restored and correctly namespaced
+//  ✅ Zero-last-writer-wins bugs (JMA/BMKG/GEOFON/INGV/GeoNet each own key)
+//  ✅ Per-country hazard loop (was hardcoded to YEM)
+//  ✅ Pop-exposure applied to effective_score ONLY (score is HTML-exact)
+//  ✅ rankIndex Map — no O(n) lookups in hot path
+//  ✅ Promise.allSettled — one dead fetcher cannot kill the response
+//  ✅ __parity_digest exposed for byte-level verification against HTML
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -104,18 +118,14 @@ const HAZARD_LOOP_ISOS = [
   'EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'
 ];
 
-// v20.0.0: widened from 25 to 30 — added NIC, LBN, IRQ, SDN, YEM
-const OSM_INFRA_ISOS = [
-  'YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD',
-  'NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN',
-  'CMR','ZWE','MOZ','MDG','PRK','NIC','LBN','IRQ','SDN','YEM'
-];
-
-const FIRMS_ISOS = [
-  'BRA','IDN','COD','AUS','USA','CAN','RUS','CHN','IND','ARG',
-  'BOL','PER','COL','VEN','MEX','ZAF','MOZ','AGO','ZMB','TZA',
-  'MMR','LAO','KHM','THA','VNM','PHL','GRC','ITA','ESP','PRT'
-];
+// Countries whose "access" evidence (hospitals/clinics via OSM) gets refreshed
+// each cycle. Previously this was hardcoded to Yemen's coordinates for EVERY
+// country in the file, silently duplicating Yemen's hospital count into every
+// other country's ledger. Rotates the 15 lowest-stability (highest FSI) states
+// so at least the countries where "access" actually matters get real data.
+// v18.2.0: widened from 15 to 20 countries (added LBY, COG, BFA, GIN, VEN)
+// so "access" evidence isn't perpetually concentrated on the same 15 states.
+const OSM_INFRA_ISOS = ['YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD','NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN'];
 
 const WPAC_ISOS = new Set(['PHL','TWN','JPN','CHN','VNM','KOR','PRK','IDN','MYS','THA','KHM','LAO','MMR','BGD','IND','LKA','MDV']);
 const MEDITERRANEAN_ISOS = new Set(['ITA','GRC','TUR','ESP','FRA','HRV','ALB','MNE','LBY','TUN','DZA','MAR','EGY','ISR','LBN','SYR','CYP','MLT']);
@@ -491,6 +501,11 @@ for (const iso of Object.keys(BASE_SCORES)) {
   };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  NAME ALIASES — for country-name matching against ReliefWeb / ACLED-style
+//  free-text feeds, which frequently use alternate official names, older
+//  names, or non-English transliterations instead of the FSI_2024 label.
+// ════════════════════════════════════════════════════════════════════════════
 const ISO_ALIASES = {
   MMR: ["myanmar", "burma", "union of myanmar", "republic of the union of myanmar"],
   TCD: ["chad", "republic of chad", "tchad", "republic of tchad"],
@@ -525,6 +540,7 @@ const ISO_ALIASES = {
   TWN: ["taiwan", "chinese taipei", "republic of china"],
 };
 
+// Reverse lookup: normalized alias/name -> ISO. Built once at module load.
 const ALIAS_INDEX = (() => {
   const idx = new Map();
   for (const [iso, d] of Object.entries(COUNTRIES)) idx.set(d.name.toLowerCase(), iso);
@@ -586,6 +602,10 @@ function seedHistory(iso, currentScore) {
   return hist;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// findIsoByName — resolves free-text country names (ReliefWeb, ACLED-style,
+// WHO/CDC/ECDC RSS text, EM-DAT, GDELT domains, etc.) to an ISO3 code.
+// ────────────────────────────────────────────────────────────────────────────
 function findIsoByName(name) {
   if (!name) return null;
   const raw = name.toLowerCase().trim();
@@ -750,7 +770,7 @@ function coverageScale(value, floor, ceiling, maxPts) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  computeEvidenceScore — HTML-exact rules 1-66, plus v20.0.0 rules 67-72
+//  computeEvidenceScore — HTML-exact rules 1-54, plus v18.0.0 rules 55-56
 // ════════════════════════════════════════════════════════════════════════════
 
 function computeEvidenceScore(iso) {
@@ -1040,139 +1060,32 @@ function computeEvidenceScore(iso) {
   if (coverage.sentinel && coverage.sentinel.count > 0) {
     add("Sentinel-2", `${coverage.sentinel.count} recent observation(s)`, coverage.sentinel.count, coverageScale(coverage.sentinel.count, 1, 5, 3), 0.5);
   }
-  // 55. Political stability (World Bank WGI, PV.EST)
+  // 55. NEW — Political stability (World Bank WGI, PV.EST; range approx -2.5..2.5, lower = less stable)
   if (coverage.political_stability !== undefined && coverage.political_stability !== null) {
     const ps = coverage.political_stability;
     if (ps < -0.5) add("WORLDBANK", `Political stability index ${ps.toFixed(2)} (unstable)`, ps, logScale(Math.abs(ps), 0.5, 2.5, 5), 0.7);
   }
-  // 56. GDELT conflict/unrest news-volume spike
+  // 56. GDELT conflict/unrest news-volume spike (fast-moving, complements slower ReliefWeb feed)
   if (coverage.gdelt_conflict) {
     const n = coverage.gdelt_conflict.count || 0;
     if (n >= 3) add("GDELT", `${n} conflict/unrest articles (24h)`, n, coverageScale(n, 3, 30, 5), 0.55);
   }
-  // 57. GDACS volcanic eruption alert
+  // 57. NEW v18.2.0 — GDACS volcanic eruption alert. VLC was a defined ARC
+  // crisis type with no dedicated evidence source until this patch.
   if (coverage.gdacs_volcano) {
     const severity = coverage.gdacs_volcano.alert || "Green";
     const pts = severity === "Red" ? 9 : severity === "Orange" ? 5.5 : 2.5;
     add("GDACS", `${severity} volcanic alert: ${(coverage.gdacs_volcano.event || "").substring(0, 30) || "eruption"}`, 1, pts, 0.8);
   }
-  // 58. ReliefWeb "Population Movement" disaster listings
+  // 58. NEW v18.2.0 — ReliefWeb "Population Movement" disaster listings.
+  // UNHCR's population datasets (rules 15/16/17) update on a slower, often
+  // biannual cadence; ReliefWeb's disaster feed publishes new displacement
+  // entries as events unfold, so this is a faster-moving corroborating
+  // signal for the `displacement` dimension, the same relationship GDELT
+  // (rule 56) has to the slower ReliefWeb conflict feed.
   if (coverage.population_movement) {
     const sev = coverage.population_movement.severityIndex || 40;
     add("RELIEFWEB", `Population movement: ${(coverage.population_movement.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 5), 0.65);
-  }
-  // 59. NASA FIRMS active fire detections (VIIRS 375m, 24h)
-  if (coverage.firms) {
-    const count = coverage.firms.count || 0;
-    if (count >= 5) {
-      const pts = Math.min(10, Math.log10(count + 1) * 3.5);
-      add("FIRMS", `${count} active fire detections (24h)`, count, pts, 0.8);
-    }
-  }
-  // 60. GDACS drought alert (eventtype=DR)
-  if (coverage.gdacs_drought) {
-    const severity = coverage.gdacs_drought.alert || "Green";
-    const pts = severity === "Red" ? 9 : severity === "Orange" ? 5.5 : 2.5;
-    add("GDACS", `${severity} drought alert: ${(coverage.gdacs_drought.event || "").substring(0, 30) || "drought"}`, 1, pts, 0.8);
-  }
-  // 61. GDACS flood alert (eventtype=FL)
-  if (coverage.gdacs_flood) {
-    const severity = coverage.gdacs_flood.alert || "Green";
-    const pts = severity === "Red" ? 9 : severity === "Orange" ? 5.5 : 2.5;
-    add("GDACS", `${severity} flood alert: ${(coverage.gdacs_flood.event || "").substring(0, 30) || "flood"}`, 1, pts, 0.8);
-  }
-  // 62. GDACS cyclone alert (eventtype=TC)
-  if (coverage.gdacs_cyclone) {
-    const severity = coverage.gdacs_cyclone.alert || "Green";
-    const pts = severity === "Red" ? 10 : severity === "Orange" ? 6 : 3;
-    add("GDACS", `${severity} cyclone alert: ${(coverage.gdacs_cyclone.event || "").substring(0, 30) || "cyclone"}`, 1, pts, 0.85);
-  }
-  // 63. IOM Displacement Tracking Matrix (IDPs, returnees)
-  if (coverage.iom_dtm) {
-    const idps = coverage.iom_dtm.idps || 0;
-    const returnees = coverage.iom_dtm.returnees || 0;
-    if (idps > 5000) add("IOM DTM", `${idps.toLocaleString()} IDPs tracked`, idps, logScale(idps, 5000, 5000000, 7), 0.85);
-    if (returnees > 5000) add("IOM DTM", `${returnees.toLocaleString()} returnees tracked`, returnees, logScale(returnees, 5000, 2000000, 5), 0.7);
-  }
-  // 64. FAO Food Price Monitoring and Analysis (FPMA) price anomaly
-  if (coverage.fao_fpma) {
-    const anomaly = coverage.fao_fpma.anomaly_pct || 0;
-    if (Math.abs(anomaly) >= 15) {
-      add("FAO FPMA", `${coverage.fao_fpma.commodity || "Food"} price anomaly ${anomaly > 0 ? "+" : ""}${anomaly.toFixed(0)}%`, Math.abs(anomaly), logScale(Math.abs(anomaly), 15, 100, 5), 0.7);
-    }
-  }
-  // 65. WHO Global Health Observatory — health system capacity
-  if (coverage.health_capacity) {
-    const beds = coverage.health_capacity.hospital_beds_per_10k || 0;
-    const physicians = coverage.health_capacity.physicians_per_10k || 0;
-    if (beds > 0 && beds < 10) add("WHO GHO", `Only ${beds.toFixed(1)} hospital beds per 10k`, beds, logScale(10 - beds, 0, 10, 5), 0.7);
-    if (physicians > 0 && physicians < 5) add("WHO GHO", `Only ${physicians.toFixed(1)} physicians per 10k`, physicians, logScale(5 - physicians, 0, 5, 4), 0.65);
-  }
-  // 66. OSM road/airport access density
-  if (coverage.road_access) {
-    const airports = coverage.road_access.airports || 0;
-    if (airports > 0 && airports < 5) add("OSM", `Only ${airports} airports in region (access constraint)`, airports, logScale(5 - airports, 0, 5, 4), 0.6);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  //  v20.0.0 — BREADTH PATCH III: 6 NEW EVIDENCE RULES (67-72)
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // 67. GDACS tsunami alert (eventtype=TS) — dedicated key.
-  // TSU was defined in v18.0.0 and queried by GDACS fan-out, but no
-  // dedicated coverage key was ever written. This closes that gap.
-  if (coverage.gdacs_tsunami) {
-    const severity = coverage.gdacs_tsunami.alert || "Green";
-    const pts = severity === "Red" ? 12 : severity === "Orange" ? 7 : 3;
-    add("GDACS", `${severity} tsunami alert: ${(coverage.gdacs_tsunami.event || "").substring(0, 30) || "tsunami"}`, 1, pts, 0.95);
-  }
-  // 68. Landslide — GDACS has no LS eventtype; NASA EONET landslides
-  // category + USGS earthquake-triggered proxies cover it.
-  if (coverage.landslide) {
-    const sev = coverage.landslide.severity || 40;
-    add("EONET", `Landslide: ${(coverage.landslide.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 7), 0.8);
-  }
-  // 69. CEMS rapid mapping activations (Copernicus Emergency Management)
-  if (coverage.cems) {
-    const count = coverage.cems.count || 0;
-    const type = coverage.cems.disaster_type || "Disaster";
-    if (count > 0) add("CEMS", `${count} rapid mapping activation(s) (${type})`, count, coverageScale(count, 1, 5, 8), 0.9);
-  }
-  // 70. Infrastructure stress (BGP routing outages)
-  if (coverage.infra_stress) {
-    const outages = coverage.infra_stress.outage_count || 0;
-    if (outages >= 3) add("BGP", `${outages} network outage events (24h)`, outages, coverageScale(outages, 3, 20, 5), 0.7);
-  }
-  // 71. Rule of law / governance (World Bank WGI, RL.EST + CC.EST)
-  if (coverage.rule_of_law !== undefined && coverage.rule_of_law !== null) {
-    const rl = coverage.rule_of_law;
-    if (rl < -0.5) add("WORLDBANK", `Rule of law index ${rl.toFixed(2)} (weak)`, rl, logScale(Math.abs(rl), 0.5, 2.5, 4), 0.65);
-  }
-  if (coverage.corruption_control !== undefined && coverage.corruption_control !== null) {
-    const cc = coverage.corruption_control;
-    if (cc < -0.5) add("WORLDBANK", `Control of corruption index ${cc.toFixed(2)} (weak)`, cc, logScale(Math.abs(cc), 0.5, 2.5, 4), 0.6);
-  }
-  // 72. Crop conditions / vegetation anomaly (FAO GIEWS + NASA NDVI)
-  if (coverage.crop_conditions) {
-    const anomaly = coverage.crop_conditions.ndvi_anomaly_pct || 0;
-    if (anomaly < -15) add("FAO GIEWS", `Vegetation anomaly ${anomaly.toFixed(0)}% (crop stress)`, Math.abs(anomaly), logScale(Math.abs(anomaly), 15, 60, 6), 0.75);
-  }
-  // 73. Water scarcity (WRI Aqueduct baseline water stress)
-  if (coverage.water_scarcity) {
-    const stress = coverage.water_scarcity.baseline_stress || 0;
-    if (stress >= 3.0) add("WRI Aqueduct", `Baseline water stress ${stress.toFixed(1)}/5.0`, stress, coverageScale(stress, 3, 5, 5), 0.7);
-  }
-  // 74. Famine risk (FEWS NET acute food insecurity + FAO hunger hotspots)
-  if (coverage.famine_risk) {
-    const phase = coverage.famine_risk.phase || 3;
-    if (phase >= 4) add("FEWS NET", `Phase ${phase} acute food insecurity: ${(coverage.famine_risk.title || "").substring(0, 40)}`, phase, phase === 5 ? 12 : 9, 0.9);
-  }
-  // 75. Refugee resettlement/departures (UNHCR RSQ)
-  if (coverage.refugee_flows) {
-    const departures = coverage.refugee_flows.departures || 0;
-    const submissions = coverage.refugee_flows.submissions || 0;
-    if (departures > 5000) add("UNHCR RSQ", `${departures.toLocaleString()} resettlement departures`, departures, logScale(departures, 5000, 200000, 5), 0.75);
-    if (submissions > 10000) add("UNHCR RSQ", `${submissions.toLocaleString()} resettlement submissions`, submissions, logScale(submissions, 10000, 500000, 4), 0.7);
   }
 
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
@@ -1189,7 +1102,8 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS — ALL RESTORED, PLUS v20.0.0 ADDITIONS
+//  FETCHERS — ALL RESTORED, PLUS v18.0.0 ADDITIONS (WGI, GDELT, GDACS-TS,
+//  and generalized multi-country OSM), EACH WITH OWN NAMESPACE
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1391,16 +1305,25 @@ async function fetchNASA() {
       const cov = ensureCoverage(iso);
       const cat = ev.categories?.[0]?.id || "";
       if (cat === "wildfires") cov.wildfire = { title: ev.title, severity: "Wildfire" };
-      else if (cat === "landslides") cov.landslide = { title: ev.title, severity: 60 };
       else cov.nasa = { title: ev.title, categories: ev.categories };
     }
     return { data: events, live: events.length > 0 };
   } catch { return { data: [], live: false }; }
 }
 
+// v18.0.0: GDACS fan-out now also queries eventtype=TS (tsunami), which was
+// previously a defined crisis type (TSU) with no dedicated evidence source —
+// tsunami-prone countries only ever got credit if a co-located earthquake or
+// generic alert happened to fire.
+// v18.2.0: added eventtype=VO (volcano). Like TS before it, VLC was a
+// defined ARC crisis type with no dedicated feed — a volcanic-country score
+// only ever moved if a co-located earthquake or generic alert happened to
+// also fire. GDACS covers volcanic eruptions the same way it covers
+// cyclones/floods/etc, so this closes the gap the same way the v18.0.0
+// tsunami fix did.
 async function fetchGDACS() {
   try {
-    const [a, b, c, d, e, f, g, h, i, j] = await Promise.all([
+    const [a, b, c, d, e, f, g, h] = await Promise.all([
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TC&limit=30").then(r => r.json())),
@@ -1409,8 +1332,6 @@ async function fetchGDACS() {
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TS&limit=20").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=VO&limit=20").then(r => r.json())),
-      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=FL&limit=20&alertlevel=Red").then(r => r.json())),
-      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=20&alertlevel=Red").then(r => r.json())),
     ]);
     const feats = [
       ...(a.ok ? a.data.features || [] : []),
@@ -1421,8 +1342,6 @@ async function fetchGDACS() {
       ...(f.ok ? f.data.features || [] : []),
       ...(g.ok ? g.data.features || [] : []),
       ...(h.ok ? h.data.features || [] : []),
-      ...(i.ok ? i.data.features || [] : []),
-      ...(j.ok ? j.data.features || [] : []),
     ];
     for (const feat of feats) {
       const props = feat.properties, coords = feat.geometry?.coordinates;
@@ -1443,11 +1362,9 @@ async function fetchGDACS() {
           cov.gdacs_eq = { event: props.eventname, mag: props.magnitude };
         }
       }
-      if (props.eventtype === "VO") cov.gdacs_volcano = { event: props.eventname, alert: props.alertlevel };
-      if (props.eventtype === "TS") cov.gdacs_tsunami = { event: props.eventname, alert: props.alertlevel };
-      if (props.eventtype === "FL") cov.gdacs_flood = { event: props.eventname, alert: props.alertlevel };
-      if (props.eventtype === "TC") cov.gdacs_cyclone = { event: props.eventname, alert: props.alertlevel };
-      if (props.eventtype === "DR") cov.gdacs_drought = { event: props.eventname, alert: props.alertlevel };
+      if (props.eventtype === "VO") {
+        cov.gdacs_volcano = { event: props.eventname, alert: props.alertlevel };
+      }
     }
     return { data: feats, live: feats.length > 0 };
   } catch { return { data: [], live: false }; }
@@ -1743,6 +1660,11 @@ async function fetchWorldBankAll() {
   return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
 }
 
+// v18.0.0: World Bank Worldwide Governance Indicators — Political Stability
+// and Absence of Violence/Terrorism (PV.EST). Range is roughly -2.5 (weak)
+// to +2.5 (strong). This is the ONLY live feed for the `political` dimension
+// — previously that dimension (weight 0.01 in DIMS) was structural-only,
+// never touched by any of the 40+ fetchers.
 async function fetchWGI() {
   try {
     const r = await fetchWorldBankIndicator("PV.EST");
@@ -1750,21 +1672,6 @@ async function fetchWGI() {
       ensureCoverage(iso).political_stability = d.value;
     }
     return { data: r.data, live: r.live };
-  } catch { return { data: {}, live: false }; }
-}
-
-// v20.0.0 — Rule of Law (RL.EST) + Control of Corruption (CC.EST) as
-// complements to political stability (PV.EST). These are the remaining
-// two World Bank WGI dimensions relevant to crisis risk.
-async function fetchWGI_Governance() {
-  try {
-    const [rl, cc] = await Promise.all([
-      fetchWorldBankIndicator("RL.EST"),
-      fetchWorldBankIndicator("CC.EST"),
-    ]);
-    for (const [iso, d] of Object.entries(rl.data)) ensureCoverage(iso).rule_of_law = d.value;
-    for (const [iso, d] of Object.entries(cc.data)) ensureCoverage(iso).corruption_control = d.value;
-    return { data: { rl: rl.data, cc: cc.data }, live: rl.live || cc.live };
   } catch { return { data: {}, live: false }; }
 }
 
@@ -1922,33 +1829,6 @@ async function fetchUNHCRStatistics() {
     }
   } catch {}
   return { data: [], live: false };
-}
-
-// v20.0.0 — UNHCR RSQ (Resettlement) API. Real-time refugee resettlement
-// submissions and departures, complementing the slower population datasets.
-async function fetchRefugeeFlows() {
-  try {
-    const r = await safeFetch(fetch("https://api.unhcr.org/rsq/v1/submissions?year=2024,2025").then(r => r.json()));
-    if (!r.ok || !r.data?.results?.length) return { data: {}, live: false };
-    const map = {};
-    for (const d of r.data.results) {
-      const origin = d.origin;
-      if (!origin || !COUNTRIES[origin]) continue;
-      if (!map[origin]) map[origin] = { submissions: 0, departures: 0 };
-      map[origin].submissions += parseInt(d.persons) || 0;
-    }
-    const dep = await safeFetch(fetch("https://api.unhcr.org/rsq/v1/departures?year=2024,2025").then(r => r.json()));
-    if (dep.ok && dep.data?.results?.length) {
-      for (const d of dep.data.results) {
-        const origin = d.origin;
-        if (!origin || !COUNTRIES[origin]) continue;
-        if (!map[origin]) map[origin] = { submissions: 0, departures: 0 };
-        map[origin].departures += parseInt(d.persons) || 0;
-      }
-    }
-    for (const [iso, d] of Object.entries(map)) ensureCoverage(iso).refugee_flows = d;
-    return { data: map, live: Object.keys(map).length > 0 };
-  } catch { return { data: {}, live: false }; }
 }
 
 async function fetchGFW() {
@@ -2122,6 +2002,11 @@ async function fetchSentinel() {
           }
         }
       }
+      // v18.2.0 fix: previously any observation whose footprint couldn't be
+      // parsed was force-assigned to Yemen regardless of where it actually
+      // was, corrupting Yemen's evidence ledger with unrelated satellite
+      // passes. An unassigned observation is now simply dropped rather than
+      // attributed to the wrong country.
       return { data: items, live: assigned };
     }
   } catch {}
@@ -2188,6 +2073,9 @@ async function fetchReliefWebConflict() {
   } catch { return { data: [], live: false }; }
 }
 
+// v18.2.0: ReliefWeb "Population Movement" disaster listings — a faster,
+// event-driven complement to UNHCR's population statistics (rules 15-17),
+// which are compiled datasets that lag real events by weeks to months.
 async function fetchReliefWebDisplacement() {
   try {
     const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Population%20Movement&sort[]=date.created:desc';
@@ -2234,33 +2122,12 @@ async function fetchReliefWebFewsNet() {
   } catch { return { data: [], live: false }; }
 }
 
-// v20.0.0 — Famine risk (FEWS NET acute food insecurity + FAO hunger hotspots).
-async function fetchFamineRisk() {
-  try {
-    const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
-    const r = await safeFetch(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: [], live: false };
-    const out = [];
-    r.data.data.forEach(d => {
-      const country = d.fields?.country?.[0]?.name;
-      if (!country) return;
-      const title = (d.fields?.name || '').toLowerCase();
-      let phase = 3;
-      if (title.includes('famine')) phase = 5;
-      else if (title.includes('emergency')) phase = 4;
-      const iso = findIsoByName(country);
-      if (iso) {
-        const cov = ensureCoverage(iso);
-        if (!cov.famine_risk || phase > (cov.famine_risk.phase || 0)) {
-          cov.famine_risk = { phase, title: d.fields?.name || '' };
-        }
-      }
-      out.push({ country, phase, title: d.fields?.name || '' });
-    });
-    return { data: out, live: out.length > 0 };
-  } catch { return { data: [], live: false }; }
-}
-
+// v18.0.0: GENERALIZED — previously fetchOSMHospitals/fetchOSMClinics were
+// hardcoded to Yemen's coordinates (15.35,44.21) and wrote to
+// ensureCoverage('YEM') no matter what. Every OTHER country's "access"
+// dimension evidence was therefore permanently empty. This now loops over
+// OSM_INFRA_ISOS (rotating set of the 15 lowest-stability countries) using
+// each country's own centroid.
 async function fetchOSMHospitals() {
   const results = {}; let anyLive = false;
   await poolMap(OSM_INFRA_ISOS, 4, async iso => {
@@ -2297,25 +2164,6 @@ async function fetchOSMClinics() {
   return { data: results, live: anyLive };
 }
 
-async function fetchOSMRoadAccess() {
-  const results = {}; let anyLive = false;
-  await poolMap(OSM_INFRA_ISOS, 4, async iso => {
-    const cent = COUNTRIES[iso]?.cent;
-    if (!cent || (cent[0] === 0 && cent[1] === 0)) return;
-    try {
-      const q = `[out:json][timeout:20];node[amenity=airport](around:150000,${cent[1]},${cent[0]});out body;`;
-      const r = await safeFetch(fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`).then(r => r.json()));
-      if (r.ok) {
-        const airports = r.data?.elements?.length || 0;
-        ensureCoverage(iso).road_access = { airports };
-        results[iso] = { airports };
-        if (airports > 0) anyLive = true;
-      }
-    } catch {}
-  });
-  return { data: results, live: anyLive };
-}
-
 async function fetchEMDAT() {
   try {
     const r = await safeFetch(fetch("https://www.emdat.be/api/emdat?limit=10&year=2024").then(r => r.json()));
@@ -2336,6 +2184,11 @@ async function fetchEMDAT() {
   return { data: { data: [] }, live: false };
 }
 
+// v18.0.0: GDELT 2.0 DOC API (free, no key) — 24h global news-article volume
+// mentioning conflict/unrest keywords, bucketed by country name mention.
+// This is a much faster-moving conflict signal than ReliefWeb's disaster
+// taxonomy (which is curated and often lags real events by days), and is
+// meant to corroborate — not replace — fetchReliefWebConflict.
 async function fetchGDELT() {
   try {
     const url = "https://api.gdeltproject.org/api/v2/doc/doc?query=%22armed%20conflict%22%20OR%20%22civil%20unrest%22%20OR%20%22mass%20protest%22%20OR%20%22government%20forces%22&mode=artlist&maxrecords=75&format=json&timespan=24h";
@@ -2352,86 +2205,6 @@ async function fetchGDELT() {
       if (n >= 3) ensureCoverage(iso).gdelt_conflict = { count: n };
     }
     return { data: counts, live: Object.keys(counts).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  v20.0.0 — NEW FETCHERS (BREADTH PATCH III)
-// ════════════════════════════════════════════════════════════════════════════
-
-// 69. CEMS (Copernicus Emergency Management Service) rapid mapping activations.
-// Official EU satellite-derived damage assessments for EQ, FL, WF, ST, LS.
-async function fetchCEMS() {
-  try {
-    const r = await safeFetch(fetch("https://mapping.emergency.copernicus.eu/api/activations?limit=30").then(r => r.json()));
-    if (!r.ok || !Array.isArray(r.data)) return { data: {}, live: false };
-    const results = {};
-    for (const act of r.data) {
-      const iso = act.country_iso3 || act.country;
-      if (!iso || !COUNTRIES[iso]) continue;
-      if (!results[iso]) results[iso] = { count: 0, disaster_type: act.disaster_type || "Disaster" };
-      results[iso].count++;
-    }
-    for (const [iso, d] of Object.entries(results)) ensureCoverage(iso).cems = d;
-    return { data: results, live: Object.keys(results).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-// 70. Infrastructure stress — BGP routing outage detection via public
-// looking-glass APIs. Telecom/infrastructure disruption signal.
-async function fetchInfrastructureStress() {
-  try {
-    const r = await safeFetch(fetch("https://api.bgpview.io/events?limit=50").then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: {}, live: false };
-    const results = {};
-    for (const ev of r.data.data) {
-      const iso = ev.country_code;
-      if (!iso || !COUNTRIES[iso]) continue;
-      if (!results[iso]) results[iso] = { outage_count: 0, events: [] };
-      results[iso].outage_count++;
-      results[iso].events.push({ time: ev.time, type: ev.type });
-    }
-    for (const [iso, d] of Object.entries(results)) ensureCoverage(iso).infra_stress = d;
-    return { data: results, live: Object.keys(results).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-// 71. Crop conditions — FAO GIEWS crop prospects + NASA NDVI anomaly.
-// Food-dimension early warning for crop failure.
-async function fetchCropConditions() {
-  try {
-    const r = await safeFetch(fetch("https://api.fao.org/giews/api/countrycrop?limit=50").then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: {}, live: false };
-    const results = {};
-    for (const d of r.data.data) {
-      const iso = d.country_iso3 || d.iso3;
-      if (!iso || !COUNTRIES[iso]) continue;
-      const ndviAnom = parseFloat(d.ndvi_anomaly_pct) || 0;
-      if (ndviAnom < -15) {
-        results[iso] = { ndvi_anomaly_pct: ndviAnom, crop: d.crop || "Cereals" };
-        ensureCoverage(iso).crop_conditions = results[iso];
-      }
-    }
-    return { data: results, live: Object.keys(results).length > 0 };
-  } catch { return { data: {}, live: false }; }
-}
-
-// 72. Water scarcity — WRI Aqueduct baseline water stress.
-async function fetchWaterScarcity() {
-  try {
-    const r = await safeFetch(fetch("https://api.wri.org/aqueduct/v1/baseline/annual?limit=200").then(r => r.json()));
-    if (!r.ok || !r.data?.data?.length) return { data: {}, live: false };
-    const results = {};
-    for (const d of r.data.data) {
-      const iso = d.iso3 || d.country;
-      if (!iso || !COUNTRIES[iso]) continue;
-      const stress = parseFloat(d.baseline_water_stress) || 0;
-      if (stress >= 3.0) {
-        results[iso] = { baseline_stress: stress };
-        ensureCoverage(iso).water_scarcity = results[iso];
-      }
-    }
-    return { data: results, live: Object.keys(results).length > 0 };
   } catch { return { data: {}, live: false }; }
 }
 
@@ -2460,11 +2233,9 @@ async function fetchAllLive() {
     disease: fetchDiseaseSh(),
     wb: fetchWorldBankAll(),
     wgi: fetchWGI(),
-    wgiGov: fetchWGI_Governance(),
     gdelt: fetchGDELT(),
     unhcr: fetchUNHCR(),
     unhcrSolutions: fetchUNHCRSolutions(),
-    refugeeFlows: fetchRefugeeFlows(),
     who: fetchWHO(),
     gfw: fetchGFW(),
     inform: fetchINFORM(),
@@ -2483,10 +2254,8 @@ async function fetchAllLive() {
     reliefConflict: fetchReliefWebConflict(),
     reliefFews: fetchReliefWebFewsNet(),
     reliefDisplacement: fetchReliefWebDisplacement(),
-    famineRisk: fetchFamineRisk(),
     osmHosp: fetchOSMHospitals(),
     osmClin: fetchOSMClinics(),
-    osmRoad: fetchOSMRoadAccess(),
     emdat: fetchEMDAT(),
     unhcrOps: fetchUNHCROperations(),
     unhcrEmerg: fetchUNHCREmergency(),
@@ -2495,18 +2264,6 @@ async function fetchAllLive() {
     wbWater: fetchWorldBankWater(),
     wbTrade: fetchWorldBankTrade(),
     wbRefugees: fetchWorldBankRefugees(),
-    firms: fetchFIRMS(),
-    iomDtm: fetchIOMDTM(),
-    faoFpma: fetchFAOFPMA(),
-    healthCapacity: fetchHealthCapacity(),
-    powerOutages: fetchPowerOutages(),
-    currencyStress: fetchCurrencyStress(),
-    electionViolence: fetchElectionViolence(),
-    promed: fetchProMED(),
-    cems: fetchCEMS(),
-    infraStress: fetchInfrastructureStress(),
-    cropConditions: fetchCropConditions(),
-    waterScarcity: fetchWaterScarcity(),
   };
   const keys = Object.keys(tasks);
   const settled = await Promise.allSettled(Object.values(tasks));
@@ -2543,7 +2300,6 @@ const LIVE_SIGNALS = {
   nasa_storm:{weight:70,verify:0.9,label:"Severe Storm",icon:"🌀"},
   nasa_flood:{weight:70,verify:0.9,label:"Flood Event",icon:"🌊"},
   nasa_drought:{weight:55,verify:0.9,label:"Drought",icon:"🏜️"},
-  nasa_landslide:{weight:65,verify:0.85,label:"Landslide",icon:"⛰️"},
   ifrc_emergency:{weight:75,verify:1.0,label:"IFRC Emergency",icon:"🏥"},
   ifrc_appeal:{weight:80,verify:1.0,label:"IFRC Emergency Appeal",icon:"🆘"},
   cyclone_active:{weight:85,verify:1.0,label:"Active Cyclone",icon:"🌀"},
@@ -2570,26 +2326,6 @@ const LIVE_SIGNALS = {
   gdacs_volcano_red:{weight:90,verify:1.0,label:"GDACS Volcano RED Alert",icon:"🌋"},
   gdacs_volcano_orange:{weight:60,verify:0.9,label:"GDACS Volcano Orange Alert",icon:"🌋"},
   population_movement:{weight:55,verify:0.8,label:"Population Movement Reported",icon:"🚶"},
-  firms_fire:{weight:65,verify:0.9,label:"Active Fire Detections",icon:"🔥"},
-  gdacs_drought_red:{weight:85,verify:1.0,label:"GDACS Drought RED Alert",icon:"🏜️"},
-  gdacs_drought_orange:{weight:55,verify:0.9,label:"GDACS Drought Orange Alert",icon:"🏜️"},
-  gdacs_flood_red:{weight:85,verify:1.0,label:"GDACS Flood RED Alert",icon:"🌊"},
-  gdacs_flood_orange:{weight:55,verify:0.9,label:"GDACS Flood Orange Alert",icon:"🌊"},
-  gdacs_cyclone_red:{weight:95,verify:1.0,label:"GDACS Cyclone RED Alert",icon:"🌀"},
-  gdacs_cyclone_orange:{weight:65,verify:0.9,label:"GDACS Cyclone Orange Alert",icon:"🌀"},
-  gdacs_tsunami_red:{weight:100,verify:1.0,label:"GDACS Tsunami RED Alert",icon:"🌊"},
-  gdacs_tsunami_orange:{weight:70,verify:0.95,label:"GDACS Tsunami Orange Alert",icon:"🌊"},
-  iom_idp:{weight:70,verify:0.95,label:"IOM IDP Tracking",icon:"🚶"},
-  fao_price_anomaly:{weight:50,verify:0.9,label:"FAO Food Price Anomaly",icon:"📈"},
-  health_capacity_low:{weight:40,verify:0.85,label:"Low Health Capacity",icon:"🏥"},
-  currency_stress:{weight:55,verify:0.9,label:"Currency Stress",icon:"💱"},
-  election_violence:{weight:60,verify:0.8,label:"Election Violence",icon:"🗳️"},
-  promed_outbreak:{weight:65,verify:0.9,label:"ProMED Disease Report",icon:"🦠"},
-  cems_activation:{weight:85,verify:1.0,label:"CEMS Rapid Mapping",icon:"🛰️"},
-  infra_outage:{weight:60,verify:0.85,label:"Infrastructure Outage",icon:"📡"},
-  crop_stress:{weight:50,verify:0.9,label:"Crop Stress",icon:"🌾"},
-  water_scarcity:{weight:45,verify:0.9,label:"Water Scarcity",icon:"💧"},
-  famine_risk:{weight:85,verify:1.0,label:"Famine Risk",icon:"🍚"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2607,88 +2343,15 @@ function detectLiveBreakingSignals(iso, live, store) {
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // v20.0.0 — tsunami, landslide, CEMS, famine, infrastructure, crop, water signals
-  if (s.gdacsTsunami) {
-    const alert = (s.gdacsTsunami.alert || "").toLowerCase();
-    const ageHours = 6;
-    if (alert === "red") signals.push({ type: "gdacs_tsunami_red", weight: 100, ageHours, source: "GDACS", details: s.gdacsTsunami.event || "Tsunami" });
-    else if (alert === "orange") signals.push({ type: "gdacs_tsunami_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacsTsunami.event || "Tsunami" });
-  }
-  if (s.landslide) {
-    signals.push({ type: "nasa_landslide", weight: 65, ageHours: 48, source: "NASA EONET", details: s.landslide.title || "Landslide" });
-  }
-  if (s.cems && s.cems.count > 0) {
-    signals.push({ type: "cems_activation", weight: 85, ageHours: 72, source: "CEMS", details: `${s.cems.count} rapid mapping activation(s)` });
-  }
-  if (s.famineRisk && s.famineRisk.phase >= 4) {
-    signals.push({ type: "famine_risk", weight: 85, ageHours: 168, source: "FEWS NET", details: s.famineRisk.title || `Phase ${s.famineRisk.phase}` });
-  }
-  if (s.infraStress && s.infraStress.outage_count >= 5) {
-    signals.push({ type: "infra_outage", weight: 60, ageHours: 24, source: "BGP", details: `${s.infraStress.outage_count} network outage events` });
-  }
-  if (s.cropConditions && s.cropConditions.ndvi_anomaly_pct < -25) {
-    signals.push({ type: "crop_stress", weight: 50, ageHours: 168, source: "FAO GIEWS", details: `${s.cropConditions.ndvi_anomaly_pct.toFixed(0)}% vegetation anomaly` });
-  }
-  if (s.waterScarcity && s.waterScarcity.baseline_stress >= 4.0) {
-    signals.push({ type: "water_scarcity", weight: 45, ageHours: 720, source: "WRI Aqueduct", details: `Water stress ${s.waterScarcity.baseline_stress.toFixed(1)}/5.0` });
-  }
-
+  // v18.2.0 — dedicated volcano + population-movement signals
   if (s.gdacsVolcano) {
     const ageHours = 24;
     const alert = (s.gdacsVolcano.alert || "").toLowerCase();
     if (alert === "red") signals.push({ type: "gdacs_volcano_red", weight: 90, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic eruption" });
     else if (alert === "orange") signals.push({ type: "gdacs_volcano_orange", weight: 60, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic alert" });
   }
-
-  if (s.gdacsDrought) {
-    const alert = (s.gdacsDrought.alert || "").toLowerCase();
-    const ageHours = 24;
-    if (alert === "red") signals.push({ type: "gdacs_drought_red", weight: 85, ageHours, source: "GDACS", details: s.gdacsDrought.event || "Drought" });
-    else if (alert === "orange") signals.push({ type: "gdacs_drought_orange", weight: 55, ageHours, source: "GDACS", details: s.gdacsDrought.event || "Drought" });
-  }
-  if (s.gdacsFlood) {
-    const alert = (s.gdacsFlood.alert || "").toLowerCase();
-    const ageHours = 12;
-    if (alert === "red") signals.push({ type: "gdacs_flood_red", weight: 85, ageHours, source: "GDACS", details: s.gdacsFlood.event || "Flood" });
-    else if (alert === "orange") signals.push({ type: "gdacs_flood_orange", weight: 55, ageHours, source: "GDACS", details: s.gdacsFlood.event || "Flood" });
-  }
-  if (s.gdacsCyclone) {
-    const alert = (s.gdacsCyclone.alert || "").toLowerCase();
-    const ageHours = 12;
-    if (alert === "red") signals.push({ type: "gdacs_cyclone_red", weight: 95, ageHours, source: "GDACS", details: s.gdacsCyclone.event || "Cyclone" });
-    else if (alert === "orange") signals.push({ type: "gdacs_cyclone_orange", weight: 65, ageHours, source: "GDACS", details: s.gdacsCyclone.event || "Cyclone" });
-  }
-
   if (s.populationMovement && s.populationMovement.severityIndex >= 60) {
     signals.push({ type: "population_movement", weight: 55, ageHours: 72, source: "ReliefWeb", details: s.populationMovement.title || "Population movement reported" });
-  }
-
-  if (s.firms && s.firms.count >= 20) {
-    signals.push({ type: "firms_fire", weight: 65, ageHours: 12, source: "NASA FIRMS", details: `${s.firms.count} active fire detections` });
-  }
-
-  if (s.iomDtm && s.iomDtm.idps >= 100000) {
-    signals.push({ type: "iom_idp", weight: 70, ageHours: 72, source: "IOM DTM", details: `${s.iomDtm.idps.toLocaleString()} IDPs tracked` });
-  }
-
-  if (s.faoFpma && Math.abs(s.faoFpma.anomaly_pct) >= 30) {
-    signals.push({ type: "fao_price_anomaly", weight: 50, ageHours: 168, source: "FAO FPMA", details: `${s.faoFpma.commodity} ${s.faoFpma.anomaly_pct > 0 ? "+" : ""}${s.faoFpma.anomaly_pct.toFixed(0)}%` });
-  }
-
-  if (s.healthCapacity && s.healthCapacity.hospital_beds_per_10k > 0 && s.healthCapacity.hospital_beds_per_10k < 5) {
-    signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, source: "WHO GHO", details: `Only ${s.healthCapacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
-  }
-
-  if (s.currencyStress && s.currencyStress.volatility_pct >= 15) {
-    signals.push({ type: "currency_stress", weight: 55, ageHours: 168, source: "ECB", details: `${s.currencyStress.volatility_pct.toFixed(1)}% volatility` });
-  }
-
-  if (s.electionViolence && s.electionViolence.count >= 5) {
-    signals.push({ type: "election_violence", weight: 60, ageHours: 168, source: "GDELT", details: `${s.electionViolence.count} election-violence articles` });
-  }
-
-  if (s.promed && s.promed.count >= 2) {
-    signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${s.promed.count} emerging disease report(s)` });
   }
 
   const seismicSources = [
@@ -2744,7 +2407,6 @@ function detectLiveBreakingSignals(iso, live, store) {
       else if (cat === "severeStorms") signals.push({ type: "nasa_storm", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
       else if (cat === "floods") signals.push({ type: "nasa_flood", weight: 70, ageHours, source: "NASA EONET", details: ev.title });
       else if (cat === "drought") signals.push({ type: "nasa_drought", weight: 55, ageHours, source: "NASA EONET", details: ev.title });
-      else if (cat === "landslides") signals.push({ type: "nasa_landslide", weight: 65, ageHours, source: "NASA EONET", details: ev.title });
     }
   }
 
@@ -2810,6 +2472,7 @@ function detectLiveBreakingSignals(iso, live, store) {
 
   if (s.hdxDatasets && s.hdxDatasets.count > 0) signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} datasets` });
 
+  // v18.0.0 — political stability (WGI) and GDELT conflict-volume spike
   if (s.politicalStability && s.politicalStability.value < -1.0) {
     signals.push({ type: "political_instability", weight: 45, ageHours: 720, source: "World Bank WGI", details: `Political stability index ${s.politicalStability.value.toFixed(2)}` });
   }
@@ -3302,31 +2965,12 @@ async function buildStore(liveData) {
       climateTrace: cov.emissions ? { topEmission: cov.emissions } : null,
       hdxDatasets: cov.hdx || null,
       usDrought: cov.us_drought || null,
+      // v18.0.0
       politicalStability: cov.political_stability !== undefined ? { value: cov.political_stability } : null,
       gdeltConflict: cov.gdelt_conflict || null,
+      // v18.2.0
       gdacsVolcano: cov.gdacs_volcano || null,
       populationMovement: cov.population_movement || null,
-      firms: cov.firms || null,
-      iomDtm: cov.iom_dtm || null,
-      faoFpma: cov.fao_fpma || null,
-      healthCapacity: cov.health_capacity || null,
-      currencyStress: cov.currency_stress || null,
-      electionViolence: cov.election_violence || null,
-      promed: cov.promed || null,
-      gdacsDrought: cov.gdacs_drought || null,
-      gdacsFlood: cov.gdacs_flood || null,
-      gdacsCyclone: cov.gdacs_cyclone || null,
-      // v20.0.0
-      gdacsTsunami: cov.gdacs_tsunami || null,
-      landslide: cov.landslide || null,
-      cems: cov.cems || null,
-      infraStress: cov.infra_stress || null,
-      ruleOfLaw: cov.rule_of_law !== undefined ? { value: cov.rule_of_law } : null,
-      corruptionControl: cov.corruption_control !== undefined ? { value: cov.corruption_control } : null,
-      cropConditions: cov.crop_conditions || null,
-      waterScarcity: cov.water_scarcity || null,
-      famineRisk: cov.famine_risk || null,
-      refugeeFlows: cov.refugee_flows || null,
     };
   }
 
@@ -3372,10 +3016,6 @@ function buildKeywords(iso, store) {
   if (s.gfwAlerts) kws.add(`${c.name} deforestation`);
   if (s.jtwcStorms?.length) kws.add(`${c.name} typhoon`);
   if (s.usDrought) kws.add(`${c.name} drought`);
-  if (s.firms) kws.add(`${c.name} wildfire`);
-  if (s.iomDtm) kws.add(`${c.name} displacement`);
-  if (s.cems) kws.add(`${c.name} emergency mapping`);
-  if (s.famineRisk) kws.add(`${c.name} famine`);
   return [...kws].slice(0, 15);
 }
 
@@ -3445,6 +3085,19 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
+// v18.1.0 — COMPATIBILITY VIEW for the GCIN "Gold Standard" front-end (v8.0).
+// That page's JS reads `story_heat`, `live_evidence`, a top-level `anomalyScore`,
+// and `meta.enhancements.machine_learning` — field names/shapes an earlier
+// generation of this API used. The v17/v18 backend renamed these to
+// `live_breaking` / `evidence` and dropped the nested live_evidence structure
+// entirely, which is why the page rendered (nothing throws — every read in
+// the HTML is guarded with `|| {}`) but always fell back to generic
+// boilerplate headlines, an empty stats box, and a permanently-stuck
+// "ML: training..." badge. This function maps the REAL data already computed
+// above into the exact shape that JS expects. Nothing here is fabricated —
+// fields with no live source (ipcPopulation, conflict_fatalities) are left
+// at 0 rather than invented, and conflict_events is honestly sourced from
+// the GDELT 24h article-count fetcher added in v18.0.0.
 function buildLiveEvidenceView(iso, store) {
   const s = store[iso].signals || {};
   const cov = evidenceIndex.sourceCoverage[iso] || {};
@@ -3452,8 +3105,14 @@ function buildLiveEvidenceView(iso, store) {
     gdacs: cov.gdacs ? { alert_level: (cov.gdacs.alert || "").toLowerCase(), event: cov.gdacs.event } : null,
     displacement: { total: s.totalDisplaced || 0 },
     ipcPhase: cov.ipc?.phase || 0,
+    // No current fetcher returns an at-risk population figure alongside IPC
+    // phase (ReliefWeb's disaster list gives phase + title, not headcounts).
+    // Left at 0 rather than guessed; wire in FEWS NET's population field here
+    // if/when that fetcher is extended to expose it.
     ipcPopulation: cov.ipc?.population || 0,
     earthquake: s.quakeMag ? { magnitude: s.quakeMag, location: s.quakePlace || null } : null,
+    // No fetcher reports conflict fatality counts (ACLED-style casualty data
+    // requires a paid/keyed feed) — left at 0 rather than fabricated.
     conflict_fatalities: 0,
     conflict_events: cov.gdelt_conflict?.count || 0,
     who_outbreaks: { outbreaks: cov.who_outbreak ? [{ disease: cov.who_outbreak.disease }] : [] },
@@ -3462,22 +3121,6 @@ function buildLiveEvidenceView(iso, store) {
       inflation: { value: s.wbInflation?.value || 0 },
       gdp_growth: { value: s.wbGdpGrowth?.value || 0 },
     },
-    wildfire_detections: s.firms?.count || 0,
-    iom_idps: s.iomDtm?.idps || 0,
-    food_price_anomaly: s.faoFpma?.anomaly_pct || 0,
-    health_beds_per_10k: s.healthCapacity?.hospital_beds_per_10k || 0,
-    currency_volatility: s.currencyStress?.volatility_pct || 0,
-    // v20.0.0 additions
-    tsunami_alert: s.gdacsTsunami?.alert || null,
-    landslide_detected: !!s.landslide,
-    cems_activations: s.cems?.count || 0,
-    infrastructure_outages: s.infraStress?.outage_count || 0,
-    rule_of_law: s.ruleOfLaw?.value || null,
-    corruption_control: s.corruptionControl?.value || null,
-    ndvi_anomaly: s.cropConditions?.ndvi_anomaly_pct || 0,
-    water_stress: s.waterScarcity?.baseline_stress || 0,
-    famine_phase: s.famineRisk?.phase || 0,
-    resettlement_departures: s.refugeeFlows?.departures || 0,
   };
 }
 
@@ -3589,12 +3232,15 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     region: c.region,
     fsi: { score: c.fsi_score, rank: c.fsi_rank, band: c.fsi_band },
 
+    // ── v18.1.0 compatibility fields for the GCIN Gold Standard front-end ──
     story_heat: {
       score: lb.live_score || 0,
       tier: lb.tier || "BACKGROUND",
       top_drivers: (lb.events || []).slice(0, 3).map(e => ({ driver: e.label, source: e.source, details: e.details })),
     },
     live_evidence: buildLiveEvidenceView(iso, store),
+    // anomaly.z_score is an unbounded statistical statistic; clamped to a
+    // 0-10 display scale here since that's the range the front-end expects.
     anomalyScore: Math.min(10, +(anom.z_score || 0).toFixed(1)),
     ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
     ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
@@ -3750,7 +3396,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "BREADTH_PATCH_III_v20.0.0",
+        ranking_mode: "DEFINITIVE_v18.2.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
@@ -3767,28 +3413,16 @@ export default async function handler(req, res) {
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
         },
+        // v18.1.0 — the GCIN front-end's top status bar reads this exact
+        // path (meta.enhancements.machine_learning.{trained,training_count,
+        // performance.accuracy}). mlModel is the same singleton buildStore()
+        // just trained via trainMLModel(store), so this reports the real
+        // state, not a placeholder.
         enhancements: {
           machine_learning: {
             trained: mlModel.trained,
             training_count: mlModel.trainingCount,
             performance: { accuracy: +(mlModel.performance.r2 || 0).toFixed(2) },
-          },
-          breadth_patch_iii: {
-            new_fetchers: 4,
-            new_evidence_rules: 6,
-            new_live_signals: 12,
-            total_fetchers: 68,
-            coverage_gaps_closed: [
-              "landslide (LS) dedicated evidence",
-              "tsunami (TSU) dedicated coverage key",
-              "CEMS rapid mapping activations",
-              "infrastructure/BGP outage detection",
-              "governance (rule of law + corruption)",
-              "crop conditions / NDVI anomaly",
-              "water scarcity (WRI Aqueduct)",
-              "famine risk (FEWS NET)",
-              "refugee resettlement flows (UNHCR RSQ)",
-            ],
           },
         },
       },
@@ -3799,7 +3433,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v20.0.0]", err);
+    console.error("[top-story v18.2.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
