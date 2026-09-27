@@ -954,10 +954,16 @@ function computeEvidenceScore(iso) {
     const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
     if (maxMag > 6) add("USGS", `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag, logScale(maxMag, 6, 8, 4), 0.6);
   }
-  // 31. Food prices
-  if (coverage.food_prices && coverage.food_prices.length > 0) {
-    const latest = coverage.food_prices[coverage.food_prices.length - 1];
-    if (latest && latest.value) add("WORLDBANK", `Food price index ${latest.value.toFixed(1)}`, latest.value, coverageScale(latest.value, 80, 150, 5), 0.7);
+  // 31. FIXED v18.3.0 — this indicator (World Bank AG.PRD.FOOD.XD) is the
+  // "Food production index" (2014-2016=100), NOT a price index as the
+  // original label and scoring direction implied. The old code added crisis
+  // points when the value was HIGH — but a high production index means
+  // output is UP from baseline, which is good news, not a risk signal. The
+  // actual risk signal is a LOW index (production has fallen relative to
+  // baseline), so this now scores the shortfall below 95, not the raw level.
+  if (coverage.food_production_index && coverage.food_production_index.value != null) {
+    const idx = coverage.food_production_index.value;
+    if (idx < 95) add("WORLDBANK", `Food production index ${idx.toFixed(1)} (below baseline)`, idx, logScale(95 - idx, 0, 30, 5), 0.7);
   }
   // 32. Water stress
   if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
@@ -1086,6 +1092,33 @@ function computeEvidenceScore(iso) {
   if (coverage.population_movement) {
     const sev = coverage.population_movement.severityIndex || 40;
     add("RELIEFWEB", `Population movement: ${(coverage.population_movement.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 5), 0.65);
+  }
+  // 59. NEW v18.3.0 — hospital beds per 1,000 (World Bank SH.MED.BEDS.ZS).
+  // Closes a real gap: the `health` dimension previously had outbreak/
+  // disease signals only, nothing on baseline system capacity, and the
+  // OSM hospital count (rule 24) only exists for 20 rotating countries.
+  // This WDI indicator has (patchy but real) coverage for most of the 179.
+  // Low bed density is the risk signal, so this is scored on the shortfall
+  // below 2 beds/1,000 (a commonly cited fragile-system threshold).
+  if (coverage.hospital_beds !== undefined && coverage.hospital_beds !== null) {
+    const beds = coverage.hospital_beds;
+    if (beds < 2) add("WORLDBANK", `${beds.toFixed(2)} hospital beds per 1,000 people`, beds, logScale(2 - beds, 0, 2, 5), 0.6);
+  }
+  // 60. NEW v18.3.0 — % of roads paved (World Bank IS.ROD.PAVE.ZS). Gives
+  // the `access` dimension a national, always-on baseline instead of
+  // relying solely on the 20-country OSM hospital/clinic rotation (rule 24).
+  if (coverage.paved_roads !== undefined && coverage.paved_roads !== null) {
+    const paved = coverage.paved_roads;
+    if (paved < 40) add("WORLDBANK", `${paved.toFixed(1)}% of roads paved`, paved, logScale(40 - paved, 0, 40, 5), 0.55);
+  }
+  // 61. NEW v18.3.0 — Government Effectiveness (World Bank/WGI GE.EST,
+  // range approx -2.5..2.5). Distinct signal from political_stability
+  // (rule 55, which measures violence/instability): this measures state
+  // capacity and public-service delivery collapse, a driver of humanitarian
+  // crisis that can be severe even where overt violence is not.
+  if (coverage.gov_effectiveness !== undefined && coverage.gov_effectiveness !== null) {
+    const ge = coverage.gov_effectiveness;
+    if (ge < -0.5) add("WORLDBANK", `Government effectiveness index ${ge.toFixed(2)} (weak state capacity)`, ge, logScale(Math.abs(ge), 0.5, 2.5, 5), 0.65);
   }
 
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
@@ -1639,7 +1672,7 @@ async function fetchWorldBankIndicator(code) {
 }
 
 async function fetchWorldBankAll() {
-  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess] = await Promise.all([
+  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodProductionIndex, electricityAccess, hospitalBeds, pavedRoads, govEffectiveness] = await Promise.all([
     fetchWorldBankIndicator("SP.POP.TOTL"),
     fetchWorldBankIndicator("SI.POV.DDAY"),
     fetchWorldBankIndicator("FP.CPI.TOTL.ZG"),
@@ -1648,6 +1681,14 @@ async function fetchWorldBankAll() {
     fetchWorldBankIndicator("ER.H2O.FWTL.ZS"),
     fetchWorldBankIndicator("AG.PRD.FOOD.XD"),
     fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
+    // v18.3.0 additions — all three close a dimension that previously had
+    // NO global (all-179-country) live source: health had only outbreak/
+    // disease signals with nothing on underlying system capacity; access
+    // had only OSM hospital/clinic counts for 20 countries; political had
+    // only PV.EST (violence/instability) with nothing on state capacity.
+    fetchWorldBankIndicator("SH.MED.BEDS.ZS"),   // hospital beds per 1,000 people -> health
+    fetchWorldBankIndicator("IS.ROD.PAVE.ZS"),   // % of roads paved -> access
+    fetchWorldBankIndicator("GE.EST"),           // WGI Government Effectiveness (-2.5..2.5) -> political
   ]);
   for (const [iso, d] of Object.entries(population.data)) { const cov = ensureCoverage(iso); cov.population = d.value; evidenceIndex.population[iso] = d.value; }
   for (const [iso, d] of Object.entries(poverty.data)) { ensureCoverage(iso).poverty = d.value; }
@@ -1655,9 +1696,15 @@ async function fetchWorldBankAll() {
   for (const [iso, d] of Object.entries(gdpGrowth.data)) { ensureCoverage(iso).gdp_growth = d.value; }
   for (const [iso, d] of Object.entries(unemployment.data)) { ensureCoverage(iso).unemployment = d.value; }
   for (const [iso, d] of Object.entries(waterStress.data)) { ensureCoverage(iso).water_stress = d.value; }
-  for (const [iso, d] of Object.entries(foodPriceIndex.data)) { ensureCoverage(iso).food_prices = [{ value: d.value, date: d.date }]; }
+  // FIXED v18.3.0: AG.PRD.FOOD.XD is a *production* index, not a price
+  // index, and stored as a scalar (was previously wrapped in a single-item
+  // array under a misleading `food_prices` key — see rule 31's fix above).
+  for (const [iso, d] of Object.entries(foodProductionIndex.data)) { ensureCoverage(iso).food_production_index = { value: d.value, date: d.date }; }
   for (const [iso, d] of Object.entries(electricityAccess.data)) { ensureCoverage(iso).electricity_access = d.value; }
-  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
+  for (const [iso, d] of Object.entries(hospitalBeds.data)) { ensureCoverage(iso).hospital_beds = d.value; }
+  for (const [iso, d] of Object.entries(pavedRoads.data)) { ensureCoverage(iso).paved_roads = d.value; }
+  for (const [iso, d] of Object.entries(govEffectiveness.data)) { ensureCoverage(iso).gov_effectiveness = d.value; }
+  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodProductionIndex, electricityAccess, hospitalBeds, pavedRoads, govEffectiveness };
 }
 
 // v18.0.0: World Bank Worldwide Governance Indicators — Political Stability
@@ -1675,12 +1722,17 @@ async function fetchWGI() {
   } catch { return { data: {}, live: false }; }
 }
 
+// Redundant cross-check fetcher, same pattern as fetchWorldBankRefugees()
+// cross-checking UNHCR: an independent call for the food-production index in
+// case fetchWorldBankAll's combined call is the one that times out this
+// cycle. FIXED v18.3.0: was writing the same mislabeled `food_prices` shape
+// as the bug in fetchWorldBankAll; now consistent with the corrected field.
 async function fetchWorldBankFoodPrices() {
   try {
     const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=300&mrv=1").then(r => r.json()));
     if (r.ok && r.data?.[1]) {
       for (const item of r.data[1]) {
-        if (item.country?.id && item.value != null) ensureCoverage(item.country.id).food_prices = [{ value: parseFloat(item.value), date: item.date }];
+        if (item.country?.id && item.value != null) ensureCoverage(item.country.id).food_production_index = { value: parseFloat(item.value), date: item.date };
       }
       return { data: r.data[1], live: true };
     }
@@ -2319,7 +2371,8 @@ const LIVE_SIGNALS = {
   climate_trace_emissions:{weight:40,verify:0.85,label:"Emissions Hotspot",icon:"🏭"},
   hdx_crisis:{weight:45,verify:0.9,label:"HDX Crisis Dataset",icon:"📊"},
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
-  wb_food_price:{weight:35,verify:0.9,label:"Food Price Shock",icon:"🍞"},
+  wb_food_production_shortfall:{weight:35,verify:0.9,label:"Food Production Shortfall",icon:"🍞"},
+  electricity_access_crisis:{weight:30,verify:0.9,label:"Electricity Access Crisis",icon:"💡"},
   wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
   political_instability:{weight:45,verify:0.8,label:"Political Instability",icon:"🏛️"},
   gdelt_conflict_spike:{weight:50,verify:0.75,label:"Conflict News Spike",icon:"📰"},
@@ -2427,8 +2480,16 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (s.diseaseActive > 10_000) signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
-  if (s.wbFoodPrice && s.wbFoodPrice.value > 100) signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
-  if (s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "wb_food_price", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
+  // FIXED v18.3.0: AG.PRD.FOOD.XD is a production index, not a price index —
+  // a value ABOVE 100 means output is up from baseline (good news), so the
+  // old `> 100` trigger had the polarity backwards. The risk signal is a
+  // material shortfall below baseline.
+  if (s.wbFoodProduction && s.wbFoodProduction.value < 90) signals.push({ type: "wb_food_production_shortfall", weight: 35, ageHours: 720, source: "World Bank", details: `Food production index ${s.wbFoodProduction.value.toFixed(0)} (below baseline)` });
+  // FIXED v18.3.0: this previously reused the "wb_food_price" signal type,
+  // meaning an electricity-access signal and a food-index signal for the
+  // same country on the same day would collide under eventKeyFor's dedup
+  // key (type::iso::day) and silently overwrite one another. Now its own type.
+  if (s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "electricity_access_crisis", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity access ${s.electricityAccess.value.toFixed(0)}%` });
 
   if (isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     const top = s.cdcOutbreaks[0];
@@ -2955,7 +3016,7 @@ async function buildStore(liveData) {
       population: cov.population || 0,
       wbInflation: cov.inflation !== undefined ? { value: cov.inflation } : null,
       wbGdpGrowth: cov.gdp_growth !== undefined ? { value: cov.gdp_growth } : null,
-      wbFoodPrice: cov.food_prices?.[0] || null,
+      wbFoodProduction: cov.food_production_index || null,
       electricityAccess: cov.electricity_access !== undefined ? { value: cov.electricity_access } : null,
       totalDisplaced: cov.displaced || 0,
       unhcrSolutions: cov.unhcr_solutions || null,
