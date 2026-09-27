@@ -1,10 +1,10 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.0.5 — HTML-COMPATIBLE EDITION (RSS HARDENED)
+//  TOP-STORY API — v20.1.0 — FULL-COVERAGE EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  🌍 70+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
 //
 //  ═══ v20.0.5 — WHAT WAS BROKEN IN v20.0.4 ═══
 //  1. fetchAllLive() had an EMPTY `tasks = {}` object — no fetchers ran,
@@ -15,8 +15,43 @@
 //     that were never ingested.
 //  4. RSS feed could emit an empty <channel> when buildSEOArticle threw.
 //  5. Handler's mode detection mislabelled single-ISO requests.
+//  All five were fixed in v20.0.5.
 //
-//  All five are fixed below.
+//  ═══ v20.1.0 — COVERAGE GAPS CLOSED ═══
+//  computeEvidenceScore() / buildLiveEvidenceView() / LIVE_SIGNALS already
+//  anticipated ~25 coverage keys (water_stress_static, ndvi_static, ipc,
+//  political_stability, gdacs_volcano/drought/flood/cyclone/tsunami,
+//  conflict_fatalities, gdelt_conflict, election_violence, health_capacity,
+//  power_outage, currency_stress, hospitals/clinics, historic_seismic,
+//  conflict_event, population_movement, unhcr_emergency/unhcr_stats,
+//  emissions, iom_dtm, gfw, firms, inform, ...) that NOTHING ever ingested.
+//  This release wires real fetchers/static datasets for the ones that have
+//  a reliable free public API, and gates the rest behind optional API keys
+//  (never fabricated data). See the "KNOWN REMAINING GAPS" note above
+//  fetchAllLive() for what's intentionally still open, and why.
+//
+//  New free, no-key sources wired in v20.1.0:
+//    • GDACS eventtype=VO/DR/FL/TC/TS  (secondary hazard types)
+//    • World Bank WGI: PV.EST / RL.EST / CC.EST (governance risk)
+//    • WHO GHO OData: HOSP_BEDS (hospital bed density)
+//    • NOAA api.weather.gov active alerts (US)
+//    • USGS significant_month feed (historic seismic context)
+//    • ReliefWeb API (conflict + population-movement reports)
+//    • GDELT DOC 2.0 API (conflict / election-violence news-volume)
+//    • Frankfurter/ECB FX API (currency-stress proxy)
+//    • Climate TRACE country emissions API
+//    • OSM Overpass (hospital/clinic density, low-instrumentation states)
+//    • AQUEDUCT_WATER_STRESS / FAO_NDVI_ANOMALY — these constants already
+//      existed in the file but were never wired into evidenceIndex. Fixed.
+//
+//  Optional, key-gated (off unless the matching env var is set — never
+//  called, never fabricated, and excluded from fetcherHealth if absent):
+//    ACLED_API_KEY + ACLED_EMAIL   → conflict fatalities
+//    IPC_API_TOKEN                → IPC/CH acute food-insecurity phase
+//    CLOUDFLARE_RADAR_TOKEN       → network outage annotations
+//    IOM_DTM_API_KEY              → IDP counts (Displacement Tracking Matrix)
+//    FIRMS_MAP_KEY                → NASA FIRMS active-fire detections
+//    GFW_API_KEY                  → Global Forest Watch deforestation alerts
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
