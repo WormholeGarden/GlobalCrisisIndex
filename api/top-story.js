@@ -40,26 +40,32 @@
 //     Currency Stress, Election Violence, ProMED, OSM Road Access
 //  ✅ 8 new evidence rules (59-66)
 //
-//  ═══ v20.0.0-HTML-PARITY HOTFIX (applied) ═══
-//  ✅ Fixed RSS feed to ALWAYS return content (fallback to `ranked`)
-//  ✅ Fixed `force_live` to fall back gracefully when no live events exist
-//  ✅ Fixed `format=live` to ALWAYS return valid JSON (fallback chain)
-//  ✅ Fixed `format=breaking` to ALWAYS return valid JSON (fallback chain)
-//  ✅ Fixed `format=wst` to return ACTUAL watchlist data (was empty array)
-//  ✅ Added `live_evidence.ipcPopulation` for HTML parity
-//  ✅ Added `live_evidence.conflict_fatalities` (derived from severity)
-//  ✅ Added `anomalyScore` top-level field (HTML uses it in footer)
-//  ✅ Added `live_evidence_count` top-level (HTML meta bar)
-//  ✅ Added `live_evidence_sources` top-level (HTML byline)
-//  ✅ `dimensions` structure now includes `{ value, label, weight, icon }`
-//  ✅ `crisis_types` structure now includes `{ code, label, icon, color }`
-//  ✅ Added `needs` array (HTML uses it for tags)
-//  ✅ `ml` object now includes `trained`, `accuracy`, `training_count`
-//  ✅ `trend` object now includes `delta_7d`, `forecast_7d`
-//  ✅ `recommendation` confirmed `{ tier, text }`
-//  ✅ `score_audit` confirmed all HTML-expected fields
-//  ✅ `countries` array ALWAYS present in list AND comparison mode
-//  ✅ `top_story` ALWAYS present in single mode
+//  ═══ HTML COMPATIBILITY LAYER (applied) ═══
+//  The frontend was built against an earlier iteration of this API that
+//  emitted `story_heat`, `live_evidence`, `anomalyScore`, and
+//  `meta.enhancements.machine_learning`. This version computes the same
+//  underlying data under `live_breaking` and `evidence`. Rather than
+//  rewriting the frontend, we map the already-computed values into the
+//  shapes the HTML's JS actually reads:
+//    • story_heat       ← derived from live_breaking (score, tier, top_drivers)
+//    • live_evidence    ← derived from signals + evidenceIndex coverage
+//    • anomalyScore     ← derived from anomaly.z_score (capped 0..10)
+//    • live_evidence_count / live_evidence_sources  ← from evidence.*
+//    • meta.enhancements.machine_learning  ← from mlModel state
+//    • dimensions       ← object-of-objects with {value,label,weight,icon}
+//    • crisis_types     ← array with {code,label,icon,color}
+//    • needs            ← flat unique array from ARC[t].n
+//    • ml               ← {forecast, confidence, anomaly_probability,
+//                          trained, accuracy, training_count,
+//                          history_source, history_points}
+//    • trend            ← {delta_7d, direction, slope, forecast_7d,
+//                          confidence, history_source, history_points}
+//    • recommendation   ← {tier, text}
+//    • score_audit      ← {prior_score, structural_score, ..., final_score}
+//  Also: keywords/related/schema/summary query params are now honored on
+//  every country in the list (previously dropped when not single-ISO).
+//  RSS route (format=rss) is untouched — it never depended on these
+//  fields and still falls back liveEventsOnly → breakingRanked → ranked.
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -125,7 +131,6 @@ const HAZARD_LOOP_ISOS = [
   'EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'
 ];
 
-// v20.0.0: widened from 25 to 30 — added NIC, LBN, IRQ, SDN, YEM
 const OSM_INFRA_ISOS = [
   'YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD',
   'NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN',
@@ -1139,32 +1144,24 @@ function computeEvidenceScore(iso) {
   //  v20.0.0 — BREADTH PATCH III: 6 NEW EVIDENCE RULES (67-72)
   // ═══════════════════════════════════════════════════════════════════════
 
-  // 67. GDACS tsunami alert (eventtype=TS) — dedicated key.
-  // TSU was defined in v18.0.0 and queried by GDACS fan-out, but no
-  // dedicated coverage key was ever written. This closes that gap.
   if (coverage.gdacs_tsunami) {
     const severity = coverage.gdacs_tsunami.alert || "Green";
     const pts = severity === "Red" ? 12 : severity === "Orange" ? 7 : 3;
     add("GDACS", `${severity} tsunami alert: ${(coverage.gdacs_tsunami.event || "").substring(0, 30) || "tsunami"}`, 1, pts, 0.95);
   }
-  // 68. Landslide — GDACS has no LS eventtype; NASA EONET landslides
-  // category + USGS earthquake-triggered proxies cover it.
   if (coverage.landslide) {
     const sev = coverage.landslide.severity || 40;
     add("EONET", `Landslide: ${(coverage.landslide.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 7), 0.8);
   }
-  // 69. CEMS rapid mapping activations (Copernicus Emergency Management)
   if (coverage.cems) {
     const count = coverage.cems.count || 0;
     const type = coverage.cems.disaster_type || "Disaster";
     if (count > 0) add("CEMS", `${count} rapid mapping activation(s) (${type})`, count, coverageScale(count, 1, 5, 8), 0.9);
   }
-  // 70. Infrastructure stress (BGP routing outages)
   if (coverage.infra_stress) {
     const outages = coverage.infra_stress.outage_count || 0;
     if (outages >= 3) add("BGP", `${outages} network outage events (24h)`, outages, coverageScale(outages, 3, 20, 5), 0.7);
   }
-  // 71. Rule of law / governance (World Bank WGI, RL.EST + CC.EST)
   if (coverage.rule_of_law !== undefined && coverage.rule_of_law !== null) {
     const rl = coverage.rule_of_law;
     if (rl < -0.5) add("WORLDBANK", `Rule of law index ${rl.toFixed(2)} (weak)`, rl, logScale(Math.abs(rl), 0.5, 2.5, 4), 0.65);
@@ -1173,22 +1170,18 @@ function computeEvidenceScore(iso) {
     const cc = coverage.corruption_control;
     if (cc < -0.5) add("WORLDBANK", `Control of corruption index ${cc.toFixed(2)} (weak)`, cc, logScale(Math.abs(cc), 0.5, 2.5, 4), 0.6);
   }
-  // 72. Crop conditions / vegetation anomaly (FAO GIEWS + NASA NDVI)
   if (coverage.crop_conditions) {
     const anomaly = coverage.crop_conditions.ndvi_anomaly_pct || 0;
     if (anomaly < -15) add("FAO GIEWS", `Vegetation anomaly ${anomaly.toFixed(0)}% (crop stress)`, Math.abs(anomaly), logScale(Math.abs(anomaly), 15, 60, 6), 0.75);
   }
-  // 73. Water scarcity (WRI Aqueduct baseline water stress)
   if (coverage.water_scarcity) {
     const stress = coverage.water_scarcity.baseline_stress || 0;
     if (stress >= 3.0) add("WRI Aqueduct", `Baseline water stress ${stress.toFixed(1)}/5.0`, stress, coverageScale(stress, 3, 5, 5), 0.7);
   }
-  // 74. Famine risk (FEWS NET acute food insecurity + FAO hunger hotspots)
   if (coverage.famine_risk) {
     const phase = coverage.famine_risk.phase || 3;
     if (phase >= 4) add("FEWS NET", `Phase ${phase} acute food insecurity: ${(coverage.famine_risk.title || "").substring(0, 40)}`, phase, phase === 5 ? 12 : 9, 0.9);
   }
-  // 75. Refugee resettlement/departures (UNHCR RSQ)
   if (coverage.refugee_flows) {
     const departures = coverage.refugee_flows.departures || 0;
     const submissions = coverage.refugee_flows.submissions || 0;
@@ -1774,9 +1767,6 @@ async function fetchWGI() {
   } catch { return { data: {}, live: false }; }
 }
 
-// v20.0.0 — Rule of Law (RL.EST) + Control of Corruption (CC.EST) as
-// complements to political stability (PV.EST). These are the remaining
-// two World Bank WGI dimensions relevant to crisis risk.
 async function fetchWGI_Governance() {
   try {
     const [rl, cc] = await Promise.all([
@@ -1945,8 +1935,6 @@ async function fetchUNHCRStatistics() {
   return { data: [], live: false };
 }
 
-// v20.0.0 — UNHCR RSQ (Resettlement) API. Real-time refugee resettlement
-// submissions and departures, complementing the slower population datasets.
 async function fetchRefugeeFlows() {
   try {
     const r = await safeFetch(fetch("https://api.unhcr.org/rsq/v1/submissions?year=2024,2025").then(r => r.json()));
@@ -2255,7 +2243,6 @@ async function fetchReliefWebFewsNet() {
   } catch { return { data: [], live: false }; }
 }
 
-// v20.0.0 — Famine risk (FEWS NET acute food insecurity + FAO hunger hotspots).
 async function fetchFamineRisk() {
   try {
     const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Food%20Insecurity&sort[]=date.created:desc';
@@ -2376,12 +2363,6 @@ async function fetchGDELT() {
   } catch { return { data: {}, live: false }; }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  v20.0.0 — NEW FETCHERS (BREADTH PATCH III)
-// ════════════════════════════════════════════════════════════════════════════
-
-// 69. CEMS (Copernicus Emergency Management Service) rapid mapping activations.
-// Official EU satellite-derived damage assessments for EQ, FL, WF, ST, LS.
 async function fetchCEMS() {
   try {
     const r = await safeFetch(fetch("https://mapping.emergency.copernicus.eu/api/activations?limit=30").then(r => r.json()));
@@ -2398,8 +2379,6 @@ async function fetchCEMS() {
   } catch { return { data: {}, live: false }; }
 }
 
-// 70. Infrastructure stress — BGP routing outage detection via public
-// looking-glass APIs. Telecom/infrastructure disruption signal.
 async function fetchInfrastructureStress() {
   try {
     const r = await safeFetch(fetch("https://api.bgpview.io/events?limit=50").then(r => r.json()));
@@ -2417,8 +2396,6 @@ async function fetchInfrastructureStress() {
   } catch { return { data: {}, live: false }; }
 }
 
-// 71. Crop conditions — FAO GIEWS crop prospects + NASA NDVI anomaly.
-// Food-dimension early warning for crop failure.
 async function fetchCropConditions() {
   try {
     const r = await safeFetch(fetch("https://api.fao.org/giews/api/countrycrop?limit=50").then(r => r.json()));
@@ -2437,7 +2414,6 @@ async function fetchCropConditions() {
   } catch { return { data: {}, live: false }; }
 }
 
-// 72. Water scarcity — WRI Aqueduct baseline water stress.
 async function fetchWaterScarcity() {
   try {
     const r = await safeFetch(fetch("https://api.wri.org/aqueduct/v1/baseline/annual?limit=200").then(r => r.json()));
@@ -2628,7 +2604,6 @@ function detectLiveBreakingSignals(iso, live, store) {
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
   }
 
-  // v20.0.0 — tsunami, landslide, CEMS, famine, infrastructure, crop, water signals
   if (s.gdacsTsunami) {
     const alert = (s.gdacsTsunami.alert || "").toLowerCase();
     const ageHours = 6;
@@ -3337,7 +3312,6 @@ async function buildStore(liveData) {
       gdacsDrought: cov.gdacs_drought || null,
       gdacsFlood: cov.gdacs_flood || null,
       gdacsCyclone: cov.gdacs_cyclone || null,
-      // v20.0.0
       gdacsTsunami: cov.gdacs_tsunami || null,
       landslide: cov.landslide || null,
       cems: cov.cems || null,
@@ -3455,34 +3429,76 @@ function buildSitemap(payloads) {
 
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 
-function buildRSSFeed(isos, store, ranked) {
-  const now = new Date();
-  // HTML-PARITY FIX: Always use fallback if isos is empty
-  const feedIsos = isos.length > 0 ? isos : ranked.slice(0, 30);
-  const items = feedIsos.slice(0, 30).map(iso => {
-    const a = buildSEOArticle(iso, store, ranked);
-    const c = store[iso];
-    const lb = c.__live_breaking || {};
-    return `<item><title>${escapeXml(a.headline)}</title><link>${a.url}</link><guid isPermaLink="true">${a.url}</guid><pubDate>${now.toUTCString()}</pubDate><description>${escapeXml(a.dek)}</description>${lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : ""}<content:encoded><![CDATA[${a.body_html}]]></content:encoded></item>`;
-  }).join("");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
+// ── HTML COMPATIBILITY LAYER ────────────────────────────────────────────────
+// The frontend was built against an earlier iteration of this API that emitted
+// `story_heat`, `live_evidence`, `anomalyScore`, and
+// `meta.enhancements.machine_learning`. This version computes the same
+// underlying data under `live_breaking` and `evidence`. Rather than rewriting
+// the frontend, we map the already-computed values into the shapes the HTML's
+// JS actually reads.
+//
+// This is the ONLY place where the two shapes are reconciled — everything
+// upstream stays in the v20.0.0 native shape, so future refactors can migrate
+// the frontend to the new field names without touching the pipeline.
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build the `story_heat` object the HTML reads.
+ *   HTML expects: { score, tier, top_drivers: [{driver, source, details}] }
+ *   Native shape: live_breaking = { live_score, tier, events: [...] }
+ */
+function buildStoryHeat(lb) {
+  const events = lb.events || [];
+  return {
+    score: lb.live_score || 0,
+    tier: lb.tier || "BACKGROUND",
+    top_drivers: events.slice(0, 3).map(e => ({
+      driver: e.label,
+      source: e.source,
+      details: e.details,
+    })),
+  };
 }
 
-function buildLiveEvidenceView(iso, store) {
+/**
+ * Build the `live_evidence` object the HTML reads.
+ *   HTML expects specific keys like displacement.total, ipcPhase,
+ *   ipcPopulation, earthquake.magnitude, conflict_fatalities,
+ *   conflict_events, who_outbreaks.outbreaks, heat.max_temp_c,
+ *   economic.inflation.value, economic.gdp_growth.value, etc.
+ *   Everything here is derived from the already-computed `signals` and
+ *   `evidenceIndex.sourceCoverage`.
+ */
+function buildLiveEvidence(iso, store) {
   const s = store[iso].signals || {};
   const cov = evidenceIndex.sourceCoverage[iso] || {};
   return {
-    gdacs: cov.gdacs ? { alert_level: (cov.gdacs.alert || "").toLowerCase(), event: cov.gdacs.event } : null,
-    displacement: { total: s.totalDisplaced || 0 },
+    gdacs: cov.gdacs ? {
+      alert_level: (cov.gdacs.alert || "").toLowerCase(),
+      event: cov.gdacs.event,
+    } : null,
+    displacement: {
+      total: s.totalDisplaced || 0,
+    },
     ipcPhase: cov.ipc?.phase || 0,
-    // HTML-PARITY FIX: added ipcPopulation (HTML uses it)
+    // HTML reads `ipcPopulation` — we surface the population at risk
     ipcPopulation: cov.ipc?.population || 0,
-    earthquake: s.quakeMag ? { magnitude: s.quakeMag, location: s.quakePlace || null } : null,
-    // HTML-PARITY FIX: derived conflict_fatalities from conflict_event severity
-    conflict_fatalities: cov.conflict_event?.severityIndex ? Math.round(cov.conflict_event.severityIndex * 10) : 0,
+    earthquake: s.quakeMag ? {
+      magnitude: s.quakeMag,
+      location: s.quakePlace || null,
+    } : null,
+    // HTML reads `conflict_fatalities` — derive from conflict_event severity
+    // index when available (severityIndex approximates fatalities scale).
+    conflict_fatalities: cov.conflict_event?.severityIndex
+      ? Math.round(cov.conflict_event.severityIndex * 10)
+      : 0,
     conflict_events: cov.gdelt_conflict?.count || 0,
-    who_outbreaks: { outbreaks: cov.who_outbreak ? [{ disease: cov.who_outbreak.disease }] : [] },
-    heat: { max_temp_c: s.maxTempC || 0 },
+    who_outbreaks: {
+      outbreaks: cov.who_outbreak ? [{ disease: cov.who_outbreak.disease }] : [],
+    },
+    heat: {
+      max_temp_c: s.maxTempC || 0,
+    },
     economic: {
       inflation: { value: s.wbInflation?.value || 0 },
       gdp_growth: { value: s.wbGdpGrowth?.value || 0 },
@@ -3492,7 +3508,7 @@ function buildLiveEvidenceView(iso, store) {
     food_price_anomaly: s.faoFpma?.anomaly_pct || 0,
     health_beds_per_10k: s.healthCapacity?.hospital_beds_per_10k || 0,
     currency_volatility: s.currencyStress?.volatility_pct || 0,
-    // v20.0.0 additions
+    // v20.0.0 additions, same shape
     tsunami_alert: s.gdacsTsunami?.alert || null,
     landslide_detected: !!s.landslide,
     cems_activations: s.cems?.count || 0,
@@ -3504,6 +3520,91 @@ function buildLiveEvidenceView(iso, store) {
     famine_phase: s.famineRisk?.phase || 0,
     resettlement_departures: s.refugeeFlows?.departures || 0,
   };
+}
+
+/**
+ * Build the ML object the HTML reads.
+ *   HTML expects: { trained, accuracy, training_count, forecast, confidence,
+ *                   anomaly_probability, history_source, history_points }
+ *   Native shape: ml_forecast = { fc, confidence, anomaly_probability,
+ *                                 ml_trained, training_count, history_* }
+ */
+function buildMLCompat(c) {
+  if (!c.ml_forecast) return null;
+  return {
+    forecast: c.ml_forecast.fc,
+    confidence: c.ml_forecast.confidence,
+    anomaly_probability: c.ml_forecast.anomaly_probability,
+    trained: mlModel.trained,
+    accuracy: mlModel.performance.r2 || 0,
+    training_count: mlModel.trainingCount,
+    history_source: c.ml_forecast.history_source,
+    history_points: c.ml_forecast.history_points,
+  };
+}
+
+/**
+ * Build the trend object the HTML reads.
+ *   HTML expects: { delta_7d, direction, slope, forecast_7d, confidence,
+ *                   history_source, history_points }
+ */
+function buildTrendCompat(series, cur, hasRealHistory, realHistory, fc) {
+  const delta7 = series.length >= 8
+    ? Math.round(series[series.length - 1] - series[Math.max(0, series.length - 8)])
+    : 0;
+  return {
+    delta_7d: delta7,
+    direction: fc.trend,
+    slope: fc.slope,
+    forecast_7d: fc.fc,
+    confidence: fc.confidence,
+    history_source: hasRealHistory ? "observed" : "synthetic",
+    history_points: realHistory.length,
+  };
+}
+
+/**
+ * Build the dimensions object the HTML reads.
+ *   HTML expects: { conflict: { value, label, weight, icon }, ... }
+ *   Native shape: dims = { conflict: 78, displacement: 65, ... }
+ */
+function buildDimensionsCompat(dims) {
+  const out = {};
+  for (const d of DIMS) {
+    out[d.k] = {
+      value: dims[d.k] || 0,
+      label: d.l,
+      weight: d.w,
+      icon: d.icon,
+    };
+  }
+  return out;
+}
+
+/**
+ * Build the crisis_types array the HTML reads.
+ *   HTML expects: [{ code, label, icon, color }, ...]
+ */
+function buildCrisisTypesCompat(types) {
+  return types.map(t => ({
+    code: t,
+    label: ARC[t]?.l || t,
+    icon: ARC[t]?.i || "⚠️",
+    color: ARC[t]?.color || "#6bc8ff",
+  }));
+}
+
+function buildRSSFeed(isos, store, ranked) {
+  const now = new Date();
+  // HTML-COMPAT: always fall back to ranked if isos is empty
+  const feedIsos = isos.length > 0 ? isos : ranked.slice(0, 30);
+  const items = feedIsos.slice(0, 30).map(iso => {
+    const a = buildSEOArticle(iso, store, ranked);
+    const c = store[iso];
+    const lb = c.__live_breaking || {};
+    return `<item><title>${escapeXml(a.headline)}</title><link>${a.url}</link><guid isPermaLink="true">${a.url}</guid><pubDate>${now.toUTCString()}</pubDate><description>${escapeXml(a.dek)}</description>${lb.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : ""}<content:encoded><![CDATA[${a.body_html}]]></content:encoded></item>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
 async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
@@ -3518,65 +3619,19 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
   const fc = trendForecast(series, htmlScore);
 
   const rank = rankIndex.get(iso) + 1;
-  const delta7 = series.length >= 8 ? Math.round(series[series.length-1] - series[Math.max(0, series.length-8)]) : 0;
 
-  // HTML-PARITY FIX: build dimensions with {value, label, weight, icon}
-  const dimensionsObj = {};
-  for (const d of DIMS) {
-    dimensionsObj[d.k] = {
-      value: c.dims[d.k] || 0,
-      label: d.l,
-      weight: d.w,
-      icon: d.icon,
-    };
-  }
+  // ─── HTML COMPATIBILITY LAYER — build all shapes the frontend reads ───
+  const storyHeat = buildStoryHeat(lb);
+  const liveEvidence = buildLiveEvidence(iso, store);
+  const mlCompat = buildMLCompat(c);
+  const trendCompat = buildTrendCompat(series, htmlScore, hasRealHistory, realHistory, fc);
+  const dimensionsCompat = buildDimensionsCompat(c.dims);
+  const crisisTypesCompat = buildCrisisTypesCompat(c.types);
+  const needsCompat = [...new Set(c.types.flatMap(t => ARC[t]?.n || []))];
+  const recCompat = recommendation(htmlScore, anom);
 
-  // HTML-PARITY FIX: build crisis_types with {code, label, icon, color}
-  const crisisTypes = c.types.map(t => ({
-    code: t,
-    label: ARC[t]?.l || t,
-    icon: ARC[t]?.i || "⚠️",
-    color: ARC[t]?.color || "#6bc8ff",
-  }));
-
-  // HTML-PARITY FIX: needs array
-  const needs = [...new Set(c.types.flatMap(t => ARC[t]?.n || []))];
-
-  // HTML-PARITY FIX: ML object with trained/accuracy/training_count
-  const mlObj = c.ml_forecast ? {
-    forecast: c.ml_forecast.fc,
-    confidence: c.ml_forecast.confidence,
-    anomaly_probability: c.ml_forecast.anomaly_probability,
-    trained: mlModel.trained,
-    accuracy: mlModel.performance.r2 || 0,
-    training_count: mlModel.trainingCount,
-    history_source: c.ml_forecast.history_source,
-    history_points: c.ml_forecast.history_points,
-  } : null;
-
-  // HTML-PARITY FIX: trend object with delta_7d/forecast_7d
-  const trendObj = {
-    delta_7d: delta7,
-    direction: fc.trend,
-    slope: fc.slope,
-    forecast_7d: fc.fc,
-    confidence: fc.confidence,
-    history_source: hasRealHistory ? "observed" : "synthetic",
-    history_points: realHistory.length,
-  };
-
-  // HTML-PARITY FIX: story_heat with top_drivers
-  const storyHeat = {
-    score: lb.live_score || 0,
-    tier: lb.tier || "BACKGROUND",
-    top_drivers: (lb.events || []).slice(0, 3).map(e => ({
-      driver: e.label,
-      source: e.source,
-      details: e.details,
-    })),
-  };
-
-  const rec = recommendation(htmlScore, anom);
+  // anomalyScore: HTML reads this directly in the footer (0..10)
+  const anomalyScore = Math.min(10, +(anom.z_score || 0).toFixed(1));
 
   return {
     iso, name: c.name, flag: c.flag,
@@ -3593,6 +3648,8 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     percentile: Math.round((1 - rank / ranked.length) * 100),
     slug: slugify(c.name),
     url: `${CFG.ARTICLE_BASE_URL}/crisis/${slugify(c.name)}`,
+
+    // ─── NATIVE v20.0.0 SHAPE (kept for internal/other consumers) ───
     evidence: {
       score: c.evidence_score,
       confidence: c.evidence_confidence,
@@ -3625,20 +3682,26 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
         details: sig.details,
       })),
     },
-    // HTML-PARITY FIX: top-level fields HTML uses directly
+
+    // ─── HTML-EXPECTED SHAPE (the compatibility layer) ───
+    // The frontend reads these directly. Each is a pure projection of the
+    // native shape above — no new data is invented here.
+    story_heat: storyHeat,
+    live_evidence: liveEvidence,
     live_evidence_sources: c.evidence_sources,
     live_evidence_count: c.evidence_source_count,
     is_live_data: c.evidence_source_count >= CFG.MIN_LIVE_EVIDENCE_SOURCES,
-    dimensions: dimensionsObj,
-    crisis_types: crisisTypes,
-    needs: needs,
-    trend: trendObj,
+    dimensions: dimensionsCompat,
+    crisis_types: crisisTypesCompat,
+    needs: needsCompat,
+    trend: trendCompat,
     anomaly: {
       detected: anom.detected,
       severity: anom.severity,
       methods_fired: anom.methods_fired,
       z_score: anom.z_score,
     },
+    anomalyScore,
     spillover: {
       value: c.spillover,
       from: (COUNTRIES[iso].adj || []).filter(n => store[n]?.score >= 50).map(n => ({
@@ -3647,7 +3710,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
         score: store[n].score,
       })),
     },
-    ml: mlObj,
+    ml: mlCompat,
     sentiment: c.sentiment ? {
       score: c.sentiment.score,
       label: c.sentiment.label,
@@ -3665,17 +3728,11 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       evidence_score: c.evidence_score,
       evidence_confidence: c.evidence_confidence,
     },
-    recommendation: rec,
+    recommendation: recCompat,
     region: c.region,
-    fsi: {
-      score: c.fsi_score,
-      rank: c.fsi_rank,
-      band: c.fsi_band,
-    },
-    story_heat: storyHeat,
-    live_evidence: buildLiveEvidenceView(iso, store),
-    // HTML-PARITY FIX: anomalyScore (HTML footer uses this)
-    anomalyScore: Math.min(10, +(anom.z_score || 0).toFixed(1)),
+    fsi: { score: c.fsi_score, rank: c.fsi_rank, band: c.fsi_band },
+
+    // ─── Optional enrichments (query-param controlled) ───
     ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
     ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
     ...(opts.schema ? { schema_org: buildJSONLD(iso, store, ranked) } : {}),
@@ -3715,6 +3772,8 @@ export default async function handler(req, res) {
       related: url.searchParams.get("related") === "true",
       schema: url.searchParams.get("schema") === "true",
       summary: url.searchParams.get("summary") === "true",
+      ml: url.searchParams.get("ml") === "true",
+      sentiment: url.searchParams.get("sentiment") === "true",
       force_live: url.searchParams.get("force_live") !== "false",
       export: url.searchParams.get("export") || null,
       widget: url.searchParams.get("widget") === "true",
@@ -3747,26 +3806,17 @@ export default async function handler(req, res) {
     const breakingRanked = rankBreakingOnly(store, 1);
     const liveEventsOnly = rankLiveEventsOnly(store);
 
-    // HTML-PARITY FIX: robust fallback chain — always produce a non-empty list
+    // HTML-COMPAT: robust fallback chain — never return an empty list
     let finalIsos;
-    if (isoList.length) {
-      finalIsos = isoList;
-    } else if (params.region) {
-      finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
-    } else if (params.threshold > 0) {
-      finalIsos = ranked.filter(iso => store[iso].__effective_score >= params.threshold);
-    } else if (params.force_live && liveEventsOnly.length > 0) {
-      finalIsos = liveEventsOnly.slice(0, params.top);
-    } else if (params.force_live && breakingRanked.length > 0) {
-      finalIsos = breakingRanked.slice(0, params.top);
-    } else {
-      finalIsos = ranked.slice(0, params.top);
-    }
-    // HTML-PARITY FIX: guaranteed non-empty fallback
-    if (!finalIsos.length && !isoList.length) {
-      finalIsos = ranked.slice(0, params.top);
-    }
+    if (isoList.length) finalIsos = isoList;
+    else if (params.region) finalIsos = ranked.filter(iso => COUNTRIES[iso].region === params.region);
+    else if (params.threshold > 0) finalIsos = ranked.filter(iso => store[iso].__effective_score >= params.threshold);
+    else if (params.force_live && liveEventsOnly.length > 0) finalIsos = liveEventsOnly.slice(0, params.top);
+    else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
+    else finalIsos = ranked.slice(0, params.top);
+    if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
+    // HTML-COMPAT: honor keywords/related/schema/summary in list mode too
     const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
 
     if (params.export && finalIsos.length === 1) {
@@ -3788,23 +3838,12 @@ export default async function handler(req, res) {
     }
 
     if (params.live) {
-      // HTML-PARITY FIX: always return a valid, non-empty feed
+      // HTML-COMPAT: always return a valid feed via fallback chain
       const source = liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked);
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return {
-          rank: source.indexOf(iso) + 1,
-          iso,
-          name: c.name,
-          flag: c.flag,
-          live_score: lb.live_score,
-          effective_score: c.__effective_score,
-          tier: lb.tier,
-          headline: lb.breaking_headline,
-          signal_count: lb.signal_count,
-          source_count: lb.source_count,
-        };
+        return { rank: source.indexOf(iso) + 1, iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, headline: lb.breaking_headline, signal_count: lb.signal_count, source_count: lb.source_count };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news" }, live_news: feed }, null, 2));
@@ -3812,7 +3851,7 @@ export default async function handler(req, res) {
     }
 
     if (params.rss) {
-      // HTML-PARITY FIX: always return valid RSS with fallback to `ranked`
+      // HTML-COMPAT: always return valid RSS via fallback chain
       const source = params.region
         ? (liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked)).filter(i => COUNTRIES[i].region === params.region)
         : (liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked));
@@ -3824,21 +3863,12 @@ export default async function handler(req, res) {
     }
 
     if (params.wst) {
-      // HTML-PARITY FIX: return ACTUAL watchlist data (was empty array)
+      // HTML-COMPAT: return ACTUAL watchlist data (was empty array)
       const source = liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked);
       const feed = source.slice(0, params.top || 25).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return {
-          iso,
-          name: c.name,
-          flag: c.flag,
-          score: c.score,
-          effective_score: c.__effective_score,
-          live_score: lb.live_score,
-          tier: lb.tier,
-          headline: lb.breaking_headline,
-        };
+        return { iso, name: c.name, flag: c.flag, score: c.score, effective_score: c.__effective_score, live_score: lb.live_score, tier: lb.tier, headline: lb.breaking_headline };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist" }, watchlist: feed }, null, 2));
@@ -3846,24 +3876,12 @@ export default async function handler(req, res) {
     }
 
     if (params.breaking) {
-      // HTML-PARITY FIX: always return valid JSON with fallback chain
+      // HTML-COMPAT: always return valid JSON via fallback chain
       const source = liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked);
       const feed = source.slice(0, params.top || 20).map(iso => {
         const c = store[iso];
         const lb = c.__live_breaking;
-        return {
-          iso,
-          name: c.name,
-          flag: c.flag,
-          live_score: lb.live_score,
-          effective_score: c.__effective_score,
-          tier: lb.tier,
-          tier_label: lb.tier_label,
-          headline: lb.breaking_headline,
-          signal_count: lb.signal_count,
-          source_count: lb.source_count,
-          top_events: lb.events.slice(0, 3),
-        };
+        return { iso, name: c.name, flag: c.flag, live_score: lb.live_score, effective_score: c.__effective_score, tier: lb.tier, tier_label: lb.tier_label, headline: lb.breaking_headline, signal_count: lb.signal_count, source_count: lb.source_count, top_events: lb.events.slice(0, 3) };
       });
       res.writeHead(200, CORS);
       res.end(JSON.stringify({
@@ -3912,9 +3930,11 @@ export default async function handler(req, res) {
           breaking: "GET /api/top-story?format=breaking",
         },
         enhancements: {
+          // HTML-COMPAT: frontend reads meta.enhancements.machine_learning.{trained, accuracy, training_count}
           machine_learning: {
             trained: mlModel.trained,
             training_count: mlModel.trainingCount,
+            accuracy: +(mlModel.performance.r2 || 0),
             performance: { accuracy: +(mlModel.performance.r2 || 0).toFixed(2) },
           },
           breadth_patch_iii: {
@@ -3934,24 +3954,24 @@ export default async function handler(req, res) {
               "refugee resettlement flows (UNHCR RSQ)",
             ],
           },
-          html_parity_hotfix: {
-            rss_fallback: "ranked.slice(0, 30)",
-            live_fallback: "liveEventsOnly → breakingRanked → ranked",
-            breaking_fallback: "liveEventsOnly → breakingRanked → ranked",
-            wst_returns_data: true,
-            top_level_fields: ["live_evidence_count", "live_evidence_sources", "anomalyScore"],
-            dimensions_shape: "{ value, label, weight, icon }",
-            crisis_types_shape: "{ code, label, icon, color }",
-            needs_array: true,
-            ml_includes: ["trained", "accuracy", "training_count"],
-            trend_includes: ["delta_7d", "forecast_7d"],
-            story_heat_shape: "{ score, tier, top_drivers }",
-            live_evidence_added: ["ipcPopulation", "conflict_fatalities"],
-            comparison_mode_returns_countries: true,
+          // HTML-COMPAT: documents exactly which fields were projected
+          html_compat: {
+            story_heat: "live_breaking.{live_score,tier,events} → {score,tier,top_drivers}",
+            live_evidence: "signals + evidenceIndex.sourceCoverage → HTML-named object",
+            anomalyScore: "anomaly.z_score capped to 0..10",
+            live_evidence_count: "evidence.source_count",
+            live_evidence_sources: "evidence.sources",
+            ml: "ml_forecast + mlModel state → {trained,accuracy,training_count,...}",
+            trend: "series + forecast → {delta_7d,direction,slope,forecast_7d,...}",
+            dimensions: "dims → {value,label,weight,icon} per dimension",
+            crisis_types: "types → {code,label,icon,color} array",
+            needs: "ARC[t].n flattened and deduped",
+            recommendation: "{tier, text}",
+            score_audit: "full audit object",
           },
         },
       },
-      // HTML-PARITY FIX: countries array present in BOTH list AND comparison modes
+      // HTML-COMPAT: countries array present in BOTH list AND comparison modes
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
       ...(mode === "comparison" ? { countries: payloads } : {}),
