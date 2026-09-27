@@ -1,11 +1,31 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v18.0.0 — DEFINITIVE + BREADTH PATCH
+//  TOP-STORY API — v18.2.0 — DEFINITIVE + BREADTH PATCH
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 44+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v18.0.0 CHANGES (this patch) ═══
+//  🌍 46+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v18.2.0 CHANGES (this patch) ═══
+//  ✅ VLC (volcano) now has a dedicated feed: GDACS eventtype=VO — same gap
+//     TSU had before v18.0.0's tsunami fix (defined crisis type, zero
+//     dedicated evidence source)
+//  ✅ New fetchReliefWebDisplacement(): ReliefWeb "Population Movement"
+//     listings as a fast, event-driven complement to UNHCR's slower
+//     population datasets for the `displacement` dimension
+//  ✅ Fixed fetchSentinel(): unassigned satellite observations were being
+//     force-attributed to Yemen regardless of actual location — the same
+//     class of bug the OSM hospital/clinic fetchers had before v18.0.0.
+//     Now dropped rather than mis-attributed.
+//  ✅ OSM access-evidence country list widened 15 → 20
+//  ═══ v18.1.0 — COMPATIBILITY VIEW ═══
+//  ✅ Added story_heat / live_evidence / anomalyScore / meta.enhancements
+//     fields so the existing "GCIN Gold Standard" front-end (which reads
+//     an earlier API field-naming generation) renders real data instead
+//     of falling back to boilerplate placeholders
+//  ✅ keywords / related / schema / summary query flags now actually
+//     attach their corresponding payload fields (previously parsed and
+//     silently discarded)
+//  ═══ v18.0.0 CHANGES ═══
 //  ✅ political dimension now has a live source: World Bank WGI (PV.EST)
 //  ✅ conflict dimension gains a fast-moving source: GDELT 2.0 DOC API
 //     (24h article-volume by country) alongside the slower ReliefWeb feed
@@ -103,7 +123,9 @@ const HAZARD_LOOP_ISOS = [
 // country in the file, silently duplicating Yemen's hospital count into every
 // other country's ledger. Rotates the 15 lowest-stability (highest FSI) states
 // so at least the countries where "access" actually matters get real data.
-const OSM_INFRA_ISOS = ['YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD','NER','CAF','MMR','ETH','NGA'];
+// v18.2.0: widened from 15 to 20 countries (added LBY, COG, BFA, GIN, VEN)
+// so "access" evidence isn't perpetually concentrated on the same 15 states.
+const OSM_INFRA_ISOS = ['YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD','NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN'];
 
 const WPAC_ISOS = new Set(['PHL','TWN','JPN','CHN','VNM','KOR','PRK','IDN','MYS','THA','KHM','LAO','MMR','BGD','IND','LKA','MDV']);
 const MEDITERRANEAN_ISOS = new Set(['ITA','GRC','TUR','ESP','FRA','HRV','ALB','MNE','LBY','TUN','DZA','MAR','EGY','ISR','LBN','SYR','CYP','MLT']);
@@ -1043,10 +1065,27 @@ function computeEvidenceScore(iso) {
     const ps = coverage.political_stability;
     if (ps < -0.5) add("WORLDBANK", `Political stability index ${ps.toFixed(2)} (unstable)`, ps, logScale(Math.abs(ps), 0.5, 2.5, 5), 0.7);
   }
-  // 56. NEW — GDELT conflict/unrest news-volume spike (fast-moving, complements slower ReliefWeb feed)
+  // 56. GDELT conflict/unrest news-volume spike (fast-moving, complements slower ReliefWeb feed)
   if (coverage.gdelt_conflict) {
     const n = coverage.gdelt_conflict.count || 0;
     if (n >= 3) add("GDELT", `${n} conflict/unrest articles (24h)`, n, coverageScale(n, 3, 30, 5), 0.55);
+  }
+  // 57. NEW v18.2.0 — GDACS volcanic eruption alert. VLC was a defined ARC
+  // crisis type with no dedicated evidence source until this patch.
+  if (coverage.gdacs_volcano) {
+    const severity = coverage.gdacs_volcano.alert || "Green";
+    const pts = severity === "Red" ? 9 : severity === "Orange" ? 5.5 : 2.5;
+    add("GDACS", `${severity} volcanic alert: ${(coverage.gdacs_volcano.event || "").substring(0, 30) || "eruption"}`, 1, pts, 0.8);
+  }
+  // 58. NEW v18.2.0 — ReliefWeb "Population Movement" disaster listings.
+  // UNHCR's population datasets (rules 15/16/17) update on a slower, often
+  // biannual cadence; ReliefWeb's disaster feed publishes new displacement
+  // entries as events unfold, so this is a faster-moving corroborating
+  // signal for the `displacement` dimension, the same relationship GDELT
+  // (rule 56) has to the slower ReliefWeb conflict feed.
+  if (coverage.population_movement) {
+    const sev = coverage.population_movement.severityIndex || 40;
+    add("RELIEFWEB", `Population movement: ${(coverage.population_movement.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 5), 0.65);
   }
 
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
@@ -1276,9 +1315,15 @@ async function fetchNASA() {
 // previously a defined crisis type (TSU) with no dedicated evidence source —
 // tsunami-prone countries only ever got credit if a co-located earthquake or
 // generic alert happened to fire.
+// v18.2.0: added eventtype=VO (volcano). Like TS before it, VLC was a
+// defined ARC crisis type with no dedicated feed — a volcanic-country score
+// only ever moved if a co-located earthquake or generic alert happened to
+// also fire. GDACS covers volcanic eruptions the same way it covers
+// cyclones/floods/etc, so this closes the gap the same way the v18.0.0
+// tsunami fix did.
 async function fetchGDACS() {
   try {
-    const [a, b, c, d, e, f, g] = await Promise.all([
+    const [a, b, c, d, e, f, g, h] = await Promise.all([
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TC&limit=30").then(r => r.json())),
@@ -1286,6 +1331,7 @@ async function fetchGDACS() {
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=WF&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TS&limit=20").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=VO&limit=20").then(r => r.json())),
     ]);
     const feats = [
       ...(a.ok ? a.data.features || [] : []),
@@ -1295,6 +1341,7 @@ async function fetchGDACS() {
       ...(e.ok ? e.data.features || [] : []),
       ...(f.ok ? f.data.features || [] : []),
       ...(g.ok ? g.data.features || [] : []),
+      ...(h.ok ? h.data.features || [] : []),
     ];
     for (const feat of feats) {
       const props = feat.properties, coords = feat.geometry?.coordinates;
@@ -1314,6 +1361,9 @@ async function fetchGDACS() {
         if (!cov.gdacs_eq || props.magnitude > (cov.gdacs_eq.mag || 0)) {
           cov.gdacs_eq = { event: props.eventname, mag: props.magnitude };
         }
+      }
+      if (props.eventtype === "VO") {
+        cov.gdacs_volcano = { event: props.eventname, alert: props.alertlevel };
       }
     }
     return { data: feats, live: feats.length > 0 };
@@ -1952,8 +2002,12 @@ async function fetchSentinel() {
           }
         }
       }
-      if (!assigned) ensureCoverage('YEM').sentinel = { count: items.length };
-      return { data: items, live: true };
+      // v18.2.0 fix: previously any observation whose footprint couldn't be
+      // parsed was force-assigned to Yemen regardless of where it actually
+      // was, corrupting Yemen's evidence ledger with unrelated satellite
+      // passes. An unassigned observation is now simply dropped rather than
+      // attributed to the wrong country.
+      return { data: items, live: assigned };
     }
   } catch {}
   return { data: [], live: false };
@@ -2014,6 +2068,33 @@ async function fetchReliefWebConflict() {
         }
       }
       out.push({ country, event_type: d.fields?.type?.[0]?.name || 'Conflict', severityIndex, title: d.fields?.name || '' });
+    });
+    return { data: out, live: out.length > 0 };
+  } catch { return { data: [], live: false }; }
+}
+
+// v18.2.0: ReliefWeb "Population Movement" disaster listings — a faster,
+// event-driven complement to UNHCR's population statistics (rules 15-17),
+// which are compiled datasets that lag real events by weeks to months.
+async function fetchReliefWebDisplacement() {
+  try {
+    const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Population%20Movement&sort[]=date.created:desc';
+    const r = await safeFetch(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
+    if (!r.ok || !r.data?.data?.length) return { data: [], live: false };
+    const out = [];
+    r.data.data.forEach(d => {
+      const country = d.fields?.country?.[0]?.name;
+      if (!country) return;
+      const title = (d.fields?.name || '').toLowerCase();
+      const severityIndex = (title.includes('mass') || title.includes('flee') || title.includes('exodus')) ? 75 : 40;
+      const iso = findIsoByName(country);
+      if (iso) {
+        const cov = ensureCoverage(iso);
+        if (!cov.population_movement || severityIndex > (cov.population_movement.severityIndex || 0)) {
+          cov.population_movement = { severityIndex, title: d.fields?.name || '' };
+        }
+      }
+      out.push({ country, severityIndex, title: d.fields?.name || '' });
     });
     return { data: out, live: out.length > 0 };
   } catch { return { data: [], live: false }; }
@@ -2172,6 +2253,7 @@ async function fetchAllLive() {
     reliefIPC: fetchReliefWebIPC(),
     reliefConflict: fetchReliefWebConflict(),
     reliefFews: fetchReliefWebFewsNet(),
+    reliefDisplacement: fetchReliefWebDisplacement(),
     osmHosp: fetchOSMHospitals(),
     osmClin: fetchOSMClinics(),
     emdat: fetchEMDAT(),
@@ -2241,6 +2323,9 @@ const LIVE_SIGNALS = {
   wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
   political_instability:{weight:45,verify:0.8,label:"Political Instability",icon:"🏛️"},
   gdelt_conflict_spike:{weight:50,verify:0.75,label:"Conflict News Spike",icon:"📰"},
+  gdacs_volcano_red:{weight:90,verify:1.0,label:"GDACS Volcano RED Alert",icon:"🌋"},
+  gdacs_volcano_orange:{weight:60,verify:0.9,label:"GDACS Volcano Orange Alert",icon:"🌋"},
+  population_movement:{weight:55,verify:0.8,label:"Population Movement Reported",icon:"🚶"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2256,6 +2341,17 @@ function detectLiveBreakingSignals(iso, live, store) {
     const ageHours = 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
+  }
+
+  // v18.2.0 — dedicated volcano + population-movement signals
+  if (s.gdacsVolcano) {
+    const ageHours = 24;
+    const alert = (s.gdacsVolcano.alert || "").toLowerCase();
+    if (alert === "red") signals.push({ type: "gdacs_volcano_red", weight: 90, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic eruption" });
+    else if (alert === "orange") signals.push({ type: "gdacs_volcano_orange", weight: 60, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic alert" });
+  }
+  if (s.populationMovement && s.populationMovement.severityIndex >= 60) {
+    signals.push({ type: "population_movement", weight: 55, ageHours: 72, source: "ReliefWeb", details: s.populationMovement.title || "Population movement reported" });
   }
 
   const seismicSources = [
@@ -2872,6 +2968,9 @@ async function buildStore(liveData) {
       // v18.0.0
       politicalStability: cov.political_stability !== undefined ? { value: cov.political_stability } : null,
       gdeltConflict: cov.gdelt_conflict || null,
+      // v18.2.0
+      gdacsVolcano: cov.gdacs_volcano || null,
+      populationMovement: cov.population_movement || null,
     };
   }
 
@@ -3297,7 +3396,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v18.0.0",
+        ranking_mode: "DEFINITIVE_v18.2.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
@@ -3334,7 +3433,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v18.0.0]", err);
+    console.error("[top-story v18.2.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
