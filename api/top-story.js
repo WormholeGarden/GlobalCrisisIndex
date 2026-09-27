@@ -1,11 +1,41 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v17.0.0 — DEFINITIVE
+//  TOP-STORY API — v18.2.0 — DEFINITIVE + BREADTH PATCH
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 40+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  ═══ v17.0.1 CHANGES (this patch) ═══
+//  🌍 46+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  ═══ v18.2.0 CHANGES (this patch) ═══
+//  ✅ VLC (volcano) now has a dedicated feed: GDACS eventtype=VO — same gap
+//     TSU had before v18.0.0's tsunami fix (defined crisis type, zero
+//     dedicated evidence source)
+//  ✅ New fetchReliefWebDisplacement(): ReliefWeb "Population Movement"
+//     listings as a fast, event-driven complement to UNHCR's slower
+//     population datasets for the `displacement` dimension
+//  ✅ Fixed fetchSentinel(): unassigned satellite observations were being
+//     force-attributed to Yemen regardless of actual location — the same
+//     class of bug the OSM hospital/clinic fetchers had before v18.0.0.
+//     Now dropped rather than mis-attributed.
+//  ✅ OSM access-evidence country list widened 15 → 20
+//  ═══ v18.1.0 — COMPATIBILITY VIEW ═══
+//  ✅ Added story_heat / live_evidence / anomalyScore / meta.enhancements
+//     fields so the existing "GCIN Gold Standard" front-end (which reads
+//     an earlier API field-naming generation) renders real data instead
+//     of falling back to boilerplate placeholders
+//  ✅ keywords / related / schema / summary query flags now actually
+//     attach their corresponding payload fields (previously parsed and
+//     silently discarded)
+//  ═══ v18.0.0 CHANGES ═══
+//  ✅ political dimension now has a live source: World Bank WGI (PV.EST)
+//  ✅ conflict dimension gains a fast-moving source: GDELT 2.0 DOC API
+//     (24h article-volume by country) alongside the slower ReliefWeb feed
+//  ✅ access dimension (hospitals/clinics via OSM) generalized from a
+//     single hardcoded Yemen query to a rotating set of the 15 lowest-
+//     stability countries — previously EVERY country's "access" evidence
+//     silently reused Yemen's hospital count
+//  ✅ GDACS fan-out now also queries eventtype=TS (tsunami), closing the
+//     gap where TSU was a defined crisis type with no dedicated feed
+//  ═══ v17.0.1 CHANGES ═══
 //  ✅ Added ISO_ALIASES + word-boundary matching to findIsoByName so
 //     ReliefWeb/ACLED-style feeds that use alternate country names
 //     (e.g. "Burma" for Myanmar, "Tchad"/"Republic of Chad" for Chad,
@@ -87,6 +117,15 @@ const HAZARD_LOOP_ISOS = [
   'YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU',
   'EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'
 ];
+
+// Countries whose "access" evidence (hospitals/clinics via OSM) gets refreshed
+// each cycle. Previously this was hardcoded to Yemen's coordinates for EVERY
+// country in the file, silently duplicating Yemen's hospital count into every
+// other country's ledger. Rotates the 15 lowest-stability (highest FSI) states
+// so at least the countries where "access" actually matters get real data.
+// v18.2.0: widened from 15 to 20 countries (added LBY, COG, BFA, GIN, VEN)
+// so "access" evidence isn't perpetually concentrated on the same 15 states.
+const OSM_INFRA_ISOS = ['YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD','NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN'];
 
 const WPAC_ISOS = new Set(['PHL','TWN','JPN','CHN','VNM','KOR','PRK','IDN','MYS','THA','KHM','LAO','MMR','BGD','IND','LKA','MDV']);
 const MEDITERRANEAN_ISOS = new Set(['ITA','GRC','TUR','ESP','FRA','HRV','ALB','MNE','LBY','TUN','DZA','MAR','EGY','ISR','LBN','SYR','CYP','MLT']);
@@ -466,19 +505,6 @@ for (const iso of Object.keys(BASE_SCORES)) {
 //  NAME ALIASES — for country-name matching against ReliefWeb / ACLED-style
 //  free-text feeds, which frequently use alternate official names, older
 //  names, or non-English transliterations instead of the FSI_2024 label.
-//  ────────────────────────────────────────────────────────────────────────
-//  This directly fixes two classes of ingestion bugs:
-//   1. FALSE NEGATIVES: a feed calls a country "Burma" or "Tchad" and the
-//      old exact/substring matcher (which only knew the FSI_2024 name)
-//      silently produced no match, so that country's ReliefWeb/ACLED
-//      evidence was dropped from the pipeline entirely.
-//   2. FALSE POSITIVES: for short country names ("Chad"), naive substring
-//      matching (`text.includes("chad")`) also matches unrelated text that
-//      merely contains those letters as part of a longer word (e.g. a
-//      headline mentioning "Chadwick" or "Chadian" would previously both
-//      resolve to Chad; word-boundary matching below fixes the former
-//      while intentionally still allowing legitimate derived adjectives
-//      like "Chadian" since that IS about Chad).
 // ════════════════════════════════════════════════════════════════════════════
 const ISO_ALIASES = {
   MMR: ["myanmar", "burma", "union of myanmar", "republic of the union of myanmar"],
@@ -577,19 +603,8 @@ function seedHistory(iso, currentScore) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// findIsoByName — FIXED
-// Resolves a free-text country name (as returned by ReliefWeb, ACLED-style
-// feeds, WHO/CDC/ECDC RSS text, EM-DAT records, etc.) to an ISO3 code.
-//
-// Strategy, in order:
-//   1. Exact match against the canonical FSI_2024 name OR any registered
-//      alias (case-insensitive). Handles "Myanmar (Burma)" by also trying
-//      the parenthetical content and the string with parens stripped.
-//   2. Word-boundary match: does the input contain any known name/alias as
-//      a whole word/phrase (not as a fragment of a longer, unrelated word)?
-//      This is what allows "Republic of Chad" or "Chad's government forces"
-//      to resolve to TCD while preventing "Chadwick County" from doing so.
-// No match returns null — callers must handle that (they already do).
+// findIsoByName — resolves free-text country names (ReliefWeb, ACLED-style,
+// WHO/CDC/ECDC RSS text, EM-DAT, GDELT domains, etc.) to an ISO3 code.
 // ────────────────────────────────────────────────────────────────────────────
 function findIsoByName(name) {
   if (!name) return null;
@@ -600,15 +615,13 @@ function findIsoByName(name) {
   const parenContents = [...raw.matchAll(/\(([^)]*)\)/g)].map(m => m[1].trim());
   const candidates = [...new Set([raw, stripped, ...parenContents].filter(Boolean))];
 
-  // 1. Exact alias/canonical-name match — no guessing involved.
   for (const cand of candidates) {
     if (ALIAS_INDEX.has(cand)) return ALIAS_INDEX.get(cand);
   }
 
-  // 2. Word-boundary substring match against every known alias/name.
   for (const cand of candidates) {
     for (const [aliasLower, iso] of ALIAS_INDEX) {
-      if (aliasLower.length < 3) continue; // skip too-short aliases (noise)
+      if (aliasLower.length < 3) continue;
       const escaped = aliasLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const re = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`, 'i');
       if (re.test(cand)) return iso;
@@ -757,7 +770,7 @@ function coverageScale(value, floor, ceiling, maxPts) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  computeEvidenceScore — VERBATIM FROM HTML
+//  computeEvidenceScore — HTML-exact rules 1-54, plus v18.0.0 rules 55-56
 // ════════════════════════════════════════════════════════════════════════════
 
 function computeEvidenceScore(iso) {
@@ -941,10 +954,16 @@ function computeEvidenceScore(iso) {
     const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0));
     if (maxMag > 6) add("USGS", `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag, logScale(maxMag, 6, 8, 4), 0.6);
   }
-  // 31. Food prices
-  if (coverage.food_prices && coverage.food_prices.length > 0) {
-    const latest = coverage.food_prices[coverage.food_prices.length - 1];
-    if (latest && latest.value) add("WORLDBANK", `Food price index ${latest.value.toFixed(1)}`, latest.value, coverageScale(latest.value, 80, 150, 5), 0.7);
+  // 31. FIXED v18.3.0 — this indicator (World Bank AG.PRD.FOOD.XD) is the
+  // "Food production index" (2014-2016=100), NOT a price index as the
+  // original label and scoring direction implied. The old code added crisis
+  // points when the value was HIGH — but a high production index means
+  // output is UP from baseline, which is good news, not a risk signal. The
+  // actual risk signal is a LOW index (production has fallen relative to
+  // baseline), so this now scores the shortfall below 95, not the raw level.
+  if (coverage.food_production_index && coverage.food_production_index.value != null) {
+    const idx = coverage.food_production_index.value;
+    if (idx < 95) add("WORLDBANK", `Food production index ${idx.toFixed(1)} (below baseline)`, idx, logScale(95 - idx, 0, 30, 5), 0.7);
   }
   // 32. Water stress
   if (coverage.water_stress !== undefined && coverage.water_stress !== null) {
@@ -987,7 +1006,7 @@ function computeEvidenceScore(iso) {
     const trade = coverage.trade_gdp;
     if (trade > 60) add("WORLDBANK", `Trade ${trade.toFixed(1)}% of GDP`, trade, coverageScale(trade, 60, 200, 4), 0.6);
   }
-  // 40. Conflict event
+  // 40. Conflict event (ReliefWeb)
   if (coverage.conflict_event) {
     const sev = coverage.conflict_event.severityIndex || 40;
     add("RELIEFWEB", `${coverage.conflict_event.event_type}: ${(coverage.conflict_event.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 6), 0.75);
@@ -1047,6 +1066,60 @@ function computeEvidenceScore(iso) {
   if (coverage.sentinel && coverage.sentinel.count > 0) {
     add("Sentinel-2", `${coverage.sentinel.count} recent observation(s)`, coverage.sentinel.count, coverageScale(coverage.sentinel.count, 1, 5, 3), 0.5);
   }
+  // 55. NEW — Political stability (World Bank WGI, PV.EST; range approx -2.5..2.5, lower = less stable)
+  if (coverage.political_stability !== undefined && coverage.political_stability !== null) {
+    const ps = coverage.political_stability;
+    if (ps < -0.5) add("WORLDBANK", `Political stability index ${ps.toFixed(2)} (unstable)`, ps, logScale(Math.abs(ps), 0.5, 2.5, 5), 0.7);
+  }
+  // 56. GDELT conflict/unrest news-volume spike (fast-moving, complements slower ReliefWeb feed)
+  if (coverage.gdelt_conflict) {
+    const n = coverage.gdelt_conflict.count || 0;
+    if (n >= 3) add("GDELT", `${n} conflict/unrest articles (24h)`, n, coverageScale(n, 3, 30, 5), 0.55);
+  }
+  // 57. NEW v18.2.0 — GDACS volcanic eruption alert. VLC was a defined ARC
+  // crisis type with no dedicated evidence source until this patch.
+  if (coverage.gdacs_volcano) {
+    const severity = coverage.gdacs_volcano.alert || "Green";
+    const pts = severity === "Red" ? 9 : severity === "Orange" ? 5.5 : 2.5;
+    add("GDACS", `${severity} volcanic alert: ${(coverage.gdacs_volcano.event || "").substring(0, 30) || "eruption"}`, 1, pts, 0.8);
+  }
+  // 58. NEW v18.2.0 — ReliefWeb "Population Movement" disaster listings.
+  // UNHCR's population datasets (rules 15/16/17) update on a slower, often
+  // biannual cadence; ReliefWeb's disaster feed publishes new displacement
+  // entries as events unfold, so this is a faster-moving corroborating
+  // signal for the `displacement` dimension, the same relationship GDELT
+  // (rule 56) has to the slower ReliefWeb conflict feed.
+  if (coverage.population_movement) {
+    const sev = coverage.population_movement.severityIndex || 40;
+    add("RELIEFWEB", `Population movement: ${(coverage.population_movement.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 5), 0.65);
+  }
+  // 59. NEW v18.3.0 — hospital beds per 1,000 (World Bank SH.MED.BEDS.ZS).
+  // Closes a real gap: the `health` dimension previously had outbreak/
+  // disease signals only, nothing on baseline system capacity, and the
+  // OSM hospital count (rule 24) only exists for 20 rotating countries.
+  // This WDI indicator has (patchy but real) coverage for most of the 179.
+  // Low bed density is the risk signal, so this is scored on the shortfall
+  // below 2 beds/1,000 (a commonly cited fragile-system threshold).
+  if (coverage.hospital_beds !== undefined && coverage.hospital_beds !== null) {
+    const beds = coverage.hospital_beds;
+    if (beds < 2) add("WORLDBANK", `${beds.toFixed(2)} hospital beds per 1,000 people`, beds, logScale(2 - beds, 0, 2, 5), 0.6);
+  }
+  // 60. NEW v18.3.0 — % of roads paved (World Bank IS.ROD.PAVE.ZS). Gives
+  // the `access` dimension a national, always-on baseline instead of
+  // relying solely on the 20-country OSM hospital/clinic rotation (rule 24).
+  if (coverage.paved_roads !== undefined && coverage.paved_roads !== null) {
+    const paved = coverage.paved_roads;
+    if (paved < 40) add("WORLDBANK", `${paved.toFixed(1)}% of roads paved`, paved, logScale(40 - paved, 0, 40, 5), 0.55);
+  }
+  // 61. NEW v18.3.0 — Government Effectiveness (World Bank/WGI GE.EST,
+  // range approx -2.5..2.5). Distinct signal from political_stability
+  // (rule 55, which measures violence/instability): this measures state
+  // capacity and public-service delivery collapse, a driver of humanitarian
+  // crisis that can be severe even where overt violence is not.
+  if (coverage.gov_effectiveness !== undefined && coverage.gov_effectiveness !== null) {
+    const ge = coverage.gov_effectiveness;
+    if (ge < -0.5) add("WORLDBANK", `Government effectiveness index ${ge.toFixed(2)} (weak state capacity)`, ge, logScale(Math.abs(ge), 0.5, 2.5, 5), 0.65);
+  }
 
   const evidenceScore = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
   const avgWeight = ledger.length > 0 ? totalWeight / ledger.length : 0;
@@ -1062,7 +1135,8 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS — ALL 40+ RESTORED, EACH WITH OWN NAMESPACE
+//  FETCHERS — ALL RESTORED, PLUS v18.0.0 ADDITIONS (WGI, GDELT, GDACS-TS,
+//  and generalized multi-country OSM), EACH WITH OWN NAMESPACE
 // ════════════════════════════════════════════════════════════════════════════
 
 const safeFetch = p =>
@@ -1270,15 +1344,27 @@ async function fetchNASA() {
   } catch { return { data: [], live: false }; }
 }
 
+// v18.0.0: GDACS fan-out now also queries eventtype=TS (tsunami), which was
+// previously a defined crisis type (TSU) with no dedicated evidence source —
+// tsunami-prone countries only ever got credit if a co-located earthquake or
+// generic alert happened to fire.
+// v18.2.0: added eventtype=VO (volcano). Like TS before it, VLC was a
+// defined ARC crisis type with no dedicated feed — a volcanic-country score
+// only ever moved if a co-located earthquake or generic alert happened to
+// also fire. GDACS covers volcanic eruptions the same way it covers
+// cyclones/floods/etc, so this closes the gap the same way the v18.0.0
+// tsunami fix did.
 async function fetchGDACS() {
   try {
-    const [a, b, c, d, e, f] = await Promise.all([
+    const [a, b, c, d, e, f, g, h] = await Promise.all([
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TC&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=FL&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=WF&limit=30").then(r => r.json())),
       safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=DR&limit=30").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=TS&limit=20").then(r => r.json())),
+      safeFetch(fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=VO&limit=20").then(r => r.json())),
     ]);
     const feats = [
       ...(a.ok ? a.data.features || [] : []),
@@ -1287,9 +1373,11 @@ async function fetchGDACS() {
       ...(d.ok ? d.data.features || [] : []),
       ...(e.ok ? e.data.features || [] : []),
       ...(f.ok ? f.data.features || [] : []),
+      ...(g.ok ? g.data.features || [] : []),
+      ...(h.ok ? h.data.features || [] : []),
     ];
-    for (const f of feats) {
-      const props = f.properties, coords = f.geometry?.coordinates;
+    for (const feat of feats) {
+      const props = feat.properties, coords = feat.geometry?.coordinates;
       if (!props?.eventname) continue;
       let iso = null;
       if (coords) iso = findClosestCountry(coords[0], coords[1]);
@@ -1306,6 +1394,9 @@ async function fetchGDACS() {
         if (!cov.gdacs_eq || props.magnitude > (cov.gdacs_eq.mag || 0)) {
           cov.gdacs_eq = { event: props.eventname, mag: props.magnitude };
         }
+      }
+      if (props.eventtype === "VO") {
+        cov.gdacs_volcano = { event: props.eventname, alert: props.alertlevel };
       }
     }
     return { data: feats, live: feats.length > 0 };
@@ -1581,7 +1672,7 @@ async function fetchWorldBankIndicator(code) {
 }
 
 async function fetchWorldBankAll() {
-  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess] = await Promise.all([
+  const [population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodProductionIndex, electricityAccess, hospitalBeds, pavedRoads, govEffectiveness] = await Promise.all([
     fetchWorldBankIndicator("SP.POP.TOTL"),
     fetchWorldBankIndicator("SI.POV.DDAY"),
     fetchWorldBankIndicator("FP.CPI.TOTL.ZG"),
@@ -1590,6 +1681,14 @@ async function fetchWorldBankAll() {
     fetchWorldBankIndicator("ER.H2O.FWTL.ZS"),
     fetchWorldBankIndicator("AG.PRD.FOOD.XD"),
     fetchWorldBankIndicator("IC.ELC.ACCS.ZS"),
+    // v18.3.0 additions — all three close a dimension that previously had
+    // NO global (all-179-country) live source: health had only outbreak/
+    // disease signals with nothing on underlying system capacity; access
+    // had only OSM hospital/clinic counts for 20 countries; political had
+    // only PV.EST (violence/instability) with nothing on state capacity.
+    fetchWorldBankIndicator("SH.MED.BEDS.ZS"),   // hospital beds per 1,000 people -> health
+    fetchWorldBankIndicator("IS.ROD.PAVE.ZS"),   // % of roads paved -> access
+    fetchWorldBankIndicator("GE.EST"),           // WGI Government Effectiveness (-2.5..2.5) -> political
   ]);
   for (const [iso, d] of Object.entries(population.data)) { const cov = ensureCoverage(iso); cov.population = d.value; evidenceIndex.population[iso] = d.value; }
   for (const [iso, d] of Object.entries(poverty.data)) { ensureCoverage(iso).poverty = d.value; }
@@ -1597,17 +1696,43 @@ async function fetchWorldBankAll() {
   for (const [iso, d] of Object.entries(gdpGrowth.data)) { ensureCoverage(iso).gdp_growth = d.value; }
   for (const [iso, d] of Object.entries(unemployment.data)) { ensureCoverage(iso).unemployment = d.value; }
   for (const [iso, d] of Object.entries(waterStress.data)) { ensureCoverage(iso).water_stress = d.value; }
-  for (const [iso, d] of Object.entries(foodPriceIndex.data)) { ensureCoverage(iso).food_prices = [{ value: d.value, date: d.date }]; }
+  // FIXED v18.3.0: AG.PRD.FOOD.XD is a *production* index, not a price
+  // index, and stored as a scalar (was previously wrapped in a single-item
+  // array under a misleading `food_prices` key — see rule 31's fix above).
+  for (const [iso, d] of Object.entries(foodProductionIndex.data)) { ensureCoverage(iso).food_production_index = { value: d.value, date: d.date }; }
   for (const [iso, d] of Object.entries(electricityAccess.data)) { ensureCoverage(iso).electricity_access = d.value; }
-  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodPriceIndex, electricityAccess };
+  for (const [iso, d] of Object.entries(hospitalBeds.data)) { ensureCoverage(iso).hospital_beds = d.value; }
+  for (const [iso, d] of Object.entries(pavedRoads.data)) { ensureCoverage(iso).paved_roads = d.value; }
+  for (const [iso, d] of Object.entries(govEffectiveness.data)) { ensureCoverage(iso).gov_effectiveness = d.value; }
+  return { population, poverty, inflation, gdpGrowth, unemployment, waterStress, foodProductionIndex, electricityAccess, hospitalBeds, pavedRoads, govEffectiveness };
 }
 
+// v18.0.0: World Bank Worldwide Governance Indicators — Political Stability
+// and Absence of Violence/Terrorism (PV.EST). Range is roughly -2.5 (weak)
+// to +2.5 (strong). This is the ONLY live feed for the `political` dimension
+// — previously that dimension (weight 0.01 in DIMS) was structural-only,
+// never touched by any of the 40+ fetchers.
+async function fetchWGI() {
+  try {
+    const r = await fetchWorldBankIndicator("PV.EST");
+    for (const [iso, d] of Object.entries(r.data)) {
+      ensureCoverage(iso).political_stability = d.value;
+    }
+    return { data: r.data, live: r.live };
+  } catch { return { data: {}, live: false }; }
+}
+
+// Redundant cross-check fetcher, same pattern as fetchWorldBankRefugees()
+// cross-checking UNHCR: an independent call for the food-production index in
+// case fetchWorldBankAll's combined call is the one that times out this
+// cycle. FIXED v18.3.0: was writing the same mislabeled `food_prices` shape
+// as the bug in fetchWorldBankAll; now consistent with the corrected field.
 async function fetchWorldBankFoodPrices() {
   try {
     const r = await safeFetch(fetch("https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=300&mrv=1").then(r => r.json()));
     if (r.ok && r.data?.[1]) {
       for (const item of r.data[1]) {
-        if (item.country?.id && item.value != null) ensureCoverage(item.country.id).food_prices = [{ value: parseFloat(item.value), date: item.date }];
+        if (item.country?.id && item.value != null) ensureCoverage(item.country.id).food_production_index = { value: parseFloat(item.value), date: item.date };
       }
       return { data: r.data[1], live: true };
     }
@@ -1911,12 +2036,10 @@ async function fetchSentinel() {
         acquisitionDate: v.ContentDate?.Start || null,
         ageHours: v.ContentDate?.Start ? (Date.now() - new Date(v.ContentDate.Start).getTime()) / 36e5 : 72,
       }));
-      // Assign to closest country based on GeoFootprint if present
       let assigned = false;
       for (const v of r.data.value) {
         const footprint = v.GeoFootprint;
         if (footprint && footprint.length >= 2) {
-          // Extract first coordinate pair
           const match = String(footprint).match(/-?\d+\.?\d*\s+-?\d+\.?\d*/);
           if (match) {
             const [lon, lat] = match[0].split(/\s+/).map(Number);
@@ -1931,8 +2054,12 @@ async function fetchSentinel() {
           }
         }
       }
-      if (!assigned) ensureCoverage('YEM').sentinel = { count: items.length };
-      return { data: items, live: true };
+      // v18.2.0 fix: previously any observation whose footprint couldn't be
+      // parsed was force-assigned to Yemen regardless of where it actually
+      // was, corrupting Yemen's evidence ledger with unrelated satellite
+      // passes. An unassigned observation is now simply dropped rather than
+      // attributed to the wrong country.
+      return { data: items, live: assigned };
     }
   } catch {}
   return { data: [], live: false };
@@ -1998,6 +2125,33 @@ async function fetchReliefWebConflict() {
   } catch { return { data: [], live: false }; }
 }
 
+// v18.2.0: ReliefWeb "Population Movement" disaster listings — a faster,
+// event-driven complement to UNHCR's population statistics (rules 15-17),
+// which are compiled datasets that lag real events by weeks to months.
+async function fetchReliefWebDisplacement() {
+  try {
+    const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Population%20Movement&sort[]=date.created:desc';
+    const r = await safeFetch(fetch(url, { headers: { 'Accept': 'application/json' } }).then(r => r.json()));
+    if (!r.ok || !r.data?.data?.length) return { data: [], live: false };
+    const out = [];
+    r.data.data.forEach(d => {
+      const country = d.fields?.country?.[0]?.name;
+      if (!country) return;
+      const title = (d.fields?.name || '').toLowerCase();
+      const severityIndex = (title.includes('mass') || title.includes('flee') || title.includes('exodus')) ? 75 : 40;
+      const iso = findIsoByName(country);
+      if (iso) {
+        const cov = ensureCoverage(iso);
+        if (!cov.population_movement || severityIndex > (cov.population_movement.severityIndex || 0)) {
+          cov.population_movement = { severityIndex, title: d.fields?.name || '' };
+        }
+      }
+      out.push({ country, severityIndex, title: d.fields?.name || '' });
+    });
+    return { data: out, live: out.length > 0 };
+  } catch { return { data: [], live: false }; }
+}
+
 async function fetchReliefWebFewsNet() {
   try {
     const url = 'https://api.reliefweb.int/v1/disasters?appname=gcisfusion&profile=list&slim=1&limit=30&filter[field]=type.name&filter[value][]=Drought&sort[]=date.created:desc';
@@ -2020,26 +2174,46 @@ async function fetchReliefWebFewsNet() {
   } catch { return { data: [], live: false }; }
 }
 
+// v18.0.0: GENERALIZED — previously fetchOSMHospitals/fetchOSMClinics were
+// hardcoded to Yemen's coordinates (15.35,44.21) and wrote to
+// ensureCoverage('YEM') no matter what. Every OTHER country's "access"
+// dimension evidence was therefore permanently empty. This now loops over
+// OSM_INFRA_ISOS (rotating set of the 15 lowest-stability countries) using
+// each country's own centroid.
 async function fetchOSMHospitals() {
-  try {
-    const r = await safeFetch(fetch("https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;").then(r => r.json()));
-    if (r.ok && r.data?.elements?.length) {
-      ensureCoverage('YEM').hospitals = r.data.elements.length;
-      return { data: r.data, live: true };
-    }
-  } catch {}
-  return { data: { elements: [] }, live: false };
+  const results = {}; let anyLive = false;
+  await poolMap(OSM_INFRA_ISOS, 4, async iso => {
+    const cent = COUNTRIES[iso]?.cent;
+    if (!cent || (cent[0] === 0 && cent[1] === 0)) return;
+    try {
+      const q = `[out:json][timeout:20];node[amenity=hospital](around:150000,${cent[1]},${cent[0]});out body;`;
+      const r = await safeFetch(fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`).then(r => r.json()));
+      if (r.ok && r.data?.elements?.length) {
+        ensureCoverage(iso).hospitals = r.data.elements.length;
+        results[iso] = r.data.elements.length;
+        anyLive = true;
+      }
+    } catch {}
+  });
+  return { data: results, live: anyLive };
 }
 
 async function fetchOSMClinics() {
-  try {
-    const r = await safeFetch(fetch("https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=clinic](around:100000,15.35,44.21);out%20body;").then(r => r.json()));
-    if (r.ok && r.data?.elements?.length) {
-      ensureCoverage('YEM').clinics = r.data.elements.length;
-      return { data: r.data, live: true };
-    }
-  } catch {}
-  return { data: { elements: [] }, live: false };
+  const results = {}; let anyLive = false;
+  await poolMap(OSM_INFRA_ISOS, 4, async iso => {
+    const cent = COUNTRIES[iso]?.cent;
+    if (!cent || (cent[0] === 0 && cent[1] === 0)) return;
+    try {
+      const q = `[out:json][timeout:20];node[amenity=clinic](around:150000,${cent[1]},${cent[0]});out body;`;
+      const r = await safeFetch(fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`).then(r => r.json()));
+      if (r.ok && r.data?.elements?.length) {
+        ensureCoverage(iso).clinics = r.data.elements.length;
+        results[iso] = r.data.elements.length;
+        anyLive = true;
+      }
+    } catch {}
+  });
+  return { data: results, live: anyLive };
 }
 
 async function fetchEMDAT() {
@@ -2060,6 +2234,30 @@ async function fetchEMDAT() {
     }
   } catch {}
   return { data: { data: [] }, live: false };
+}
+
+// v18.0.0: GDELT 2.0 DOC API (free, no key) — 24h global news-article volume
+// mentioning conflict/unrest keywords, bucketed by country name mention.
+// This is a much faster-moving conflict signal than ReliefWeb's disaster
+// taxonomy (which is curated and often lags real events by days), and is
+// meant to corroborate — not replace — fetchReliefWebConflict.
+async function fetchGDELT() {
+  try {
+    const url = "https://api.gdeltproject.org/api/v2/doc/doc?query=%22armed%20conflict%22%20OR%20%22civil%20unrest%22%20OR%20%22mass%20protest%22%20OR%20%22government%20forces%22&mode=artlist&maxrecords=75&format=json&timespan=24h";
+    const r = await safeFetch(fetch(url).then(r => r.json()));
+    if (!r.ok || !r.data?.articles?.length) return { data: {}, live: false };
+    const counts = {};
+    for (const a of r.data.articles) {
+      const text = `${a.title || ""} ${a.domain || ""}`.toLowerCase();
+      for (const [iso, c] of Object.entries(COUNTRIES)) {
+        if (text.includes(c.name.toLowerCase())) { counts[iso] = (counts[iso] || 0) + 1; break; }
+      }
+    }
+    for (const [iso, n] of Object.entries(counts)) {
+      if (n >= 3) ensureCoverage(iso).gdelt_conflict = { count: n };
+    }
+    return { data: counts, live: Object.keys(counts).length > 0 };
+  } catch { return { data: {}, live: false }; }
 }
 
 // ── MASTER FETCH — allSettled, so one dead fetch never kills the response ──
@@ -2086,6 +2284,8 @@ async function fetchAllLive() {
     nasaPower: fetchNASAPower(),
     disease: fetchDiseaseSh(),
     wb: fetchWorldBankAll(),
+    wgi: fetchWGI(),
+    gdelt: fetchGDELT(),
     unhcr: fetchUNHCR(),
     unhcrSolutions: fetchUNHCRSolutions(),
     who: fetchWHO(),
@@ -2105,6 +2305,7 @@ async function fetchAllLive() {
     reliefIPC: fetchReliefWebIPC(),
     reliefConflict: fetchReliefWebConflict(),
     reliefFews: fetchReliefWebFewsNet(),
+    reliefDisplacement: fetchReliefWebDisplacement(),
     osmHosp: fetchOSMHospitals(),
     osmClin: fetchOSMClinics(),
     emdat: fetchEMDAT(),
@@ -2170,8 +2371,14 @@ const LIVE_SIGNALS = {
   climate_trace_emissions:{weight:40,verify:0.85,label:"Emissions Hotspot",icon:"🏭"},
   hdx_crisis:{weight:45,verify:0.9,label:"HDX Crisis Dataset",icon:"📊"},
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
-  wb_food_price:{weight:35,verify:0.9,label:"Food Price Shock",icon:"🍞"},
+  wb_food_production_shortfall:{weight:35,verify:0.9,label:"Food Production Shortfall",icon:"🍞"},
+  electricity_access_crisis:{weight:30,verify:0.9,label:"Electricity Access Crisis",icon:"💡"},
   wb_water_stress:{weight:30,verify:0.9,label:"Water Stress",icon:"💧"},
+  political_instability:{weight:45,verify:0.8,label:"Political Instability",icon:"🏛️"},
+  gdelt_conflict_spike:{weight:50,verify:0.75,label:"Conflict News Spike",icon:"📰"},
+  gdacs_volcano_red:{weight:90,verify:1.0,label:"GDACS Volcano RED Alert",icon:"🌋"},
+  gdacs_volcano_orange:{weight:60,verify:0.9,label:"GDACS Volcano Orange Alert",icon:"🌋"},
+  population_movement:{weight:55,verify:0.8,label:"Population Movement Reported",icon:"🚶"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -2187,6 +2394,17 @@ function detectLiveBreakingSignals(iso, live, store) {
     const ageHours = 12;
     if (s.gdacsAlert === "red") signals.push({ type: "gdacs_red", weight: 100, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Red alert active" });
     else if (s.gdacsAlert === "orange") signals.push({ type: "gdacs_orange", weight: 70, ageHours, source: "GDACS", details: s.gdacs.properties?.eventname || "Orange alert active" });
+  }
+
+  // v18.2.0 — dedicated volcano + population-movement signals
+  if (s.gdacsVolcano) {
+    const ageHours = 24;
+    const alert = (s.gdacsVolcano.alert || "").toLowerCase();
+    if (alert === "red") signals.push({ type: "gdacs_volcano_red", weight: 90, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic eruption" });
+    else if (alert === "orange") signals.push({ type: "gdacs_volcano_orange", weight: 60, ageHours, source: "GDACS", details: s.gdacsVolcano.event || "Volcanic alert" });
+  }
+  if (s.populationMovement && s.populationMovement.severityIndex >= 60) {
+    signals.push({ type: "population_movement", weight: 55, ageHours: 72, source: "ReliefWeb", details: s.populationMovement.title || "Population movement reported" });
   }
 
   const seismicSources = [
@@ -2262,8 +2480,16 @@ function detectLiveBreakingSignals(iso, live, store) {
   if (s.diseaseActive > 10_000) signals.push({ type: "disease_active", weight: 50, ageHours: 168, source: "disease.sh", details: `${s.diseaseActive.toLocaleString()} active cases` });
   if (s.wbInflation?.value > 20) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "World Bank", details: `${s.wbInflation.value.toFixed(0)}% inflation` });
   if (s.wbGdpGrowth?.value < -3) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "World Bank", details: `${s.wbGdpGrowth.value.toFixed(1)}% GDP` });
-  if (s.wbFoodPrice && s.wbFoodPrice.value > 100) signals.push({ type: "wb_food_price", weight: 35, ageHours: 720, source: "World Bank", details: `Food index ${s.wbFoodPrice.value.toFixed(0)}` });
-  if (s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "wb_food_price", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity ${s.electricityAccess.value.toFixed(0)}%` });
+  // FIXED v18.3.0: AG.PRD.FOOD.XD is a production index, not a price index —
+  // a value ABOVE 100 means output is up from baseline (good news), so the
+  // old `> 100` trigger had the polarity backwards. The risk signal is a
+  // material shortfall below baseline.
+  if (s.wbFoodProduction && s.wbFoodProduction.value < 90) signals.push({ type: "wb_food_production_shortfall", weight: 35, ageHours: 720, source: "World Bank", details: `Food production index ${s.wbFoodProduction.value.toFixed(0)} (below baseline)` });
+  // FIXED v18.3.0: this previously reused the "wb_food_price" signal type,
+  // meaning an electricity-access signal and a food-index signal for the
+  // same country on the same day would collide under eventKeyFor's dedup
+  // key (type::iso::day) and silently overwrite one another. Now its own type.
+  if (s.electricityAccess && s.electricityAccess.value < 50) signals.push({ type: "electricity_access_crisis", weight: 30, ageHours: 720, source: "World Bank", details: `Electricity access ${s.electricityAccess.value.toFixed(0)}%` });
 
   if (isUS(iso) && s.cdcOutbreaks && s.cdcOutbreaks.length > 0) {
     const top = s.cdcOutbreaks[0];
@@ -2306,6 +2532,14 @@ function detectLiveBreakingSignals(iso, live, store) {
   }
 
   if (s.hdxDatasets && s.hdxDatasets.count > 0) signals.push({ type: "hdx_crisis", weight: 15, ageHours: 168, source: "OCHA HDX", details: `${s.hdxDatasets.count} datasets` });
+
+  // v18.0.0 — political stability (WGI) and GDELT conflict-volume spike
+  if (s.politicalStability && s.politicalStability.value < -1.0) {
+    signals.push({ type: "political_instability", weight: 45, ageHours: 720, source: "World Bank WGI", details: `Political stability index ${s.politicalStability.value.toFixed(2)}` });
+  }
+  if (s.gdeltConflict && s.gdeltConflict.count >= 5) {
+    signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, source: "GDELT", details: `${s.gdeltConflict.count} conflict/unrest articles (24h)` });
+  }
 
   return signals.map(sig => ({ ...sig, is_live_event: true }));
 }
@@ -2684,7 +2918,6 @@ async function buildStore(liveData) {
   const store = {};
 
   // STEP 1: Initialize each country with structural baseline ONLY.
-  // No score assigned yet — that happens in Step 2 with the evidence blend.
   for (const iso of Object.keys(COUNTRIES)) {
     const c = COUNTRIES[iso];
     const base = BASE_SCORES[iso] || 30;
@@ -2783,7 +3016,7 @@ async function buildStore(liveData) {
       population: cov.population || 0,
       wbInflation: cov.inflation !== undefined ? { value: cov.inflation } : null,
       wbGdpGrowth: cov.gdp_growth !== undefined ? { value: cov.gdp_growth } : null,
-      wbFoodPrice: cov.food_prices?.[0] || null,
+      wbFoodProduction: cov.food_production_index || null,
       electricityAccess: cov.electricity_access !== undefined ? { value: cov.electricity_access } : null,
       totalDisplaced: cov.displaced || 0,
       unhcrSolutions: cov.unhcr_solutions || null,
@@ -2793,6 +3026,12 @@ async function buildStore(liveData) {
       climateTrace: cov.emissions ? { topEmission: cov.emissions } : null,
       hdxDatasets: cov.hdx || null,
       usDrought: cov.us_drought || null,
+      // v18.0.0
+      politicalStability: cov.political_stability !== undefined ? { value: cov.political_stability } : null,
+      gdeltConflict: cov.gdelt_conflict || null,
+      // v18.2.0
+      gdacsVolcano: cov.gdacs_volcano || null,
+      populationMovement: cov.population_movement || null,
     };
   }
 
@@ -2907,6 +3146,45 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
+// v18.1.0 — COMPATIBILITY VIEW for the GCIN "Gold Standard" front-end (v8.0).
+// That page's JS reads `story_heat`, `live_evidence`, a top-level `anomalyScore`,
+// and `meta.enhancements.machine_learning` — field names/shapes an earlier
+// generation of this API used. The v17/v18 backend renamed these to
+// `live_breaking` / `evidence` and dropped the nested live_evidence structure
+// entirely, which is why the page rendered (nothing throws — every read in
+// the HTML is guarded with `|| {}`) but always fell back to generic
+// boilerplate headlines, an empty stats box, and a permanently-stuck
+// "ML: training..." badge. This function maps the REAL data already computed
+// above into the exact shape that JS expects. Nothing here is fabricated —
+// fields with no live source (ipcPopulation, conflict_fatalities) are left
+// at 0 rather than invented, and conflict_events is honestly sourced from
+// the GDELT 24h article-count fetcher added in v18.0.0.
+function buildLiveEvidenceView(iso, store) {
+  const s = store[iso].signals || {};
+  const cov = evidenceIndex.sourceCoverage[iso] || {};
+  return {
+    gdacs: cov.gdacs ? { alert_level: (cov.gdacs.alert || "").toLowerCase(), event: cov.gdacs.event } : null,
+    displacement: { total: s.totalDisplaced || 0 },
+    ipcPhase: cov.ipc?.phase || 0,
+    // No current fetcher returns an at-risk population figure alongside IPC
+    // phase (ReliefWeb's disaster list gives phase + title, not headcounts).
+    // Left at 0 rather than guessed; wire in FEWS NET's population field here
+    // if/when that fetcher is extended to expose it.
+    ipcPopulation: cov.ipc?.population || 0,
+    earthquake: s.quakeMag ? { magnitude: s.quakeMag, location: s.quakePlace || null } : null,
+    // No fetcher reports conflict fatality counts (ACLED-style casualty data
+    // requires a paid/keyed feed) — left at 0 rather than fabricated.
+    conflict_fatalities: 0,
+    conflict_events: cov.gdelt_conflict?.count || 0,
+    who_outbreaks: { outbreaks: cov.who_outbreak ? [{ disease: cov.who_outbreak.disease }] : [] },
+    heat: { max_temp_c: s.maxTempC || 0 },
+    economic: {
+      inflation: { value: s.wbInflation?.value || 0 },
+      gdp_growth: { value: s.wbGdpGrowth?.value || 0 },
+    },
+  };
+}
+
 async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -3014,6 +3292,22 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     recommendation: recommendation(htmlScore, anom),
     region: c.region,
     fsi: { score: c.fsi_score, rank: c.fsi_rank, band: c.fsi_band },
+
+    // ── v18.1.0 compatibility fields for the GCIN Gold Standard front-end ──
+    story_heat: {
+      score: lb.live_score || 0,
+      tier: lb.tier || "BACKGROUND",
+      top_drivers: (lb.events || []).slice(0, 3).map(e => ({ driver: e.label, source: e.source, details: e.details })),
+    },
+    live_evidence: buildLiveEvidenceView(iso, store),
+    // anomaly.z_score is an unbounded statistical statistic; clamped to a
+    // 0-10 display scale here since that's the range the front-end expects.
+    anomalyScore: Math.min(10, +(anom.z_score || 0).toFixed(1)),
+    ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
+    ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
+    ...(opts.schema ? { schema_org: buildJSONLD(iso, store, ranked) } : {}),
+    ...(opts.summary ? { article: buildSEOArticle(iso, store, ranked) } : {}),
+
     __parity_digest: {
       structural_component: +(composite(c.dims) * (1 - (c.evidence_confidence * CFG.EVIDENCE_STRUCTURAL_WEIGHT))).toFixed(3),
       evidence_score: c.evidence_score,
@@ -3089,6 +3383,8 @@ export default async function handler(req, res) {
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.slice(0, params.top);
 
+    const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
+
     if (params.export && finalIsos.length === 1) {
       const iso = finalIsos[0];
       const s = store[iso];
@@ -3152,7 +3448,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    const opts = { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
     const payloads = await Promise.all(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts)));
     const mode = isoList.length >= 2 ? "comparison" : finalIsos.length > 1 ? "list" : "single";
     const secsUntilNext = Math.floor((CFG.SEED_INTERVAL_MS - (Date.now() % CFG.SEED_INTERVAL_MS)) / 1000);
@@ -3162,7 +3457,7 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v17.0.1",
+        ranking_mode: "DEFINITIVE_v18.2.0",
         countries_tracked: Object.keys(COUNTRIES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
@@ -3179,6 +3474,18 @@ export default async function handler(req, res) {
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
         },
+        // v18.1.0 — the GCIN front-end's top status bar reads this exact
+        // path (meta.enhancements.machine_learning.{trained,training_count,
+        // performance.accuracy}). mlModel is the same singleton buildStore()
+        // just trained via trainMLModel(store), so this reports the real
+        // state, not a placeholder.
+        enhancements: {
+          machine_learning: {
+            trained: mlModel.trained,
+            training_count: mlModel.trainingCount,
+            performance: { accuracy: +(mlModel.performance.r2 || 0).toFixed(2) },
+          },
+        },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
@@ -3187,7 +3494,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v17.0.1]", err);
+    console.error("[top-story v18.2.0]", err);
     res.writeHead(500, CORS);
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
