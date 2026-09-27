@@ -2986,6 +2986,45 @@ function buildRSSFeed(isos, store, ranked) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>${CFG.ARTICLE_SITE_NAME}</title><link>${CFG.ARTICLE_BASE_URL}</link><description>Live breaking world crisis news.</description><lastBuildDate>${now.toUTCString()}</lastBuildDate>${items}</channel></rss>`;
 }
 
+// v18.1.0 — COMPATIBILITY VIEW for the GCIN "Gold Standard" front-end (v8.0).
+// That page's JS reads `story_heat`, `live_evidence`, a top-level `anomalyScore`,
+// and `meta.enhancements.machine_learning` — field names/shapes an earlier
+// generation of this API used. The v17/v18 backend renamed these to
+// `live_breaking` / `evidence` and dropped the nested live_evidence structure
+// entirely, which is why the page rendered (nothing throws — every read in
+// the HTML is guarded with `|| {}`) but always fell back to generic
+// boilerplate headlines, an empty stats box, and a permanently-stuck
+// "ML: training..." badge. This function maps the REAL data already computed
+// above into the exact shape that JS expects. Nothing here is fabricated —
+// fields with no live source (ipcPopulation, conflict_fatalities) are left
+// at 0 rather than invented, and conflict_events is honestly sourced from
+// the GDELT 24h article-count fetcher added in v18.0.0.
+function buildLiveEvidenceView(iso, store) {
+  const s = store[iso].signals || {};
+  const cov = evidenceIndex.sourceCoverage[iso] || {};
+  return {
+    gdacs: cov.gdacs ? { alert_level: (cov.gdacs.alert || "").toLowerCase(), event: cov.gdacs.event } : null,
+    displacement: { total: s.totalDisplaced || 0 },
+    ipcPhase: cov.ipc?.phase || 0,
+    // No current fetcher returns an at-risk population figure alongside IPC
+    // phase (ReliefWeb's disaster list gives phase + title, not headcounts).
+    // Left at 0 rather than guessed; wire in FEWS NET's population field here
+    // if/when that fetcher is extended to expose it.
+    ipcPopulation: cov.ipc?.population || 0,
+    earthquake: s.quakeMag ? { magnitude: s.quakeMag, location: s.quakePlace || null } : null,
+    // No fetcher reports conflict fatality counts (ACLED-style casualty data
+    // requires a paid/keyed feed) — left at 0 rather than fabricated.
+    conflict_fatalities: 0,
+    conflict_events: cov.gdelt_conflict?.count || 0,
+    who_outbreaks: { outbreaks: cov.who_outbreak ? [{ disease: cov.who_outbreak.disease }] : [] },
+    heat: { max_temp_c: s.maxTempC || 0 },
+    economic: {
+      inflation: { value: s.wbInflation?.value || 0 },
+      gdp_growth: { value: s.wbGdpGrowth?.value || 0 },
+    },
+  };
+}
+
 async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
   const c = store[iso];
   const lb = c.__live_breaking || {};
@@ -3093,6 +3132,22 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     recommendation: recommendation(htmlScore, anom),
     region: c.region,
     fsi: { score: c.fsi_score, rank: c.fsi_rank, band: c.fsi_band },
+
+    // ── v18.1.0 compatibility fields for the GCIN Gold Standard front-end ──
+    story_heat: {
+      score: lb.live_score || 0,
+      tier: lb.tier || "BACKGROUND",
+      top_drivers: (lb.events || []).slice(0, 3).map(e => ({ driver: e.label, source: e.source, details: e.details })),
+    },
+    live_evidence: buildLiveEvidenceView(iso, store),
+    // anomaly.z_score is an unbounded statistical statistic; clamped to a
+    // 0-10 display scale here since that's the range the front-end expects.
+    anomalyScore: Math.min(10, +(anom.z_score || 0).toFixed(1)),
+    ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
+    ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
+    ...(opts.schema ? { schema_org: buildJSONLD(iso, store, ranked) } : {}),
+    ...(opts.summary ? { article: buildSEOArticle(iso, store, ranked) } : {}),
+
     __parity_digest: {
       structural_component: +(composite(c.dims) * (1 - (c.evidence_confidence * CFG.EVIDENCE_STRUCTURAL_WEIGHT))).toFixed(3),
       evidence_score: c.evidence_score,
@@ -3259,6 +3314,18 @@ export default async function handler(req, res) {
           rss_feed: "GET /api/top-story?format=rss",
           breaking: "GET /api/top-story?format=breaking",
         },
+        // v18.1.0 — the GCIN front-end's top status bar reads this exact
+        // path (meta.enhancements.machine_learning.{trained,training_count,
+        // performance.accuracy}). mlModel is the same singleton buildStore()
+        // just trained via trainMLModel(store), so this reports the real
+        // state, not a placeholder.
+        enhancements: {
+          machine_learning: {
+            trained: mlModel.trained,
+            training_count: mlModel.trainingCount,
+            performance: { accuracy: +(mlModel.performance.r2 || 0).toFixed(2) },
+          },
+        },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
       ...(mode === "list" ? { countries: payloads } : {}),
@@ -3272,4 +3339,3 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
   }
 }
-node --check /home/claude/top-story.js && echo "SYNTAX OK"
