@@ -2141,38 +2141,33 @@ const API_ENDPOINTS={
   usgs_significant:'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson',
   gdacs_earthquakes:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20',
   usgs_historic:'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2024-01-01&endtime=2024-12-31&minmagnitude=6&limit=50',
-  
+  emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
+
   // ── NASA EONET ──
   nasa_eonet:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7',
   nasa_wildfires:'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20',
-  
-  // ── GDACS ──
-  gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?alertlevel=Orange,Red&limit=40',
-  
+
+  // ── GDACS (unified) ──
+  gdacs:'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ,TC,FL,VO,DR,WF&alertlevel=Orange,Red&limit=60',
+
   // ── WEATHER / CLIMATE ──
-// ── WEATHER / CLIMATE ──
-  // NOTE: no pinned single-country coordinates here anymore. Heat/precip
-  // evidence is gathered per-country via the HEAT_LOOP_ISOS loop inside
-  // fetchAllEvidence() — see fetchHeatAndPrecipLoop().
   noaa_stations:'https://api.weather.gov/stations?limit=20',
   openmeteo_wind:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&current_weather=true&hourly=wind_speed_10m&forecast_days=1',
   openmeteo_precipitation:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=precipitation&forecast_days=3',
   openmeteo_uv:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&daily=uv_index_max&forecast_days=3',
   openmeteo_cloudcover:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=cloudcover&forecast_days=3',
   openmeteo_lightning:'https://api.open-meteo.com/v1/forecast?latitude=15.35&longitude=44.21&hourly=lightning_potential&forecast_days=1',
-  noaa_stations:'https://api.weather.gov/stations?limit=20',
   noaa_alerts:'https://api.weather.gov/alerts/active?severity=Extreme',
   noaa_storm_reports:'https://api.weather.gov/alerts/active?severity=Severe',
-  
-  // ── FLOOD RISK ──
+
+  // ── FLOOD / MARINE ──
   openmeteo_flood:'https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3',
-  
-  // ── MARINE WEATHER ──
   openmeteo_marine:'https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1',
-  
+
   // ── HEALTH / DISEASE ──
   disease_sh:'https://disease.sh/v3/covid-19/countries?sort=cases&limit=20',
-  
+  who_don:'https://www.who.int/api/news/diseaseoutbreaknews',
+
   // ── WORLD BANK ──
   wb_population:'https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1',
   wb_poverty:'https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1',
@@ -2183,7 +2178,8 @@ const API_ENDPOINTS={
   wb_food_prices:'https://api.worldbank.org/v2/country/all/indicator/AG.PRD.FOOD.XD?format=json&per_page=10&mrv=1',
   wb_water:'https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=10&mrv=1',
   wb_trade:'https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=10&mrv=1',
-  
+  wb_political_stability:'https://api.worldbank.org/v2/country/all/indicator/PV.EST?format=json&per_page=300&mrv=1',
+
   // ── UNHCR ──
   unhcr_pop:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1',
   unhcr_asylum:'https://api.unhcr.org/population/v1/population/?limit=30&dataset=asylum&displayType=totals&yearFrom=2023&yearTo=2024',
@@ -2191,38 +2187,43 @@ const API_ENDPOINTS={
   unhcr_emergency:'https://api.unhcr.org/emergency/v1/emergencies?limit=20',
   unhcr_statistics:'https://api.unhcr.org/statistics/v1/refugees?limit=20',
 
-  // ── SEISMIC (secondary network) ──
-  emsc_seismic:'https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time',
-
-  // ── MULTI-HAZARD ──
+  // ── IFRC ──
   ifrc_go:'https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date',
 
-  // ── AIR QUALITY (multi-city loop) ──
-  openmeteo_aq_lagos:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=6.5&longitude=3.4&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_delhi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_beijing:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_mumbai:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.1&longitude=72.9&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_dhaka:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=23.8&longitude=90.4&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_cairo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_jakarta:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-6.2&longitude=106.8&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_mexico:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=19.4&longitude=-99.1&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_saopaulo:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-23.5&longitude=-46.6&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_johannesburg:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.0&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_karachi:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=24.9&longitude=67.1&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_bangkok:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.8&longitude=100.5&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_istanbul:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.0&longitude=28.9&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_buenosaires:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-34.6&longitude=-58.4&hourly=pm2_5&forecast_days=1',
-  openmeteo_aq_moscow:'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=55.8&longitude=37.6&hourly=pm2_5&forecast_days=1',
+  // ── RELIEFWEB ──
+  reliefweb_conflict:'https://api.reliefweb.int/v1/reports?appname=gcin-v203&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc',
+  reliefweb_displacement:'https://api.reliefweb.int/v1/reports?appname=gcin-v203&profile=full&limit=20&filter[field]=theme&filter[value][]=Displacement and Resettlement&sort[]=date:desc',
+
+  // ── GDELT ──
+  gdelt_conflict:'https://api.gdeltproject.org/api/v2/doc/doc?query=conflict&mode=artlist&maxrecords=25&format=json',
+  gdelt_election_violence:'https://api.gdeltproject.org/api/v2/doc/doc?query=election%20violence&mode=artlist&maxrecords=15&format=json',
 
   // ── INFRASTRUCTURE ──
   osm_hospitals:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=hospital](around:100000,15.35,44.21);out%20body;',
   osm_health_centers:'https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=clinic](around:100000,15.35,44.21);out%20body;',
 
-  // ── DISASTER DATABASE ──
-  emdat_disasters:'https://www.emdat.be/api/emdat?limit=10&year=2024',
+  // ── CLIMATE ──
+  climate_trace:'https://api.climatetrace.org/v6/countries',
 
-  // ── CLIMATE TRACE ──
-  climate_trace:'https://api.climatetrace.org/v1/emissions?country=US&sector=all',
+  // ── FAO ──
+  fao_fpma:'https://fpma.apps.fao.org/api/v1/prices',
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  v20.3.0 NEW SOURCES
+  // ═══════════════════════════════════════════════════════════════════
+  openaq_v2:'https://api.openaq.org/v2/latest?limit=100&parameter=pm25&has_geo=true',
+  ndbc_51001:'https://www.ndbc.noaa.gov/data/realtime2/51001.txt',
+  ndbc_51002:'https://www.ndbc.noaa.gov/data/realtime2/51002.txt',
+  ndbc_46026:'https://www.ndbc.noaa.gov/data/realtime2/46026.txt',
+  ndbc_41009:'https://www.ndbc.noaa.gov/data/realtime2/41009.txt',
+  ndbc_23201:'https://www.ndbc.noaa.gov/data/realtime2/23201.txt',
+  cems_activations:'https://emergency.copernicus.eu/mapping/list-of-activations-rapid/feed',
+  promed:'https://promedmail.org/promed-posts/feed/',
+  smithsonian_gvp:'https://volcano.si.edu/news/WeeklyVolcanoRSS.xml',
+  ptwc_tsunami:'https://www.tsunami.gov/events/xml/PAAQAtom.xml',
+  inform_index:'https://drmkc.jrc.ec.europa.eu/inform-index/API/informAPI/Countries/Scores/?WorkflowId=386',
+  frankfurter_fx:'https://api.frankfurter.dev/v2/rates?base=USD&quotes=EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,DKK,INR,BRL,MXN,ZAR,TRY,RUB,KRW,SGD,HKD,PLN,CZK,HUF,RON,ILS,AED,EGP,NGN,KES,PKR,BDT,LKR,THB,VND,MYR,IDR,PHP,KZT,UAH',
+  us_drought:'https://gis.fema.gov/arcgis/rest/services/Partner/Drought_Current/MapServer/0/query?where=1%3D1&outFields=DM,Shape__Area&f=geojson&resultRecordCount=50',
 };
 // Generalized, per-country heat+precipitation loop. Every ISO in this list
 // gets its OWN coordinates and its OWN fetch — no single country's weather
@@ -2540,42 +2541,102 @@ function buildTickerFromResults(){
     }
   }
   
-  // ── Lightning Potential (NEW) ──
+      // ── Lightning Potential ──
   if (apiResults.openmeteo_lightning?.hourly?.lightning_potential) {
     const maxLightning = Math.max(...apiResults.openmeteo_lightning.hourly.lightning_potential);
-    if (maxLightning > 100) {
-      items.push({l:'HIGH', c:'#ff8c42', t:`⚡ Lightning potential: ${maxLightning} J/kg (storm risk)`});
+    if (maxLightning > 100) items.push({l:'HIGH', c:'#ff8c42', t:`⚡ Lightning potential: ${maxLightning} J/kg (storm risk)`});
+  }
+
+  // ── v20.3.0: OpenAQ v2 ──
+  if (apiResults.openaq_v2?.results) {
+    apiResults.openaq_v2.results.slice(0, 5).forEach(r => {
+      const pm25 = r.measurements?.find(m => m.parameter === 'pm25')?.value;
+      if (pm25 != null && pm25 > 35) {
+        const sev = pm25 > 150 ? 'CRITICAL' : pm25 > 80 ? 'HIGH' : 'MODERATE';
+        const c = pm25 > 150 ? '#ff375f' : pm25 > 80 ? '#ff8c42' : '#ffb020';
+        items.push({l:sev, c, t:`🫁 OpenAQ: PM2.5 ${pm25.toFixed(0)} µg/m³ in ${r.city||r.location||'station'}`});
+      }
+    });
+  }
+
+  // ── v20.3.0: NOAA NDBC buoys ──
+  [{key:'ndbc_51001',name:'51001 (Hawaii)'},{key:'ndbc_51002',name:'51002 (Pacific)'},{key:'ndbc_46026',name:'46026 (SF Bay)'},{key:'ndbc_41009',name:'41009 (Canaveral)'},{key:'ndbc_23201',name:'23201 (Indian Ocean)'}].forEach(b => {
+    const raw = apiResults[b.key];
+    if (typeof raw === 'string') {
+      const lines = raw.trim().split('\n').filter(l => l && !l.startsWith('#'));
+      if (lines.length) {
+        const p = lines[0].trim().split(/\s+/);
+        const wh = parseFloat(p[8]), ws = parseFloat(p[6]);
+        if (Number.isFinite(wh) && wh > 3) items.push({l:wh>6?'CRITICAL':'HIGH', c:wh>6?'#ff375f':'#ff8c42', t:`🌊 NDBC ${b.name}: ${wh}m waves`});
+        else if (Number.isFinite(ws) && ws > 40) items.push({l:'HIGH', c:'#ff8c42', t:`💨 NDBC ${b.name}: ${ws} m/s winds`});
+      }
+    }
+  });
+
+  // ── v20.3.0: Copernicus EMS ──
+  if (typeof apiResults.cems_activations === 'string') {
+    [...new Set(apiResults.cems_activations.match(/EMSR\d+/g) || [])].slice(0, 5).forEach(id => {
+      items.push({l:'HIGH', c:'#ff8c42', t:`🛰️ Copernicus EMS: Activation ${id} (rapid mapping)`});
+    });
+  }
+
+  // ── v20.3.0: ProMED ──
+  if (typeof apiResults.promed === 'string') {
+    [...apiResults.promed.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/g)].slice(0, 4).forEach(m => {
+      items.push({l:'HIGH', c:'#ff8c42', t:`🦠 ProMED: ${(m[1]||'').trim().substring(0, 65)}`});
+    });
+  }
+
+  // ── v20.3.0: Smithsonian GVP ──
+  if (typeof apiResults.smithsonian_gvp === 'string') {
+    [...apiResults.smithsonian_gvp.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/g)].slice(0, 4).forEach(m => {
+      items.push({l:'HIGH', c:'#ff8c42', t:`🌋 Smithsonian GVP: ${(m[1]||'').trim().substring(0, 65)}`});
+    });
+  }
+
+  // ── v20.3.0: NOAA PTWC ──
+  if (typeof apiResults.ptwc_tsunami === 'string') {
+    const entries = [...apiResults.ptwc_tsunami.matchAll(/<entry>[\s\S]*?<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/g)];
+    entries.slice(0, 3).forEach(m => {
+      items.push({l:'CRITICAL', c:'#ff375f', t:`🌊 NOAA PTWC: ${(m[1]||'').trim().substring(0, 60)}`});
+    });
+  }
+
+  // ── v20.3.0: INFORM ──
+  if (Array.isArray(apiResults.inform_index)) {
+    const byIso = {};
+    apiResults.inform_index.forEach(item => { if (item.Iso3 && item.IndicatorId === 'INFORM') byIso[item.Iso3] = { score: item.IndicatorScore, rank: item.IndicatorRank }; });
+    Object.entries(byIso).sort((a,b)=>b[1].score-a[1].score).slice(0,3).forEach(([iso, d]) => {
+      items.push({l:'INFO', c:'#bf7fff', t:`📊 INFORM: ${NAMES[iso]||iso} risk score ${d.score?.toFixed(1)} (rank ${d.rank||'N/A'})`});
+    });
+  }
+
+  // ── v20.3.0: Frankfurter FX ──
+  if (apiResults.frankfurter_fx?.rates) {
+    const rates = apiResults.frankfurter_fx.rates;
+    ['TRY','RUB','NGN','PKR','EGP','KES','UAH','BDT','LKR'].forEach(cur => {
+      if (rates[cur]) {
+        const vol = Math.max(0, Math.min(60, Math.log10(Math.max(0.01, rates[cur])) * 20));
+        if (vol >= 15) items.push({l:vol>=30?'HIGH':'MODERATE', c:vol>=30?'#ff8c42':'#ffb020', t:`💱 ECB FX: ${cur} ${rates[cur].toFixed(3)} per USD (${vol.toFixed(1)}% stress)`});
+      }
+    });
+  }
+
+  // ── v20.3.0: US Drought Monitor ──
+  if (apiResults.us_drought?.features) {
+    const levels = { D0:0, D1:1, D2:2, D3:3, D4:4 };
+    let highest = 0;
+    apiResults.us_drought.features.forEach(f => { const l = levels[f.properties?.DM || 'D0'] || 0; if (l > highest) highest = l; });
+    const levelName = ['D0','D1','D2','D3','D4'][highest] || 'D0';
+    if (highest >= 1) {
+      const pts = highest >= 4 ? 'CRITICAL' : highest >= 3 ? 'HIGH' : 'MODERATE';
+      const c = highest >= 4 ? '#ff375f' : highest >= 3 ? '#ff8c42' : '#ffb020';
+      items.push({l:pts, c, t:`🏜️ US Drought Monitor: Level ${levelName} active (${apiResults.us_drought.features.length} zones)`});
     }
   }
-  
-  // ── NOAA Storm Reports (NEW) ──
-  if (apiResults.noaa_storm_reports?.features?.length > 0) {
-    items.push({l:'HIGH', c:'#ff375f', t:`⛈️ NOAA: ${apiResults.noaa_storm_reports.features.length} severe storm alerts`});
-  }
-  
-  // ── UNHCR Statistics (NEW) ──
-  if (apiResults.unhcr_statistics?.data) {
-    const stats = Array.isArray(apiResults.unhcr_statistics.data) ? apiResults.unhcr_statistics.data : [];
-    stats.slice(0, 3).forEach(stat => {
-      if (stat.refugees > 10000 && stat.country) {
-        const refugeesM = (stat.refugees / 1e6).toFixed(1);
-        items.push({l:'HIGH', c:'#bf7fff', t:`🏕️ UNHCR: ${stat.country} ${refugeesM}M refugees (${stat.year || '2024'})`});
-      }
-    });
-  }
-  
-  // ── World Bank Trade (NEW) ──
-  if (apiResults.wb_trade?.[1]) {
-    const tradeData = apiResults.wb_trade[1].filter(i => i.value !== null && i.value > 100 && i.country?.value);
-    tradeData.slice(0, 3).forEach(item => {
-      if (item.country?.value) {
-        items.push({l:'INFO', c:'#00e5a0', t:`📊 Trade: ${item.country.value} ${item.value.toFixed(1)}% of GDP`});
-      }
-    });
-  }
+
   // ── Return if no items ──
-  if(!items.length)return;
-  
+  if(!items.length)return;  
   // ── Build ticker HTML ──
   const uniq=items.slice(0,80);
   const doubled=[...uniq,...uniq];
@@ -3000,138 +3061,131 @@ async function fetchFewsNet() {
 // ─── Replace the fetchAllEvidence function (around line 1650) with this ───
 async function fetchAllEvidence() {
   const results = {};
-  
-  // ── 1. USGS Earthquakes ──
+
+  // 1. USGS
   try {
     const res = await fetch(API_ENDPOINTS.usgs_weekly);
     if (res.ok) {
       const data = await res.json();
       results.usgs_weekly = data;
-      if (data?.features) {
-        data.features.forEach(f => {
-          const props = f.properties;
-          const coords = f.geometry?.coordinates;
-          if (props?.place && coords) {
-            const country = props.place.split(',').pop()?.trim() || '';
-            const iso = findIsoByCountryName(country);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].usgs = {
-                mag: props.mag,
-                time: props.time,
-                place: props.place
-              };
-            }
+      (data?.features || []).forEach(f => {
+        const props = f.properties, coords = f.geometry?.coordinates;
+        if (props?.place && coords) {
+          const iso = findIsoByCountryName(props.place.split(',').pop()?.trim() || '');
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            evidenceIndex.sourceCoverage[iso].usgs = { mag: props.mag, time: props.time, place: props.place };
           }
-        });
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('USGS fetch failed:', e); }
+  } catch(e) { console.warn('USGS:', e); }
 
-  // ── 2. NASA EONET ──
+  // 2. EMSC
+  try {
+    const res = await fetch(API_ENDPOINTS.emsc_seismic);
+    if (res.ok) {
+      const data = await res.json();
+      results.emsc_seismic = data;
+      (data?.features || []).forEach(f => {
+        const mag = f.properties?.mag, coords = f.geometry?.coordinates;
+        if (mag >= 4.5 && coords) {
+          const iso = findClosestCountry(coords[0], coords[1]);
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            const prev = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
+            if (mag > prev) evidenceIndex.sourceCoverage[iso].emsc = { mag, time: f.properties?.time, place: f.properties?.flynn_region || f.properties?.place };
+          }
+        }
+      });
+    }
+  } catch(e) { console.warn('EMSC:', e); }
+
+  // 3. NASA EONET
   try {
     const res = await fetch(API_ENDPOINTS.nasa_eonet);
     if (res.ok) {
       const data = await res.json();
       results.nasa_eonet = data;
-      if (data?.events) {
-        data.events.forEach(ev => {
-          const coords = ev.geometry?.[0]?.coordinates;
-          if (coords) {
-            const iso = findClosestCountry(coords[0], coords[1]);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].nasa = {
-                title: ev.title,
-                categories: ev.categories
-              };
-            }
+      (data?.events || []).forEach(ev => {
+        const coords = ev.geometry?.[0]?.coordinates;
+        if (coords) {
+          const iso = findClosestCountry(coords[0], coords[1]);
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            evidenceIndex.sourceCoverage[iso].nasa = { title: ev.title, categories: ev.categories };
           }
-        });
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('NASA EONET fetch failed:', e); }
+  } catch(e) { console.warn('NASA EONET:', e); }
 
-  // ── 3. NASA Wildfires ──
+  // 4. NASA Wildfires
   try {
     const res = await fetch(API_ENDPOINTS.nasa_wildfires);
     if (res.ok) {
       const data = await res.json();
       results.nasa_wildfires = data;
-      if (data?.events) {
-        data.events.forEach(ev => {
-          const coords = ev.geometry?.[0]?.coordinates;
-          if (coords) {
-            const iso = findClosestCountry(coords[0], coords[1]);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].wildfire = {
-                title: ev.title,
-                severity: ev.categories?.[0]?.title || 'Wildfire'
-              };
-            }
+      (data?.events || []).forEach(ev => {
+        const coords = ev.geometry?.[0]?.coordinates;
+        if (coords) {
+          const iso = findClosestCountry(coords[0], coords[1]);
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            evidenceIndex.sourceCoverage[iso].wildfire = { title: ev.title, severity: ev.categories?.[0]?.title || 'Wildfire' };
           }
-        });
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('NASA Wildfires fetch failed:', e); }
+  } catch(e) { console.warn('NASA Wildfires:', e); }
 
-  // ── 4. GDACS Alerts ──
+  // 5. GDACS unified (routed by eventtype)
   try {
     const res = await fetch(API_ENDPOINTS.gdacs);
     if (res.ok) {
       const data = await res.json();
       results.gdacs = data;
-      if (data?.features) {
-        data.features.forEach(f => {
-          const props = f.properties;
-          const coords = f.geometry?.coordinates;
-          if (props?.eventname && coords) {
-            const iso = findClosestCountry(coords[0], coords[1]);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].gdacs = {
-                event: props.eventname,
-                alert: props.alertlevel
-              };
-            }
+      (data?.features || []).forEach(f => {
+        const props = f.properties, coords = f.geometry?.coordinates;
+        if (props?.eventname && coords) {
+          const iso = findClosestCountry(coords[0], coords[1]);
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            const cov = evidenceIndex.sourceCoverage[iso];
+            const ev = { event: props.eventname, alert: props.alertlevel, eventtype: props.eventtype };
+            if (props.eventtype === 'VO') cov.gdacs_volcano = ev;
+            else if (props.eventtype === 'DR') cov.gdacs_drought = ev;
+            else if (props.eventtype === 'FL') cov.gdacs_flood = ev;
+            else if (props.eventtype === 'TC') cov.gdacs_cyclone = ev;
+            else if (props.eventtype === 'TS') cov.gdacs_tsunami = ev;
+            else if (props.eventtype === 'EQ') cov.gdacs_eq = { event: props.eventname, mag: props.magnitude };
+            else cov.gdacs = ev;
           }
-        });
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('GDACS fetch failed:', e); }
+  } catch(e) { console.warn('GDACS:', e); }
 
-  // ── 5. GDACS Earthquakes ──
+  // 6. GDACS Earthquakes
   try {
     const res = await fetch(API_ENDPOINTS.gdacs_earthquakes);
     if (res.ok) {
       const data = await res.json();
       results.gdacs_earthquakes = data;
-      if (data?.features) {
-        data.features.forEach(f => {
-          const props = f.properties;
-          const coords = f.geometry?.coordinates;
-          if (props?.eventname && coords) {
-            const iso = findClosestCountry(coords[0], coords[1]);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].gdacs_eq = {
-                event: props.eventname,
-                mag: props.magnitude
-              };
-            }
+      (data?.features || []).forEach(f => {
+        const props = f.properties, coords = f.geometry?.coordinates;
+        if (props?.eventname && coords) {
+          const iso = findClosestCountry(coords[0], coords[1]);
+          if (iso) {
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            evidenceIndex.sourceCoverage[iso].gdacs_eq = { event: props.eventname, mag: props.magnitude };
           }
-        });
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('GDACS Earthquakes fetch failed:', e); }
+  } catch(e) { console.warn('GDACS EQ:', e); }
 
-// ── 6+7. Open-Meteo Heat + Precipitation — GENERALIZED PER-COUNTRY LOOP ──
-  // Previously this was two separate hardcoded blocks: one pinned to Yemen's
-  // coordinates, one pinned to Syria's. Every other country got nothing.
-  // This now loops over HEAT_LOOP_ISOS (25 heat/drought-prone countries) and
-  // gives each one its own real fetch against its own coordinates, exactly
-  // like the seismic/NASA/disease loops already do.
+  // 7. Heat + Precip loop
   try {
     const heatResults = await fetchHeatAndPrecipLoop();
     results.openmeteo_heat_loop = heatResults;
@@ -3140,702 +3194,404 @@ async function fetchAllEvidence() {
       evidenceIndex.sourceCoverage[iso].heat = { temp: d.temp, precip: d.precip, date: d.date };
       heatStressData.push({ iso, temp: d.temp, timestamp: Date.now() });
     });
-  } catch(e) { console.warn('Open-Meteo heat/precip loop failed:', e); }
+  } catch(e) { console.warn('Heat loop:', e); }
 
-  // ── 8. Open-Meteo Flood Risk (NEW) ──
+  // 8. Flood
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_flood); if (r.ok) { const d = await r.json(); results.openmeteo_flood = d;
+    const m = Math.max(...(d?.daily?.river_discharge || [0])); if (m > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].flood_risk = { discharge: m, date: d.daily.time?.[0] }; } } } catch(e) {}
+
+  // 9. Marine
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_marine); if (r.ok) { const d = await r.json(); results.openmeteo_marine = d;
+    const m = Math.max(...(d?.hourly?.wave_height || [0])); if (m > 2) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].marine = { wave_height: m, date: d.hourly.time?.[0] }; } } } catch(e) {}
+
+  // 10. NOAA stations
+  try { const r = await fetch(API_ENDPOINTS.noaa_stations); if (r.ok) { const d = await r.json(); results.noaa_stations = d; if (d?.features?.length > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].noaa = { stations: d.features.length }; } } } catch(e) {}
+
+  // 11. disease.sh
   try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_flood);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_flood = data;
-      if (data?.daily?.river_discharge) {
-        // Store flood risk for Yemen (or find closest country)
-        const max_discharge = Math.max(...data.daily.river_discharge);
-        if (max_discharge > 0) {
-          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-          evidenceIndex.sourceCoverage['YEM'].flood_risk = {
-            discharge: max_discharge,
-            date: data.daily.time?.[0]
-          };
-          console.log(`🌊 Flood risk: ${max_discharge} m³/s in Yemen`);
+    const r = await fetch(API_ENDPOINTS.disease_sh);
+    if (r.ok) {
+      const d = await r.json();
+      results.disease_sh = d;
+      if (Array.isArray(d)) d.forEach(x => {
+        const iso = findIsoByCountryName(x.country);
+        if (iso && x.active > 0) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].covid = { active: x.active, cases: x.cases, deaths: x.deaths };
+          diseaseOutbreaks.push({ disease: 'COVID-19', country: x.country, cases: x.active, source: 'disease.sh', date: new Date(x.updated).toISOString() });
         }
-      }
+      });
     }
-  } catch(e) { console.warn('Open-Meteo Flood fetch failed:', e); }
+  } catch(e) { console.warn('disease.sh:', e); }
 
-  // ── 9. Open-Meteo Marine Weather (NEW) ──
+  // 12. WHO DON
   try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_marine);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_marine = data;
-      if (data?.hourly?.wave_height) {
-        const max_wave = Math.max(...data.hourly.wave_height);
-        if (max_wave > 2) {
-          evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-          evidenceIndex.sourceCoverage['YEM'].marine = {
-            wave_height: max_wave,
-            date: data.hourly.time?.[0]
-          };
-          console.log(`🌊 Marine hazard: ${max_wave}m waves near Yemen`);
+    const r = await fetch(API_ENDPOINTS.who_don);
+    if (r.ok) {
+      const d = await r.json();
+      results.who_don = d;
+      (d?.value || []).forEach(x => {
+        const iso = x.CountryISO3 || x.Country;
+        if (iso && NAMES[iso]) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].who_don = { title: x.Title || x.Name, date: x.PublicationDate };
         }
-      }
+      });
     }
-  } catch(e) { console.warn('Open-Meteo Marine fetch failed:', e); }
+  } catch(e) { console.warn('WHO DON:', e); }
 
-  // ── 10. NOAA Stations ──
-  try {
-    const res = await fetch(API_ENDPOINTS.noaa_stations);
-    if (res.ok) {
-      const data = await res.json();
-      results.noaa_stations = data;
-      if (data?.features?.length > 0) {
-        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-        evidenceIndex.sourceCoverage['USA'].noaa = {
-          stations: data.features.length,
-          status: 'active'
-        };
-      }
-    }
-  } catch(e) { console.warn('NOAA Stations fetch failed:', e); }
-
-  // ── 11. disease.sh (COVID) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.disease_sh);
-    if (res.ok) {
-      const data = await res.json();
-      results.disease_sh = data;
-      if (Array.isArray(data)) {
-        data.forEach(d => {
-          const iso = findIsoByCountryName(d.country);
-          if (iso && d.active > 0) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].covid = {
-              active: d.active,
-              cases: d.cases,
-              deaths: d.deaths
-            };
-            diseaseOutbreaks.push({
-              disease: 'COVID-19',
-              country: d.country,
-              cases: d.active,
-              source: 'disease.sh',
-              date: new Date(d.updated).toISOString()
-            });
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('disease.sh fetch failed:', e); }
-
-  // ── 12. World Bank Population ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_population);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_population = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value) {
-            const iso = item.country.id;
-            evidenceIndex.population[iso] = parseInt(item.value);
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].population = parseInt(item.value);
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('World Bank Population fetch failed:', e); }
-
-  // ── 13. World Bank Poverty ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_poverty);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_poverty = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].poverty = parseFloat(item.value);
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('World Bank Poverty fetch failed:', e); }
-
-  // ── 14. World Bank GDP Growth (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_gdp_growth);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_gdp_growth = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].gdp_growth = parseFloat(item.value);
-          }
-        });
-        console.log(`📊 GDP growth data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank GDP Growth fetch failed:', e); }
-
-  // ── 15. World Bank Unemployment (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_unemployment);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_unemployment = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].unemployment = parseFloat(item.value);
-          }
-        });
-        console.log(`📊 Unemployment data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank Unemployment fetch failed:', e); }
-
-  // ── 16. World Bank Inflation ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_inflation);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_inflation = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null && item.value !== undefined) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].inflation = parseFloat(item.value);
-            evidenceIndex.sourceCoverage[iso].inflation_year = item.date;
-          }
-        });
-        console.log(`📊 Inflation data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank Inflation fetch failed:', e); }
-
-  // ── 17. World Bank Refugees ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_refugees);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_refugees = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].refugees_wb = parseInt(item.value);
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('World Bank Refugees fetch failed:', e); }
-
-  // ── 18. UNHCR Displacement ──
-  try {
-    const res = await fetch(API_ENDPOINTS.unhcr_pop);
-    if (res.ok) {
-      const data = await res.json();
-      results.unhcr_pop = data;
-      if (data?.items) {
-        data.items.forEach(item => {
-          const iso = item.coa_iso;
-          if (iso && item.refugees > 0) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].refugees = item.refugees;
-            evidenceIndex.sourceCoverage[iso].displaced = (item.refugees || 0) + (item.asylum_seekers || 0);
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('UNHCR Displacement fetch failed:', e); }
-
-  // ── 19. UNHCR Asylum ──
-  try {
-    const res = await fetch(API_ENDPOINTS.unhcr_asylum);
-    if (res.ok) {
-      const data = await res.json();
-      results.unhcr_asylum = data;
-      if (data?.items) {
-        data.items.forEach(item => {
-          if (item.asylum_seekers > 0) {
-            const iso = item.coa_iso;
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].asylum = item.asylum_seekers;
-            }
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('UNHCR Asylum fetch failed:', e); }
-
-  // ── 20. UNHCR Operations (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.unhcr_operations);
-    if (res.ok) {
-      const data = await res.json();
-      results.unhcr_operations = data;
-      if (data?.items || data?.data) {
-        const ops = data.items || data.data || [];
-        ops.forEach(op => {
-          const iso = op.country_iso || op.country?.iso3;
-          if (iso) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].unhcr_op = {
-              name: op.name || 'UNHCR operation',
-              status: op.status || 'active'
-            };
-          }
-        });
-        console.log(`📊 UNHCR operations loaded`);
-      }
-    }
-  } catch(e) { console.warn('UNHCR Operations fetch failed:', e); }
-
-  // ── 21. EMSC Seismic ──
-  try {
-    const res = await fetch(API_ENDPOINTS.emsc_seismic);
-    if (res.ok) {
-      const data = await res.json();
-      results.emsc_seismic = data;
-      if (data?.features) {
-        data.features.forEach(f => {
-          const mag = f.properties?.mag;
-          const coords = f.geometry?.coordinates;
-          if (mag >= 4.5 && coords) {
-            const iso = findClosestCountry(coords[0], coords[1]);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              const existingMag = evidenceIndex.sourceCoverage[iso].usgs?.mag || 0;
-              if (mag > existingMag) {
-                evidenceIndex.sourceCoverage[iso].emsc = {
-                  mag,
-                  time: f.properties?.time,
-                  place: f.properties?.flynn_region || f.properties?.place
-                };
-              }
-            }
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('EMSC fetch failed:', e); }
-
-  // ── 22. IFRC GO ──
-  try {
-    const res = await fetch(API_ENDPOINTS.ifrc_go);
-    if (res.ok) {
-      const data = await res.json();
-      results.ifrc_go = data;
-      if (data?.results) {
-        data.results.forEach(ev => {
-          const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
-          if (iso) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].ifrc = {
-              name: ev.name,
-              dtype: ev.dtype?.name || 'Field operation',
-              date: ev.disaster_start_date
-            };
-          }
-        });
-      }
-    }
-  } catch(e) { console.warn('IFRC GO fetch failed:', e); }
-
-  // ── 23. Open-Meteo Air Quality (multi-city loop) ──
-  const AQ_CITIES = [
-    { iso: 'NGA', lat: 6.5, lon: 3.4, name: 'Lagos' },
-    { iso: 'IND', lat: 28.6, lon: 77.2, name: 'Delhi' },
-    { iso: 'CHN', lat: 39.9, lon: 116.4, name: 'Beijing' },
-    { iso: 'IND', lat: 19.1, lon: 72.9, name: 'Mumbai' },
-    { iso: 'BGD', lat: 23.8, lon: 90.4, name: 'Dhaka' },
-    { iso: 'EGY', lat: 30.0, lon: 31.2, name: 'Cairo' }
+  // 13-22. World Bank (bulk)
+  const WB_INDICATORS = [
+    { key:'wb_population', ind:'population', parse: parseInt },
+    { key:'wb_poverty', ind:'poverty', parse: parseFloat },
+    { key:'wb_inflation', ind:'inflation', parse: parseFloat },
+    { key:'wb_gdp_growth', ind:'gdp_growth', parse: parseFloat },
+    { key:'wb_unemployment', ind:'unemployment', parse: parseFloat },
+    { key:'wb_refugees', ind:'refugees_wb', parse: parseInt },
+    { key:'wb_water', ind:'water_stress', parse: parseFloat },
+    { key:'wb_trade', ind:'trade_gdp', parse: parseFloat },
+    { key:'wb_political_stability', ind:'political_stability', parse: parseFloat },
   ];
+  for (const { key, ind, parse } of WB_INDICATORS) {
+    try {
+      const r = await fetch(API_ENDPOINTS[key]);
+      if (!r.ok) continue;
+      const d = await r.json();
+      results[key] = d;
+      if (d && d[1]) d[1].forEach(item => {
+        if (item.country?.id && item.value != null) {
+          const iso = item.country.id;
+          if (!NAMES[iso]) return;
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso][ind] = parse(item.value);
+          if (ind === 'population') evidenceIndex.population[iso] = parseInt(item.value);
+        }
+      });
+    } catch(e) {}
+  }
 
+  // 23-27. UNHCR
+  try { const r = await fetch(API_ENDPOINTS.unhcr_pop); if (r.ok) { const d = await r.json(); results.unhcr_pop = d;
+    (d?.items || []).forEach(x => { const iso = x.coa_iso; if (iso && x.refugees > 0) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].refugees = x.refugees; evidenceIndex.sourceCoverage[iso].displaced = (x.refugees || 0) + (x.asylum_seekers || 0); } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.unhcr_asylum); if (r.ok) { const d = await r.json(); results.unhcr_asylum = d;
+    (d?.items || []).forEach(x => { const iso = x.coa_iso; if (iso && x.asylum_seekers > 0) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].asylum = x.asylum_seekers; } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.unhcr_operations); if (r.ok) { const d = await r.json(); results.unhcr_operations = d;
+    (d?.items || d?.data || []).forEach(op => { const iso = op.country_iso || op.country?.iso3; if (iso) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].unhcr_op = { name: op.name || 'UNHCR operation', status: op.status || 'active' }; } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.unhcr_emergency); if (r.ok) { const d = await r.json(); results.unhcr_emergency = d;
+    (d?.items || d?.data || []).forEach(em => { const iso = em.country_iso || em.country?.iso3; if (iso) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].unhcr_emergency = { name: em.name || 'Emergency', status: em.status || 'active', level: em.level || 'unknown' }; } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.unhcr_statistics); if (r.ok) { const d = await r.json(); results.unhcr_statistics = d;
+    (d?.data || d?.items || []).forEach(st => { const iso = st.country_iso || st.iso3 || st.country?.iso3; if (iso && st.refugees > 0) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].unhcr_stats = { refugees: st.refugees, asylum_seekers: st.asylum_seekers || 0, year: st.year || '2024' }; } }); } } catch(e) {}
+
+  // 28. IFRC
+  try {
+    const r = await fetch(API_ENDPOINTS.ifrc_go);
+    if (r.ok) {
+      const d = await r.json();
+      results.ifrc_go = d;
+      (d?.results || []).forEach(ev => {
+        const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
+        if (iso) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].ifrc = { name: ev.name, dtype: ev.dtype?.name || 'Field operation', date: ev.disaster_start_date };
+        }
+      });
+    }
+  } catch(e) { console.warn('IFRC:', e); }
+
+  // 29-30. ReliefWeb
+  try { const r = await fetch(API_ENDPOINTS.reliefweb_conflict); if (r.ok) { const d = await r.json(); results.reliefweb_conflict = d;
+    (d?.data || []).forEach(rep => { const iso = rep.fields?.country?.[0]?.iso3; if (iso && NAMES[iso]) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].conflict_event = { title: rep.fields?.title, event_type: rep.fields?.primary_type?.name || 'Conflict', severityIndex: 60 }; } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.reliefweb_displacement); if (r.ok) { const d = await r.json(); results.reliefweb_displacement = d;
+    (d?.data || []).forEach(rep => { const iso = rep.fields?.country?.[0]?.iso3; if (iso && NAMES[iso]) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; evidenceIndex.sourceCoverage[iso].population_movement = { title: rep.fields?.title, severityIndex: 50 }; } }); } } catch(e) {}
+
+  // 31-32. GDELT
+  try { const r = await fetch(API_ENDPOINTS.gdelt_conflict); if (r.ok) { const d = await r.json(); results.gdelt_conflict = d;
+    (d?.articles || []).forEach(a => { const iso = a.sourcecountry ? findIsoByCountryName(a.sourcecountry) : null; if (iso && NAMES[iso]) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; const cov = evidenceIndex.sourceCoverage[iso]; cov.gdelt_conflict = { count: (cov.gdelt_conflict?.count || 0) + 1 }; } }); } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.gdelt_election_violence); if (r.ok) { const d = await r.json(); results.gdelt_election_violence = d;
+    (d?.articles || []).forEach(a => { const iso = a.sourcecountry ? findIsoByCountryName(a.sourcecountry) : null; if (iso && NAMES[iso]) { evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {}; const cov = evidenceIndex.sourceCoverage[iso]; cov.election_violence = { count: (cov.election_violence?.count || 0) + 1 }; } }); } } catch(e) {}
+
+  // 33. AQ multi-city
+  const AQ_CITIES = [{iso:'NGA',lat:6.5,lon:3.4,name:'Lagos'},{iso:'IND',lat:28.6,lon:77.2,name:'Delhi'},{iso:'CHN',lat:39.9,lon:116.4,name:'Beijing'},{iso:'IND',lat:19.1,lon:72.9,name:'Mumbai'},{iso:'BGD',lat:23.8,lon:90.4,name:'Dhaka'},{iso:'EGY',lat:30.0,lon:31.2,name:'Cairo'}];
   for (const city of AQ_CITIES) {
     try {
       const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&hourly=pm2_5&forecast_days=1`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        const pm25 = data?.hourly?.pm2_5?.[0];
-        if (pm25 !== undefined && pm25 !== null) {
-          const iso = city.iso;
-          if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-          evidenceIndex.sourceCoverage[iso].air_quality = { 
-            pm25, 
-            city: city.name,
-            timestamp: new Date().toISOString()
-          };
-          console.log(`🌍 AQ: ${city.name} PM2.5 = ${pm25} µg/m³`);
+      const r = await fetch(url);
+      if (r.ok) {
+        const d = await r.json();
+        const pm25 = d?.hourly?.pm2_5?.[0];
+        if (pm25 != null) {
+          evidenceIndex.sourceCoverage[city.iso] = evidenceIndex.sourceCoverage[city.iso] || {};
+          evidenceIndex.sourceCoverage[city.iso].air_quality = { pm25, city: city.name, timestamp: new Date().toISOString() };
         }
       }
-    } catch(e) { /* silent fail for individual cities */ }
+    } catch(e) {}
   }
 
-  // ── 24. OpenStreetMap Hospitals (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.osm_hospitals);
-    if (res.ok) {
-      const data = await res.json();
-      results.osm_hospitals = data;
-      if (data?.elements?.length > 0) {
-        // Store hospital count for Yemen region
-        const hospitalCount = data.elements.length;
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].hospitals = hospitalCount;
-        console.log(`🏥 OSM: ${hospitalCount} hospitals found in Yemen region`);
-      }
-    }
-  } catch(e) { console.warn('OpenStreetMap Hospitals fetch failed:', e); }
+  // 34-35. OSM
+  try { const r = await fetch(API_ENDPOINTS.osm_hospitals); if (r.ok) { const d = await r.json(); results.osm_hospitals = d; if (d?.elements?.length > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].hospitals = d.elements.length; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.osm_health_centers); if (r.ok) { const d = await r.json(); results.osm_health_centers = d; if (d?.elements?.length > 0) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].clinics = d.elements.length; } } } catch(e) {}
 
-  // ── 25. OpenStreetMap Health Centers (NEW) ──
+  // 36. Climate TRACE
   try {
-    const res = await fetch(API_ENDPOINTS.osm_health_centers);
-    if (res.ok) {
-      const data = await res.json();
-      results.osm_health_centers = data;
-      if (data?.elements?.length > 0) {
-        const clinicCount = data.elements.length;
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].clinics = clinicCount;
-        console.log(`🏥 OSM: ${clinicCount} clinics found in Yemen region`);
-      }
+    const r = await fetch(API_ENDPOINTS.climate_trace);
+    if (r.ok) {
+      const d = await r.json();
+      results.climate_trace = d;
+      (d?.countries || []).forEach(c => {
+        const iso = c.iso3;
+        if (iso && NAMES[iso] && c.emissions) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].emissions = { total: c.emissions.total_co2e || 0, sector: c.emissions.top_sector || 'multiple' };
+        }
+      });
     }
-  } catch(e) { console.warn('OpenStreetMap Health Centers fetch failed:', e); }
+  } catch(e) { console.warn('Climate TRACE:', e); }
 
-  // ── 26. EM-DAT Disasters (NEW) ──
+  // 37. FAO FPMA
   try {
-    const res = await fetch(API_ENDPOINTS.emdat_disasters);
-    if (res.ok) {
-      const data = await res.json();
-      results.emdat_disasters = data;
-      if (data?.data) {
-        const disasters = Array.isArray(data.data) ? data.data : [];
-        disasters.forEach(d => {
-          const country = d.country || d.location;
-          if (country) {
-            const iso = findIsoByCountryName(country);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].emdat = {
-                disaster: d.disaster_type || 'Disaster',
-                year: d.year || '2024',
-                deaths: d.total_deaths || 0
-              };
-            }
-          }
-        });
-        console.log(`📊 EM-DAT: ${disasters.length} disasters loaded`);
-      }
+    const r = await fetch(API_ENDPOINTS.fao_fpma);
+    if (r.ok) {
+      const d = await r.json();
+      results.fao_fpma = d;
+      (d?.prices || []).forEach(p => {
+        const iso = p.iso3;
+        if (iso && NAMES[iso]) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          evidenceIndex.sourceCoverage[iso].fao_fpma = { commodity: p.commodity, anomaly_pct: p.anomaly_pct, price: p.price };
+        }
+      });
     }
-  } catch(e) { console.warn('EM-DAT fetch failed:', e); }
+  } catch(e) { console.warn('FAO FPMA:', e); }
 
-  // ── 27. Climate TRACE (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.climate_trace);
-    if (res.ok) {
-      const data = await res.json();
-      results.climate_trace = data;
-      if (data?.data) {
-        const emissions = Array.isArray(data.data) ? data.data : [];
-        emissions.forEach(e => {
-          const country = e.country || e.country_name;
-          if (country) {
-            const iso = findIsoByCountryName(country);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              evidenceIndex.sourceCoverage[iso].emissions = {
-                total: e.total_emissions || 0,
-                sector: e.sector || 'all'
-              };
-            }
-          }
-        });
-        console.log(`🌍 Climate TRACE: ${emissions.length} emissions records loaded`);
-      }
-    }
-  } catch(e) { console.warn('Climate TRACE fetch failed:', e); }
-  // ── 28. Open-Meteo Wind Speed (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_wind);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_wind = data;
-      const windSpeed = data?.hourly?.wind_speed_10m?.[0] || data?.current_weather?.windspeed;
-      if (windSpeed !== undefined && windSpeed > 30) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].wind = {
-          speed: windSpeed,
-          direction: data?.current_weather?.winddirection || 0,
-          date: data?.hourly?.time?.[0]
-        };
-        console.log(`💨 Wind speed: ${windSpeed} km/h in Yemen`);
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo Wind fetch failed:', e); }
+  // 38-45. Open-Meteo single-point (Yemen reference)
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_wind); if (r.ok) { const d = await r.json(); results.openmeteo_wind = d;
+    const ws = d?.hourly?.wind_speed_10m?.[0] || d?.current_weather?.windspeed;
+    if (ws != null && ws > 30) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].wind = { speed: ws, direction: d?.current_weather?.winddirection || 0, date: d?.hourly?.time?.[0] }; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_precipitation); if (r.ok) { const d = await r.json(); results.openmeteo_precipitation = d;
+    const total = (d?.hourly?.precipitation || []).reduce((a,b)=>a+b,0);
+    if (total > 10) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].precipitation = { total, date: d?.hourly?.time?.[0] }; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_uv); if (r.ok) { const d = await r.json(); results.openmeteo_uv = d;
+    const maxUv = Math.max(...(d?.daily?.uv_index_max || [0]));
+    if (maxUv > 8) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].uv = { max: maxUv, date: d?.daily?.time?.[0] }; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_cloudcover); if (r.ok) { const d = await r.json(); results.openmeteo_cloudcover = d;
+    const arr = d?.hourly?.cloudcover || []; const avg = arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+    if (avg > 70) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].cloudcover = { avg, date: d?.hourly?.time?.[0] }; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.openmeteo_lightning); if (r.ok) { const d = await r.json(); results.openmeteo_lightning = d;
+    const m = Math.max(...(d?.hourly?.lightning_potential || [0]));
+    if (m > 100) { evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {}; evidenceIndex.sourceCoverage['YEM'].lightning = { max: m, date: d?.hourly?.time?.[0] }; } } } catch(e) {}
 
-  // ── 29. Open-Meteo Precipitation (NEW) ──
+  // 41. USGS Historic
   try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_precipitation);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_precipitation = data;
-      const totalRain = data?.hourly?.precipitation?.reduce((a, b) => a + b, 0) || 0;
-      if (totalRain > 10) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].precipitation = {
-          total: totalRain,
-          date: data?.hourly?.time?.[0]
-        };
-        console.log(`🌧️ Precipitation: ${totalRain}mm total in Yemen`);
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo Precipitation fetch failed:', e); }
-
-  // ── 30. Open-Meteo UV Index (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_uv);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_uv = data;
-      const maxUv = Math.max(...(data?.daily?.uv_index_max || [0]));
-      if (maxUv > 8) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].uv = {
-          max: maxUv,
-          date: data?.daily?.time?.[0]
-        };
-        console.log(`☀️ UV Index: ${maxUv} (extreme) in Yemen`);
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo UV fetch failed:', e); }
-
-  // ── 31. USGS Historic Earthquakes (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.usgs_historic);
-    if (res.ok) {
-      const data = await res.json();
-      results.usgs_historic = data;
-      if (data?.features) {
-        data.features.forEach(f => {
-          const props = f.properties;
-          const coords = f.geometry?.coordinates;
-          if (props?.place && coords && props.mag >= 6) {
-            const country = props.place.split(',').pop()?.trim() || '';
-            const iso = findIsoByCountryName(country);
-            if (iso) {
-              if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-              if (!evidenceIndex.sourceCoverage[iso].historic_seismic) {
-                evidenceIndex.sourceCoverage[iso].historic_seismic = [];
-              }
-              evidenceIndex.sourceCoverage[iso].historic_seismic.push({
-                mag: props.mag,
-                time: props.time,
-                place: props.place
-              });
-            }
-          }
-        });
-        console.log(`📊 Historic earthquakes loaded: ${data.features.length} events`);
-      }
-    }
-  } catch(e) { console.warn('USGS Historic fetch failed:', e); }
-
-  // ── 32. World Bank Food Prices (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_food_prices);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_food_prices = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            if (!evidenceIndex.sourceCoverage[iso].food_prices) {
-              evidenceIndex.sourceCoverage[iso].food_prices = [];
-            }
-            evidenceIndex.sourceCoverage[iso].food_prices.push({
-              value: parseFloat(item.value),
-              date: item.date
-            });
-          }
-        });
-        console.log(`🌾 Food price data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank Food Prices fetch failed:', e); }
-
-  // ── 33. World Bank Water Indicators (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_water);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_water = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].water_stress = parseFloat(item.value);
-          }
-        });
-        console.log(`💧 Water data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank Water fetch failed:', e); }
-
-  // ── 34. NOAA Alerts (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.noaa_alerts);
-    if (res.ok) {
-      const data = await res.json();
-      results.noaa_alerts = data;
-      if (data?.features?.length > 0) {
-        evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-        evidenceIndex.sourceCoverage['USA'].noaa_alerts = data.features.length;
-        console.log(`⚠️ NOAA: ${data.features.length} extreme alerts active`);
-      }
-    }
-  } catch(e) { console.warn('NOAA Alerts fetch failed:', e); }
-
-  // ── 35. UNHCR Emergency (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.unhcr_emergency);
-    if (res.ok) {
-      const data = await res.json();
-      results.unhcr_emergency = data;
-      if (data?.items || data?.data) {
-        const emergencies = data.items || data.data || [];
-        emergencies.forEach(em => {
-          const iso = em.country_iso || em.country?.iso3;
+    const r = await fetch(API_ENDPOINTS.usgs_historic);
+    if (r.ok) {
+      const d = await r.json();
+      results.usgs_historic = d;
+      (d?.features || []).forEach(f => {
+        const props = f.properties;
+        if (props?.mag >= 6 && props.place) {
+          const iso = findIsoByCountryName(props.place.split(',').pop()?.trim() || '');
           if (iso) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].unhcr_emergency = {
-              name: em.name || 'Emergency response',
-              status: em.status || 'active',
-              level: em.level || 'unknown'
-            };
+            evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+            evidenceIndex.sourceCoverage[iso].historic_seismic = evidenceIndex.sourceCoverage[iso].historic_seismic || [];
+            evidenceIndex.sourceCoverage[iso].historic_seismic.push({ mag: props.mag, time: props.time, place: props.place });
           }
-        });
-        console.log(`🚨 UNHCR: ${emergencies.length} emergencies tracked`);
-      }
+        }
+      });
     }
-  } catch(e) { console.warn('UNHCR Emergency fetch failed:', e); }
-  // ── 36. Open-Meteo Cloud Cover (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_cloudcover);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_cloudcover = data;
-      const avgCloud = data?.hourly?.cloudcover?.reduce((a, b) => a + b, 0) / data.hourly.cloudcover.length || 0;
-      if (avgCloud > 70) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].cloudcover = {
-          avg: avgCloud,
-          date: data?.hourly?.time?.[0]
-        };
-        console.log(`☁️ Cloud cover: ${avgCloud}% average in Yemen`);
-      }
-    }
-  } catch(e) { console.warn('Open-Meteo Cloud Cover fetch failed:', e); }
+  } catch(e) {}
 
-  // ── 37. Open-Meteo Lightning Potential (NEW) ──
+  // 42-43. NOAA alerts/storms
+  try { const r = await fetch(API_ENDPOINTS.noaa_alerts); if (r.ok) { const d = await r.json(); results.noaa_alerts = d;
+    if (d?.features?.length > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].noaa_alerts = d.features.length; } } } catch(e) {}
+  try { const r = await fetch(API_ENDPOINTS.noaa_storm_reports); if (r.ok) { const d = await r.json(); results.noaa_storm_reports = d;
+    if (d?.features?.length > 0) { evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {}; evidenceIndex.sourceCoverage['USA'].storm_reports = d.features.length; } } } catch(e) {}
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  v20.3.0 NEW SOURCES
+  // ═══════════════════════════════════════════════════════════════════
+
+  // 46. OpenAQ v2
   try {
-    const res = await fetch(API_ENDPOINTS.openmeteo_lightning);
-    if (res.ok) {
-      const data = await res.json();
-      results.openmeteo_lightning = data;
-      const maxLightning = Math.max(...(data?.hourly?.lightning_potential || [0]));
-      if (maxLightning > 100) {
-        evidenceIndex.sourceCoverage['YEM'] = evidenceIndex.sourceCoverage['YEM'] || {};
-        evidenceIndex.sourceCoverage['YEM'].lightning = {
-          max: maxLightning,
-          date: data?.hourly?.time?.[0]
-        };
-        console.log(`⚡ Lightning potential: ${maxLightning} J/kg in Yemen`);
+    const r = await fetch(API_ENDPOINTS.openaq_v2);
+    if (r.ok) {
+      const d = await r.json();
+      results.openaq_v2 = d;
+      (d?.results || []).forEach(x => {
+        const iso = x.country ? findIsoByCountryName(x.country) : null;
+        if (!iso) return;
+        const pm25 = x.measurements?.find(m => m.parameter === 'pm25')?.value;
+        if (pm25 != null) {
+          evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+          const cov = evidenceIndex.sourceCoverage[iso];
+          if (!cov.air_quality || (cov.air_quality.pm25 || 0) < pm25) cov.air_quality = { pm25, city: x.city || x.location, source: 'OpenAQ' };
+        }
+      });
+    }
+  } catch(e) { console.warn('OpenAQ:', e); }
+
+  // 47. NOAA NDBC
+  const NDBC_KEYS = ['ndbc_51001','ndbc_51002','ndbc_46026','ndbc_41009','ndbc_23201'];
+  const NDBC_ISO = { 'ndbc_51001':'USA','ndbc_51002':'USA','ndbc_46026':'USA','ndbc_41009':'USA','ndbc_23201':'IND' };
+  for (const key of NDBC_KEYS) {
+    try {
+      const r = await fetch(API_ENDPOINTS[key]);
+      if (!r.ok) continue;
+      const raw = await r.text();
+      results[key] = raw;
+      const lines = raw.trim().split('\n').filter(l => l && !l.startsWith('#'));
+      if (!lines.length) continue;
+      const p = lines[0].trim().split(/\s+/);
+      const wh = parseFloat(p[8]), ws = parseFloat(p[6]);
+      const iso = NDBC_ISO[key];
+      evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+      evidenceIndex.sourceCoverage[iso].ndbc = { buoy: key.replace('ndbc_',''), wave_height: Number.isFinite(wh) && wh < 90 ? wh : null, wind_speed: Number.isFinite(ws) && ws < 90 ? ws : null };
+    } catch(e) {}
+  }
+
+  // 48. Copernicus EMS
+  try {
+    const r = await fetch(API_ENDPOINTS.cems_activations);
+    if (r.ok) {
+      const raw = await r.text();
+      results.cems_activations = raw;
+      const ids = [...new Set(raw.match(/EMSR\d+/g) || [])].slice(0, 20);
+      const titles = [...raw.matchAll(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/g)].map(m => m[1].trim());
+      ids.forEach((id, i) => {
+        const title = titles[i+1] || '';
+        for (const [code, name] of Object.entries(NAMES)) {
+          if (title.toLowerCase().includes(name.toLowerCase())) {
+            evidenceIndex.sourceCoverage[code] = evidenceIndex.sourceCoverage[code] || {};
+            evidenceIndex.sourceCoverage[code].cems_activation = { id, title, link: '' };
+            break;
+          }
+        }
+      });
+    }
+  } catch(e) { console.warn('CEMS:', e); }
+
+  // 49. ProMED
+  try {
+    const r = await fetch(API_ENDPOINTS.promed);
+    if (r.ok) {
+      const raw = await r.text();
+      results.promed = raw;
+      const items = [...raw.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>[\s\S]*?<\/item>/g)];
+      const byIso = {};
+      items.forEach(m => {
+        const title = m[1] || '';
+        for (const [code, name] of Object.entries(NAMES)) {
+          if (title.toLowerCase().includes(name.toLowerCase())) {
+            if (!byIso[code]) byIso[code] = { count: 0, titles: [] };
+            byIso[code].count++;
+            if (byIso[code].titles.length < 3) byIso[code].titles.push(title);
+            break;
+          }
+        }
+      });
+      for (const [iso, d] of Object.entries(byIso)) {
+        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+        evidenceIndex.sourceCoverage[iso].promed = { count: d.count, titles: d.titles };
       }
     }
-  } catch(e) { console.warn('Open-Meteo Lightning fetch failed:', e); }
+  } catch(e) { console.warn('ProMED:', e); }
 
-  // ── 38. NOAA Storm Reports (NEW) ──
+  // 50. Smithsonian GVP
   try {
-    const res = await fetch(API_ENDPOINTS.noaa_storm_reports);
-    if (res.ok) {
-      const data = await res.json();
-      results.noaa_storm_reports = data;
-      if (data?.features?.length > 0) {
+    const r = await fetch(API_ENDPOINTS.smithsonian_gvp);
+    if (r.ok) {
+      const raw = await r.text();
+      results.smithsonian_gvp = raw;
+      const items = [...raw.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>[\s\S]*?<\/item>/g)];
+      items.forEach(m => {
+        const text = m[1] || '';
+        for (const [code, name] of Object.entries(NAMES)) {
+          if (text.toLowerCase().includes(name.toLowerCase())) {
+            evidenceIndex.sourceCoverage[code] = evidenceIndex.sourceCoverage[code] || {};
+            evidenceIndex.sourceCoverage[code].gvp_volcano = { volcano: text.substring(0, 60), description: text };
+            break;
+          }
+        }
+      });
+    }
+  } catch(e) { console.warn('GVP:', e); }
+
+  // 51. NOAA PTWC
+  try {
+    const r = await fetch(API_ENDPOINTS.ptwc_tsunami);
+    if (r.ok) {
+      const raw = await r.text();
+      results.ptwc_tsunami = raw;
+      const entries = [...raw.matchAll(/<entry>[\s\S]*?<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>[\s\S]*?<cap:severity>(.*?)<\/cap:severity>[\s\S]*?<cap:areaDesc>(.*?)<\/cap:areaDesc>[\s\S]*?<\/entry>/g)];
+      entries.forEach(m => {
+        const title = m[1] || '', severity = m[2] || 'Unknown', area = m[3] || '';
+        if (severity === 'Minor' || severity === 'Unknown') return;
+        for (const [code, name] of Object.entries(NAMES)) {
+          if ((title + ' ' + area).toLowerCase().includes(name.toLowerCase())) {
+            evidenceIndex.sourceCoverage[code] = evidenceIndex.sourceCoverage[code] || {};
+            evidenceIndex.sourceCoverage[code].tsunami_alert = { severity, area, title, updated: new Date().toISOString() };
+            break;
+          }
+        }
+      });
+    }
+  } catch(e) { console.warn('PTWC:', e); }
+
+  // 52. INFORM
+  try {
+    const r = await fetch(API_ENDPOINTS.inform_index);
+    if (r.ok) {
+      const d = await r.json();
+      results.inform_index = d;
+      if (Array.isArray(d)) d.forEach(item => {
+        if (item.Iso3 && item.IndicatorId === 'INFORM' && NAMES[item.Iso3]) {
+          evidenceIndex.sourceCoverage[item.Iso3] = evidenceIndex.sourceCoverage[item.Iso3] || {};
+          evidenceIndex.sourceCoverage[item.Iso3].inform = { score: item.IndicatorScore, rank: item.IndicatorRank, trend: item.Trend };
+        }
+      });
+    }
+  } catch(e) { console.warn('INFORM:', e); }
+
+  // 53. Frankfurter FX
+  try {
+    const r = await fetch(API_ENDPOINTS.frankfurter_fx);
+    if (r.ok) {
+      const d = await r.json();
+      results.frankfurter_fx = d;
+      const rates = d?.rates || (Array.isArray(d) ? Object.fromEntries(d.map(x => [x.quote, x.rate])) : {});
+      const CUR_TO_ISO = { GBP:'GBR',JPY:'JPN',CNY:'CHN',CHF:'CHE',AUD:'AUS',CAD:'CAN',SEK:'SWE',NOK:'NOR',DKK:'DNK',INR:'IND',BRL:'BRA',MXN:'MEX',ZAR:'ZAF',TRY:'TUR',RUB:'RUS',KRW:'KOR',SGD:'SGP',HKD:'HKG',PLN:'POL',CZK:'CZE',HUF:'HUN',RON:'ROU',ILS:'ISR',AED:'ARE',EGP:'EGY',NGN:'NGA',KES:'KEN',PKR:'PAK',BDT:'BGD',LKR:'LKA',THB:'THA',VND:'VNM',MYR:'MYS',IDR:'IDN',PHP:'PHL',KZT:'KAZ',UAH:'UKR' };
+      for (const [cur, rate] of Object.entries(rates)) {
+        const iso = CUR_TO_ISO[cur];
+        if (!iso || !NAMES[iso]) continue;
+        const vol = Math.max(0, Math.min(60, Math.log10(Math.max(0.01, rate)) * 20));
+        evidenceIndex.sourceCoverage[iso] = evidenceIndex.sourceCoverage[iso] || {};
+        const cov = evidenceIndex.sourceCoverage[iso];
+        if (!cov.currency_stress || (cov.currency_stress.volatility_pct || 0) < vol) {
+          cov.currency_stress = { rate_per_usd: rate, volatility_pct: +vol.toFixed(2), source_currency: cur, date: d.date };
+        }
+      }
+    }
+  } catch(e) { console.warn('Frankfurter:', e); }
+
+  // 54. US Drought Monitor
+  try {
+    const r = await fetch(API_ENDPOINTS.us_drought);
+    if (r.ok) {
+      const d = await r.json();
+      results.us_drought = d;
+      if (d?.features) {
+        const levels = { D0:0, D1:1, D2:2, D3:3, D4:4 };
+        let highest = 0; const counts = {};
+        d.features.forEach(f => { const dm = f.properties?.DM || 'D0'; const l = levels[dm] || 0; if (l > highest) highest = l; counts[dm] = (counts[dm] || 0) + 1; });
+        const levelName = ['D0','D1','D2','D3','D4'][highest] || 'D0';
+        const areaPct = Math.min(100, Math.round((Object.values(counts).reduce((a,b)=>a+b,0) / 50) * 100));
         evidenceIndex.sourceCoverage['USA'] = evidenceIndex.sourceCoverage['USA'] || {};
-        evidenceIndex.sourceCoverage['USA'].storm_reports = data.features.length;
-        console.log(`⛈️ NOAA: ${data.features.length} severe storm alerts`);
+        evidenceIndex.sourceCoverage['USA'].us_drought = { level: levelName, level_numeric: highest, area_pct: areaPct, polygon_count: d.features.length, counts };
       }
     }
-  } catch(e) { console.warn('NOAA Storm Reports fetch failed:', e); }
+  } catch(e) { console.warn('US Drought:', e); }
 
-  // ── 39. UNHCR Statistics (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.unhcr_statistics);
-    if (res.ok) {
-      const data = await res.json();
-      results.unhcr_statistics = data;
-      if (data?.data || data?.items) {
-        const stats = data.data || data.items || [];
-        stats.forEach(stat => {
-          const iso = stat.country_iso || stat.iso3 || stat.country?.iso3;
-          if (iso && stat.refugees > 0) {
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].unhcr_stats = {
-              refugees: stat.refugees,
-              asylum_seekers: stat.asylum_seekers || 0,
-              year: stat.year || '2024'
-            };
-          }
-        });
-        console.log(`📊 UNHCR statistics loaded`);
-      }
-    }
-  } catch(e) { console.warn('UNHCR Statistics fetch failed:', e); }
-
-  // ── 40. World Bank Trade Data (NEW) ──
-  try {
-    const res = await fetch(API_ENDPOINTS.wb_trade);
-    if (res.ok) {
-      const data = await res.json();
-      results.wb_trade = data;
-      if (data && data[1]) {
-        data[1].forEach(item => {
-          if (item.country?.id && item.value !== null) {
-            const iso = item.country.id;
-            if (!evidenceIndex.sourceCoverage[iso]) evidenceIndex.sourceCoverage[iso] = {};
-            evidenceIndex.sourceCoverage[iso].trade_gdp = parseFloat(item.value);
-          }
-        });
-        console.log(`📊 Trade data loaded for ${data[1].filter(i => i.value !== null).length} countries`);
-      }
-    }
-  } catch(e) { console.warn('World Bank Trade fetch failed:', e); }
-  // Store all results
   apiResults = { ...apiResults, ...results };
-  
   console.log(`📊 Evidence loaded: ${Object.keys(evidenceIndex.sourceCoverage).length} countries have data coverage`);
-  console.log('📊 Source coverage sample:', Object.keys(evidenceIndex.sourceCoverage).slice(0, 5).map(k => ({ 
-    iso: k, 
-    sources: Object.keys(evidenceIndex.sourceCoverage[k]) 
-  })));
-  
   return results;
 }// ─────────────────────────────────────────────────────────────────────────────
 // HELPER: Find ISO by country name
