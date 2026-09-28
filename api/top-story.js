@@ -1,21 +1,23 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.3.0 — FINAL FREE-SOURCE EXPANSION
+//  TOP-STORY API — v20.3.0 — COMPLETE FREE-SOURCE EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
-//  🌍 45+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
 //
-//  ═══ v20.3.0 — REMAINING FREE SOURCES WIRED ═══
-//  7 new server-side fetchers (no API keys required):
-//    • OpenAQ v2        → air_quality (global air quality, free no-auth) [citation:1][citation:10]
-//    • NOAA NDBC        → marine_buoy (real-time ocean/tsunami buoy data) [citation:2][citation:20]
-//    • NOAA PTWC        → tsunami_cap (official tsunami warnings CAP/XML) [citation:6]
-//    • Smithsonian GVP  → volcano_gvp (weekly volcanic activity report RSS) [citation:5][citation:22]
-//    • ProMED           → promed_outbreak (emerging disease signals RSS) [citation:4]
-//    • Copernicus EMS   → cems_activation (satellite mapping activations GeoRSS) [citation:12]
-//    • INFORM           → inform_score (composite risk index, JSON API) [citation:7][citation:16]
-//  EM-DAT: no live API; use HDX static CSV (country-profiles-{ISO3}) [citation:9][citation:24]
+//  ═══ v20.3.0 — ALL FREE SOURCES WIRED ═══
+//  New server-side fetchers added:
+//    • OpenAQ v2/v3           → air_quality (global, free, no key required)
+//    • NOAA NDBC              → marine_buoy (real-time ocean observations)
+//    • Copernicus EMS         → cems_activation (rapid mapping activations)
+//    • ProMED RSS             → promed (emerging disease signals)
+//    • Smithsonian GVP        → gvp_volcano (weekly volcanic activity)
+//    • NOAA PTWC              → tsunami_alert (Pacific tsunami warnings)
+//    • INFORM Index           → inform (composite risk scores via JRC API)
+//
+//  All sources are fetched server-side (no CORS issues in Node/Vercel).
+//  EM-DAT remains excluded (no live API — requires manual data request).
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -56,21 +58,8 @@ const CFG = {
   ARTICLE_BASE_URL: "https://globalcrisisindex.com",
   ARTICLE_AUTHOR: "GCIN Editorial Team",
   ARTICLE_LOGO: "https://globalcrisisindex.com/logo.png",
-  // v20.3.0: INFORM WorkflowId for current release (update when new INFORM release drops)
-  INFORM_WORKFLOW_ID: 386,
-  // v20.3.0: EM-DAT static CSV base (host your own or use HDX)
-  EMDAT_BASE_URL: "https://data.humdata.org/dataset/emdat-country-profiles",
-  // v20.3.0: NDBC stations of strategic interest (tsunami + high-risk coastal)
-  NDBC_STATIONS: [
-    "21418", // DART: Japan Trench (tsunami detection)
-    "46404", // DART: Oregon offshore
-    "52401", // DART: Mariana Trench
-    "56001", // DART: Indian Ocean (near Sumatra)
-    "23227", // DART: Chile offshore
-    "44013", // Boston buoy (US East Coast)
-    "46026", // San Francisco buoy
-    "41010", // Canaveral buoy
-  ],
+  // NDBC strategic buoys (near crisis-prone coasts)
+  NDBC_BUOYS: ["51001", "51002", "46026", "41009", "23201", "23002", "56001", "56002"],
 };
 
 const CORS = {
@@ -82,20 +71,21 @@ const CORS = {
 };
 
 const HAZARD_LOOP_ISOS = ['YEM','SOM','SSD','SDN','AFG','ETH','NGA','IND','PAK','BGD','IRQ','SAU','EGY','TUR','IRN','JOR','LBN','SYR','KWT','QAT','ARE','OMN','DZA','MLI','NER'];
+const OSM_INFRA_ISOS = ['YEM','SOM','SSD','SDN','AFG','SYR','COD','HTI','MLI','TCD','NER','CAF','MMR','ETH','NGA','LBY','COG','BFA','GIN','VEN'];
 
-// Currency → ISO3 mapping (v20.2.1, preserved)
 const CURRENCY_TO_ISO = {
   EUR: null, GBP: "GBR", JPY: "JPN", CNY: "CHN", CHF: "CHE", AUD: "AUS", CAD: "CAN",
   SEK: "SWE", NOK: "NOR", DKK: "DNK", NZD: "NZL", KRW: "KOR", SGD: "SGP",
   HKD: "HKG", TWD: "TWN", INR: "IND", BRL: "BRA", MXN: "MEX", ZAR: "ZAF",
   TRY: "TUR", RUB: "RUS", PLN: "POL", CZK: "CZE", HUF: "HUN", RON: "ROU",
-  ILS: "ISR", AED: "ARE", SAR: "SAU", QAR: "QAT", KWD: "KWT", BHD: "BHR",
-  OMR: "OMN", JOD: "JOR", LBP: "LBN", EGP: "EGY", MAD: "MAR", TND: "TUN",
-  DZD: "DZA", LYD: "LBY", NGN: "NGA", KES: "KEN", TZS: "TZA", UGX: "UGA",
-  RWF: "RWA", ETB: "ETH", GHS: "GHA", ZMW: "ZMB", MWK: "MWI", MZN: "MOZ",
-  ZWL: "ZWE", BWP: "BWA", NAD: "NAM", SZL: "SWZ", LSL: "LSO", MGA: "MDG",
-  MUR: "MUS", SCR: "SYC", CVE: "CPV", GMD: "GMB", GNF: "GIN", LRD: "LBR",
-  SLL: "SLE", CDF: "COD", AOA: "AGO", SDG: "SDN", SSP: "SSD", SOS: "SOM",
+  BGN: "BGR", HRK: "HRV", ISK: "ISL", ILS: "ISR", AED: "ARE", SAR: "SAU",
+  QAR: "QAT", KWD: "KWT", BHD: "BHR", OMR: "OMN", JOD: "JOR", LBP: "LBN",
+  EGP: "EGY", MAD: "MAR", TND: "TUN", DZD: "DZA", LYD: "LBY", NGN: "NGA",
+  KES: "KEN", TZS: "TZA", UGX: "UGA", RWF: "RWA", ETB: "ETH", GHS: "GHA",
+  XOF: null, XAF: null, ZMW: "ZMB", MWK: "MWI", MZN: "MOZ", ZWL: "ZWE",
+  BWP: "BWA", NAD: "NAM", SZL: "SWZ", LSL: "LSO", MGA: "MDG", MUR: "MUS",
+  SCR: "SYC", CVE: "CPV", GMD: "GMB", GNF: "GIN", LRD: "LBR", SLL: "SLE",
+  CDF: "COD", AOA: "AGO", SDG: "SDN", SSP: "SSD", SOS: "SOM",
   DJF: "DJI", ERN: "ERI", KMF: "COM", MVR: "MDV", BTN: "BTN", NPR: "NPL",
   PKR: "PAK", BDT: "BGD", LKR: "LKA", MMK: "MMR", THB: "THA", VND: "VNM",
   KHR: "KHM", LAK: "LAO", MYR: "MYS", IDR: "IDN", PHP: "PHL", BND: "BRN",
@@ -107,6 +97,7 @@ const CURRENCY_TO_ISO = {
   PAB: "PAN", DOP: "DOM", HTG: "HTI", JMD: "JAM", TTD: "TTO", BBD: "BRB",
   BSD: "BHS", BZD: "BLZ", CUP: "CUB",
   FJD: "FJI", PGK: "PNG", SBD: "SLB", VUV: "VUT", WST: "WSM", TOP: "TON",
+  STN: "STP", MRO: "MRT",
 };
 
 const COUNTRY_CENTROIDS = {
@@ -189,15 +180,29 @@ for (const [iso, name] of Object.entries(ISO_NAMES)) {
   ALIAS_INDEX.set(iso.toLowerCase(), iso);
 }
 ALIAS_INDEX.set("usa", "USA");
+ALIAS_INDEX.set("united states of america", "USA");
+ALIAS_INDEX.set("us", "USA");
 ALIAS_INDEX.set("uk", "GBR");
 ALIAS_INDEX.set("britain", "GBR");
+ALIAS_INDEX.set("great britain", "GBR");
 ALIAS_INDEX.set("south korea", "KOR");
+ALIAS_INDEX.set("korea", "KOR");
 ALIAS_INDEX.set("north korea", "PRK");
 ALIAS_INDEX.set("dr congo", "COD");
+ALIAS_INDEX.set("democratic republic of the congo", "COD");
+ALIAS_INDEX.set("congo-kinshasa", "COD");
+ALIAS_INDEX.set("congo", "COG");
+ALIAS_INDEX.set("congo-brazzaville", "COG");
 ALIAS_INDEX.set("ivory coast", "CIV");
+ALIAS_INDEX.set("cote d'ivoire", "CIV");
+ALIAS_INDEX.set("côte d'ivoire", "CIV");
 ALIAS_INDEX.set("uae", "ARE");
 ALIAS_INDEX.set("burma", "MMR");
 ALIAS_INDEX.set("east timor", "TLS");
+ALIAS_INDEX.set("timor-leste", "TLS");
+ALIAS_INDEX.set("vatican", "ITA");
+ALIAS_INDEX.set("russia", "RUS");
+ALIAS_INDEX.set("russian federation", "RUS");
 
 const ARC = {
   CE:{l:"Complex Emergency",i:"⚔️",n:["shelter","food","health","protection"],seo:"complex humanitarian emergency",color:"#ff375f"},
@@ -636,6 +641,15 @@ function haversineKm(lon1, lat1, lon2, lat2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+function matchesCountryPlace(iso, place) {
+  if (!place) return false;
+  const p = String(place).toLowerCase();
+  const name = (ISO_NAMES[iso] || "").toLowerCase();
+  if (!name) return false;
+  if (p.includes(name)) return true;
+  return false;
+}
+
 function eventKeyFor(sig, iso) {
   if (!sig.type.startsWith("earthquake_") && !sig.type.includes("earthquake") && sig.type !== "shakemap_event") {
     const day = sig.ageHours ? Math.floor(Date.now() / 86400000 - sig.ageHours / 24) : "unknown";
@@ -710,9 +724,6 @@ function coverageScale(value, floor, ceiling, maxPts) {
   return Math.max(maxPts * 0.2, ratio * maxPts);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  COMPUTE EVIDENCE SCORE
-// ════════════════════════════════════════════════════════════════════════════
 function computeEvidenceScore(iso) {
   const ledger = [];
   let totalPts = 0, totalWeight = 0;
@@ -738,15 +749,23 @@ function computeEvidenceScore(iso) {
   if (coverage.poverty !== undefined && coverage.poverty !== null) { const pov = coverage.poverty; if (pov > 5) add("WORLDBANK", `Poverty rate ${pov.toFixed(1)}%`, pov, logScale(pov, 5, 60, 6), 0.85); }
   if (coverage.gdp_growth !== undefined && coverage.gdp_growth !== null) { const gdp = coverage.gdp_growth; if (gdp < 0) add("WORLDBANK", `GDP growth ${gdp.toFixed(1)}% (negative)`, gdp, logScale(Math.abs(gdp), 1, 10, 5), 0.75); }
   if (coverage.unemployment !== undefined && coverage.unemployment !== null) { const unemp = coverage.unemployment; if (unemp > 10) add("WORLDBANK", `Unemployment rate ${unemp.toFixed(1)}%`, unemp, logScale(unemp, 10, 40, 5), 0.75); }
-  if (coverage.inflation !== undefined && coverage.inflation !== null) { const infl = coverage.inflation; if (infl > 5) add("WORLDBANK", `Inflation rate ${infl.toFixed(1)}%`, infl, logScale(infl, 5, 50, 6), 0.75); }
+  if (coverage.inflation !== undefined && coverage.inflation !== null) { const infl = coverage.inflation; if (infl > 5) add("WORLDBANK", `Inflation rate ${infl.toFixed(1)}% (${coverage.inflation_year || "latest"})`, infl, logScale(infl, 5, 50, 6), 0.75); }
   if (coverage.refugees) { const ref = coverage.refugees; if (ref > 1000) add("UNHCR", `${ref.toLocaleString()} refugees`, ref, logScale(ref, 1000, 5000000, 8), 0.85); }
   if (coverage.displaced) { const disp = coverage.displaced; if (disp > 1000) add("UNHCR", `${disp.toLocaleString()} displaced`, disp, logScale(disp, 1000, 5000000, 8), 0.85); }
   if (coverage.asylum) { const asym = coverage.asylum; if (asym > 100) add("UNHCR", `${asym.toLocaleString()} asylum seekers`, asym, logScale(asym, 100, 1000000, 6), 0.8); }
+  if (coverage.unhcr_op) add("UNHCR", `Active operation: ${coverage.unhcr_op.name}`, 1, 4, 0.7);
   if (coverage.emsc) { const mag = coverage.emsc.mag || 0; if (mag >= 4.5) add("EMSC", `M${mag.toFixed(1)} earthquake (secondary network)`, mag, logScale(mag, 4.5, 8, 8), 0.75); }
   if (coverage.ifrc) add("IFRC", `${coverage.ifrc.dtype}: ${(coverage.ifrc.name || "").substring(0, 30)}`, 1, 6, 0.85);
-  if (coverage.air_quality) { const pm25 = coverage.air_quality.pm25 || 0; const city = coverage.air_quality.city || "monitored city"; if (pm25 >= 35) add("OpenAQ", `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25, logScale(pm25, 35, 300, 5), 0.7); }
+  if (coverage.air_quality) { const pm25 = coverage.air_quality.pm25 || 0; const city = coverage.air_quality.city || "monitored city"; if (pm25 >= 35) add("OPENMETEO", `PM2.5 ${pm25.toFixed(0)} µg/m³ (${city})`, pm25, logScale(pm25, 35, 300, 5), 0.7); }
+  if (coverage.hospitals) add("OSM", `${coverage.hospitals} hospitals in region`, coverage.hospitals, coverageScale(coverage.hospitals, 1, 50, 4), 0.6);
+  if (coverage.clinics) add("OSM", `${coverage.clinics} clinics in region`, coverage.clinics, coverageScale(coverage.clinics, 1, 100, 3), 0.5);
   if (coverage.emissions) { const emissions = coverage.emissions.total || 0; if (emissions > 1000) add("CLIMATETRACE", `${(emissions/1000).toFixed(1)}kt CO₂e emissions (${coverage.emissions.sector})`, emissions, logScale(emissions, 1000, 1000000, 5), 0.6); }
+  if (coverage.wind) { const speed = coverage.wind.speed || 0; if (speed > 30) add("OPENMETEO", `Wind speed ${speed} km/h (storm risk)`, speed, logScale(speed, 30, 100, 5), 0.7); }
+  if (coverage.historic_seismic && coverage.historic_seismic.length > 0) { const maxMag = Math.max(...coverage.historic_seismic.map(e => e.mag || 0)); if (maxMag > 6) add("USGS", `Historic M${maxMag.toFixed(1)} earthquake in region`, maxMag, logScale(maxMag, 6, 8, 4), 0.6); }
   if (coverage.water_stress !== undefined && coverage.water_stress !== null) { const stress = coverage.water_stress; if (stress > 20) add("WORLDBANK", `Water stress ${stress.toFixed(1)}% of resources`, stress, logScale(stress, 20, 100, 5), 0.7); }
+  if (coverage.unhcr_emergency) { const level = coverage.unhcr_emergency.level || "unknown"; const pts = level === "critical" ? 5 : level === "high" ? 3 : 1; add("UNHCR", `Emergency: ${coverage.unhcr_emergency.name} (${level})`, 1, pts, 0.7); }
+  if (coverage.lightning) { const max = coverage.lightning.max || 0; if (max > 100) add("OPENMETEO", `Lightning potential ${max} J/kg (storm risk)`, max, logScale(max, 100, 500, 4), 0.6); }
+  if (coverage.unhcr_stats) { const refugees = coverage.unhcr_stats.refugees || 0; if (refugees > 1000) add("UNHCR", `${refugees.toLocaleString()} refugees (${coverage.unhcr_stats.year})`, refugees, logScale(refugees, 1000, 5000000, 7), 0.8); }
   if (coverage.trade_gdp !== undefined && coverage.trade_gdp !== null) { const trade = coverage.trade_gdp; if (trade > 60) add("WORLDBANK", `Trade ${trade.toFixed(1)}% of GDP`, trade, coverageScale(trade, 60, 200, 4), 0.6); }
   if (coverage.conflict_event) { const sev = coverage.conflict_event.severityIndex || 40; add("RELIEFWEB", `${coverage.conflict_event.event_type}: ${(coverage.conflict_event.title || "").substring(0, 40)}`, sev, logScale(sev, 20, 100, 6), 0.75); }
   if (coverage.ipc) { const phase = coverage.ipc.phase || 3; const pts = phase === 5 ? 12 : phase === 4 ? 9 : 6; add("IPC", `Phase ${phase}: ${coverage.ipc.phase_name}`, phase, pts, 0.85); }
@@ -766,13 +785,14 @@ function computeEvidenceScore(iso) {
   if (coverage.water_stress_static) { const stress = coverage.water_stress_static.baseline_stress || 0; if (stress >= 3.0) add("WRI Aqueduct", `Baseline water stress ${stress.toFixed(1)}/5.0`, stress, logScale(stress, 3, 5, 6), 0.75); }
   if (coverage.ndvi_static) { const anomaly = Math.abs(coverage.ndvi_static.ndvi_anomaly_pct || 0); if (anomaly >= 15) add("FAO GIEWS", `NDVI ${coverage.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM`, anomaly, logScale(anomaly, 15, 40, 6), 0.75); }
   if (coverage.us_drought) { const level = coverage.us_drought.level || "D0"; const pts = level === "D4" ? 10 : level === "D3" ? 8 : level === "D2" ? 6 : level === "D1" ? 4 : 2; add("US DM", `US Drought ${level}: ${coverage.us_drought.area_pct || 0}% area`, 1, pts, 0.75); }
-  // ═══ v20.3.0 NEW SOURCES ═══
-  if (coverage.marine_buoy) { const wave = coverage.marine_buoy.wave_height_m || 0; if (wave >= 3) add("NDBC", `${wave.toFixed(1)}m waves (buoy ${coverage.marine_buoy.station})`, wave, logScale(wave, 3, 10, 6), 0.75); }
-  if (coverage.tsunami_cap) { const sev = coverage.tsunami_cap.severity || "Warning"; const pts = sev === "Warning" ? 15 : sev === "Advisory" ? 8 : 4; add("NOAA PTWC", `${sev}: ${coverage.tsunami_cap.headline?.substring(0, 50) || "tsunami alert"}`, 1, pts, 0.95); }
-  if (coverage.volcano_gvp) { const activity = coverage.volcano_gvp.activity_level || 0; if (activity >= 2) add("Smithsonian GVP", `${coverage.volcano_gvp.volcano_name} activity level ${activity}`, activity, logScale(activity, 1, 4, 8), 0.85); }
-  if (coverage.promed_outbreak) { const count = coverage.promed_outbreak.count || 0; if (count >= 1) add("ProMED", `${count} emerging disease report(s)`, count, logScale(count, 1, 10, 7), 0.8); }
-  if (coverage.cems_activation) { const count = coverage.cems_activation.count || 0; if (count >= 1) add("CEMS", `${count} emergency mapping activation(s)`, count, logScale(count, 1, 5, 8), 0.9); }
-  if (coverage.inform_score !== undefined && coverage.inform_score !== null) { const score = coverage.inform_score; if (score >= 3.5) add("INFORM", `INFORM Risk Index ${score.toFixed(1)}/10`, score, logScale(score, 3.5, 10, 7), 0.8); }
+  // NEW v20.3.0 sources
+  if (coverage.openaq) { const pm25 = coverage.openaq.pm25 || 0; if (pm25 >= 35) add("OpenAQ", `PM2.5 ${pm25.toFixed(0)} µg/m³`, pm25, logScale(pm25, 35, 300, 5), 0.75); }
+  if (coverage.ndbc) { const wave = coverage.ndbc.wave_height || 0; if (wave > 3) add("NOAA NDBC", `Wave height ${wave}m (buoy ${coverage.ndbc.buoy})`, wave, logScale(wave, 3, 10, 5), 0.7); }
+  if (coverage.cems_activation) { add("Copernicus EMS", `Activation ${coverage.cems_activation.id}: ${coverage.cems_activation.title || "Rapid mapping"}`, 1, 8, 0.9); }
+  if (coverage.promed) { const count = coverage.promed.count || 0; if (count >= 1) add("ProMED", `${count} disease outbreak report(s)`, count, logScale(count, 1, 20, 7), 0.8); }
+  if (coverage.gvp_volcano) { add("Smithsonian GVP", `Volcanic activity: ${coverage.gvp_volcano.volcano || "active"}`, 1, 7, 0.85); }
+  if (coverage.tsunami_alert) { add("NOAA PTWC", `Tsunami ${coverage.tsunami_alert.severity || "warning"}: ${coverage.tsunami_alert.area || "Pacific"}`, 1, 10, 0.95); }
+  if (coverage.inform) { const score = coverage.inform.score || 0; if (score >= 5) add("INFORM", `INFORM risk score ${score.toFixed(1)}`, score, logScale(score, 5, 10, 5), 0.7); }
 
   const evidenceScoreRaw = totalWeight > 0 ? Math.min(CFG.EVIDENCE_CAP, totalPts / totalWeight) : 0;
   const evidenceScore = Number.isFinite(evidenceScoreRaw) ? evidenceScoreRaw : 0;
@@ -784,127 +804,8 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  v20.3.0 NEW FETCHERS
+//  FETCHERS — v20.3.0 (ALL FREE SOURCES)
 // ════════════════════════════════════════════════════════════════════════════
-
-// 1. OpenAQ v3 (free, no auth) → global air quality
-async function fetchOpenAQ() {
-  // v3 endpoint: latest by parameter (PM2.5 = parameters_id 2)
-  const url = "https://api.openaq.org/v3/parameters/2/latest?limit=100";
-  const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
-  if (!res.ok || !res.data?.results) return null;
-  return res.data.results;
-}
-
-// 2. NOAA NDBC (free text) → real-time marine/tsunami buoy data
-async function fetchNDBC() {
-  const results = {};
-  for (const station of CFG.NDBC_STATIONS) {
-    const url = `https://www.ndbc.noaa.gov/data/realtime2/${station}.txt`;
-    const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
-    if (!res.ok || !res.data || res.data.length < 100) continue;
-    const lines = res.data.trim().split("\n").filter(l => l && !l.startsWith("#"));
-    if (lines.length === 0) continue;
-    // realtime2 format: newest first, space-delimited
-    // Columns: YY MM DD hh mm WDIR WSPD GST WVHT DPD APD MWD PRES ATMP WTMP DEWP VIS TIDE
-    const parts = lines[0].split(/\s+/);
-    if (parts.length < 15) continue;
-    results[station] = {
-      station,
-      year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4],
-      wind_dir: parts[5], wind_speed_ms: safeNum(parts[6], 0), gust_ms: safeNum(parts[7], 0),
-      wave_height_m: safeNum(parts[8], 0), dominant_period_s: safeNum(parts[9], 0),
-      pressure_hpa: safeNum(parts[12], 0), air_temp_c: safeNum(parts[13], 0), water_temp_c: safeNum(parts[14], 0),
-    };
-  }
-  return Object.keys(results).length > 0 ? results : null;
-}
-
-// 3. NOAA PTWC CAP (free XML) → official tsunami warnings
-async function fetchPTWC() {
-  const url = "https://www.tsunami.gov/events/xml/PAAQAtom.xml";
-  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
-  if (!res.ok || !res.data) return null;
-  const text = res.data;
-  const entries = [...text.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => m[1]);
-  if (entries.length === 0) return { count: 0, alerts: [] };
-  const alerts = [];
-  for (const entry of entries.slice(0, 10)) {
-    const title = entry.match(/<title[^>]*>(.*?)<\/title>/)?.[1] || "";
-    const updated = entry.match(/<updated>(.*?)<\/updated>/)?.[1] || "";
-    const summary = entry.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] || "";
-    const severity = /warning/i.test(title) ? "Warning" : /advisory/i.test(title) ? "Advisory" : "Information";
-    alerts.push({ title, updated, summary: summary.substring(0, 200), severity });
-  }
-  return { count: alerts.length, alerts };
-}
-
-// 4. Smithsonian GVP Weekly Report (free RSS) → volcanic activity
-async function fetchGVP() {
-  const url = "https://volcano.si.edu/news/WeeklyVolcanoRSS.xml";
-  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
-  if (!res.ok || !res.data) return null;
-  const text = res.data;
-  const items = [...text.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => m[1]);
-  if (items.length === 0) return { count: 0, volcanoes: [] };
-  const volcanoes = [];
-  for (const item of items.slice(0, 20)) {
-    const title = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
-    const desc = item.match(/<description>(.*?)<\/description>/)?.[1] || "";
-    // Extract volcano name and activity level
-    const volcanoName = title.split(" ")[0] || title.substring(0, 40);
-    const activityMatch = desc.match(/Alert Level (\d)/i) || desc.match(/activity level (\d)/i);
-    const activityLevel = activityMatch ? parseInt(activityMatch[1]) : 1;
-    volcanoes.push({ volcano_name: volcanoName, activity_level: activityLevel, title, description: desc.substring(0, 200) });
-  }
-  return { count: volcanoes.length, volcanoes };
-}
-
-// 5. ProMED RSS (free XML) → emerging disease signals
-async function fetchProMED() {
-  const url = "https://promedmail.org/promed-posts/feed/";
-  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
-  if (!res.ok || !res.data) return null;
-  const text = res.data;
-  const items = [...text.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => m[1]);
-  if (items.length === 0) return { count: 0, reports: [] };
-  const reports = [];
-  for (const item of items.slice(0, 20)) {
-    const title = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
-    const link = item.match(/<link>(.*?)<\/link>/)?.[1] || "";
-    const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
-    reports.push({ title, link, pubDate });
-  }
-  return { count: reports.length, reports };
-}
-
-// 6. Copernicus EMS GeoRSS (free XML) → satellite mapping activations
-async function fetchCEMS() {
-  // Fetch the activations list page to discover current EMSR IDs
-  const listUrl = "https://emergency.copernicus.eu/mapping/list-of-activations-rapid";
-  const listRes = await safeFetch(fetch(listUrl).then(r => r.ok ? r.text() : null));
-  if (!listRes.ok || !listRes.data) return null;
-  const emsrIds = [...new Set((listRes.data.match(/EMSR\d+/g) || []))].slice(0, 10);
-  if (emsrIds.length === 0) return { count: 0, activations: [] };
-  const activations = [];
-  for (const emsr of emsrIds) {
-    const feedUrl = `https://emergency.copernicus.eu/mapping/list-of-components/${emsr}/feed`;
-    const feedRes = await safeFetch(fetch(feedUrl).then(r => r.ok ? r.text() : null));
-    if (!feedRes.ok || !feedRes.data) continue;
-    const title = feedRes.data.match(/<title>(.*?)<\/title>/)?.[1] || "";
-    const desc = feedRes.data.match(/<description>(.*?)<\/description>/)?.[1] || "";
-    activations.push({ emsr_id: emsr, title, description: desc.substring(0, 200) });
-  }
-  return { count: activations.length, activations };
-}
-
-// 7. INFORM Risk Index (free JSON API) → composite risk score
-async function fetchINFORM() {
-  const url = `https://drmkc.jrc.ec.europa.eu/inform-index/API/InformAPI/countries/Scores/?WorkflowId=${CFG.INFORM_WORKFLOW_ID}`;
-  const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
-  if (!res.ok || !res.data) return null;
-  return res.data;
-}
 
 async function fetchHeatAndPrecipLoop() {
   const results = {};
@@ -968,6 +869,158 @@ async function fetchUSDroughtMonitor() {
   };
 }
 
+// ── NEW v20.3.0: OpenAQ v2 (free, no auth) ──
+async function fetchOpenAQ() {
+  const url = "https://api.openaq.org/v2/latest?limit=100&parameter=pm25&has_geo=true";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
+  if (!res.ok || !res.data?.results) return null;
+  const byIso = {};
+  for (const r of res.data.results) {
+    const iso = r.country ? findIsoByName(r.country) : null;
+    if (!iso) continue;
+    const pm25 = r.measurements?.find(m => m.parameter === "pm25")?.value;
+    if (pm25 !== undefined && pm25 !== null) {
+      if (!byIso[iso] || pm25 > byIso[iso].pm25) {
+        byIso[iso] = { pm25, city: r.city || r.location, source: "OpenAQ" };
+      }
+    }
+  }
+  return byIso;
+}
+
+// ── NEW v20.3.0: NOAA NDBC buoy (real-time ocean obs) ──
+async function fetchNDBCBuoys() {
+  const results = {};
+  for (const buoy of CFG.NDBC_BUOYS) {
+    const url = `https://www.ndbc.noaa.gov/data/realtime2/${buoy}.txt`;
+    const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
+    if (!res.ok || !res.data) continue;
+    const lines = res.data.trim().split("\n").filter(l => l && !l.startsWith("#"));
+    if (lines.length < 1) continue;
+    const latest = lines[0].trim().split(/\s+/);
+    if (latest.length < 10) continue;
+    const year = latest[0], month = latest[1], day = latest[2], hour = latest[3], minute = latest[4];
+    const windDir = parseFloat(latest[5]), windSpeed = parseFloat(latest[6]), windGust = parseFloat(latest[7]);
+    const waveHeight = parseFloat(latest[8]), domPeriod = parseFloat(latest[9]);
+    const lat = parseFloat(latest[latIdx = 12] || 0);
+    const lon = parseFloat(latest[13] || 0);
+    // NDBC buoy stations are fixed — use known locations for mapping
+    const buoyLocations = {
+      "51001": { lat: 24.4, lon: -162.0, iso: "USA" },
+      "51002": { lat: 17.0, lon: -157.0, iso: "USA" },
+      "46026": { lat: 37.75, lon: -122.8, iso: "USA" },
+      "41009": { lat: 28.5, lon: -80.2, iso: "USA" },
+      "23201": { lat: 12.0, lon: 90.0, iso: "IND" },
+      "23002": { lat: 15.0, lon: 88.0, iso: "IND" },
+      "56001": { lat: -12.0, lon: 122.0, iso: "AUS" },
+      "56002": { lat: -20.0, lon: 115.0, iso: "AUS" },
+    };
+    const loc = buoyLocations[buoy];
+    if (loc) {
+      results[loc.iso] = {
+        buoy,
+        wave_height: Number.isFinite(waveHeight) && waveHeight < 90 ? waveHeight : null,
+        wind_speed: Number.isFinite(windSpeed) && windSpeed < 90 ? windSpeed : null,
+        wind_gust: Number.isFinite(windGust) && windGust < 90 ? windGust : null,
+        timestamp: `${year}-${month}-${day}T${hour}:${minute}Z`,
+      };
+    }
+  }
+  return results;
+}
+
+// ── NEW v20.3.0: Copernicus EMS activations (GeoRSS) ──
+async function fetchCEMSActivations() {
+  const url = "https://emergency.copernicus.eu/mapping/list-of-activations-rapid/feed";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
+  if (!res.ok || !res.data) return null;
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(res.data)) !== null) {
+    const block = match[1];
+    const title = (block.match(/<title>(.*?)<\/title>/) || [])[1] || "";
+    const id = (block.match(/EMSR\d+/) || [])[0] || null;
+    const desc = (block.match(/<description>(.*?)<\/description>/) || [])[1] || "";
+    const link = (block.match(/<link>(.*?)<\/link>/) || [])[1] || "";
+    if (id) items.push({ id, title: title.replace(/<!\[CDATA\[|\]\]>/g, ''), description: desc.replace(/<!\[CDATA\[|\]\]>/g, ''), link });
+  }
+  return items.slice(0, 20);
+}
+
+// ── NEW v20.3.0: ProMED RSS (emerging disease signals) ──
+async function fetchProMED() {
+  const url = "https://promedmail.org/promed-posts/feed/";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
+  if (!res.ok || !res.data) return null;
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(res.data)) !== null) {
+    const block = match[1];
+    const title = (block.match(/<title>(.*?)<\/title>/) || [])[1] || "";
+    const desc = (block.match(/<description>(.*?)<\/description>/) || [])[1] || "";
+    const pubDate = (block.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || "";
+    if (title) items.push({ title: title.replace(/<!\[CDATA\[|\]\]>/g, ''), description: desc.replace(/<!\[CDATA\[|\]\]>/g, '').slice(0, 200), pubDate });
+  }
+  return items.slice(0, 30);
+}
+
+// ── NEW v20.3.0: Smithsonian GVP (weekly volcanic activity) ──
+async function fetchSmithsonianGVP() {
+  const url = "https://volcano.si.edu/news/WeeklyVolcanoRSS.xml";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
+  if (!res.ok || !res.data) return null;
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(res.data)) !== null) {
+    const block = match[1];
+    const title = (block.match(/<title>(.*?)<\/title>/) || [])[1] || "";
+    const desc = (block.match(/<description>(.*?)<\/description>/) || [])[1] || "";
+    const link = (block.match(/<link>(.*?)<\/link>/) || [])[1] || "";
+    if (title) items.push({ volcano: title.replace(/<!\[CDATA\[|\]\]>/g, '').trim(), description: desc.replace(/<!\[CDATA\[|\]\]>/g, '').slice(0, 300), link });
+  }
+  return items.slice(0, 30);
+}
+
+// ── NEW v20.3.0: NOAA PTWC (tsunami CAP) ──
+async function fetchPTWC() {
+  const url = "https://www.tsunami.gov/events/xml/PAAQAtom.xml";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
+  if (!res.ok || !res.data) return null;
+  const entries = [];
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+  let match;
+  while ((match = entryRegex.exec(res.data)) !== null) {
+    const block = match[1];
+    const title = (block.match(/<title[^>]*>(.*?)<\/title>/) || [])[1] || "";
+    const updated = (block.match(/<updated>(.*?)<\/updated>/) || [])[1] || "";
+    const summary = (block.match(/<summary[^>]*>(.*?)<\/summary>/) || [])[1] || "";
+    // Look for severity in CAP extension
+    const severity = (block.match(/<cap:severity>(.*?)<\/cap:severity>/) || [])[1] || "Unknown";
+    const area = (block.match(/<cap:areaDesc>(.*?)<\/cap:areaDesc>/) || [])[1] || "";
+    if (title) entries.push({ title: title.replace(/<!\[CDATA\[|\]\]>/g, ''), severity, area, updated, summary: summary.replace(/<!\[CDATA\[|\]\]>/g, '').slice(0, 200) });
+  }
+  return entries.slice(0, 10);
+}
+
+// ── NEW v20.3.0: INFORM Index API (JRC) ──
+async function fetchINFORM() {
+  // Use latest known WorkflowId (386 = INFORM 2024 release)
+  const url = "https://drmkc.jrc.ec.europa.eu/inform-index/API/informAPI/Countries/Scores/?WorkflowId=386";
+  const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
+  if (!res.ok || !res.data) return null;
+  // Response is an array of { Iso3, IndicatorId, IndicatorScore, ... }
+  const byIso = {};
+  for (const item of res.data) {
+    if (item.Iso3 && item.IndicatorId === "INFORM") {
+      byIso[item.Iso3] = { score: item.IndicatorScore, rank: item.IndicatorRank, trend: item.Trend };
+    }
+  }
+  return byIso;
+}
+
 async function fetchAllLive() {
   resetEvidenceIndex();
   fetcherHealth.startRun();
@@ -976,20 +1029,21 @@ async function fetchAllLive() {
     // ── PRIMARY SEISMIC ──
     usgs_weekly: () => fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.ok ? r.json() : null),
     gdacs_all: () => fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ,TC,FL,VO,DR,WF&alertlevel=Orange,Red&limit=60").then(r => r.ok ? r.json() : null),
+    gdacs_earthquakes: () => fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20").then(r => r.ok ? r.json() : null),
     emsc_seismic: () => fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.ok ? r.json() : null),
 
-    // ── v20.3.0 NEW SOURCES ──
-    openaq: () => fetchOpenAQ(),
-    ndbc: () => fetchNDBC(),
-    ptwc: () => fetchPTWC(),
-    gvp: () => fetchGVP(),
-    promed: () => fetchProMED(),
-    cems: () => fetchCEMS(),
-    inform: () => fetchINFORM(),
-
-    // ── v20.2.1 SOURCES (preserved) ──
+    // ── v20.2.1 sources ──
     frankfurter_fx: () => fetchFrankfurterFX(),
     us_drought_monitor: () => fetchUSDroughtMonitor(),
+
+    // ── v20.3.0 NEW sources ──
+    openaq: () => fetchOpenAQ(),
+    ndbc_buoys: () => fetchNDBCBuoys(),
+    cems_activations: () => fetchCEMSActivations(),
+    promed: () => fetchProMED(),
+    smithsonian_gvp: () => fetchSmithsonianGVP(),
+    ptwc_tsunami: () => fetchPTWC(),
+    inform: () => fetchINFORM(),
 
     // ── NASA ──
     nasa_eonet: () => fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7").then(r => r.ok ? r.json() : null),
@@ -1019,18 +1073,26 @@ async function fetchAllLive() {
     // ── HEAT / PRECIP LOOP ──
     heat_loop: () => fetchHeatAndPrecipLoop(),
 
-    // ── AIR QUALITY (Open-Meteo fallback) ──
+    // ── AIR QUALITY (Open-Meteo) ──
     aq_delhi: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
+    aq_beijing: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
+    aq_cairo: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
 
     // ── FLOOD / MARINE ──
     flood: () => fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.ok ? r.json() : null),
     marine: () => fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.ok ? r.json() : null),
 
     // ── RELIEFWEB ──
-    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v2030&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
+    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v203&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
 
     // ── GDELT ──
     gdelt_conflict: () => fetch("https://api.gdeltproject.org/api/v2/doc/doc?query=conflict&mode=artlist&maxrecords=25&format=json").then(r => r.ok ? r.json() : null),
+
+    // ── CLIMATE TRACE ──
+    climate_trace: () => fetch("https://api.climatetrace.org/v6/countries").then(r => r.ok ? r.json() : null),
+
+    // ── FAO FPMA ──
+    fao_fpma: () => fetch("https://fpma.apps.fao.org/api/v1/prices").then(r => r.ok ? r.json() : null),
   };
 
   const keys = Object.keys(tasks);
@@ -1054,10 +1116,10 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  INGEST
+//  INGEST — v20.3.0
 // ════════════════════════════════════════════════════════════════════════════
 function ingestFetchedData(out) {
-  // USGS
+  // ── USGS ──
   if (out.usgs_weekly?.features) {
     for (const f of out.usgs_weekly.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1067,7 +1129,7 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // EMSC
+  // ── EMSC ──
   if (out.emsc_seismic?.features) {
     for (const f of out.emsc_seismic.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1082,7 +1144,7 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // GDACS unified feed
+  // ── GDACS unified feed ──
   if (out.gdacs_all?.features) {
     for (const f of out.gdacs_all.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1090,11 +1152,7 @@ function ingestFetchedData(out) {
       const iso = coords ? findClosestCountry(coords[0], coords[1]) : null;
       if (!iso) continue;
       const cov = ensureCoverage(iso);
-      const ev = {
-        event: p.eventname || "",
-        alert: (p.alertlevel || "Orange").toLowerCase() === "red" ? "Red" : "Orange",
-        eventtype: p.eventtype,
-      };
+      const ev = { event: p.eventname || "", alert: (p.alertlevel || "Orange").toLowerCase() === "red" ? "Red" : "Orange", eventtype: p.eventtype };
       if (p.eventtype === "VO") cov.gdacs_volcano = ev;
       else if (p.eventtype === "DR") cov.gdacs_drought = ev;
       else if (p.eventtype === "FL") cov.gdacs_flood = ev;
@@ -1104,7 +1162,19 @@ function ingestFetchedData(out) {
       else cov.gdacs = ev;
     }
   }
-  // Frankfurter FX
+  if (out.gdacs_earthquakes?.features) {
+    for (const f of out.gdacs_earthquakes.features) {
+      const p = f.properties, coords = f.geometry?.coordinates;
+      if (p?.eventname && coords) {
+        const iso = findClosestCountry(coords[0], coords[1]);
+        if (iso) {
+          const cov = ensureCoverage(iso);
+          if (!cov.gdacs_eq) cov.gdacs_eq = { event: p.eventname, mag: p.magnitude };
+        }
+      }
+    }
+  }
+  // ── Frankfurter FX ──
   if (out.frankfurter_fx?.rates) {
     const rates = out.frankfurter_fx.rates;
     for (const [cur, rate] of Object.entries(rates)) {
@@ -1114,16 +1184,11 @@ function ingestFetchedData(out) {
       const volProxy = Math.max(0, Math.min(60, Math.log10(Math.max(0.01, numRate)) * 20));
       const cov = ensureCoverage(iso);
       if (!cov.currency_stress || (cov.currency_stress.volatility_pct || 0) < volProxy) {
-        cov.currency_stress = {
-          rate_per_usd: numRate,
-          volatility_pct: +volProxy.toFixed(2),
-          source_currency: cur,
-          date: out.frankfurter_fx.date,
-        };
+        cov.currency_stress = { rate_per_usd: numRate, volatility_pct: +volProxy.toFixed(2), source_currency: cur, date: out.frankfurter_fx.date };
       }
     }
   }
-  // US Drought Monitor
+  // ── US Drought Monitor ──
   if (out.us_drought_monitor) {
     ensureCoverage("USA").us_drought = {
       level: out.us_drought_monitor.level,
@@ -1132,7 +1197,95 @@ function ingestFetchedData(out) {
       polygon_count: out.us_drought_monitor.polygon_count,
     };
   }
-  // NASA EONET
+  // ── OpenAQ ──
+  if (out.openaq && typeof out.openaq === "object") {
+    for (const [iso, data] of Object.entries(out.openaq)) {
+      if (data.pm25 !== undefined && data.pm25 !== null) {
+        const cov = ensureCoverage(iso);
+        if (!cov.air_quality || (cov.air_quality.pm25 || 0) < data.pm25) {
+          cov.air_quality = { pm25: data.pm25, city: data.city, source: "OpenAQ" };
+        }
+      }
+    }
+  }
+  // ── NOAA NDBC ──
+  if (out.ndbc_buoys && typeof out.ndbc_buoys === "object") {
+    for (const [iso, data] of Object.entries(out.ndbc_buoys)) {
+      ensureCoverage(iso).ndbc = data;
+    }
+  }
+  // ── Copernicus EMS ──
+  if (Array.isArray(out.cems_activations)) {
+    for (const act of out.cems_activations) {
+      // CEMS activations don't have country codes in the feed — use title-based lookup
+      const title = act.title || "";
+      let iso = null;
+      for (const [code, name] of Object.entries(ISO_NAMES)) {
+        if (title.toLowerCase().includes(name.toLowerCase())) { iso = code; break; }
+      }
+      if (iso && BASE_SCORES[iso] !== undefined) {
+        ensureCoverage(iso).cems_activation = { id: act.id, title: act.title, link: act.link };
+      }
+    }
+  }
+  // ── ProMED ──
+  if (Array.isArray(out.promed)) {
+    const byIso = {};
+    for (const item of out.promed) {
+      const title = item.title || "";
+      let iso = null;
+      for (const [code, name] of Object.entries(ISO_NAMES)) {
+        if (title.toLowerCase().includes(name.toLowerCase())) { iso = code; break; }
+      }
+      if (iso && BASE_SCORES[iso] !== undefined) {
+        if (!byIso[iso]) byIso[iso] = { count: 0, titles: [] };
+        byIso[iso].count++;
+        if (byIso[iso].titles.length < 3) byIso[iso].titles.push(title);
+      }
+    }
+    for (const [iso, data] of Object.entries(byIso)) {
+      ensureCoverage(iso).promed = { count: data.count, titles: data.titles };
+    }
+  }
+  // ── Smithsonian GVP ──
+  if (Array.isArray(out.smithsonian_gvp)) {
+    for (const item of out.smithsonian_gvp) {
+      const volcanoName = item.volcano || "";
+      // GVP reports have volcano names; map to country via description or skip
+      // Simplified: check description for country mentions
+      const text = `${item.volcano} ${item.description}`;
+      let iso = null;
+      for (const [code, name] of Object.entries(ISO_NAMES)) {
+        if (text.toLowerCase().includes(name.toLowerCase())) { iso = code; break; }
+      }
+      if (iso && BASE_SCORES[iso] !== undefined) {
+        ensureCoverage(iso).gvp_volcano = { volcano: volcanoName, description: (item.description || "").slice(0, 200) };
+      }
+    }
+  }
+  // ── NOAA PTWC ──
+  if (Array.isArray(out.ptwc_tsunami)) {
+    for (const alert of out.ptwc_tsunami) {
+      if (alert.severity === "Minor" || alert.severity === "Unknown") continue;
+      const text = `${alert.title} ${alert.area}`;
+      let iso = null;
+      for (const [code, name] of Object.entries(ISO_NAMES)) {
+        if (text.toLowerCase().includes(name.toLowerCase())) { iso = code; break; }
+      }
+      if (iso && BASE_SCORES[iso] !== undefined) {
+        ensureCoverage(iso).tsunami_alert = { severity: alert.severity, area: alert.area, title: alert.title, updated: alert.updated };
+      }
+    }
+  }
+  // ── INFORM ──
+  if (out.inform && typeof out.inform === "object") {
+    for (const [iso, data] of Object.entries(out.inform)) {
+      if (data.score !== undefined && BASE_SCORES[iso] !== undefined) {
+        ensureCoverage(iso).inform = { score: data.score, rank: data.rank, trend: data.trend };
+      }
+    }
+  }
+  // ── NASA EONET ──
   if (out.nasa_eonet?.events) {
     for (const ev of out.nasa_eonet.events) {
       const coords = ev.geometry?.[0]?.coordinates;
@@ -1151,121 +1304,76 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // Heat loop
+  // ── Heat loop ──
   if (out.heat_loop && typeof out.heat_loop === "object") {
     for (const [iso, d] of Object.entries(out.heat_loop)) {
-      if (d && d.temp !== undefined) {
-        ensureCoverage(iso).heat = { temp: d.temp, precip: d.precip, date: d.date };
-      }
+      if (d && d.temp !== undefined) ensureCoverage(iso).heat = { temp: d.temp, precip: d.precip, date: d.date };
     }
   }
-  // disease.sh
+  // ── disease.sh ──
   if (Array.isArray(out.disease_sh)) {
     for (const d of out.disease_sh) {
       const iso = findIsoByName(d.country);
-      if (iso && d.active > 0) {
-        ensureCoverage(iso).covid = { active: d.active, cases: d.cases, deaths: d.deaths };
-      }
+      if (iso && d.active > 0) ensureCoverage(iso).covid = { active: d.active, cases: d.cases, deaths: d.deaths };
     }
   }
-  // WHO DON
+  // ── WHO DON ──
   if (out.who_don?.value) {
     for (const don of out.who_don.value) {
       const iso = don.CountryISO3 || don.Country;
-      if (iso && BASE_SCORES[iso] !== undefined) {
-        ensureCoverage(iso).who_don = { title: don.Title || don.Name, date: don.PublicationDate };
-      }
+      if (iso && BASE_SCORES[iso] !== undefined) ensureCoverage(iso).who_don = { title: don.Title || don.Name, date: don.PublicationDate };
     }
   }
-  // World Bank population
+  // ── World Bank ──
   if (out.wb_population?.[1]) {
     for (const item of out.wb_population[1]) {
       if (item.country?.id && item.value) {
         const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) {
-          ensureCoverage(iso).population = parseInt(item.value);
-          evidenceIndex.population[iso] = parseInt(item.value);
-        }
+        if (BASE_SCORES[iso] !== undefined) { ensureCoverage(iso).population = parseInt(item.value); evidenceIndex.population[iso] = parseInt(item.value); }
       }
     }
   }
-  // World Bank poverty
   if (out.wb_poverty?.[1]) {
     for (const item of out.wb_poverty[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).poverty = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).poverty = parseFloat(item.value); }
     }
   }
-  // World Bank inflation
   if (out.wb_inflation?.[1]) {
     for (const item of out.wb_inflation[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) {
-          const cov = ensureCoverage(iso);
-          cov.inflation = parseFloat(item.value);
-          cov.inflation_year = item.date;
-        }
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) { const cov = ensureCoverage(iso); cov.inflation = parseFloat(item.value); cov.inflation_year = item.date; } }
     }
   }
-  // World Bank GDP
   if (out.wb_gdp_growth?.[1]) {
     for (const item of out.wb_gdp_growth[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).gdp_growth = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).gdp_growth = parseFloat(item.value); }
     }
   }
-  // World Bank unemployment
   if (out.wb_unemployment?.[1]) {
     for (const item of out.wb_unemployment[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).unemployment = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).unemployment = parseFloat(item.value); }
     }
   }
-  // World Bank refugees
   if (out.wb_refugees?.[1]) {
     for (const item of out.wb_refugees[1]) {
-      if (item.country?.id && item.value) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).refugees_wb = parseInt(item.value);
-      }
+      if (item.country?.id && item.value) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).refugees_wb = parseInt(item.value); }
     }
   }
-  // World Bank water
   if (out.wb_water?.[1]) {
     for (const item of out.wb_water[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).water_stress = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).water_stress = parseFloat(item.value); }
     }
   }
-  // World Bank trade
   if (out.wb_trade?.[1]) {
     for (const item of out.wb_trade[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).trade_gdp = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).trade_gdp = parseFloat(item.value); }
     }
   }
-  // World Bank political stability
   if (out.wb_political_stability?.[1]) {
     for (const item of out.wb_political_stability[1]) {
-      if (item.country?.id && item.value !== null) {
-        const iso = item.country.id;
-        if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).political_stability = parseFloat(item.value);
-      }
+      if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).political_stability = parseFloat(item.value); }
     }
   }
-  // UNHCR population
+  // ── UNHCR ──
   if (out.unhcr_pop?.items) {
     for (const item of out.unhcr_pop.items) {
       const iso = item.coa_iso;
@@ -1276,48 +1384,43 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // IFRC
+  // ── IFRC ──
   if (out.ifrc_go?.results) {
     for (const ev of out.ifrc_go.results) {
       const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
-      if (iso && BASE_SCORES[iso] !== undefined) {
-        ensureCoverage(iso).ifrc = { name: ev.name, dtype: ev.dtype?.name || "Field operation", date: ev.disaster_start_date };
-      }
+      if (iso && BASE_SCORES[iso] !== undefined) ensureCoverage(iso).ifrc = { name: ev.name, dtype: ev.dtype?.name || "Field operation", date: ev.disaster_start_date };
     }
   }
-  // Air quality (Open-Meteo fallback)
-  const aqMap = { aq_delhi: "IND" };
+  // ── Air quality (Open-Meteo) ──
+  const aqMap = { aq_delhi: "IND", aq_beijing: "CHN", aq_cairo: "EGY" };
   for (const [key, iso] of Object.entries(aqMap)) {
     const data = out[key];
     const pm25 = data?.hourly?.pm2_5?.[0];
     if (pm25 !== undefined && pm25 !== null) {
-      ensureCoverage(iso).air_quality = { pm25, city: key.replace("aq_", ""), timestamp: new Date().toISOString() };
+      const cov = ensureCoverage(iso);
+      if (!cov.air_quality) cov.air_quality = { pm25, city: key.replace("aq_", ""), timestamp: new Date().toISOString() };
     }
   }
-  // Flood
+  // ── Flood ──
   if (out.flood?.daily?.river_discharge) {
     const max = Math.max(...out.flood.daily.river_discharge);
     if (max > 100) ensureCoverage("YEM").flood_risk = { discharge: max, date: out.flood.daily.time?.[0] };
   }
-  // Marine
+  // ── Marine ──
   if (out.marine?.hourly?.wave_height) {
     const max = Math.max(...out.marine.hourly.wave_height);
     if (max > 3) ensureCoverage("YEM").marine = { wave_height: max, date: out.marine.hourly.time?.[0] };
   }
-  // ReliefWeb conflict
+  // ── ReliefWeb conflict ──
   if (out.reliefweb_conflict?.data) {
     for (const report of out.reliefweb_conflict.data) {
       const iso = report.fields?.country?.[0]?.iso3;
       if (iso && BASE_SCORES[iso] !== undefined) {
-        ensureCoverage(iso).conflict_event = {
-          title: report.fields?.title,
-          event_type: report.fields?.primary_type?.name || "Conflict",
-          severityIndex: 60,
-        };
+        ensureCoverage(iso).conflict_event = { title: report.fields?.title, event_type: report.fields?.primary_type?.name || "Conflict", severityIndex: 60 };
       }
     }
   }
-  // GDELT conflict
+  // ── GDELT conflict ──
   if (out.gdelt_conflict?.articles) {
     for (const article of out.gdelt_conflict.articles) {
       const iso = article.sourcecountry ? findIsoByName(article.sourcecountry) : null;
@@ -1327,114 +1430,25 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ═══ v20.3.0 NEW INGESTION ═══
-  // OpenAQ v3
-  if (Array.isArray(out.openaq)) {
-    for (const reading of out.openaq) {
-      const coords = reading.coordinates;
-      if (coords?.latitude && coords?.longitude) {
-        const iso = findClosestCountry(coords.longitude, coords.latitude);
-        if (iso && BASE_SCORES[iso] !== undefined) {
-          const cov = ensureCoverage(iso);
-          if (!cov.air_quality || (cov.air_quality.pm25 || 0) < reading.value) {
-            cov.air_quality = { pm25: safeNum(reading.value, 0), city: reading.locationName || reading.name || "OpenAQ", source: "OpenAQ" };
-          }
-        }
+  // ── Climate TRACE ──
+  if (out.climate_trace?.countries) {
+    for (const c of out.climate_trace.countries) {
+      const iso = c.iso3;
+      if (iso && BASE_SCORES[iso] !== undefined && c.emissions) {
+        ensureCoverage(iso).emissions = { total: c.emissions.total_co2e || c.emissions.co2e_100yr || 0, sector: c.emissions.top_sector || "multiple" };
       }
     }
   }
-  // NDBC marine buoys
-  if (out.ndbc && typeof out.ndbc === "object") {
-    for (const [station, data] of Object.entries(out.ndbc)) {
-      // NDBC stations are offshore; map by proximity to nearest country centroid
-      // Use strategic rough assignment based on station region
-      const stationIsoMap = {
-        "21418": "JPN", "46404": "USA", "52401": "USA", "56001": "IDN",
-        "23227": "CHL", "44013": "USA", "46026": "USA", "41010": "USA",
-      };
-      const iso = stationIsoMap[station] || "USA";
-      if (BASE_SCORES[iso] !== undefined) {
-        const cov = ensureCoverage(iso);
-        if (!cov.marine_buoy || (cov.marine_buoy.wave_height_m || 0) < (data.wave_height_m || 0)) {
-          cov.marine_buoy = { station, wave_height_m: data.wave_height_m, wind_speed_ms: data.wind_speed_ms, pressure_hpa: data.pressure_hpa, water_temp_c: data.water_temp_c };
-        }
-      }
-    }
-  }
-  // PTWC tsunami CAP
-  if (out.ptwc?.alerts) {
-    for (const alert of out.ptwc.alerts) {
-      if (alert.severity === "Warning" || alert.severity === "Advisory") {
-        // Tsunami alerts are typically ocean-wide; apply to coastal countries in the Pacific
-        const pacificCoasts = ["USA", "JPN", "PHL", "IDN", "CHL", "PER", "MEX", "NZL", "AUS", "PNG", "SLB", "VUT", "FJI", "WSM", "TON", "KIR", "FSM", "MHL", "PLW", "NRU", "TUV", "CAN", "RUS", "TWN", "KOR", "PRK", "CHN", "VNM", "MYS", "THA", "KHM", "SGP", "BRN"];
-        for (const iso of pacificCoasts) {
-          if (BASE_SCORES[iso] !== undefined) {
-            const cov = ensureCoverage(iso);
-            if (!cov.tsunami_cap || cov.tsunami_cap.severity !== "Warning") {
-              cov.tsunami_cap = { severity: alert.severity, headline: alert.title, updated: alert.updated };
-            }
-          }
-        }
-      }
-    }
-  }
-  // Smithsonian GVP
-  if (out.gvp?.volcanoes) {
-    for (const v of out.gvp.volcanoes) {
-      // GVP volcano names → rough country mapping (major volcanoes)
-      const volcanoCountryMap = {
-        "Krakatau": "IDN", "Merapi": "IDN", "Semeru": "IDN", "Marapi": "IDN", "Dukono": "IDN",
-        "Mayon": "PHL", "Taal": "PHL", "Kanlaon": "PHL",
-        "Sakurajima": "JPN", "Asamayama": "JPN",
-        "Etna": "ITA", "Stromboli": "ITA",
-        "Popocatepetl": "MEX", "Fuego": "GTM",
-        "Villarrica": "CHL", "Cotopaxi": "ECU",
-        "Erta Ale": "ETH", "Nyiragongo": "COD",
-        "White Island": "NZL",
-        "Kilauea": "USA", "Mauna Loa": "USA",
-      };
-      const iso = volcanoCountryMap[v.volcano_name] || null;
+  // ── FAO FPMA ──
+  if (out.fao_fpma?.prices) {
+    for (const p of out.fao_fpma.prices) {
+      const iso = p.iso3;
       if (iso && BASE_SCORES[iso] !== undefined) {
-        const cov = ensureCoverage(iso);
-        if (!cov.volcano_gvp || (cov.volcano_gvp.activity_level || 0) < v.activity_level) {
-          cov.volcano_gvp = { volcano_name: v.volcano_name, activity_level: v.activity_level, title: v.title };
-        }
+        ensureCoverage(iso).fao_fpma = { commodity: p.commodity, anomaly_pct: p.anomaly_pct, price: p.price };
       }
     }
   }
-  // ProMED
-  if (out.promed?.reports) {
-    for (const r of out.promed.reports) {
-      // Try to extract country from title
-      const iso = findIsoByName(r.title) || findIsoByName(r.title.split(" - ")[0]);
-      if (iso && BASE_SCORES[iso] !== undefined) {
-        const cov = ensureCoverage(iso);
-        cov.promed_outbreak = { count: (cov.promed_outbreak?.count || 0) + 1, latest: r.title };
-      }
-    }
-  }
-  // CEMS
-  if (out.cems?.activations) {
-    for (const a of out.cems.activations) {
-      // CEMS activations include country in title/description; try to resolve
-      const iso = findIsoByName(a.title) || findIsoByName(a.description);
-      if (iso && BASE_SCORES[iso] !== undefined) {
-        const cov = ensureCoverage(iso);
-        cov.cems_activation = { count: (cov.cems_activation?.count || 0) + 1, latest_emsr: a.emsr_id };
-      }
-    }
-  }
-  // INFORM
-  if (out.inform && Array.isArray(out.inform)) {
-    for (const row of out.inform) {
-      const iso = row.Iso3 || row.iso3;
-      const score = row.IndicatorScore ?? row.score;
-      if (iso && BASE_SCORES[iso] !== undefined && score !== undefined) {
-        ensureCoverage(iso).inform_score = parseFloat(score);
-      }
-    }
-  }
-  // Static fallbacks
+  // ── Static fallbacks ──
   for (const [iso, stress] of Object.entries(AQUEDUCT_WATER_STRESS)) {
     if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).water_stress_static = { baseline_stress: stress };
   }
@@ -1444,7 +1458,7 @@ function ingestFetchedData(out) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING
+//  LIVE BREAKING — v20.3.0
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
@@ -1481,15 +1495,14 @@ const LIVE_SIGNALS = {
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
   health_capacity_low:{weight:40,verify:0.85,label:"Low Health Capacity",icon:"🏥"},
   conflict_fatalities:{weight:95,verify:1.0,label:"Conflict Fatalities",icon:"⚔️"},
-  // ═══ v20.3.0 NEW SIGNALS ═══
-  tsunami_warning:{weight:100,verify:1.0,label:"Tsunami Warning",icon:"🌊"},
-  tsunami_advisory:{weight:60,verify:0.95,label:"Tsunami Advisory",icon:"🌊"},
-  volcano_gvp_high:{weight:80,verify:0.95,label:"High Volcanic Activity",icon:"🌋"},
-  volcano_gvp_erupting:{weight:95,verify:1.0,label:"Volcano Erupting",icon:"🌋"},
+  // v20.3.0 NEW
+  openaq_air_quality:{weight:55,verify:0.9,label:"Air Quality Alert",icon:"🫁"},
+  ndbc_marine:{weight:60,verify:0.95,label:"Marine Buoy Alert",icon:"🌊"},
+  cems_activation:{weight:85,verify:1.0,label:"Copernicus EMS Activation",icon:"🛰️"},
   promed_outbreak:{weight:65,verify:0.9,label:"ProMED Disease Report",icon:"🦠"},
-  cems_activation:{weight:85,verify:1.0,label:"CEMS Rapid Mapping",icon:"🛰️"},
-  marine_buoy_hazard:{weight:55,verify:0.9,label:"Marine Buoy Hazard",icon:"🌊"},
-  inform_high_risk:{weight:50,verify:0.9,label:"High INFORM Risk",icon:"⚖️"},
+  gvp_volcanic_activity:{weight:75,verify:0.95,label:"Volcanic Activity Report",icon:"🌋"},
+  tsunami_alert:{weight:100,verify:1.0,label:"Tsunami Alert",icon:"🌊"},
+  inform_risk:{weight:50,verify:0.85,label:"INFORM High Risk",icon:"📊"},
 };
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
@@ -1511,27 +1524,26 @@ function computeLiveBreakingScore(iso, live, store) {
       magnitude: cov.usgs.mag,
     });
   }
-  // GDACS generic
+  if (cov.emsc?.mag >= 4.5 && (!cov.usgs || cov.emsc.mag > cov.usgs.mag)) {
+    signals.push({ type: "earthquake_m5", weight: 55, ageHours: 12, source: "EMSC", details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag });
+  }
+  // GDACS
   if (cov.gdacs?.alert) {
     const a = String(cov.gdacs.alert).toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_red" : "gdacs_orange", weight: a === "red" ? 100 : 70, ageHours: 12, source: "GDACS", details: `${cov.gdacs.alert} alert: ${cov.gdacs.event || "disaster"}` });
   }
-  // GDACS volcano
   if (cov.gdacs_volcano?.alert) {
     const a = cov.gdacs_volcano.alert.toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_volcano_red" : "gdacs_volcano_orange", weight: a === "red" ? 90 : 60, ageHours: 12, source: "GDACS", details: `${cov.gdacs_volcano.alert} volcanic alert: ${cov.gdacs_volcano.event || ""}` });
   }
-  // GDACS drought
   if (cov.gdacs_drought?.alert) {
     const a = cov.gdacs_drought.alert.toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_drought_red" : "gdacs_drought_orange", weight: a === "red" ? 85 : 55, ageHours: 24, source: "GDACS", details: `${cov.gdacs_drought.alert} drought alert: ${cov.gdacs_drought.event || ""}` });
   }
-  // GDACS flood
   if (cov.gdacs_flood?.alert) {
     const a = cov.gdacs_flood.alert.toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_flood_red" : "gdacs_flood_orange", weight: a === "red" ? 85 : 55, ageHours: 12, source: "GDACS", details: `${cov.gdacs_flood.alert} flood alert: ${cov.gdacs_flood.event || ""}` });
   }
-  // GDACS cyclone
   if (cov.gdacs_cyclone?.alert) {
     const a = cov.gdacs_cyclone.alert.toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_cyclone_red" : "gdacs_cyclone_orange", weight: a === "red" ? 95 : 65, ageHours: 12, source: "GDACS", details: `${cov.gdacs_cyclone.alert} cyclone alert: ${cov.gdacs_cyclone.event || ""}` });
@@ -1550,7 +1562,7 @@ function computeLiveBreakingScore(iso, live, store) {
   // Displacement
   if (cov.displaced > 100000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${cov.displaced.toLocaleString()} displaced` });
   // Air quality
-  if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, source: "OpenAQ", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
+  if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, source: cov.air_quality.source || "OPENMETEO", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
   // Flood
   if (cov.flood_risk?.discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 24, source: "OPENMETEO", details: `River discharge ${cov.flood_risk.discharge}m³/s` });
   // Marine
@@ -1563,7 +1575,7 @@ function computeLiveBreakingScore(iso, live, store) {
   if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60) });
   // GDELT
   if (cov.gdelt_conflict?.count >= 3) signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, source: "GDELT", details: `${cov.gdelt_conflict.count} conflict/unrest articles` });
-  // Currency
+  // Currency stress
   if (cov.currency_stress?.volatility_pct >= 15) signals.push({ type: "currency_stress", weight: cov.currency_stress.volatility_pct >= 30 ? 70 : 55, ageHours: 6, source: "ECB FX", details: `${cov.currency_stress.volatility_pct.toFixed(1)}% implied currency stress (${cov.currency_stress.source_currency})` });
   // US Drought
   if (cov.us_drought && iso === "USA") {
@@ -1578,44 +1590,21 @@ function computeLiveBreakingScore(iso, live, store) {
   // Health capacity
   if (cov.health_capacity?.hospital_beds_per_10k < 10) signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, source: "WHO GHO", details: `${cov.health_capacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
 
-  // ═══ v20.3.0 NEW SIGNALS ═══
-  // Tsunami PTWC
-  if (cov.tsunami_cap) {
-    const sev = cov.tsunami_cap.severity || "Advisory";
-    signals.push({
-      type: sev === "Warning" ? "tsunami_warning" : "tsunami_advisory",
-      weight: sev === "Warning" ? 100 : 60,
-      ageHours: 6,
-      source: "NOAA PTWC",
-      details: `${sev}: ${cov.tsunami_cap.headline?.substring(0, 60) || "tsunami alert"}`,
-    });
-  }
-  // Volcano GVP
-  if (cov.volcano_gvp?.activity_level >= 3) {
-    signals.push({
-      type: cov.volcano_gvp.activity_level >= 4 ? "volcano_gvp_erupting" : "volcano_gvp_high",
-      weight: cov.volcano_gvp.activity_level >= 4 ? 95 : 80,
-      ageHours: 72,
-      source: "Smithsonian GVP",
-      details: `${cov.volcano_gvp.volcano_name} activity level ${cov.volcano_gvp.activity_level}/4`,
-    });
-  }
+  // ── v20.3.0 NEW ──
+  // OpenAQ air quality
+  if (cov.openaq?.pm25 >= 35) signals.push({ type: "openaq_air_quality", weight: cov.openaq.pm25 >= 100 ? 70 : 55, ageHours: 6, source: "OpenAQ", details: `PM2.5 ${cov.openaq.pm25.toFixed(0)} µg/m³ (${cov.openaq.city || "station"})` });
+  // NDBC marine
+  if (cov.ndbc?.wave_height > 3) signals.push({ type: "ndbc_marine", weight: cov.ndbc.wave_height > 6 ? 80 : 60, ageHours: 1, source: "NOAA NDBC", details: `${cov.ndbc.wave_height}m waves (buoy ${cov.ndbc.buoy})` });
+  // Copernicus EMS
+  if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}` });
   // ProMED
-  if (cov.promed_outbreak?.count >= 1) {
-    signals.push({ type: "promed_outbreak", weight: 65, ageHours: 48, source: "ProMED", details: `${cov.promed_outbreak.count} report(s): ${(cov.promed_outbreak.latest || "").substring(0, 50)}` });
-  }
-  // CEMS
-  if (cov.cems_activation?.count >= 1) {
-    signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "CEMS", details: `${cov.cems_activation.count} activation(s) — latest ${cov.cems_activation.latest_emsr || "EMSR"}` });
-  }
-  // Marine buoy
-  if (cov.marine_buoy?.wave_height_m >= 3) {
-    signals.push({ type: "marine_buoy_hazard", weight: 55, ageHours: 1, source: "NDBC", details: `${cov.marine_buoy.wave_height_m.toFixed(1)}m waves (buoy ${cov.marine_buoy.station})` });
-  }
+  if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}` });
+  // Smithsonian GVP
+  if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano || "active"}` });
+  // NOAA PTWC
+  if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}` });
   // INFORM
-  if (cov.inform_score !== undefined && cov.inform_score >= 5.5) {
-    signals.push({ type: "inform_high_risk", weight: 50, ageHours: 720, source: "INFORM", details: `INFORM Risk Index ${cov.inform_score.toFixed(1)}/10` });
-  }
+  if (cov.inform?.score >= 5) signals.push({ type: "inform_risk", weight: cov.inform.score >= 7 ? 65 : 50, ageHours: 720, source: "INFORM", details: `INFORM risk score ${cov.inform.score.toFixed(1)} (rank ${cov.inform.rank || "N/A"})` });
 
   const rawSignals = signals.map(sig => ({ ...sig, is_live_event: true }));
   const dedupedSignals = deduplicateEvents(rawSignals, iso);
@@ -1726,7 +1715,9 @@ function buildBreakingHeadline(signals, country) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  RANKING
-// ════════════════════════════════════════════════════════════════════════════function rankByLiveBreaking(store) {
+// ════════════════════════════════════════════════════════════════════════════
+
+function rankByLiveBreaking(store) {
   const isos = Object.keys(store).filter(iso => {
     const eff = store[iso].__effective_score;
     const struct = store[iso].structural_score;
@@ -1774,7 +1765,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / ML (preserved from v20.2.1)
+//  ANOMALY / ML
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -2059,6 +2050,7 @@ async function buildStore(liveData) {
       const cov = evidenceIndex.sourceCoverage[iso] || {};
       store[iso].signals = {
         quakeMag: cov.usgs?.mag || 0, quakePlace: cov.usgs?.place || null, quakeTime: cov.usgs?.time || null,
+        shakeMapEvent: cov.usgs ? { mag: cov.usgs.mag, place: cov.usgs.place } : null,
         emscQuake: cov.emsc ? { mag: cov.emsc.mag, place: cov.emsc.place } : null,
         nasaEvents: cov.nasa ? [{ title: cov.nasa.title, categories: cov.nasa.categories }] : [],
         gdacs: cov.gdacs ? { properties: { eventname: cov.gdacs.event, alertlevel: cov.gdacs.alert } } : null,
@@ -2067,9 +2059,11 @@ async function buildStore(liveData) {
         gdacsDrought: cov.gdacs_drought || null,
         gdacsFlood: cov.gdacs_flood || null,
         gdacsCyclone: cov.gdacs_cyclone || null,
+        gdacsTsunami: cov.gdacs_tsunami || null,
         ifrcCount: cov.ifrc ? 1 : 0, ifrcEvents: cov.ifrc ? [cov.ifrc] : [],
+        ifrcAppeals: [],
         maxTempC: cov.heat?.temp || 0,
-        hazards: { flood_discharge: cov.flood_risk?.discharge || 0, wave_height: cov.marine?.wave_height || 0 },
+        hazards: { flood_discharge: cov.flood_risk?.discharge || 0, wave_height: cov.marine?.wave_height || 0, wind_speed: cov.wind?.speed || 0 },
         aq: cov.air_quality || null,
         whoDon: cov.who_don ? [cov.who_don] : [], whoOutbreaks: [],
         diseaseActive: cov.covid?.active || 0,
@@ -2078,17 +2072,23 @@ async function buildStore(liveData) {
         wbGdpGrowth: cov.gdp_growth !== undefined ? { value: cov.gdp_growth } : null,
         totalDisplaced: cov.displaced || 0,
         politicalStability: cov.political_stability !== undefined ? { value: cov.political_stability } : null,
+        iomDtm: cov.iom_dtm || null,
+        faoFpma: cov.fao_fpma || null,
+        healthCapacity: cov.health_capacity || null,
         currencyStress: cov.currency_stress || null,
         usDrought: cov.us_drought || null,
         conflictFatalities: cov.conflict_fatalities || null,
+        unhcrSolutions: cov.unhcr_solutions || null,
         gfwAlerts: cov.gfw || null,
-        // v20.3.0
-        tsunamiCap: cov.tsunami_cap || null,
-        volcanoGvp: cov.volcano_gvp || null,
-        promedOutbreak: cov.promed_outbreak || null,
+        climateEmissions: cov.emissions || null,
+        // v20.3.0 NEW
+        openaq: cov.openaq || null,
+        ndbc: cov.ndbc || null,
         cemsActivation: cov.cems_activation || null,
-        marineBuoy: cov.marine_buoy || null,
-        informScore: cov.inform_score !== undefined ? cov.inform_score : null,
+        promed: cov.promed || null,
+        gvpVolcano: cov.gvp_volcano || null,
+        tsunamiAlert: cov.tsunami_alert || null,
+        inform: cov.inform || null,
       };
     } catch { store[iso].signals = {}; }
   }
@@ -2123,7 +2123,7 @@ async function buildStore(liveData) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FEED-SAFE HELPERS (preserved)
+//  FEED-SAFE HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 
 function safeCountrySnapshot(iso, store) {
@@ -2163,7 +2163,7 @@ function safeCountrySnapshot(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  PAYLOAD BUILDERS (preserved)
+//  PAYLOAD BUILDERS
 // ════════════════════════════════════════════════════════════════════════════
 
 function buildKeywords(iso, store) {
@@ -2179,12 +2179,11 @@ function buildKeywords(iso, store) {
     for (const t of (c.types || [])) { const arc = ARC[t]; if (arc?.seo) kws.add(`${c.name} ${arc.seo}`); }
     if (s.totalDisplaced > 0) kws.add(`${c.name} refugees`);
     if (s.quakeMag >= 5.0) kws.add(`${c.name} earthquake`);
-    if (s.tsunamiCap) kws.add(`${c.name} tsunami`);
-    if (s.volcanoGvp) kws.add(`${c.name} volcano`);
-    if (s.promedOutbreak) kws.add(`${c.name} disease outbreak`);
-    if (s.cemsActivation) kws.add(`${c.name} emergency mapping`);
+    if (s.gfwAlerts) kws.add(`${c.name} deforestation`);
     if (s.usDrought) kws.add(`${c.name} drought`);
     if (s.currencyStress) kws.add(`${c.name} currency`);
+    if (s.tsunamiAlert) kws.add(`${c.name} tsunami`);
+    if (s.promed) kws.add(`${c.name} disease outbreak`);
     return [...kws].slice(0, 15);
   } catch { return [`${iso} crisis`]; }
 }
@@ -2253,9 +2252,6 @@ function buildSitemap(payloads) {
 
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  RSS FEED (preserved)
-// ════════════════════════════════════════════════════════════════════════════
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
   let feedIsos = Array.isArray(isos) && isos.length > 0 ? isos.slice(0, 30) : [];
@@ -2311,9 +2307,6 @@ function buildRSSFeed(isos, store, ranked) {
     `</channel></rss>`;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  LIVE EVIDENCE VIEW (v20.3.0 — includes new sources)
-// ════════════════════════════════════════════════════════════════════════════
 function buildLiveEvidenceView(iso, store) {
   const cov = evidenceIndex.sourceCoverage[iso] || {};
   return {
@@ -2338,17 +2331,18 @@ function buildLiveEvidenceView(iso, store) {
     health_beds_per_10k: safeNum(cov.health_capacity?.hospital_beds_per_10k, 0),
     population: safeNum(cov.population, 0),
     refugees: safeNum(cov.refugees, 0),
-    air_quality: cov.air_quality ? { pm25: safeNum(cov.air_quality.pm25, 0), city: cov.air_quality.city, source: cov.air_quality.source || "Open-Meteo" } : null,
+    air_quality: cov.air_quality ? { pm25: safeNum(cov.air_quality.pm25, 0), city: cov.air_quality.city, source: cov.air_quality.source } : null,
     flood_risk: cov.flood_risk ? { discharge: safeNum(cov.flood_risk.discharge, 0) } : null,
     marine: cov.marine ? { wave_height: safeNum(cov.marine.wave_height, 0) } : null,
     emissions: cov.emissions ? { total: safeNum(cov.emissions.total, 0), sector: cov.emissions.sector } : null,
-    // v20.3.0
-    tsunami_cap: cov.tsunami_cap || null,
-    volcano_gvp: cov.volcano_gvp || null,
-    promed_outbreak: cov.promed_outbreak || null,
+    // v20.3.0 NEW
+    openaq: cov.openaq || null,
+    ndbc: cov.ndbc || null,
     cems_activation: cov.cems_activation || null,
-    marine_buoy: cov.marine_buoy || null,
-    inform_score: cov.inform_score !== undefined ? cov.inform_score : null,
+    promed: cov.promed || null,
+    gvp_volcano: cov.gvp_volcano || null,
+    tsunami_alert: cov.tsunami_alert || null,
+    inform: cov.inform || null,
   };
 }
 
@@ -2623,7 +2617,6 @@ export default async function handler(req, res) {
         coverage_by_key: coverage,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         static_fallbacks: { water_stress: Object.keys(AQUEDUCT_WATER_STRESS).length, ndvi_anomaly: Object.keys(FAO_NDVI_ANOMALY).length },
-        new_in_v20_3_0: ["openaq", "ndbc", "ptwc", "gvp", "promed", "cems", "inform"],
       }, null, 2));
       return;
     }
@@ -2797,7 +2790,7 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v20_3_0: ["openaq", "ndbc", "ptwc", "gvp", "promed", "cems", "inform"],
+          new_in_v20_3_0: ["openaq", "ndbc_buoys", "cems_activations", "promed", "smithsonian_gvp", "ptwc_tsunami", "inform"],
           static_fallbacks: { water_stress_countries: Object.keys(AQUEDUCT_WATER_STRESS).length, ndvi_anomaly_countries: Object.keys(FAO_NDVI_ANOMALY).length },
           feed_safety: {
             version: "v20.3.0",
