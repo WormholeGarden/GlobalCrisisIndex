@@ -2298,7 +2298,7 @@ async function fetchFewsNetAlerts(){
   }catch(e){return[];}
 }
 function parseDiseaseFromWHO(){
-  const items=apiResults.who_rss?.items||[];
+  const items=(apiResults.who_don?.value||[]).map(x=>({title:x.Title||x.Name||'',description:x.Summary||'',pubDate:x.PublicationDate}));
   const keywords=['cholera','ebola','mpox','measles','polio','dengue','malaria','marburg','meningitis','avian influenza','h5n1','yellow fever','diphtheria','lassa'];
   const out=[];
   items.forEach(item=>{
@@ -2332,7 +2332,7 @@ function buildTickerFromResults(){
   const items=[];
   
   // ── USGS Earthquakes ──
-  (apiResults.usgs_weekly?.features||[]).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place?.split(',')[0]||''}`});});
+  [...(apiResults.usgs_weekly?.features||[])].sort((a,b)=>(b.properties?.mag||0)-(a.properties?.mag||0)).slice(0,8).forEach(f=>{const p=f.properties;const mag=+(p.mag||0).toFixed(1);let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 USGS: M${mag} — ${p.place?.split(',')[0]||''}`});});
   
   // ── NASA EONET ──
   (apiResults.nasa_eonet?.events||[]).slice(0,5).forEach(ev=>{const cat=(ev.categories||[])[0]?.title||'';let c='#ffb020',l='MODERATE',icon='⚠️';if(cat==='Wildfires'){c='#ff8c42';l='HIGH';icon='🔥';}else if(cat==='Floods'){c='#ff8c42';l='HIGH';icon='🌊';}else if(cat==='Severe Storms'){c='#ff375f';l='CRITICAL';icon='⛈️';}items.push({l,c,t:`${icon} NASA EONET: ${ev.title?.substring(0,60)}`});});
@@ -2376,10 +2376,10 @@ function buildTickerFromResults(){
   diseaseOutbreaks.slice(0,4).forEach(d=>{items.push({l:'HIGH',c:'#ff8c42',t:`🦠 ${d.disease} outbreak in ${d.country} · ${d.cases?.toLocaleString()||''}+ cases`});});
   
   // ── WHO RSS ──
-  (apiResults.who_rss?.items||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.title||'').substring(0,65)}`});});
+  (apiResults.who_don?.value||[]).slice(0,3).forEach(item=>{items.push({l:'HIGH',c:'#ff8c42',t:`🏥 WHO: ${(item.Title||item.Name||item.title||'Disease outbreak news').substring(0,65)}`});});
   
   // ── EMSC Seismic ──
-  (apiResults.emsc_seismic?.features||[]).forEach(f=>{const mag=+(f.properties?.mag||0).toFixed(1);if(mag<4.5)return;let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 EMSC: M${mag} — ${f.properties?.flynn_region||''}`});});
+  [...(apiResults.emsc_seismic?.features||[])].sort((a,b)=>(b.properties?.mag||0)-(a.properties?.mag||0)).slice(0,6).forEach(f=>{const mag=+(f.properties?.mag||0).toFixed(1);if(mag<4.5)return;let c='#3ec5ff',l='LOW';if(mag>=7){c='#ff375f';l='CRITICAL';}else if(mag>=6){c='#ff8c42';l='HIGH';}else if(mag>=5){c='#ffb020';l='MODERATE';}items.push({l,c,t:`🌍 EMSC: M${mag} — ${f.properties?.flynn_region||''}`});});
   
   // ── IFRC GO ──
   (apiResults.ifrc_go?.results||[]).slice(0,5).forEach(ev=>{items.push({l:'HIGH',c:'#ff8c42',t:`🔴 IFRC: ${(ev.name||'').substring(0,60)}`});});
@@ -2638,7 +2638,20 @@ function buildTickerFromResults(){
   // ── Return if no items ──
   if(!items.length)return;  
   // ── Build ticker HTML ──
-  const uniq=items.slice(0,80);
+  // Group by source label (text before the first ":"), sort each group by severity,
+// then take items round-robin so every source gets a slot before any gets a second.
+const _sev={CRITICAL:0,HIGH:1,MODERATE:2,LOW:3,INFO:4};
+const _groups={};
+items.forEach(e=>{
+  const raw=(e.t||'').replace(/^[^A-Za-z0-9]+/,'');
+  const key=(raw.includes(':')?raw.split(':')[0]:raw.split(' ')[0]).trim()||'misc';
+  (_groups[key]=_groups[key]||[]).push(e);
+});
+Object.values(_groups).forEach(g=>g.sort((a,b)=>(_sev[a.l]??5)-(_sev[b.l]??5)));
+const uniq=[];
+for(let round=0;round<4;round++){
+  Object.values(_groups).forEach(g=>{ if(g[round]) uniq.push(g[round]); });
+}
   const doubled=[...uniq,...uniq];
   const html=doubled.map(e=>`<div class="tick-item"><div class="tick-dot" style="background:${e.c}"></div><span style="color:${e.c};font-weight:600">[${e.l}]</span> ${e.t}</div>`).join('');
   const inner=document.getElementById('tickerInner');
@@ -4533,7 +4546,7 @@ function selCountry(iso){
 async function buildConflictTimeline(iso, c) {
   const HIGH_CONFLICT_TYPES = ['CW','CE','REF'];
   const isHighConflict = c.types.some(t => HIGH_CONFLICT_TYPES.includes(t)) || c.score >= 60;
-  if (!isHighConflict) return '';
+ if (!isHighConflict && c.score < 30) return '';
 
   const name = c.name;
   const nameLower = name.toLowerCase();
@@ -4918,7 +4931,14 @@ async function buildConflictTimeline(iso, c) {
   });
 
   // ── 17. ReliefWeb ──
-  const reliefwebData = apiResults.reliefweb_events || [];
+  const reliefwebData = [...(apiResults.reliefweb_conflict?.data || []), ...(apiResults.reliefweb_displacement?.data || [])]
+    .filter(r => (r.fields?.country || []).some(cn => cn.iso3 === iso))
+    .map(r => ({
+      country: c.name,
+      title: r.fields?.title || r.fields?.name || '',
+      type: r.fields?.primary_type?.name || 'Report',
+      date: r.fields?.date?.created || r.fields?.date?.original || null
+    }));
   reliefwebData.forEach(e => {
     if (e.country && e.country.toLowerCase().includes(nameLower.split(' ')[0])) {
       const typeIconMap = { 'Conflict':'⚔️', 'Flood':'🌊', 'Earthquake':'🌍', 
@@ -4976,6 +4996,65 @@ async function buildConflictTimeline(iso, c) {
     }
   }
 
+  // ── SWEEP: every other source that has coverage for this country ──
+  const _cov = evidenceIndex.sourceCoverage[iso] || {};
+  const _num = v => (typeof v === 'number' && isFinite(v)) ? (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString() : +v.toFixed(2)) : String(v);
+  const _wb = () => wbDate;
+  // key: [source, icon, category, severity, label, detailFn, dateFn]
+  const _SW = {
+    who_don:            ['WHO','🏥','health','high','Disease outbreak news', v => (v.title||'').substring(0,70), v => v.date],
+    promed:             ['ProMED','🦠','health','high','Outbreak reports', v => `${v.count} report(s): ${(v.titles||[])[0]||''}`.substring(0,80)],
+    cems_activation:    ['Copernicus EMS','🛰️','humanitarian','high','Rapid mapping activation', v => `${v.id} ${v.title||''}`.substring(0,80)],
+    gvp_volcano:        ['Smithsonian GVP','🌋','natural','high','Volcanic activity', v => (v.volcano||'').substring(0,80)],
+    tsunami_alert:      ['NOAA PTWC','🌊','natural','critical','Tsunami alert', v => `${v.severity}: ${(v.title||'').substring(0,60)}`, v => v.updated],
+    gdacs_volcano:      ['GDACS','🌋','natural','high','Volcano alert', v => `${v.alert||'Alert'}: ${(v.event||'').substring(0,50)}`],
+    gdacs_drought:      ['GDACS','🏜️','natural','high','Drought alert', v => `${v.alert||'Alert'}: ${(v.event||'').substring(0,50)}`],
+    gdacs_flood:        ['GDACS','🌊','natural','high','Flood alert', v => `${v.alert||'Alert'}: ${(v.event||'').substring(0,50)}`],
+    gdacs_cyclone:      ['GDACS','🌀','natural','high','Cyclone alert', v => `${v.alert||'Alert'}: ${(v.event||'').substring(0,50)}`],
+    gdacs_tsunami:      ['GDACS','🌊','natural','critical','Tsunami alert', v => `${v.alert||'Alert'}: ${(v.event||'').substring(0,50)}`],
+    inform:             ['INFORM','📊','index','moderate','INFORM risk index', v => `Score ${v.score} · rank ${v.rank ?? 'n/a'}`],
+    currency_stress:    ['ECB FX','💱','economic','moderate','Currency stress', v => `${v.source_currency} ${v.rate_per_usd}/USD`, v => v.date],
+    us_drought:         ['US Drought Monitor','🏜️','climate','high','US drought level', v => `Level ${v.level} · ${v.polygon_count} zones`],
+    ndbc:               ['NOAA NDBC','🌊','weather','moderate','Ocean buoy reading', v => `Buoy ${v.buoy}: waves ${v.wave_height ?? 'n/a'}m, wind ${v.wind_speed ?? 'n/a'} m/s`],
+    gdelt_conflict:     ['GDELT','📡','conflict','moderate','Conflict media coverage', v => `${v.count} article(s)`],
+    election_violence:  ['GDELT','🗳️','conflict','moderate','Election-violence coverage', v => `${v.count} article(s)`],
+    fao_fpma:           ['FAO','🌾','food','moderate','Food price anomaly', v => `${v.commodity || 'Commodity'} ${v.anomaly_pct ?? '?'}%`],
+    unhcr_op:           ['UNHCR','🏕️','displacement','moderate','Active UNHCR operation', v => v.name],
+    unhcr_emergency:    ['UNHCR','🚨','displacement','high','UNHCR emergency', v => `${v.name} (${v.level})`],
+    unhcr_stats:        ['UNHCR','🏕️','displacement','moderate','Refugee statistics', v => `${_num(v.refugees)} refugees · ${v.year}`],
+    asylum:             ['UNHCR','🛂','displacement','moderate','Asylum seekers', v => _num(v)],
+    flood_risk:         ['Open-Meteo','🌊','climate','high','River discharge forecast', v => `${_num(v.discharge)} m³/s`, v => v.date],
+    marine:             ['Open-Meteo','🌊','climate','moderate','Marine wave height', v => `${_num(v.wave_height)} m`, v => v.date],
+    wind:               ['Open-Meteo','💨','weather','moderate','Wind speed', v => `${_num(v.speed)} km/h`, v => v.date],
+    precipitation:      ['Open-Meteo','🌧️','weather','moderate','Rain forecast', v => `${_num(v.total)} mm`, v => v.date],
+    uv:                 ['Open-Meteo','☀️','weather','moderate','Extreme UV index', v => `UV ${_num(v.max)}`, v => v.date],
+    cloudcover:         ['Open-Meteo','☁️','weather','low','Heavy cloud cover', v => `${_num(v.avg)}%`, v => v.date],
+    lightning:          ['Open-Meteo','⚡','weather','moderate','Lightning potential', v => `${_num(v.max)} J/kg`, v => v.date],
+    heat:               ['Open-Meteo','🌡️','climate','low','Max temperature forecast', v => `${_num(v.temp)}°C · precip ${v.precip ?? 'n/a'} mm`, v => v.date],
+    air_quality:        ['Open-Meteo AQ','🌫️','health','moderate','Air quality (PM2.5)', v => `${_num(v.pm25)} µg/m³ · ${v.city || 'city'}`, v => v.timestamp],
+    storm_reports:      ['NOAA','⛈️','weather','high','Severe weather alerts', v => `${_num(v)} active`],
+    noaa_alerts:        ['NOAA','⚠️','weather','high','Extreme weather alerts', v => `${_num(v)} active`],
+    noaa:               ['NOAA','📡','weather','low','Weather stations reporting', v => `${v.stations} stations`],
+    historic_seismic:   ['USGS','🌍','seismic','moderate','Historic M6+ earthquakes', v => `${v.length} event(s), max M${Math.max(...v.map(e => e.mag || 0)).toFixed(1)}`],
+    emissions:          ['Climate TRACE','🏭','climate','low','Emissions', v => `${_num(v.total)} t CO₂e · ${v.sector}`],
+    hospitals:          ['OSM','🏥','health','low','Hospitals in region', v => `${_num(v)} mapped`],
+    clinics:            ['OSM','🏥','health','low','Clinics in region', v => `${_num(v)} mapped`],
+    poverty:            ['World Bank','📉','economic','moderate','Poverty rate', v => `${_num(v)}%`, _wb],
+    water_stress:       ['World Bank','💧','economic','moderate','Freshwater withdrawal', v => `${_num(v)}% of resources`, _wb],
+    trade_gdp:          ['World Bank','🚢','economic','low','Trade share of GDP', v => `${_num(v)}%`, _wb],
+    political_stability:['World Bank','⚖️','economic','moderate','Political stability index', v => `${_num(v)}`, _wb],
+    refugees_wb:        ['World Bank','🏕️','displacement','moderate','Refugee population (WB)', v => _num(v), _wb]
+  };
+  Object.entries(_SW).forEach(([k, [src, icon, cat, sev, label, detailFn, dateFn]]) => {
+    const v = _cov[k];
+    if (v == null || v === false) return;
+    if (k === 'heat' && events.some(e => e.icon === '🥵')) return; // already shown as extreme heat
+    let detail = '', d = null;
+    try { detail = detailFn ? String(detailFn(v) ?? '') : ''; } catch (e) {}
+    try { d = dateFn ? safeParseDate(dateFn(v)) : null; } catch (e) {}
+    events.push({ date: d, label, detail, source: src, severity: sev, icon, category: cat });
+  });
+
   // ── NORMALIZE MISSING/UNPARSEABLE DATES ──
   // Any event whose date came back null from safeParseDate gets flagged as
   // "unknown" and pushed to the back of the timeline (oldest), instead of
@@ -5001,7 +5080,17 @@ async function buildConflictTimeline(iso, c) {
   if (!uniqueEvents.length) return '';
 
   uniqueEvents.sort((a, b) => b.date - a.date);
-  const displayed = uniqueEvents.slice(0, 12);
+  // Group by source, best events first inside each group, then take one from
+// every source before taking a second from any (max 24 shown, 3 per source).
+  const _sevRank = { critical: 0, high: 1, moderate: 2, low: 3 };
+  const _grp = {};
+  uniqueEvents.forEach(e => { (_grp[e.source] = _grp[e.source] || []).push(e); });
+  Object.values(_grp).forEach(g => g.sort((a, b) => (_sevRank[a.severity] ?? 4) - (_sevRank[b.severity] ?? 4) || b.date - a.date));
+  const _picked = [];
+  for (let r = 0; r < 3 && _picked.length < 24; r++) {
+    Object.values(_grp).forEach(g => { if (g[r] && _picked.length < 24) _picked.push(g[r]); });
+  }
+  const displayed = _picked.sort((a, b) => b.date - a.date);
   const total = uniqueEvents.length;
 
   // ── Severity config ──
@@ -5088,7 +5177,7 @@ async function buildConflictTimeline(iso, c) {
       </div>`;
   }).join('');
 
-  const sources = [...new Set(displayed.map(e => e.source))].slice(0, 5);
+  const sources = [...new Set(displayed.map(e => e.source))].slice(0, 14);
   const sourcePills = sources.map(s => `<span style="font-family:var(--fm);font-size:6px;color:var(--td);background:rgba(255,255,255,0.03);border:1px solid var(--b1);border-radius:3px;padding:1px 5px;">${s}</span>`).join('');
 
   return `
@@ -5116,9 +5205,9 @@ async function buildConflictTimeline(iso, c) {
         </div>
         <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
           <span style="font-family:var(--fm);font-size:7px;color:var(--td);">${uniqueEvents.length} events from ${sources.length}+ sources</span>
-          ${total > 12 ? `
+          ${total > displayed.length ? `
           <span style="font-family:var(--fm);font-size:7.5px;cursor:pointer;color:var(--cyan);display:flex;align-items:center;gap:3px;" onclick="openModal()">
-            +${total - 12} more <span style="opacity:0.6;">· Upgrade →</span>
+            +${total - displayed.length} more<span style="opacity:0.6;">· Upgrade →</span>
           </span>` : `<span style="font-family:var(--fm);font-size:7px;color:var(--td);">showing all events</span>`}
         </div>
       </div>
