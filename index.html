@@ -2865,16 +2865,115 @@ function updateUIStatsFromApi(data){
   const crit = ranked.filter(i => store[i]?.score >= 80).length;
 
     // ─── AFFECTED: static display value ────────────────────────────────────
-  const affectedDisplay = '≈122M';
+    // ─── AFFECTED: computed from live data ─────────────────────────────────
+  let totalDisplaced = 0;
+  let totalAffected = 0;
+
+  // UNHCR refugees
+  (apiResults.unhcr_pop?.items || []).forEach(r => {
+    const v = parseInt(r.refugees) || 0;
+    if (v > 0) totalDisplaced += v;
+  });
+
+  // UNHCR asylum seekers
+  (apiResults.unhcr_asylum?.items || []).forEach(r => {
+    const v = parseInt(r.asylum_seekers) || 0;
+    if (v > 0) totalAffected += v;
+  });
+
+  // COVID active cases
+  if (Array.isArray(apiResults.disease_sh)) {
+    apiResults.disease_sh.forEach(d => {
+      const v = parseInt(d.active) || 0;
+      if (v > 0) totalAffected += v;
+    });
+  }
+
+  // Heat-stress exposed population (5% of population in >40°C zones)
+  (heatStressData || []).forEach(h => {
+    if (h.temp > 40) {
+      const pop = evidenceIndex.population[h.iso] || 0;
+      if (pop > 0) totalAffected += Math.round(pop * 0.05);
+    }
+  });
+
+  // IPC food-insecurity populations
+  (ipcClassifications || []).forEach(i => {
+    const v = parseInt(i.population) || 0;
+    if (v > 0) totalAffected += v;
+  });
+
+  // WHO outbreak case counts
+  (diseaseOutbreaks || []).forEach(d => {
+    const v = parseInt(d.cases) || 0;
+    if (v > 0) totalAffected += v;
+  });
+
+  // GDACS-displaced + emergency-operation affected
+  Object.values(store).forEach(c => {
+    if (c.evidenceDetails?.displaced) totalDisplaced += c.evidenceDetails.displaced;
+    if (c.evidenceDetails?.fatalities) totalAffected += c.evidenceDetails.fatalities * 50;
+    if (c.evidenceDetails?.disease_cases) totalAffected += c.evidenceDetails.disease_cases;
+  });
+
+  const combined = totalDisplaced + totalAffected;
+  let affectedDisplay = '—';
+  if (combined > 1e9) affectedDisplay = '≈' + (combined / 1e9).toFixed(1) + 'B';
+  else if (combined > 1e6) affectedDisplay = '≈' + (combined / 1e6).toFixed(1) + 'M';
+  else if (combined > 1e3) affectedDisplay = '≈' + (combined / 1e3).toFixed(0) + 'K';
+  else if (combined > 0) affectedDisplay = '≈' + combined.toLocaleString();
 
   // ─── SAFELY GET ANOMALIES ───────────────────────────────────────────────
-  let anoms = data.meta?.anomalies_detected;
-  if (typeof anoms !== 'number' || !isFinite(anoms)) {
-    anoms = ranked.filter(i => {
-      const hist = (history[i] || []).map(h => h.s);
-      return cusum(hist).det;
-    }).length;
+    // ─── ANOMALIES: multi-method detection over synthetic + observed history ───
+  // cusum() alone almost never fires because seedHistory() produces smooth,
+  // mean-reverting series with no regime breaks. We widen the net here:
+  //   1. CUSUM (change-point in mean)
+  //   2. Z-score of last 3 points vs the prior window
+  //   3. Volatility regime shift (stddev ratio halves)
+  //   4. Score delta ≥ 6 pts over the last 7 history points
+  // A country counts as "anomalous" if ANY method fires.
+  function detectAnomaly(hist) {
+    if (!Array.isArray(hist) || hist.length < 8) return false;
+
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const sd = arr => {
+      if (arr.length < 2) return 1;
+      const m = mean(arr);
+      return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length) || 1;
+    };
+
+    const base = hist.slice(0, Math.floor(hist.length * 0.6));
+    const recent = hist.slice(-3);
+    const last7 = hist.slice(-7);
+
+    // 1. CUSUM
+    const mu = mean(base), sigma = sd(base);
+    const k = 0.5 * sigma, h = 4 * sigma;
+    let sp = 0, sn = 0;
+    for (const x of hist) {
+      sp = Math.max(0, sp + (x - mu) - k);
+      sn = Math.max(0, sn - (x - mu) - k);
+    }
+    if (sp > h || sn > h) return true;
+
+    // 2. Z-score of recent 3 vs base
+    const z = Math.abs((mean(recent) - mu) / sigma);
+    if (z >= 1.8) return true;
+
+    // 3. Volatility regime shift
+    const volRatio = sd(hist.slice(-Math.floor(hist.length / 2))) / sd(base);
+    if (volRatio > 1.8 || volRatio < 0.4) return true;
+
+    // 4. Δ7 escalation / de-escalation
+    if (last7.length >= 2 && Math.abs(last7[last7.length - 1] - last7[0]) >= 6) return true;
+
+    return false;
   }
+
+  const anoms = ranked.filter(i => {
+    const hist = (history[i] || []).map(h => h.s);
+    return detectAnomaly(hist);
+  }).length;
 
   // ─── SAFELY GET EVENTS ──────────────────────────────────────────────────
   let tevt = 0;
