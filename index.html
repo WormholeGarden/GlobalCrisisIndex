@@ -1718,9 +1718,119 @@ body::after{
     "query-input": "required name=search_term_string"
   }
 }
-</script><div id="breakingBar" style="background:linear-gradient(90deg, #ff1744 0%, #d50000 50%, #b71c1c 100%);color:#ffffff !important;padding:6px 12px;text-align:center;font-family:var(--fm);font-size:7px;font-weight:bold;letter-spacing:0.05em;overflow:hidden;white-space:nowrap;position:relative;z-index:98;border-bottom:1px solid rgba(255,23,68,0.3);box-shadow:0 2px 12px rgba(255,23,68,0.25);text-shadow:0 1px 2px rgba(0,0,0,0.5);">
-  <span id="breakingText" style="color:#ffffff !important;">⚡ BREAKING: Loading latest global alerts...</span>
-</div><script>
+</script><div id="breakingBar" style="
+  position:relative;
+  z-index:98;
+  background:
+    linear-gradient(90deg,
+      rgba(10,10,15,0.98) 0%,
+      rgba(20,14,6,0.98) 45%,
+      rgba(10,10,15,0.98) 100%);
+  border-top:1px solid rgba(255,176,32,0.10);
+  border-bottom:1px solid rgba(255,176,32,0.35);
+  box-shadow:
+    0 2px 24px rgba(255,176,32,0.18),
+    0 0 0 1px rgba(255,176,32,0.06) inset,
+    0 1px 0 rgba(255,255,255,0.04) inset;
+  padding:7px 16px;
+  text-align:center;
+  font-family:var(--fm);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:0.06em;
+  color:#ffffff !important;
+  text-shadow:0 1px 2px rgba(0,0,0,0.9), 0 0 18px rgba(255,176,32,0.35);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  animation:breakingSlideIn 0.45s cubic-bezier(.22,1,.36,1) both;
+">
+  <!-- Amber glow sweep -->
+  <span aria-hidden="true" style="
+    position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(90deg, transparent 0%, rgba(255,176,32,0.12) 45%, rgba(255,176,32,0.18) 50%, rgba(255,176,32,0.12) 55%, transparent 100%);
+    animation:breakingSweep 6s linear infinite;
+  "></span>
+
+  <!-- Left amber accent bar -->
+  <span aria-hidden="true" style="
+    position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, #ffb020, #d48800);
+    box-shadow:0 0 12px rgba(255,176,32,0.7);
+  "></span>
+
+  <!-- Right amber accent bar -->
+  <span aria-hidden="true" style="
+    position:absolute; right:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, #d48800, #ffb020);
+    box-shadow:0 0 12px rgba(255,176,32,0.7);
+  "></span>
+
+  <!-- Pulsing live dot + label -->
+  <span style="
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    vertical-align:middle;
+  ">
+    <span style="
+      position:relative;
+      display:inline-block;
+      width:7px; height:7px;
+      border-radius:50%;
+      background:#ffb020;
+      box-shadow:0 0 10px rgba(255,176,32,0.9), 0 0 0 2px rgba(255,176,32,0.25);
+      animation:breakingPulse 1.6s ease-in-out infinite;
+    "></span>
+    <span style="
+      font-family:var(--fm);
+      font-size:8px;
+      font-weight:800;
+      letter-spacing:0.22em;
+      color:#ffd88a;
+      text-shadow:0 0 14px rgba(255,176,32,0.55);
+      text-transform:uppercase;
+    ">BREAKING</span>
+  </span>
+
+  <!-- Separator -->
+  <span aria-hidden="true" style="
+    display:inline-block;
+    width:1px; height:12px;
+    margin:0 12px;
+    vertical-align:middle;
+    background:linear-gradient(180deg, transparent, rgba(255,176,32,0.55), transparent);
+  "></span>
+
+  <!-- Actual headline -->
+  <span id="breakingText" style="
+    position:relative;
+    display:inline;
+    vertical-align:middle;
+    color:#ffffff !important;
+    font-weight:600;
+    letter-spacing:0.02em;
+    text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 22px rgba(255,176,32,0.28);
+  ">⚡ Loading latest global alerts…</span>
+</div>
+
+<style>
+  @keyframes breakingPulse {
+    0%, 100% { opacity:1; transform:scale(1); box-shadow:0 0 10px rgba(255,176,32,0.9), 0 0 0 2px rgba(255,176,32,0.25); }
+    50%      { opacity:.55; transform:scale(1.25); box-shadow:0 0 16px rgba(255,176,32,1), 0 0 0 5px rgba(255,176,32,0.08); }
+  }
+  @keyframes breakingSweep {
+    0%   { transform:translateX(-100%); }
+    100% { transform:translateX(100%); }
+  }
+  @keyframes breakingSlideIn {
+    from { opacity:0; transform:translateY(-4px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+</style><script>
 async function fetchBreakingNews(){
   try{
     const response=await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml');
