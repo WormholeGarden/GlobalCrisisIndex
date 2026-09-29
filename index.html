@@ -4542,6 +4542,9 @@ function paintMap(){
   // Icons considered "conflict/sword" — skipped in favor of a more descriptive icon when possible
   const SWORD_ICONS=new Set(['⚔️']);
 
+  // Crisis types that map to a specific external authority page
+  const TYPE_LINK={ REF:'https://www.unhcr.org/news/press-releases/unhcr-sounds-alarm-8-3-million-risk-losing-their-lifeline' };
+
   function pickMarkerIcon(c){
     if(!c.types||!c.types.length)return null;
     // Prefer the first crisis type whose icon isn't a sword/conflict icon
@@ -4551,6 +4554,14 @@ function paintMap(){
     }
     // Fall back to the first type's icon (even if it's a sword) if that's all there is
     return ARC[c.types[0]]?.i||null;
+  }
+
+  function pickMarkerLink(c){
+    if(!c.types||!c.types.length)return null;
+    for(const t of c.types){
+      if(TYPE_LINK[t])return TYPE_LINK[t];
+    }
+    return null;
   }
 
   hotspots.forEach((iso,idx)=>{
@@ -4571,24 +4582,45 @@ function paintMap(){
     }
 
     const icon=pickMarkerIcon(c);
+    const link=pickMarkerLink(c);
 
     if(icon){
       // Soft backing disc so the emoji stays legible over the map
-      g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR+3).attr('fill','#030b18').attr('stroke',col).attr('stroke-width',0.75).attr('opacity',0.85);
-      g.append('text')
+      const disc=g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR+3).attr('fill','#030b18').attr('stroke',col).attr('stroke-width',0.75).attr('opacity',0.85);
+      const txt=g.append('text')
         .attr('x',px).attr('y',py)
         .attr('text-anchor','middle')
         .attr('dominant-baseline','central')
         .attr('font-size',iconSize)
         .attr('style','pointer-events:none;')
         .text(icon);
+
+      // If this marker's crisis type maps to an external authority page,
+      // make it clickable (and show a pointer cursor on hover).
+      if(link){
+        g.attr('style','cursor:pointer;')
+         .on('click',(ev)=>{
+           ev.stopPropagation();
+           window.open(link,'_blank','noopener,noreferrer');
+         })
+         .on('mouseover',function(){ disc.attr('stroke','#ffffff'); })
+         .on('mouseout',function(){ disc.attr('stroke',col); });
+      }
     }else{
       // Fallback: no crisis type/icon available, keep the plain dot
-      g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);
+      const dot=g.append('circle').attr('cx',px).attr('cy',py).attr('r',dotR).attr('fill',col).attr('opacity',0.9);
+      if(link){
+        g.attr('style','cursor:pointer;')
+         .on('click',(ev)=>{
+           ev.stopPropagation();
+           window.open(link,'_blank','noopener,noreferrer');
+         })
+         .on('mouseover',function(){ dot.attr('stroke','#ffffff').attr('stroke-width',1.2); })
+         .on('mouseout',function(){ dot.attr('stroke','none').attr('stroke-width',0); });
+      }
     }
   });
 }
-
 function zoomToCountry(iso){
   if(!svgEl||!proj||!zoom)return;
   const stage=document.getElementById('mapStage');if(!stage)return;
