@@ -529,7 +529,7 @@
       border-color: rgba(255, 55, 95, 0.2);
     }
     
-    /* ─── PRIMARY IMAGE (NEW) ─── */
+    /* ─── PRIMARY IMAGE ─── */
     .article-primary-image {
       margin: 0 0 1.5rem 0;
       position: relative;
@@ -588,6 +588,34 @@
     .article-primary-image .image-caption .caption-source a:hover {
       border-bottom-color: var(--gcin-cyan);
     }
+    
+    .article-primary-image .image-metadata {
+      padding: 0.4rem 1.25rem;
+      font-family: var(--gcin-font-mono);
+      font-size: 0.55rem;
+      color: var(--gcin-text-muted);
+      background: rgba(0, 0, 0, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      align-items: center;
+    }
+    
+    .article-primary-image .image-metadata .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      background: rgba(0, 200, 255, 0.06);
+      border: 1px solid rgba(0, 200, 255, 0.08);
+      color: var(--gcin-text-muted-light);
+    }
+    
+    .article-primary-image .image-metadata .meta-tag.confidence-high { color: var(--gcin-green); border-color: rgba(0, 229, 160, 0.15); background: rgba(0, 229, 160, 0.06); }
+    .article-primary-image .image-metadata .meta-tag.confidence-medium { color: var(--gcin-amber); border-color: rgba(255, 176, 32, 0.15); background: rgba(255, 176, 32, 0.06); }
+    .article-primary-image .image-metadata .meta-tag.confidence-low { color: var(--gcin-text-muted); }
     
     .article-primary-image .image-loader {
       padding: 3rem 1rem;
@@ -1080,7 +1108,7 @@
     <div class="loading-state">
       <div class="spinner"></div>
       <span style="font-size:0.9rem; color:var(--gcin-text-muted-light);">⏳ Loading live crisis intelligence...</span>
-      <span style="font-size:0.7rem; color:var(--gcin-text-muted); margin-top:0.3rem;">Fetching from 20+ global sources</span>
+      <span style="font-size:0.7rem; color:var(--gcin-text-muted); margin-top:0.3rem;">Fetching from 20+ global sources · Precision Image Engine active</span>
     </div>
   </div>
   
@@ -1096,7 +1124,7 @@
     <strong>GCIN</strong> is a Gold Standard crisis intelligence platform. Data refreshes every 5 minutes from 20+ live APIs.<br>
     <strong>🧠 AI:</strong> Neural network forecasting · <strong>💬 Sentiment:</strong> Multi-source analysis · <strong>🔥 Heat:</strong> Velocity + Anomaly Consensus + ML + Evidence + Thresholds<br>
     <strong>📡 RSS:</strong> <a href="/api/top-story?format=rss" class="rss-feed-link">Subscribe for Breaking Crisis Intelligence</a><br>
-    <strong>🖼️ Images:</strong> Primary images from Wikimedia Commons · Source: <a href="https://globalcrisisindex.com">Global Crisis Index</a><br>
+    <strong>🖼️ Images:</strong> Precision Image Engine (v20.9.0) — Best-possible hero image from Wikimedia Commons<br>
     <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
   
@@ -1107,15 +1135,17 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — GOLD STANDARD EDITION v9.0 (ULTIMATE MASTERPIECE + IMAGES)
+    //  GCIN — GOLD STANDARD EDITION v10.0 (PRECISION IMAGE ENGINE EDITION)
     //  ── Features ──
     //  • 100% live data from 20+ sources
-    //  • PRIMARY IMAGE from Wikimedia Commons at article top (NEW)
-    //  • Explosive journalism-style headlines (not dashboard widgets)
+    //  • PRIMARY IMAGE from API's Precision Image Engine (v20.9.0) at article top
+    //    — multi-signal scoring, event-aware queries, Wikipedia lead images
+    //    — hard-rejects PDF/DjVu/SVG/audio/video, dedupes across stories
+    //  • Explosive journalism-style headlines
     //  • Human-quality article bodies with quotes and analysis
     //  • Wikipedia country intros for authoritative context
     //  • Story Heat engine for newsworthiness ranking
-    //  • RSS feed integration for syndication (with image enclosure)
+    //  • RSS feed integration for syndication
     //  • Premium responsive design with SEO-maximized structure
     //  • Auto-refresh every 5 minutes
     // ════════════════════════════════════════════════════════════════════════
@@ -1126,15 +1156,12 @@
       FETCH_TIMEOUT_MS: 10000,
       MAX_STORIES: 30,
       REFRESH_INTERVAL_MS: 300000,
-      WIKIMEDIA_CACHE_TTL_MS: 3600000, // 1 hour
     };
     
     // ─── WIKIPEDIA INTRO CACHE ─────────────────────────────────────────────
+    // (Still used for the "Country Context" box — this is separate from the
+    //  hero image, which now comes from the API's Precision Image Engine.)
     const wikiCache = {};
-    
-    // ─── WIKIMEDIA COMMONS IMAGE CACHE ──────────────────────────────────────
-    const imageCache = {};
-    const imageCacheTimestamps = {};
     
     // ─── FETCH WIKIPEDIA INTRO ─────────────────────────────────────────────
     function fetchWikipediaIntro(pageTitle) {
@@ -1197,109 +1224,6 @@
       return '';
     }
     
-    // ─── FETCH WIKIMEDIA COMMONS PRIMARY IMAGE (NEW) ────────────────────────
-    // Uses the Wikimedia Commons MediaSearch API to find the first relevant image
-    // for the given article title, along with its caption.
-    function fetchWikimediaImage(articleTitle) {
-      if (!articleTitle) return null;
-      
-      // Check cache
-      const cacheKey = articleTitle.toLowerCase().trim();
-      const now = Date.now();
-      if (imageCache[cacheKey] && (now - (imageCacheTimestamps[cacheKey] || 0)) < CONFIG.WIKIMEDIA_CACHE_TTL_MS) {
-        return imageCache[cacheKey];
-      }
-      
-      // Clean the title for search
-      const searchQuery = articleTitle
-        .replace(/[^\w\s-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 100);
-      
-      if (!searchQuery) return null;
-      
-      try {
-        // Use Wikimedia Commons API - query for images matching the search term
-        const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
-        
-        const req = new XMLHttpRequest();
-        req.open('GET', searchUrl, false);
-        req.send();
-        
-        if (req.status === 200) {
-          const data = JSON.parse(req.responseText);
-          const pages = data.query?.pages;
-          if (pages) {
-            const pageIds = Object.keys(pages);
-            if (pageIds.length) {
-              const firstPage = pages[pageIds[0]];
-              const imageInfo = firstPage?.imageinfo?.[0];
-              
-              if (imageInfo) {
-                const imageUrl = imageInfo.thumburl || imageInfo.url;
-                
-                if (imageUrl) {
-                  // Extract caption from extmetadata
-                  let caption = '';
-                  if (imageInfo.extmetadata) {
-                    const meta = imageInfo.extmetadata;
-                    if (meta.ImageDescription?.value) {
-                      caption = meta.ImageDescription.value
-                        .replace(/<[^>]*>/g, '')
-                        .replace(/&quot;/g, '"')
-                        .replace(/&amp;/g, '&')
-                        .replace(/&lt;/g, '<')
-                        .replace(/&gt;/g, '>')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .substring(0, 300);
-                    } else if (meta.ObjectName?.value) {
-                      caption = meta.ObjectName.value.trim().substring(0, 300);
-                    } else if (meta.Categories?.value) {
-                      caption = meta.Categories.value.replace(/\|/g, ', ').substring(0, 200);
-                    }
-                  }
-                  
-                  if (!caption) {
-                    caption = firstPage.title
-                      .replace(/^File:/, '')
-                      .replace(/\.[^.]+$/, '')
-                      .replace(/_/g, ' ')
-                      .trim();
-                  }
-                  
-                  const commonsPageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(firstPage.title)}`;
-                  
-                  const result = {
-                    url: imageUrl,
-                    caption: caption || 'Image from Wikimedia Commons',
-                    title: firstPage.title,
-                    pageUrl: commonsPageUrl,
-                    source: 'commons.wikimedia.org',
-                    searchQuery: searchQuery,
-                  };
-                  
-                  // Cache the result
-                  imageCache[cacheKey] = result;
-                  imageCacheTimestamps[cacheKey] = now;
-                  
-                  return result;
-                }
-              }
-            }
-          }
-        }
-      } catch(e) {
-        console.warn('Wikimedia image fetch failed for:', searchQuery, e);
-      }
-      
-      // Cache empty result to avoid repeated failures
-      imageCache[cacheKey] = null;
-      imageCacheTimestamps[cacheKey] = now;
-      return null;
-    }
-    
     // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
     function getSeverityLabel(score) {
       if (score >= 85) return "CATASTROPHIC";
@@ -1351,7 +1275,7 @@
     
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>"]/g, function(m) {
+      return String(str).replace(/[&<>"]/g, function(m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
@@ -1498,6 +1422,85 @@
       return headline;
     }
     
+    // ─── BUILD PRIMARY IMAGE HTML (USES API-PROVIDED image) ────────────────
+    // The API's Precision Image Engine (v20.9.0) returns a rich primary_image
+    // object on each country payload. We render it directly — no client-side
+    // Wikimedia calls, no guessing. Fields include: url, caption, pageUrl,
+    // source, score, width, height, credit, license, mime, confidence,
+    // strategy, matched_event, photo_year, via_article.
+    function buildPrimaryImageHtml(image) {
+      if (!image || !image.url) return '';
+      
+      const caption = image.caption || 'Image from Wikimedia Commons';
+      const pageUrl = image.pageUrl || '#';
+      const source = image.source || 'commons.wikimedia.org';
+      const confidence = image.confidence || 'medium';
+      const strategy = image.strategy || null;
+      const matchedEvent = image.matched_event || null;
+      const photoYear = image.photo_year || null;
+      const credit = image.credit || null;
+      const license = image.license || null;
+      const width = image.width || null;
+      const height = image.height || null;
+      const score = typeof image.score === 'number' ? image.score : null;
+      const viaArticle = image.via_article || null;
+      
+      // Build optional metadata chips
+      const metaChips = [];
+      if (confidence) {
+        const confEmoji = confidence === 'high' ? '🟢' : confidence === 'medium' ? '🟡' : '⚪';
+        metaChips.push(`<span class="meta-tag confidence-${escapeHtml(confidence)}">${confEmoji} ${escapeHtml(confidence)} confidence</span>`);
+      }
+      if (score !== null) {
+        metaChips.push(`<span class="meta-tag">✨ score ${score}</span>`);
+      }
+      if (strategy) {
+        const stratLabel = strategy === 'live' ? '📡 live event match' :
+                           strategy === 'headline' ? '📰 headline match' :
+                           strategy === 'static' ? '📅 archetype match' :
+                           strategy === 'generic' ? '🌐 generic' :
+                           strategy === 'scenic' ? '🏙️ scenic' : strategy;
+        metaChips.push(`<span class="meta-tag">${escapeHtml(stratLabel)}</span>`);
+      }
+      if (matchedEvent) {
+        metaChips.push(`<span class="meta-tag">🎯 ${escapeHtml(matchedEvent)}</span>`);
+      }
+      if (photoYear) {
+        metaChips.push(`<span class="meta-tag">📅 ${escapeHtml(String(photoYear))}</span>`);
+      }
+      if (width && height) {
+        metaChips.push(`<span class="meta-tag">🖼️ ${width}×${height}</span>`);
+      }
+      if (license) {
+        metaChips.push(`<span class="meta-tag">⚖️ ${escapeHtml(license)}</span>`);
+      }
+      if (viaArticle) {
+        metaChips.push(`<span class="meta-tag">📖 via ${escapeHtml(String(viaArticle).slice(0, 40))}</span>`);
+      }
+      
+      const creditLine = credit ? `<span class="meta-tag">📷 ${escapeHtml(credit)}</span>` : '';
+      
+      return `
+        <figure class="article-primary-image">
+          <img
+            src="${escapeHtml(image.url)}"
+            alt="${escapeHtml(caption)}"
+            loading="eager"
+            onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'image-loader\\'><span class=\\'img-icon\\'>🖼️</span><span>Image unavailable</span></div>';"
+          />
+          <figcaption class="image-caption">
+            <span class="caption-text">${escapeHtml(caption)}</span>
+            <span class="caption-source">— <a href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener">${escapeHtml(source)}</a></span>
+          </figcaption>
+          ${metaChips.length > 0 || creditLine ? `
+          <div class="image-metadata">
+            ${metaChips.join('')}
+            ${creditLine}
+          </div>` : ''}
+        </figure>
+      `;
+    }
+    
     // ─── JOURNALISTIC BODY GENERATOR ─────────────────────────────────────
     function generateJournalisticBody(country) {
       const name = country.name || 'Unknown';
@@ -1538,24 +1541,16 @@
       
       const paragraphs = [];
       
-      // ── PRIMARY IMAGE (NEW) ──
-      // Fetch the primary image from Wikimedia Commons based on the headline
-      const headline = generateExplosiveHeadline(country);
-      const image = fetchWikimediaImage(headline);
-      
-      if (image) {
-        paragraphs.push(`
-          <figure class="article-primary-image">
-            <img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.caption)}" loading="eager" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'image-loader\\'><span class=\\'img-icon\\'>🖼️</span><span>Image unavailable</span></div>';" />
-            <figcaption class="image-caption">
-              <span class="caption-text">${escapeHtml(image.caption)}</span>
-              <span class="caption-source">— <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></span>
-            </figcaption>
-          </figure>
-        `);
+      // ── PRIMARY IMAGE — from API's Precision Image Engine (v20.9.0) ──
+      // The API already selected the best image via multi-signal scoring.
+      // We just render it.
+      const apiImage = country.primary_image || null;
+      const imageHtml = buildPrimaryImageHtml(apiImage);
+      if (imageHtml) {
+        paragraphs.push(imageHtml);
       }
       
-      // ── WIKIPEDIA INTRO ──
+      // ── WIKIPEDIA INTRO (Country Context box) ──
       let wikiIntro = '';
       try {
         wikiIntro = fetchWikipediaIntro(name);
@@ -1612,7 +1607,7 @@
           <div class="wikipedia-intro">
             <div class="wiki-label">📖 Country Context · Wikipedia</div>
             <div class="wiki-text">${escapeHtml(wikiIntro)}</div>
-            <span class="wiki-attribution">— <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(name.replace(/ /g, '_'))}" target="_blank" rel="noopener">${name}</a> on Wikipedia</span>
+            <span class="wiki-attribution">— <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(name.replace(/ /g, '_'))}" target="_blank" rel="noopener">${escapeHtml(name)}</a> on Wikipedia</span>
           </div>
         `);
       }
@@ -1663,7 +1658,7 @@
         }
         
         if (quoteText) {
-          paragraphs.push(`<div class="quote">“${quoteText}”<span class="attribution">${quoteAttribution}</span></div>`);
+          paragraphs.push(`<div class="quote">“${escapeHtml(quoteText)}”<span class="attribution">${escapeHtml(quoteAttribution)}</span></div>`);
         }
       }
       
@@ -1683,8 +1678,8 @@
         for (const stat of stats.slice(0, 4)) {
           statHtml += `
             <div>
-              <div class="stat">${stat.value}</div>
-              <div class="stat-label">${stat.label}</div>
+              <div class="stat">${escapeHtml(String(stat.value))}</div>
+              <div class="stat-label">${escapeHtml(stat.label)}</div>
             </div>
           `;
         }
@@ -1693,18 +1688,18 @@
       }
       
       if (totalDisplaced > 0 && ipcPhase >= 3) {
-        paragraphs.push(`<p>The displacement crisis in ${name} is compounding the already dire food security situation. With ${formatPop(totalDisplaced)} people uprooted from their homes and ${formatPop(ipcPop)} facing acute hunger, humanitarian agencies are struggling to meet the overwhelming need. Access constraints and ongoing violence are further hampering relief efforts.</p>`);
+        paragraphs.push(`<p>The displacement crisis in ${escapeHtml(name)} is compounding the already dire food security situation. With ${escapeHtml(formatPop(totalDisplaced))} people uprooted from their homes and ${escapeHtml(formatPop(ipcPop))} facing acute hunger, humanitarian agencies are struggling to meet the overwhelming need. Access constraints and ongoing violence are further hampering relief efforts.</p>`);
       } else if (gdacsAlert === 'red' || gdacsAlert === 'orange') {
-        paragraphs.push(`<p>The GDACS alert underscores the severity of the situation in ${name}. International disaster response mechanisms have been activated, but ground reports indicate that local capacities are being overwhelmed. The international community is being urged to rapidly scale up support to prevent a catastrophic humanitarian outcome.</p>`);
+        paragraphs.push(`<p>The GDACS alert underscores the severity of the situation in ${escapeHtml(name)}. International disaster response mechanisms have been activated, but ground reports indicate that local capacities are being overwhelmed. The international community is being urged to rapidly scale up support to prevent a catastrophic humanitarian outcome.</p>`);
       } else if (fatalities > 20) {
-        paragraphs.push(`<p>Violence in ${name} has claimed at least ${fatalities.toLocaleString()} lives in recent days, with ${events} separate conflict events recorded. Civilian infrastructure has been targeted, and humanitarian organizations are reporting significant challenges in reaching affected populations. The international community has called for an immediate cessation of hostilities.</p>`);
+        paragraphs.push(`<p>Violence in ${escapeHtml(name)} has claimed at least ${escapeHtml(fatalities.toLocaleString())} lives in recent days, with ${escapeHtml(String(events))} separate conflict events recorded. Civilian infrastructure has been targeted, and humanitarian organizations are reporting significant challenges in reaching affected populations. The international community has called for an immediate cessation of hostilities.</p>`);
       } else if (diseaseOutbreaks.length > 0) {
         const diseaseNames = diseaseOutbreaks.map(o => o.disease).join(' and ');
-        paragraphs.push(`<p>The ${diseaseNames} outbreak in ${name} is placing immense strain on an already fragile healthcare system. Health workers are reporting shortages of essential supplies and protective equipment. The World Health Organization has deployed an emergency response team to support containment efforts.</p>`);
+        paragraphs.push(`<p>The ${escapeHtml(diseaseNames)} outbreak in ${escapeHtml(name)} is placing immense strain on an already fragile healthcare system. Health workers are reporting shortages of essential supplies and protective equipment. The World Health Organization has deployed an emergency response team to support containment efforts.</p>`);
       } else if (maxTemp >= 38) {
-        paragraphs.push(`<p>Extreme heat conditions in ${name} have reached ${maxTemp}°C, with hospitals reporting a surge in heat-related illnesses. The elderly, children, and those with pre-existing conditions are particularly vulnerable. Climate scientists warn that such extreme weather events are becoming more frequent and severe.</p>`);
+        paragraphs.push(`<p>Extreme heat conditions in ${escapeHtml(name)} have reached ${escapeHtml(String(maxTemp))}°C, with hospitals reporting a surge in heat-related illnesses. The elderly, children, and those with pre-existing conditions are particularly vulnerable. Climate scientists warn that such extreme weather events are becoming more frequent and severe.</p>`);
       } else {
-        paragraphs.push(`<p>The humanitarian situation in ${name} continues to evolve rapidly. Aid organizations are scaling up their presence, but access constraints and security concerns are limiting the reach of relief operations. The international community is being called upon to provide additional resources and political support to address the crisis.</p>`);
+        paragraphs.push(`<p>The humanitarian situation in ${escapeHtml(name)} continues to evolve rapidly. Aid organizations are scaling up their presence, but access constraints and security concerns are limiting the reach of relief operations. The international community is being called upon to provide additional resources and political support to address the crisis.</p>`);
       }
       
       const recText = rec.text || 'Monitor situation. No immediate action required.';
@@ -1715,12 +1710,12 @@
       else if (recTier === 'URGENT') recColor = '#ff8c42';
       else if (recTier === 'HIGH') recColor = '#ffb020';
       
-      paragraphs.push(`<p><strong>What happens next?</strong> The Global Crisis Index's recommendation tier for ${name} is <strong style="color:${recColor};">${recTier}</strong>. ${recText}</p>`);
+      paragraphs.push(`<p><strong>What happens next?</strong> The Global Crisis Index's recommendation tier for ${escapeHtml(name)} is <strong style="color:${recColor};">${escapeHtml(recTier)}</strong>. ${escapeHtml(recText)}</p>`);
       
       const evidenceCount = country.live_evidence_count || 0;
       const evidenceSources = country.live_evidence_sources || [];
       const sourceStr = evidenceSources.slice(0, 5).join(', ');
-      paragraphs.push(`<p style="font-size:0.85rem;color:var(--gcin-text-muted);border-top:1px solid var(--gcin-border);padding-top:0.75rem;margin-top:1rem;">📡 This report is based on live data from ${evidenceCount} independent sources${sourceStr ? `, including ${sourceStr}` : ''}. All data is verified and updated in real time.</p>`);
+      paragraphs.push(`<p style="font-size:0.85rem;color:var(--gcin-text-muted);border-top:1px solid var(--gcin-border);padding-top:0.75rem;margin-top:1rem;">📡 This report is based on live data from ${escapeHtml(String(evidenceCount))} independent sources${sourceStr ? `, including ${escapeHtml(sourceStr)}` : ''}. All data is verified and updated in real time.</p>`);
       
       return paragraphs.join('');
     }
@@ -1774,7 +1769,7 @@
       }
       
       html += `<div class="story-header">`;
-      html += `<div class="story-headline"><span class="flag">${flag}</span> <a href="${url}">${escapeHtml(headline)}</a></div>`;
+      html += `<div class="story-headline"><span class="flag">${flag}</span> <a href="${escapeHtml(url)}">${escapeHtml(headline)}</a></div>`;
       html += `<span class="severity-badge ${severityClass}">${severityLabel}</span>`;
       html += `</div>`;
       
@@ -1782,17 +1777,17 @@
       const sourceStr = evidenceSources.slice(0, 3).join(' · ');
       html += `<div class="story-byline">`;
       html += `<span>📅 ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>`;
-      html += `<span>📍 ${name}</span>`;
+      html += `<span>📍 ${escapeHtml(name)}</span>`;
       html += `<span class="source-badge"><span class="live-dot-small"></span> ${liveEvidenceCount} live sources</span>`;
       if (sourceStr) {
-        html += `<span class="source-badge">${sourceStr}</span>`;
+        html += `<span class="source-badge">${escapeHtml(sourceStr)}</span>`;
       }
       if (anomalyDetected) {
-        html += `<span class="source-badge anomaly-tag">⚡ Anomaly: ${anomalySeverity}</span>`;
+        html += `<span class="source-badge anomaly-tag">⚡ Anomaly: ${escapeHtml(anomalySeverity)}</span>`;
       }
       html += `</div>`;
       
-      // ─── PRIMARY IMAGE AT TOP OF ARTICLE BODY (NEW) ───
+      // ─── PRIMARY IMAGE + ARTICLE BODY (from API) ───
       html += `<div class="story-body">`;
       html += bodyHtml;
       html += `</div>`;
@@ -1800,7 +1795,7 @@
       html += `<div class="story-dimensions">`;
       for (const d of dimList) {
         const col = d.value >= 80 ? '#ff375f' : d.value >= 60 ? '#ff8c42' : d.value >= 40 ? '#ffb020' : '#6bc8ff';
-        html += `<div class="dim-item"><span class="dim-label">${d.label}</span><span class="dim-val" style="color:${col}">${d.value}/100</span></div>`;
+        html += `<div class="dim-item"><span class="dim-label">${escapeHtml(d.label)}</span><span class="dim-val" style="color:${col}">${d.value}/100</span></div>`;
       }
       html += `</div>`;
       
@@ -1809,7 +1804,7 @@
       html += `<span class="anomaly-score">🔍 Anomaly score: ${anomalyScore.toFixed(1)}/10</span>`;
       html += `<span class="evidence-source-count">📊 ${liveEvidenceCount} live source${liveEvidenceCount > 1 ? 's' : ''}</span>`;
       html += `<span>Updated ${new Date().toLocaleTimeString()}</span>`;
-      html += `<a href="${url}" class="read-more">Read full analysis →</a>`;
+      html += `<a href="${escapeHtml(url)}" class="read-more">Read full analysis →</a>`;
       html += `</div>`;
       
       html += `</div>`;
@@ -1838,8 +1833,9 @@
         const hasML = c.ml?.trained || false;
         const scoreVal = c.score || 0;
         const headline = generateExplosiveHeadline(c);
+        const url = c.url || '/crisis/' + (c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
         return `
-          <div class="top-story-mini" onclick="window.location.href='${c.url || '/crisis/' + (c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}'">
+          <div class="top-story-mini" onclick="window.location.href='${escapeHtml(url)}'">
             <span class="rank">#${i + 1}</span>
             <span class="flag">${c.flag || '🌍'}</span>
             <div class="info">
@@ -1907,6 +1903,7 @@
         }
         
         const totalLiveSources = countries.reduce((sum, c) => sum + (c.live_evidence_count || 0), 0);
+        const withImages = countries.filter(c => c.primary_image && c.primary_image.url).length;
         
         const now = new Date();
         dateEl.textContent = now.toLocaleString('en-US', { 
@@ -1917,7 +1914,7 @@
           minute: '2-digit' 
         });
         countEl.textContent = `📰 ${countries.length} stories`;
-        liveCountEl.textContent = `📊 ${totalLiveSources} sources`;
+        liveCountEl.textContent = `📊 ${totalLiveSources} sources · 🖼️ ${withImages} images`;
         
         renderTopStories(countries);
         
@@ -1951,7 +1948,7 @@
             <div class="icon">⚠️</div>
             <div class="title">Error loading crisis intelligence</div>
             <div class="subtitle">Please refresh the page or try again later.</div>
-            <div style="font-size:0.7rem;color:var(--gcin-text-muted);margin-top:0.5rem;">${err.message}</div>
+            <div style="font-size:0.7rem;color:var(--gcin-text-muted);margin-top:0.5rem;">${escapeHtml(err.message)}</div>
           </div>
         `;
         countEl.textContent = '📰 Error';
