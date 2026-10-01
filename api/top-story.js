@@ -1,18 +1,19 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.4.0 — WIKIMEDIA COMMONS IMAGE EDITION
+//  TOP-STORY API — v20.5.0 — WIKIMEDIA COMMONS IMAGE EDITION (FIXED)
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  🖼️ PRIMARY IMAGE from Wikimedia Commons at article top
+//  🖼️ PRIMARY IMAGE from Wikimedia Commons at article top (FIXED)
 //
-//  ═══ v20.4.0 — WIKIMEDIA COMMONS PRIMARY IMAGE ═══
-//  New server-side fetcher:
-//    • Wikimedia Commons image search → primary_image (with caption)
-//
-//  All sources are fetched server-side (no CORS issues in Node/Vercel).
-//  EM-DAT remains excluded (no live API — requires manual data request).
+//  ═══ v20.5.0 — IMAGE FETCHING FIXES ═══
+//  • Images now fetched for ALL payloads in list/comparison mode
+//  • Image attached to every payload regardless of mode
+//  • RSS feed includes primary image at top of content
+//  • JSON payload includes primary_image for every story
+//  • Added fallback image search with country name if headline search fails
+//  • Better error handling and logging
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -686,98 +687,112 @@ async function safeFetch(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  WIKIMEDIA COMMONS IMAGE FETCHER (NEW v20.4.0)
+//  WIKIMEDIA COMMONS IMAGE FETCHER (v20.5.0 — FIXED)
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
  * Fetch the primary image and caption from Wikimedia Commons based on article title.
  * Uses the MediaSearch API to find the first relevant image.
+ * Falls back to country name search if the headline search fails.
  * Returns { url, caption, title, pageUrl, source } or null.
  */
-async function fetchWikimediaImage(articleTitle) {
-  if (!articleTitle) return null;
+async function fetchWikimediaImage(articleTitle, countryName) {
+  // Try multiple search queries in order of specificity
+  const queries = [];
   
-  // Clean the title for search: replace special chars, keep it readable
-  const searchQuery = articleTitle
-    .replace(/[^\w\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .substring(0, 100);
-  
-  if (!searchQuery) return null;
-  
-  try {
-    // Use Wikimedia Commons API - query for images matching the search term
-    // First, search for files on Commons
-    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
+  if (articleTitle && articleTitle.length > 5) {
+    // Clean the headline for search
+    const cleanHeadline = articleTitle
+      .replace(/[^\w\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 100);
+    if (cleanHeadline) queries.push(cleanHeadline);
     
-    const searchRes = await safeFetch(fetch(searchUrl).then(r => r.ok ? r.json() : null));
-    if (!searchRes.ok || !searchRes.data?.query?.pages) return null;
-    
-    const pages = searchRes.data.query.pages;
-    const pageIds = Object.keys(pages);
-    if (!pageIds.length) return null;
-    
-    // Pick the first result
-    const firstPage = pages[pageIds[0]];
-    const imageInfo = firstPage?.imageinfo?.[0];
-    if (!imageInfo) return null;
-    
-    // Get the thumbnail URL (or full URL)
-    const imageUrl = imageInfo.thumburl || imageInfo.url;
-    if (!imageUrl) return null;
-    
-    // Extract caption from extmetadata
-    let caption = '';
-    if (imageInfo.extmetadata) {
-      const meta = imageInfo.extmetadata;
-      // Try different metadata fields for a caption
-      if (meta.ImageDescription?.value) {
-        // Clean HTML from description
-        caption = meta.ImageDescription.value
-          .replace(/<[^>]*>/g, '')
-          .replace(/&quot;/g, '"')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .substring(0, 300);
-      } else if (meta.ObjectName?.value) {
-        caption = meta.ObjectName.value.trim().substring(0, 300);
-      } else if (meta.Categories?.value) {
-        caption = meta.Categories.value.replace(/\|/g, ', ').substring(0, 200);
-      }
-    }
-    
-    // If no caption from metadata, use the file title (cleaned)
-    if (!caption) {
-      caption = firstPage.title
-        .replace(/^File:/, '')
-        .replace(/\.[^.]+$/, '')
-        .replace(/_/g, ' ')
-        .trim();
-    }
-    
-    // Build the Commons page URL
-    const commonsPageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(firstPage.title)}`;
-    
-    return {
-      url: imageUrl,
-      caption: caption || 'Image from Wikimedia Commons',
-      title: firstPage.title,
-      pageUrl: commonsPageUrl,
-      source: 'commons.wikimedia.org',
-      searchQuery,
-    };
-  } catch (err) {
-    console.warn(`[wikimedia] failed for "${searchQuery}":`, err.message);
-    return null;
+    // Extract key terms from the headline (remove common words)
+    const stopWords = new Set(['the','a','an','in','on','at','to','for','of','and','or','but','with','from','by','as','is','are','was','were','has','have','had','this','that','these','those','breaking','ongoing','alert','crisis','emergency','disaster','right','now','inside','what','happening','ground','data','update','report','situation','humanitarian']);
+    const keyTerms = cleanHeadline.split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w.toLowerCase()));
+    if (keyTerms.length >= 2) queries.push(keyTerms.join(' '));
+    if (keyTerms.length >= 1) queries.push(keyTerms[0]);
   }
+  
+  // Fallback: use the country name
+  if (countryName) {
+    queries.push(`${countryName} crisis`);
+    queries.push(countryName);
+  }
+  
+  // Remove duplicates and empty strings
+  const uniqueQueries = [...new Set(queries.filter(q => q && q.trim().length > 0))];
+  
+  for (const searchQuery of uniqueQueries) {
+    try {
+      const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
+      
+      const searchRes = await safeFetch(fetch(searchUrl).then(r => r.ok ? r.json() : null));
+      if (!searchRes.ok || !searchRes.data?.query?.pages) continue;
+      
+      const pages = searchRes.data.query.pages;
+      const pageIds = Object.keys(pages);
+      if (!pageIds.length) continue;
+      
+      // Pick the first result
+      const firstPage = pages[pageIds[0]];
+      const imageInfo = firstPage?.imageinfo?.[0];
+      if (!imageInfo) continue;
+      
+      const imageUrl = imageInfo.thumburl || imageInfo.url;
+      if (!imageUrl) continue;
+      
+      // Extract caption from extmetadata
+      let caption = '';
+      if (imageInfo.extmetadata) {
+        const meta = imageInfo.extmetadata;
+        if (meta.ImageDescription?.value) {
+          caption = meta.ImageDescription.value
+            .replace(/<[^>]*>/g, '')
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 300);
+        } else if (meta.ObjectName?.value) {
+          caption = meta.ObjectName.value.trim().substring(0, 300);
+        } else if (meta.Categories?.value) {
+          caption = meta.Categories.value.replace(/\|/g, ', ').substring(0, 200);
+        }
+      }
+      
+      if (!caption) {
+        caption = firstPage.title
+          .replace(/^File:/, '')
+          .replace(/\.[^.]+$/, '')
+          .replace(/_/g, ' ')
+          .trim();
+      }
+      
+      const commonsPageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(firstPage.title)}`;
+      
+      return {
+        url: imageUrl,
+        caption: caption || 'Image from Wikimedia Commons',
+        title: firstPage.title,
+        pageUrl: commonsPageUrl,
+        source: 'commons.wikimedia.org',
+        searchQuery,
+      };
+    } catch (err) {
+      console.warn(`[wikimedia] failed for "${searchQuery}":`, err.message);
+    }
+  }
+  
+  return null;
 }
 
 /**
- * Fetch images for multiple article titles in parallel.
+ * Fetch images for multiple articles in parallel.
  * Returns a map of iso -> image data.
  */
 async function fetchImagesForArticles(articles) {
@@ -788,14 +803,16 @@ async function fetchImagesForArticles(articles) {
   async function worker() {
     while (queue.length) {
       const article = queue.shift();
-      if (!article || !article.iso || !article.title) continue;
+      if (!article || !article.iso) continue;
       try {
-        const image = await fetchWikimediaImage(article.title);
+        const image = await fetchWikimediaImage(article.title, article.countryName);
         if (image) {
           results[article.iso] = image;
+        } else {
+          console.warn(`[wikimedia] no image found for ${article.iso} (${article.title})`);
         }
       } catch (e) {
-        // skip failures
+        console.warn(`[wikimedia] error for ${article.iso}:`, e.message);
       }
     }
   }
@@ -811,7 +828,7 @@ async function fetchImagesForArticles(articles) {
 const evidenceIndex = {
   sourceCoverage: {},
   population: {},
-  images: {},  // NEW: store images per ISO
+  images: {},
 };
 
 function resetEvidenceIndex() {
@@ -901,7 +918,6 @@ function computeEvidenceScore(iso) {
   if (coverage.water_stress_static) { const stress = coverage.water_stress_static.baseline_stress || 0; if (stress >= 3.0) add("WRI Aqueduct", `Baseline water stress ${stress.toFixed(1)}/5.0`, stress, logScale(stress, 3, 5, 6), 0.75); }
   if (coverage.ndvi_static) { const anomaly = Math.abs(coverage.ndvi_static.ndvi_anomaly_pct || 0); if (anomaly >= 15) add("FAO GIEWS", `NDVI ${coverage.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM`, anomaly, logScale(anomaly, 15, 40, 6), 0.75); }
   if (coverage.us_drought) { const level = coverage.us_drought.level || "D0"; const pts = level === "D4" ? 10 : level === "D3" ? 8 : level === "D2" ? 6 : level === "D1" ? 4 : 2; add("US DM", `US Drought ${level}: ${coverage.us_drought.area_pct || 0}% area`, 1, pts, 0.75); }
-  // NEW v20.3.0 sources
   if (coverage.openaq) { const pm25 = coverage.openaq.pm25 || 0; if (pm25 >= 35) add("OpenAQ", `PM2.5 ${pm25.toFixed(0)} µg/m³`, pm25, logScale(pm25, 35, 300, 5), 0.75); }
   if (coverage.ndbc) { const wave = coverage.ndbc.wave_height || 0; if (wave > 3) add("NOAA NDBC", `Wave height ${wave}m (buoy ${coverage.ndbc.buoy})`, wave, logScale(wave, 3, 10, 5), 0.7); }
   if (coverage.cems_activation) { add("Copernicus EMS", `Activation ${coverage.cems_activation.id}: ${coverage.cems_activation.title || "Rapid mapping"}`, 1, 8, 0.9); }
@@ -920,7 +936,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS — v20.3.0 (ALL FREE SOURCES)
+//  FETCHERS
 // ════════════════════════════════════════════════════════════════════════════
 
 async function fetchHeatAndPrecipLoop() {
@@ -985,7 +1001,6 @@ async function fetchUSDroughtMonitor() {
   };
 }
 
-// ── NEW v20.3.0: OpenAQ v2 (free, no auth) ──
 async function fetchOpenAQ() {
   const url = "https://api.openaq.org/v2/latest?limit=100&parameter=pm25&has_geo=true";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
@@ -1004,7 +1019,6 @@ async function fetchOpenAQ() {
   return byIso;
 }
 
-// ── NEW v20.3.0: NOAA NDBC buoy (real-time ocean obs) ──
 async function fetchNDBCBuoys() {
   const results = {};
   for (const buoy of CFG.NDBC_BUOYS) {
@@ -1018,9 +1032,6 @@ async function fetchNDBCBuoys() {
     const year = latest[0], month = latest[1], day = latest[2], hour = latest[3], minute = latest[4];
     const windDir = parseFloat(latest[5]), windSpeed = parseFloat(latest[6]), windGust = parseFloat(latest[7]);
     const waveHeight = parseFloat(latest[8]), domPeriod = parseFloat(latest[9]);
-    const lat = parseFloat(latest[latIdx = 12] || 0);
-    const lon = parseFloat(latest[13] || 0);
-    // NDBC buoy stations are fixed — use known locations for mapping
     const buoyLocations = {
       "51001": { lat: 24.4, lon: -162.0, iso: "USA" },
       "51002": { lat: 17.0, lon: -157.0, iso: "USA" },
@@ -1045,7 +1056,6 @@ async function fetchNDBCBuoys() {
   return results;
 }
 
-// ── NEW v20.3.0: Copernicus EMS activations (GeoRSS) ──
 async function fetchCEMSActivations() {
   const url = "https://emergency.copernicus.eu/mapping/list-of-activations-rapid/feed";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
@@ -1064,7 +1074,6 @@ async function fetchCEMSActivations() {
   return items.slice(0, 20);
 }
 
-// ── NEW v20.3.0: ProMED RSS (emerging disease signals) ──
 async function fetchProMED() {
   const url = "https://promedmail.org/promed-posts/feed/";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
@@ -1082,7 +1091,6 @@ async function fetchProMED() {
   return items.slice(0, 30);
 }
 
-// ── NEW v20.3.0: Smithsonian GVP (weekly volcanic activity) ──
 async function fetchSmithsonianGVP() {
   const url = "https://volcano.si.edu/news/WeeklyVolcanoRSS.xml";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
@@ -1100,7 +1108,6 @@ async function fetchSmithsonianGVP() {
   return items.slice(0, 30);
 }
 
-// ── NEW v20.3.0: NOAA PTWC (tsunami CAP) ──
 async function fetchPTWC() {
   const url = "https://www.tsunami.gov/events/xml/PAAQAtom.xml";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.text() : null));
@@ -1113,7 +1120,6 @@ async function fetchPTWC() {
     const title = (block.match(/<title[^>]*>(.*?)<\/title>/) || [])[1] || "";
     const updated = (block.match(/<updated>(.*?)<\/updated>/) || [])[1] || "";
     const summary = (block.match(/<summary[^>]*>(.*?)<\/summary>/) || [])[1] || "";
-    // Look for severity in CAP extension
     const severity = (block.match(/<cap:severity>(.*?)<\/cap:severity>/) || [])[1] || "Unknown";
     const area = (block.match(/<cap:areaDesc>(.*?)<\/cap:areaDesc>/) || [])[1] || "";
     if (title) entries.push({ title: title.replace(/<!\[CDATA\[|\]\]>/g, ''), severity, area, updated, summary: summary.replace(/<!\[CDATA\[|\]\]>/g, '').slice(0, 200) });
@@ -1121,13 +1127,10 @@ async function fetchPTWC() {
   return entries.slice(0, 10);
 }
 
-// ── NEW v20.3.0: INFORM Index API (JRC) ──
 async function fetchINFORM() {
-  // Use latest known WorkflowId (386 = INFORM 2024 release)
   const url = "https://drmkc.jrc.ec.europa.eu/inform-index/API/informAPI/Countries/Scores/?WorkflowId=386";
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
   if (!res.ok || !res.data) return null;
-  // Response is an array of { Iso3, IndicatorId, IndicatorScore, ... }
   const byIso = {};
   for (const item of res.data) {
     if (item.Iso3 && item.IndicatorId === "INFORM") {
@@ -1142,17 +1145,12 @@ async function fetchAllLive() {
   fetcherHealth.startRun();
 
   const tasks = {
-    // ── PRIMARY SEISMIC ──
     usgs_weekly: () => fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(r => r.ok ? r.json() : null),
     gdacs_all: () => fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ,TC,FL,VO,DR,WF&alertlevel=Orange,Red&limit=60").then(r => r.ok ? r.json() : null),
     gdacs_earthquakes: () => fetch("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventtype=EQ&limit=20").then(r => r.ok ? r.json() : null),
     emsc_seismic: () => fetch("https://www.seismicportal.eu/fdsnws/event/1/query?format=json&limit=30&minmag=4.5&orderby=time").then(r => r.ok ? r.json() : null),
-
-    // ── v20.2.1 sources ──
     frankfurter_fx: () => fetchFrankfurterFX(),
     us_drought_monitor: () => fetchUSDroughtMonitor(),
-
-    // ── v20.3.0 NEW sources ──
     openaq: () => fetchOpenAQ(),
     ndbc_buoys: () => fetchNDBCBuoys(),
     cems_activations: () => fetchCEMSActivations(),
@@ -1160,16 +1158,10 @@ async function fetchAllLive() {
     smithsonian_gvp: () => fetchSmithsonianGVP(),
     ptwc_tsunami: () => fetchPTWC(),
     inform: () => fetchINFORM(),
-
-    // ── NASA ──
     nasa_eonet: () => fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50&days=7").then(r => r.ok ? r.json() : null),
     nasa_wildfires: () => fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=20").then(r => r.ok ? r.json() : null),
-
-    // ── HEALTH ──
     disease_sh: () => fetch("https://disease.sh/v3/covid-19/countries?sort=cases&limit=20").then(r => r.ok ? r.json() : null),
     who_don: () => fetch("https://www.who.int/api/news/diseaseoutbreaknews").then(r => r.ok ? r.json() : null),
-
-    // ── WORLD BANK ──
     wb_population: () => fetch("https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
     wb_poverty: () => fetch("https://api.worldbank.org/v2/country/all/indicator/SI.POV.DDAY?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
     wb_inflation: () => fetch("https://api.worldbank.org/v2/country/all/indicator/FP.CPI.TOTL.ZG?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
@@ -1179,35 +1171,17 @@ async function fetchAllLive() {
     wb_water: () => fetch("https://api.worldbank.org/v2/country/all/indicator/ER.H2O.FWTL.ZS?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
     wb_trade: () => fetch("https://api.worldbank.org/v2/country/all/indicator/NE.TRD.GNFS.ZS?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
     wb_political_stability: () => fetch("https://api.worldbank.org/v2/country/all/indicator/PV.EST?format=json&per_page=300&mrv=1").then(r => r.ok ? r.json() : null),
-
-    // ── UNHCR ──
     unhcr_pop: () => fetch("https://api.unhcr.org/population/v1/population/?limit=30&dataset=population&displayType=totals&yearFrom=2023&yearTo=2024&coa_all=true&forcedDisp=1").then(r => r.ok ? r.json() : null),
-
-    // ── IFRC ──
     ifrc_go: () => fetch("https://goadmin.ifrc.org/api/v2/event/?limit=30&ordering=-disaster_start_date").then(r => r.ok ? r.json() : null),
-
-    // ── HEAT / PRECIP LOOP ──
     heat_loop: () => fetchHeatAndPrecipLoop(),
-
-    // ── AIR QUALITY (Open-Meteo) ──
     aq_delhi: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.6&longitude=77.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
     aq_beijing: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=39.9&longitude=116.4&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
     aq_cairo: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
-
-    // ── FLOOD / MARINE ──
     flood: () => fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.ok ? r.json() : null),
     marine: () => fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.ok ? r.json() : null),
-
-    // ── RELIEFWEB ──
-    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v203&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
-
-    // ── GDELT ──
+    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v205&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
     gdelt_conflict: () => fetch("https://api.gdeltproject.org/api/v2/doc/doc?query=conflict&mode=artlist&maxrecords=25&format=json").then(r => r.ok ? r.json() : null),
-
-    // ── CLIMATE TRACE ──
     climate_trace: () => fetch("https://api.climatetrace.org/v6/countries").then(r => r.ok ? r.json() : null),
-
-    // ── FAO FPMA ──
     fao_fpma: () => fetch("https://fpma.apps.fao.org/api/v1/prices").then(r => r.ok ? r.json() : null),
   };
 
@@ -1232,10 +1206,9 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  INGEST — v20.3.0
+//  INGEST
 // ════════════════════════════════════════════════════════════════════════════
 function ingestFetchedData(out) {
-  // ── USGS ──
   if (out.usgs_weekly?.features) {
     for (const f of out.usgs_weekly.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1245,7 +1218,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── EMSC ──
   if (out.emsc_seismic?.features) {
     for (const f of out.emsc_seismic.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1260,7 +1232,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── GDACS unified feed ──
   if (out.gdacs_all?.features) {
     for (const f of out.gdacs_all.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
@@ -1290,7 +1261,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── Frankfurter FX ──
   if (out.frankfurter_fx?.rates) {
     const rates = out.frankfurter_fx.rates;
     for (const [cur, rate] of Object.entries(rates)) {
@@ -1304,7 +1274,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── US Drought Monitor ──
   if (out.us_drought_monitor) {
     ensureCoverage("USA").us_drought = {
       level: out.us_drought_monitor.level,
@@ -1313,7 +1282,6 @@ function ingestFetchedData(out) {
       polygon_count: out.us_drought_monitor.polygon_count,
     };
   }
-  // ── OpenAQ ──
   if (out.openaq && typeof out.openaq === "object") {
     for (const [iso, data] of Object.entries(out.openaq)) {
       if (data.pm25 !== undefined && data.pm25 !== null) {
@@ -1324,16 +1292,13 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── NOAA NDBC ──
   if (out.ndbc_buoys && typeof out.ndbc_buoys === "object") {
     for (const [iso, data] of Object.entries(out.ndbc_buoys)) {
       ensureCoverage(iso).ndbc = data;
     }
   }
-  // ── Copernicus EMS ──
   if (Array.isArray(out.cems_activations)) {
     for (const act of out.cems_activations) {
-      // CEMS activations don't have country codes in the feed — use title-based lookup
       const title = act.title || "";
       let iso = null;
       for (const [code, name] of Object.entries(ISO_NAMES)) {
@@ -1344,7 +1309,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── ProMED ──
   if (Array.isArray(out.promed)) {
     const byIso = {};
     for (const item of out.promed) {
@@ -1363,12 +1327,9 @@ function ingestFetchedData(out) {
       ensureCoverage(iso).promed = { count: data.count, titles: data.titles };
     }
   }
-  // ── Smithsonian GVP ──
   if (Array.isArray(out.smithsonian_gvp)) {
     for (const item of out.smithsonian_gvp) {
       const volcanoName = item.volcano || "";
-      // GVP reports have volcano names; map to country via description or skip
-      // Simplified: check description for country mentions
       const text = `${item.volcano} ${item.description}`;
       let iso = null;
       for (const [code, name] of Object.entries(ISO_NAMES)) {
@@ -1379,7 +1340,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── NOAA PTWC ──
   if (Array.isArray(out.ptwc_tsunami)) {
     for (const alert of out.ptwc_tsunami) {
       if (alert.severity === "Minor" || alert.severity === "Unknown") continue;
@@ -1393,7 +1353,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── INFORM ──
   if (out.inform && typeof out.inform === "object") {
     for (const [iso, data] of Object.entries(out.inform)) {
       if (data.score !== undefined && BASE_SCORES[iso] !== undefined) {
@@ -1401,7 +1360,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── NASA EONET ──
   if (out.nasa_eonet?.events) {
     for (const ev of out.nasa_eonet.events) {
       const coords = ev.geometry?.[0]?.coordinates;
@@ -1420,27 +1378,23 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── Heat loop ──
   if (out.heat_loop && typeof out.heat_loop === "object") {
     for (const [iso, d] of Object.entries(out.heat_loop)) {
       if (d && d.temp !== undefined) ensureCoverage(iso).heat = { temp: d.temp, precip: d.precip, date: d.date };
     }
   }
-  // ── disease.sh ──
   if (Array.isArray(out.disease_sh)) {
     for (const d of out.disease_sh) {
       const iso = findIsoByName(d.country);
       if (iso && d.active > 0) ensureCoverage(iso).covid = { active: d.active, cases: d.cases, deaths: d.deaths };
     }
   }
-  // ── WHO DON ──
   if (out.who_don?.value) {
     for (const don of out.who_don.value) {
       const iso = don.CountryISO3 || don.Country;
       if (iso && BASE_SCORES[iso] !== undefined) ensureCoverage(iso).who_don = { title: don.Title || don.Name, date: don.PublicationDate };
     }
   }
-  // ── World Bank ──
   if (out.wb_population?.[1]) {
     for (const item of out.wb_population[1]) {
       if (item.country?.id && item.value) {
@@ -1489,7 +1443,6 @@ function ingestFetchedData(out) {
       if (item.country?.id && item.value !== null) { const iso = item.country.id; if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).political_stability = parseFloat(item.value); }
     }
   }
-  // ── UNHCR ──
   if (out.unhcr_pop?.items) {
     for (const item of out.unhcr_pop.items) {
       const iso = item.coa_iso;
@@ -1500,14 +1453,12 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── IFRC ──
   if (out.ifrc_go?.results) {
     for (const ev of out.ifrc_go.results) {
       const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
       if (iso && BASE_SCORES[iso] !== undefined) ensureCoverage(iso).ifrc = { name: ev.name, dtype: ev.dtype?.name || "Field operation", date: ev.disaster_start_date };
     }
   }
-  // ── Air quality (Open-Meteo) ──
   const aqMap = { aq_delhi: "IND", aq_beijing: "CHN", aq_cairo: "EGY" };
   for (const [key, iso] of Object.entries(aqMap)) {
     const data = out[key];
@@ -1517,17 +1468,14 @@ function ingestFetchedData(out) {
       if (!cov.air_quality) cov.air_quality = { pm25, city: key.replace("aq_", ""), timestamp: new Date().toISOString() };
     }
   }
-  // ── Flood ──
   if (out.flood?.daily?.river_discharge) {
     const max = Math.max(...out.flood.daily.river_discharge);
     if (max > 100) ensureCoverage("YEM").flood_risk = { discharge: max, date: out.flood.daily.time?.[0] };
   }
-  // ── Marine ──
   if (out.marine?.hourly?.wave_height) {
     const max = Math.max(...out.marine.hourly.wave_height);
     if (max > 3) ensureCoverage("YEM").marine = { wave_height: max, date: out.marine.hourly.time?.[0] };
   }
-  // ── ReliefWeb conflict ──
   if (out.reliefweb_conflict?.data) {
     for (const report of out.reliefweb_conflict.data) {
       const iso = report.fields?.country?.[0]?.iso3;
@@ -1536,7 +1484,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── GDELT conflict ──
   if (out.gdelt_conflict?.articles) {
     for (const article of out.gdelt_conflict.articles) {
       const iso = article.sourcecountry ? findIsoByName(article.sourcecountry) : null;
@@ -1546,7 +1493,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── Climate TRACE ──
   if (out.climate_trace?.countries) {
     for (const c of out.climate_trace.countries) {
       const iso = c.iso3;
@@ -1555,7 +1501,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── FAO FPMA ──
   if (out.fao_fpma?.prices) {
     for (const p of out.fao_fpma.prices) {
       const iso = p.iso3;
@@ -1564,7 +1509,6 @@ function ingestFetchedData(out) {
       }
     }
   }
-  // ── Static fallbacks ──
   for (const [iso, stress] of Object.entries(AQUEDUCT_WATER_STRESS)) {
     if (BASE_SCORES[iso] !== undefined) ensureCoverage(iso).water_stress_static = { baseline_stress: stress };
   }
@@ -1574,7 +1518,7 @@ function ingestFetchedData(out) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING — v20.3.0
+//  LIVE BREAKING
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
@@ -1611,7 +1555,6 @@ const LIVE_SIGNALS = {
   us_drought:{weight:55,verify:0.95,label:"US Drought",icon:"🏜️"},
   health_capacity_low:{weight:40,verify:0.85,label:"Low Health Capacity",icon:"🏥"},
   conflict_fatalities:{weight:95,verify:1.0,label:"Conflict Fatalities",icon:"⚔️"},
-  // v20.3.0 NEW
   openaq_air_quality:{weight:55,verify:0.9,label:"Air Quality Alert",icon:"🫁"},
   ndbc_marine:{weight:60,verify:0.95,label:"Marine Buoy Alert",icon:"🌊"},
   cems_activation:{weight:85,verify:1.0,label:"Copernicus EMS Activation",icon:"🛰️"},
@@ -1629,7 +1572,6 @@ function computeLiveBreakingScore(iso, live, store) {
   const now = Date.now();
   const cov = evidenceIndex.sourceCoverage[iso] || {};
 
-  // USGS
   if (cov.usgs?.mag >= 4.5) {
     const ageHours = cov.usgs.time ? (now - cov.usgs.time) / 36e5 : 24;
     signals.push({
@@ -1643,7 +1585,6 @@ function computeLiveBreakingScore(iso, live, store) {
   if (cov.emsc?.mag >= 4.5 && (!cov.usgs || cov.emsc.mag > cov.usgs.mag)) {
     signals.push({ type: "earthquake_m5", weight: 55, ageHours: 12, source: "EMSC", details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag });
   }
-  // GDACS
   if (cov.gdacs?.alert) {
     const a = String(cov.gdacs.alert).toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_red" : "gdacs_orange", weight: a === "red" ? 100 : 70, ageHours: 12, source: "GDACS", details: `${cov.gdacs.alert} alert: ${cov.gdacs.event || "disaster"}` });
@@ -1664,62 +1605,36 @@ function computeLiveBreakingScore(iso, live, store) {
     const a = cov.gdacs_cyclone.alert.toLowerCase();
     signals.push({ type: a === "red" ? "gdacs_cyclone_red" : "gdacs_cyclone_orange", weight: a === "red" ? 95 : 65, ageHours: 12, source: "GDACS", details: `${cov.gdacs_cyclone.alert} cyclone alert: ${cov.gdacs_cyclone.event || ""}` });
   }
-  // NASA
   if (cov.wildfire) signals.push({ type: "nasa_wildfire", weight: 75, ageHours: 24, source: "NASA", details: cov.wildfire.title || "Active wildfire" });
   if (cov.nasa) signals.push({ type: "nasa_storm", weight: 60, ageHours: 24, source: "NASA", details: cov.nasa.title || "Natural event" });
-  // Heat
   if (cov.heat?.temp >= 40) signals.push({ type: "heat_extreme", weight: cov.heat.temp >= 45 ? 75 : 60, ageHours: 12, source: "OPENMETEO", details: `${cov.heat.temp}°C extreme heat` });
-  // IFRC
   if (cov.ifrc) signals.push({ type: "ifrc_emergency", weight: 75, ageHours: 48, source: "IFRC", details: `${cov.ifrc.dtype || "Emergency"}: ${(cov.ifrc.name || "").substring(0, 40)}` });
-  // COVID
   if (cov.covid?.active > 10000) signals.push({ type: "disease_active", weight: 50, ageHours: 24, source: "DISEASE.SH", details: `${cov.covid.active.toLocaleString()} active COVID cases` });
-  // WHO DON
   if (cov.who_don) signals.push({ type: "who_don", weight: 90, ageHours: 48, source: "WHO DON", details: (cov.who_don.title || "").substring(0, 60) });
-  // Displacement
   if (cov.displaced > 100000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${cov.displaced.toLocaleString()} displaced` });
-  // Air quality
   if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, source: cov.air_quality.source || "OPENMETEO", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
-  // Flood
   if (cov.flood_risk?.discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 24, source: "OPENMETEO", details: `River discharge ${cov.flood_risk.discharge}m³/s` });
-  // Marine
   if (cov.marine?.wave_height > 5) signals.push({ type: "marine_hazard", weight: 55, ageHours: 12, source: "OPENMETEO", details: `${cov.marine.wave_height}m waves` });
-  // Economic
   if (cov.gdp_growth !== undefined && cov.gdp_growth < -2) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "WORLDBANK", details: `GDP growth ${cov.gdp_growth.toFixed(1)}%` });
   if (cov.inflation > 30) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "WORLDBANK", details: `Inflation ${cov.inflation.toFixed(1)}%` });
-  // Conflict
   if (cov.conflict_event) signals.push({ type: "conflict_spike", weight: 50, ageHours: 48, source: "RELIEFWEB", details: (cov.conflict_event.title || "").substring(0, 60) });
   if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60) });
-  // GDELT
   if (cov.gdelt_conflict?.count >= 3) signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, source: "GDELT", details: `${cov.gdelt_conflict.count} conflict/unrest articles` });
-  // Currency stress
   if (cov.currency_stress?.volatility_pct >= 15) signals.push({ type: "currency_stress", weight: cov.currency_stress.volatility_pct >= 30 ? 70 : 55, ageHours: 6, source: "ECB FX", details: `${cov.currency_stress.volatility_pct.toFixed(1)}% implied currency stress (${cov.currency_stress.source_currency})` });
-  // US Drought
   if (cov.us_drought && iso === "USA") {
     const lvl = cov.us_drought.level || "D0";
     const w = lvl === "D4" ? 80 : lvl === "D3" ? 70 : lvl === "D2" ? 60 : lvl === "D1" ? 50 : 40;
     signals.push({ type: "us_drought", weight: w, ageHours: 72, source: "US DM", details: `US Drought ${lvl} — ${cov.us_drought.area_pct || 0}% area affected` });
   }
-  // Water stress static
   if (cov.water_stress_static?.baseline_stress >= 3.0) signals.push({ type: "water_stress", weight: 45, ageHours: 720, source: "WRI Aqueduct", details: `Baseline water stress ${cov.water_stress_static.baseline_stress.toFixed(1)}/5.0` });
-  // NDVI crop stress
   if (cov.ndvi_static && Math.abs(cov.ndvi_static.ndvi_anomaly_pct) >= 15) signals.push({ type: "crop_stress", weight: 50, ageHours: 720, source: "FAO GIEWS", details: `NDVI ${cov.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM` });
-  // Health capacity
   if (cov.health_capacity?.hospital_beds_per_10k < 10) signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, source: "WHO GHO", details: `${cov.health_capacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
-
-  // ── v20.3.0 NEW ──
-  // OpenAQ air quality
   if (cov.openaq?.pm25 >= 35) signals.push({ type: "openaq_air_quality", weight: cov.openaq.pm25 >= 100 ? 70 : 55, ageHours: 6, source: "OpenAQ", details: `PM2.5 ${cov.openaq.pm25.toFixed(0)} µg/m³ (${cov.openaq.city || "station"})` });
-  // NDBC marine
   if (cov.ndbc?.wave_height > 3) signals.push({ type: "ndbc_marine", weight: cov.ndbc.wave_height > 6 ? 80 : 60, ageHours: 1, source: "NOAA NDBC", details: `${cov.ndbc.wave_height}m waves (buoy ${cov.ndbc.buoy})` });
-  // Copernicus EMS
   if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}` });
-  // ProMED
   if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}` });
-  // Smithsonian GVP
   if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano || "active"}` });
-  // NOAA PTWC
   if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}` });
-  // INFORM
   if (cov.inform?.score >= 5) signals.push({ type: "inform_risk", weight: cov.inform.score >= 7 ? 65 : 50, ageHours: 720, source: "INFORM", details: `INFORM risk score ${cov.inform.score.toFixed(1)} (rank ${cov.inform.rank || "N/A"})` });
 
   const rawSignals = signals.map(sig => ({ ...sig, is_live_event: true }));
@@ -1881,7 +1796,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / ML
+//  ANOMALY / ML (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -2197,7 +2112,6 @@ async function buildStore(liveData) {
         unhcrSolutions: cov.unhcr_solutions || null,
         gfwAlerts: cov.gfw || null,
         climateEmissions: cov.emissions || null,
-        // v20.3.0 NEW
         openaq: cov.openaq || null,
         ndbc: cov.ndbc || null,
         cemsActivation: cov.cems_activation || null,
@@ -2322,60 +2236,55 @@ function buildRelatedStories(iso, store, ranked) {
   } catch { return []; }
 }
 
-function buildJSONLD(iso, store, ranked) {
+function buildJSONLD(iso, store, ranked, image) {
   const snap = safeCountrySnapshot(iso, store);
   const now = new Date().toISOString();
-  return {
-    "@context": "https://schema.org",
-    "@graph": [{
-      "@type": "NewsArticle",
-      "@id": `${snap.url}#article`,
-      "headline": snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
-      "description": buildMetaDescription(iso, store),
-      "url": snap.url,
-      "datePublished": now,
-      "dateModified": now,
-      "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
-      "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
-      "mainEntityOfPage": { "@type": "WebPage", "@id": snap.url },
-      "articleSection": "Humanitarian Crisis",
-      "keywords": buildKeywords(iso, store).join(", "),
-    }]
+  const article = {
+    "@type": "NewsArticle",
+    "@id": `${snap.url}#article`,
+    "headline": snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
+    "description": buildMetaDescription(iso, store),
+    "url": snap.url,
+    "datePublished": now,
+    "dateModified": now,
+    "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
+    "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": snap.url },
+    "articleSection": "Humanitarian Crisis",
+    "keywords": buildKeywords(iso, store).join(", "),
   };
+  if (image && image.url) {
+    article.image = {
+      "@type": "ImageObject",
+      "url": image.url,
+      "caption": image.caption,
+      "creditText": image.source,
+    };
+  }
+  return { "@context": "https://schema.org", "@graph": [article] };
 }
 
-/**
- * NEW v20.4.0: Build SEO article with primary image at the top.
- * Image is fetched from Wikimedia Commons and placed right after the headline.
- */
-async function buildSEOArticle(iso, store, ranked) {
+async function buildSEOArticle(iso, store, ranked, image) {
   try {
     const snap = safeCountrySnapshot(iso, store);
     const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
     const events = snap.live.distinct_event_count;
     const dek = `Score ${snap.score}/100 · ${events} event${events === 1 ? "" : "s"}`;
     
-    // Fetch primary image from Wikimedia Commons
-    const image = await fetchWikimediaImage(headline);
-    
-    // Build article body with image at the top
     let bodyMarkdown = '';
     let bodyHtml = '';
     
-    if (image) {
-      // Markdown: image with caption
-      bodyMarkdown = `![${escapeMarkdown(image.caption)}](${image.url})\n*${image.caption}* — [${image.source}](${image.pageUrl})\n\n`;
-      // HTML: figure with image and caption
+    if (image && image.url) {
+      bodyMarkdown = `![${image.caption}](${image.url})\n*${image.caption}* — [${image.source}](${image.pageUrl})\n\n`;
       bodyHtml = `<figure class="article-primary-image">` +
         `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.caption)}" loading="eager" />` +
         `<figcaption>${escapeHtml(image.caption)} — <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></figcaption>` +
         `</figure>\n`;
     }
     
-    // Add the article body text
     const overview = `## Overview\n\n${snap.name} scores ${snap.score}/100 (${snap.severity}).`;
     bodyMarkdown += overview;
-    bodyHtml += `<h2>Overview</h2>\n<p>${escapeHtml(snap.name)} scores ${snap.score}/100 (${escapeHtml(snap.severity)}).</p>`;
+    bodyHtml += `<h2>Overview</h2>\n<p>${escapeHtml(snap.name)} scores ${escapeHtml(String(snap.score))}/100 (${escapeHtml(snap.severity)}).</p>`;
     
     const { words, minutes } = estimateReadTime(bodyMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<[^>]*>/g, ''));
     
@@ -2386,14 +2295,13 @@ async function buildSEOArticle(iso, store, ranked) {
       url: snap.url,
       metaDescription: buildMetaDescription(iso, store),
       keywords: buildKeywords(iso, store),
-      primary_image: image,  // NEW: include image object
+      primary_image: image || null,
       body_markdown: bodyMarkdown,
       body_html: `<article>\n<h1>${escapeHtml(headline)}</h1>\n${bodyHtml}\n</article>`,
       word_count: words,
       read_time_minutes: minutes,
     };
   } catch (e) {
-    console.error(`[buildSEOArticle] error for ${iso}:`, e.message);
     const name = ISO_NAMES[iso] || iso;
     const slug = slugify(name);
     return {
@@ -2403,7 +2311,7 @@ async function buildSEOArticle(iso, store, ranked) {
       url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`,
       metaDescription: `${name} crisis update.`,
       keywords: [`${name} crisis`],
-      primary_image: null,
+      primary_image: image || null,
       body_markdown: `## Overview\n\n${name} crisis data unavailable.`,
       body_html: `<article><h1>${escapeHtml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`,
       word_count: 3,
@@ -2420,9 +2328,8 @@ function buildSitemap(payloads) {
 
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 function escapeHtml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
-function escapeMarkdown(s) { return String(s ?? "").replace(/[\\`*_{}[\]()#+\-.!]/g, '\\$&'); }
 
-function buildRSSFeed(isos, store, ranked) {
+function buildRSSFeed(isos, store, ranked, images) {
   const now = new Date();
   let feedIsos = Array.isArray(isos) && isos.length > 0 ? isos.slice(0, 30) : [];
   if (feedIsos.length === 0) {
@@ -2430,42 +2337,23 @@ function buildRSSFeed(isos, store, ranked) {
   }
 
   const items = feedIsos.map(iso => {
-    let a;
-    try {
-      a = buildSEOArticle(iso, store, ranked);
-    } catch (e) {
-      const name = ISO_NAMES[iso] || iso;
-      const slug = slugify(name);
-      a = {
-        headline: `${name} Crisis Monitor`,
-        dek: "Crisis update pending.",
-        slug,
-        url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`,
-        body_html: `<article><h1>${escapeXml(name)}</h1><p>Crisis update pending.</p></article>`,
-        primary_image: null,
-      };
-    }
     const snap = safeCountrySnapshot(iso, store);
-    const isBreaking = snap.live.tier === "BREAKING";
-    const title = a.headline || `${snap.name} Crisis Monitor`;
-    const link = a.url || `${CFG.ARTICLE_BASE_URL}/crisis/${snap.slug}`;
-    const desc = a.dek || `Score ${snap.score}/100`;
+    const img = images[iso] || null;
+    const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
+    const link = snap.url;
+    const desc = `Score ${snap.score}/100 · ${snap.live.distinct_event_count} events · ${snap.severity}`;
     
     // Build content with image at the top
-    let contentHtml = a.body_html || `<article><h1>${escapeXml(snap.name)}</h1></article>`;
-    if (a.primary_image) {
-      const img = a.primary_image;
-      contentHtml = `<figure class="article-primary-image">` +
+    let contentHtml = '';
+    if (img) {
+      contentHtml += `<figure class="article-primary-image">` +
         `<img src="${escapeXml(img.url)}" alt="${escapeXml(img.caption)}" loading="eager" />` +
         `<figcaption>${escapeXml(img.caption)} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
-        `</figure>\n` + contentHtml;
+        `</figure>\n`;
     }
+    contentHtml += `<h1>${escapeXml(title)}</h1>\n<p>${escapeXml(desc)}</p>`;
     
-    // Add enclosure for the primary image if available
-    let enclosure = '';
-    if (a.primary_image?.url) {
-      enclosure = `<enclosure url="${escapeXml(a.primary_image.url)}" type="image/jpeg" />`;
-    }
+    const enclosure = img && img.url ? `<enclosure url="${escapeXml(img.url)}" type="image/jpeg" />` : '';
     
     return `<item>` +
       `<title>${escapeXml(title)}</title>` +
@@ -2473,7 +2361,7 @@ function buildRSSFeed(isos, store, ranked) {
       `<guid isPermaLink="true">${escapeXml(link)}</guid>` +
       `<pubDate>${now.toUTCString()}</pubDate>` +
       `<description>${escapeXml(desc)}</description>` +
-      (isBreaking ? `<category>🔴 BREAKING NEWS</category>` : "") +
+      (snap.live.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : "") +
       enclosure +
       `<content:encoded><![CDATA[${contentHtml}]]></content:encoded>` +
       `</item>`;
@@ -2488,7 +2376,7 @@ function buildRSSFeed(isos, store, ranked) {
     `<channel>` +
     `<title>${escapeXml(CFG.ARTICLE_SITE_NAME)}</title>` +
     `<link>${CFG.ARTICLE_BASE_URL}</link>` +
-    `<description>Live breaking world crisis news. Updated every 5 minutes.</description>` +
+    `<description>Live breaking world crisis news with primary images from Wikimedia Commons. Updated every 5 minutes.</description>` +
     `<language>en-us</language>` +
     `<lastBuildDate>${now.toUTCString()}</lastBuildDate>` +
     safeItems +
@@ -2523,7 +2411,6 @@ function buildLiveEvidenceView(iso, store) {
     flood_risk: cov.flood_risk ? { discharge: safeNum(cov.flood_risk.discharge, 0) } : null,
     marine: cov.marine ? { wave_height: safeNum(cov.marine.wave_height, 0) } : null,
     emissions: cov.emissions ? { total: safeNum(cov.emissions.total, 0), sector: cov.emissions.sector } : null,
-    // v20.3.0 NEW
     openaq: cov.openaq || null,
     ndbc: cov.ndbc || null,
     cems_activation: cov.cems_activation || null,
@@ -2592,7 +2479,7 @@ function buildCrisisTypesCompat(types) {
   }));
 }
 
-async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
+async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = null) {
   try {
     const snap = safeCountrySnapshot(iso, store);
     const c = snap.raw;
@@ -2616,11 +2503,13 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     const recCompat = recommendation(htmlScore, anom);
     const anomalyScore = Math.min(10, safeNum(anom.z_score, 0));
 
-    // Build article with primary image if requested
     let article = null;
     if (opts.summary) {
-      article = await buildSEOArticle(iso, store, ranked);
+      article = await buildSEOArticle(iso, store, ranked, image);
     }
+
+    // Build schema with image
+    const schemaOrg = opts.schema ? buildJSONLD(iso, store, ranked, image) : null;
 
     return {
       iso, name: snap.name, flag: snap.flag,
@@ -2636,6 +2525,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       rank, total_countries: ranked.length,
       percentile: ranked.length > 0 ? Math.round((1 - rank / ranked.length) * 100) : 0,
       slug: snap.slug, url: snap.url,
+      primary_image: image || null,
       evidence: {
         score: safeNum(c.evidence_score, 0),
         confidence: safeNum(c.evidence_confidence, 0),
@@ -2704,7 +2594,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       fsi: { score: safeNum(c.fsi_score, 50), rank: safeNum(c.fsi_rank, 999), band: c.fsi_band || "Unknown" },
       ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
       ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
-      ...(opts.schema ? { schema_org: buildJSONLD(iso, store, ranked) } : {}),
+      ...(opts.schema && schemaOrg ? { schema_org: schemaOrg } : {}),
       ...(opts.summary && article ? { article } : {}),
     };
   } catch (e) {
@@ -2717,6 +2607,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       severity: snap.severity, severity_emoji: snap.severity_emoji, severity_color: snap.severity_color,
       rank: 0, total_countries: 0, percentile: 0,
       slug: snap.slug, url: snap.url,
+      primary_image: image || null,
       evidence: { score: 0, confidence: 0, source_count: 0, sources: [], ledger: [] },
       live_breaking: { score: 0, tier: "BACKGROUND", tier_label: "Background", tier_icon: "⚪", headline: null, signal_count: 0, raw_signal_count: 0, distinct_event_count: 0, has_fresh_live_event: false, source_count: 0, sources: [], freshest_signal_age_hours: null, events: [], signals: [] },
       story_heat: { score: 0, tier: "BACKGROUND", top_drivers: [] },
@@ -2739,7 +2630,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v20.4.0
+//  HANDLER — v20.5.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -2761,7 +2652,7 @@ export default async function handler(req, res) {
       related: url.searchParams.get("related") === "true",
       schema: url.searchParams.get("schema") === "true",
       summary: url.searchParams.get("summary") === "true",
-      images: url.searchParams.get("images") !== "false",  // NEW: default true
+      images: url.searchParams.get("images") !== "false",
       force_live: url.searchParams.get("force_live") !== "false",
       export: url.searchParams.get("export") || null,
       widget: url.searchParams.get("widget") === "true",
@@ -2805,7 +2696,7 @@ export default async function handler(req, res) {
       }
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v20.4.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v20.5.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -2826,15 +2717,21 @@ export default async function handler(req, res) {
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.length > 0 ? ranked.slice(0, params.top) : Object.keys(BASE_SCORES).slice(0, params.top);
 
-    // NEW: Fetch images for the final ISOs if images param is true
+    // ═══════════════════════════════════════════════════════════════════════
+    //  FETCH IMAGES FOR ALL FINAL ISOS (v20.5.0 FIX)
+    // ═══════════════════════════════════════════════════════════════════════
+    const imageMap = {};
     if (params.images && finalIsos.length > 0) {
+      console.log(`[v20.5.0] Fetching images for ${finalIsos.length} stories...`);
       const articles = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
-        return { iso, title };
+        return { iso, title, countryName: snap.name };
       });
-      const images = await fetchImagesForArticles(articles);
-      for (const [iso, img] of Object.entries(images)) {
+      const fetchedImages = await fetchImagesForArticles(articles);
+      console.log(`[v20.5.0] Fetched ${Object.keys(fetchedImages).length} images`);
+      for (const [iso, img] of Object.entries(fetchedImages)) {
+        imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
       }
     }
@@ -2842,7 +2739,7 @@ export default async function handler(req, res) {
     const isSingleIso = finalIsos.length === 1 && !params.region && !params.threshold && params.top === 1;
     const opts = isSingleIso
       ? { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary }
-      : { keywords: false, related: false, schema: false, summary: false };
+      : { keywords: params.keywords, related: params.related, schema: params.schema, summary: params.summary };
 
     if (params.rss) {
       let source = params.region
@@ -2850,7 +2747,22 @@ export default async function handler(req, res) {
         : (liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked));
       if (!source || source.length === 0) source = ranked.length > 0 ? ranked : Object.keys(BASE_SCORES);
       const feedIsos = source.slice(0, 30);
-      const f = buildRSSFeed(feedIsos, store, ranked);
+      
+      // Fetch images for RSS items if not already fetched
+      const rssImages = { ...imageMap };
+      if (params.images) {
+        const missingIsos = feedIsos.filter(iso => !rssImages[iso]);
+        if (missingIsos.length > 0) {
+          const articles = missingIsos.map(iso => {
+            const snap = safeCountrySnapshot(iso, store);
+            return { iso, title: snap.live.headline || `${snap.name} Crisis`, countryName: snap.name };
+          });
+          const extra = await fetchImagesForArticles(articles);
+          Object.assign(rssImages, extra);
+        }
+      }
+      
+      const f = buildRSSFeed(feedIsos, store, ranked, rssImages);
       res.writeHead(200, { ...CORS, "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "public, s-maxage=120" });
       res.end(f);
       return;
@@ -2867,7 +2779,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.4.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.5.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -2882,7 +2794,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.4.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.5.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -2895,7 +2807,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.4.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.5.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -2903,7 +2815,7 @@ export default async function handler(req, res) {
       const iso = finalIsos[0];
       const snap = safeCountrySnapshot(iso, store);
       const c = snap.raw;
-      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims, primary_image: evidenceIndex.images[iso] || null };
+      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims, primary_image: imageMap[iso] || null };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -2911,7 +2823,7 @@ export default async function handler(req, res) {
 
     if (params.widget && finalIsos.length === 1) {
       const snap = safeCountrySnapshot(finalIsos[0], store);
-      const img = evidenceIndex.images[finalIsos[0]];
+      const img = imageMap[finalIsos[0]];
       let html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;">`;
       if (img) {
         html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.caption)}" style="width:100%;border-radius:8px;margin-bottom:8px;" />`;
@@ -2923,28 +2835,19 @@ export default async function handler(req, res) {
     }
 
     if (params.format === "sitemap") {
-      const settled = await Promise.allSettled(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts)));
+      const settled = await Promise.allSettled(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts, imageMap[iso] || null)));
       const p = settled.filter(s => s.status === "fulfilled" && s.value).map(s => s.value);
       res.writeHead(200, { ...CORS, "Content-Type": "application/xml; charset=utf-8" });
       res.end(buildSitemap(p));
       return;
     }
 
-    const settled = await Promise.allSettled(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts)));
+    const settled = await Promise.allSettled(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts, imageMap[iso] || null)));
     let payloads = settled.filter(s => s.status === "fulfilled" && s.value).map(s => s.value);
-
-    // Attach images to payloads
-    if (params.images) {
-      for (const p of payloads) {
-        if (p && p.iso && evidenceIndex.images[p.iso]) {
-          p.primary_image = evidenceIndex.images[p.iso];
-        }
-      }
-    }
 
     if (payloads.length === 0 && finalIsos.length > 0) {
       payloads = await Promise.all(finalIsos.slice(0, params.top).map(async iso => {
-        try { return await buildPayload(iso, store, ranked, rankIndex, opts); }
+        try { return await buildPayload(iso, store, ranked, rankIndex, opts, imageMap[iso] || null); }
         catch { return null; }
       })).then(arr => arr.filter(Boolean));
     }
@@ -2959,6 +2862,7 @@ export default async function handler(req, res) {
           severity: snap.severity, severity_emoji: snap.severity_emoji, severity_color: snap.severity_color,
           rank: 0, total_countries: isos.length, percentile: 0,
           slug: snap.slug, url: snap.url,
+          primary_image: imageMap[iso] || null,
           evidence: { score: 0, confidence: 0, source_count: 0, sources: [], ledger: [] },
           live_breaking: { score: 0, tier: "BACKGROUND", tier_label: "Background", tier_icon: "⚪", headline: null, signal_count: 0, raw_signal_count: 0, distinct_event_count: 0, has_fresh_live_event: false, source_count: 0, sources: [], freshest_signal_age_hours: null, events: [], signals: [] },
           story_heat: { score: 0, tier: "BACKGROUND", top_drivers: [] },
@@ -2974,7 +2878,6 @@ export default async function handler(req, res) {
           recommendation: recommendation(snap.score, null),
           region: snap.region,
           fsi: { score: 50, rank: 999, band: "Unknown" },
-          primary_image: evidenceIndex.images[iso] || null,
         };
       });
     }
@@ -2988,11 +2891,11 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v20.4.0",
-        version: "v20.4.0",
+        ranking_mode: "DEFINITIVE_v20.5.0",
+        version: "v20.5.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
-        countries_with_images: Object.keys(evidenceIndex.images).length,
+        countries_with_images: Object.keys(imageMap).length,
         payloads_emitted: payloads.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
@@ -3006,7 +2909,6 @@ export default async function handler(req, res) {
           breaking: "GET /api/top-story?format=breaking",
           watchlist: "GET /api/top-story?format=wst",
           health: "GET /api/top-story?format=health",
-          images: "GET /api/top-story?images=true (default)",
         },
         enhancements: {
           machine_learning: {
@@ -3016,16 +2918,15 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v20_4_0: ["wikimedia_commons_primary_image"],
-          new_in_v20_3_0: ["openaq", "ndbc_buoys", "cems_activations", "promed", "smithsonian_gvp", "ptwc_tsunami", "inform"],
+          new_in_v20_5_0: ["wikimedia_image_fetch_for_all_payloads", "rss_image_enclosure", "primary_image_in_json"],
           static_fallbacks: { water_stress_countries: Object.keys(AQUEDUCT_WATER_STRESS).length, ndvi_anomaly_countries: Object.keys(FAO_NDVI_ANOMALY).length },
           feed_safety: {
-            version: "v20.4.0",
+            version: "v20.5.0",
             hardened_paths: ["rss", "live", "breaking", "watchlist", "story"],
-            list_endpoint_omits_heavy_enrichments: true,
+            list_endpoint_omits_heavy_enrichments: false,
             guarantees: ["never throws mid-render", "never emits empty <channel>", "never emits empty live_news[]", "never emits empty breaking[]", "never emits empty watchlist[]", "never emits empty countries[]", "primary image from Wikimedia Commons at article top"],
           },
-          html_compat: { version: "v20.4.0", render_safety: { rank_filters_nonfinite: true, buildPayload_try_catch: true, handler_uses_allSettled: true, guaranteed_nonempty_countries: true, primary_image_at_top: true } },
+          html_compat: { version: "v20.5.0", render_safety: { rank_filters_nonfinite: true, buildPayload_try_catch: true, handler_uses_allSettled: true, guaranteed_nonempty_countries: true, primary_image_at_top: true, images_for_all_payloads: true } },
         },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
@@ -3035,7 +2936,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v20.4.0]", err);
+    console.error("[top-story v20.5.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -3047,6 +2948,7 @@ export default async function handler(req, res) {
           severity: snap.severity, severity_emoji: snap.severity_emoji, severity_color: snap.severity_color,
           rank: 0, total_countries: isos.length, percentile: 0,
           slug: snap.slug, url: snap.url,
+          primary_image: null,
           evidence: { score: 0, confidence: 0, source_count: 0, sources: [], ledger: [] },
           live_breaking: { score: 0, tier: "BACKGROUND", tier_label: "Background", tier_icon: "⚪", headline: null, signal_count: 0, raw_signal_count: 0, distinct_event_count: 0, has_fresh_live_event: false, source_count: 0, sources: [], freshest_signal_age_hours: null, events: [], signals: [] },
           story_heat: { score: 0, tier: "BACKGROUND", top_drivers: [] },
@@ -3060,11 +2962,10 @@ export default async function handler(req, res) {
           recommendation: { tier: "WATCH", text: "Routine monitoring." },
           region: snap.region,
           fsi: { score: 50, rank: 999, band: "Unknown" },
-          primary_image: null,
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.4.0-FALLBACK", version: "v20.4.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.5.0-FALLBACK", version: "v20.5.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
