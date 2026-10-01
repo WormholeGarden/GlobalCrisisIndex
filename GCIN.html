@@ -529,6 +529,95 @@
       border-color: rgba(255, 55, 95, 0.2);
     }
     
+    /* ─── PRIMARY IMAGE (NEW) ─── */
+    .article-primary-image {
+      margin: 0 0 1.5rem 0;
+      position: relative;
+      z-index: 1;
+      border-radius: var(--gcin-radius-sm);
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--gcin-border);
+    }
+    
+    .article-primary-image img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+      max-height: 480px;
+      background: var(--gcin-bg-secondary);
+      transition: opacity 0.4s ease;
+    }
+    
+    .article-primary-image .image-caption {
+      padding: 0.75rem 1.25rem;
+      font-family: var(--gcin-font-sans);
+      font-size: 0.8rem;
+      color: var(--gcin-text-muted-light);
+      background: rgba(0, 0, 0, 0.4);
+      border-top: 1px solid var(--gcin-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .article-primary-image .image-caption .caption-text {
+      flex: 1;
+      min-width: 200px;
+      line-height: 1.5;
+    }
+    
+    .article-primary-image .image-caption .caption-source {
+      font-family: var(--gcin-font-mono);
+      font-size: 0.6rem;
+      color: var(--gcin-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    
+    .article-primary-image .image-caption .caption-source a {
+      color: var(--gcin-cyan);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(0, 200, 255, 0.2);
+    }
+    
+    .article-primary-image .image-caption .caption-source a:hover {
+      border-bottom-color: var(--gcin-cyan);
+    }
+    
+    .article-primary-image .image-loader {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--gcin-text-muted);
+      font-family: var(--gcin-font-mono);
+      font-size: 0.7rem;
+      background: var(--gcin-bg-secondary);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    
+    .article-primary-image .image-loader .img-spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--gcin-border);
+      border-top-color: var(--gcin-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    .article-primary-image .image-loader .img-icon {
+      font-size: 1.5rem;
+      opacity: 0.5;
+    }
+    
     /* ─── WIKIPEDIA INTRO BOX ─── */
     .wikipedia-intro {
       background: rgba(0, 200, 255, 0.03);
@@ -922,6 +1011,7 @@
       .rss-notice { flex-direction: column; align-items: flex-start; }
       .story-body .dropcap::first-letter { font-size: 2.8rem; }
       .wikipedia-intro .wiki-text { font-size: 0.85rem; }
+      .article-primary-image .image-caption { flex-direction: column; align-items: flex-start; }
     }
     
     @media (max-width: 480px) {
@@ -932,6 +1022,7 @@
       .story-body .dropcap::first-letter { font-size: 2.2rem; }
       .wikipedia-intro { padding: 0.5rem 0.8rem; }
       .wikipedia-intro .wiki-text { font-size: 0.8rem; }
+      .article-primary-image img { max-height: 240px; }
     }
   </style>
 </head>
@@ -1005,7 +1096,8 @@
     <strong>GCIN</strong> is a Gold Standard crisis intelligence platform. Data refreshes every 5 minutes from 20+ live APIs.<br>
     <strong>🧠 AI:</strong> Neural network forecasting · <strong>💬 Sentiment:</strong> Multi-source analysis · <strong>🔥 Heat:</strong> Velocity + Anomaly Consensus + ML + Evidence + Thresholds<br>
     <strong>📡 RSS:</strong> <a href="/api/top-story?format=rss" class="rss-feed-link">Subscribe for Breaking Crisis Intelligence</a><br>
-    Source: <a href="https://globalcrisisindex.com">Global Crisis Index</a> · <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
+    <strong>🖼️ Images:</strong> Primary images from Wikimedia Commons · Source: <a href="https://globalcrisisindex.com">Global Crisis Index</a><br>
+    <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
   
 </div>
@@ -1015,14 +1107,15 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — GOLD STANDARD EDITION v8.0 (ULTIMATE MASTERPIECE)
+    //  GCIN — GOLD STANDARD EDITION v9.0 (ULTIMATE MASTERPIECE + IMAGES)
     //  ── Features ──
     //  • 100% live data from 20+ sources
+    //  • PRIMARY IMAGE from Wikimedia Commons at article top (NEW)
     //  • Explosive journalism-style headlines (not dashboard widgets)
     //  • Human-quality article bodies with quotes and analysis
     //  • Wikipedia country intros for authoritative context
     //  • Story Heat engine for newsworthiness ranking
-    //  • RSS feed integration for syndication
+    //  • RSS feed integration for syndication (with image enclosure)
     //  • Premium responsive design with SEO-maximized structure
     //  • Auto-refresh every 5 minutes
     // ════════════════════════════════════════════════════════════════════════
@@ -1033,15 +1126,18 @@
       FETCH_TIMEOUT_MS: 10000,
       MAX_STORIES: 30,
       REFRESH_INTERVAL_MS: 300000,
+      WIKIMEDIA_CACHE_TTL_MS: 3600000, // 1 hour
     };
     
     // ─── WIKIPEDIA INTRO CACHE ─────────────────────────────────────────────
-    // Cache Wikipedia intros to avoid repeated API calls
     const wikiCache = {};
+    
+    // ─── WIKIMEDIA COMMONS IMAGE CACHE ──────────────────────────────────────
+    const imageCache = {};
+    const imageCacheTimestamps = {};
     
     // ─── FETCH WIKIPEDIA INTRO ─────────────────────────────────────────────
     function fetchWikipediaIntro(pageTitle) {
-      // Check cache first
       if (wikiCache[pageTitle]) {
         return wikiCache[pageTitle];
       }
@@ -1049,7 +1145,6 @@
       try {
         const pageUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&explaintext=1&exintro=1&redirects=1&titles=${encodeURIComponent(pageTitle)}`;
         
-        // Use synchronous XMLHttpRequest for simplicity in this context
         const req = new XMLHttpRequest();
         req.open('GET', pageUrl, false);
         req.send();
@@ -1062,24 +1157,18 @@
             if (pageId !== '-1') {
               let extract = pages[pageId].extract || '';
               
-              // Clean up the extract
               if (extract && extract.length > 50) {
-                // Normalize whitespace
                 let cleanText = extract
                   .replace(/\s+/g, ' ')
-                  .replace(/\([^)]*\)/g, '') // Remove parenthetical content
+                  .replace(/\([^)]*\)/g, '')
                   .replace(/\s+,\s*/g, ', ')
                   .replace(/\s+\./g, '.')
                   .replace(/\s{2,}/g, ' ')
                   .trim();
                 
-                // Split into sentences
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
-                
-                // Take first 2-3 sentences (min 2, max 3)
                 let introText = sentences.slice(0, 3).join(' ');
                 
-                // Only truncate if it's REALLY long
                 if (introText.length > 500) {
                   const truncated = introText.slice(0, 500);
                   const lastSentenceEnd = Math.max(
@@ -1094,7 +1183,6 @@
                   }
                 }
                 
-                // Cache the result
                 wikiCache[pageTitle] = introText;
                 return introText;
               }
@@ -1105,9 +1193,111 @@
         console.warn('Wikipedia fetch failed for:', pageTitle, e);
       }
       
-      // Cache empty result to avoid repeated failures
       wikiCache[pageTitle] = '';
       return '';
+    }
+    
+    // ─── FETCH WIKIMEDIA COMMONS PRIMARY IMAGE (NEW) ────────────────────────
+    // Uses the Wikimedia Commons MediaSearch API to find the first relevant image
+    // for the given article title, along with its caption.
+    function fetchWikimediaImage(articleTitle) {
+      if (!articleTitle) return null;
+      
+      // Check cache
+      const cacheKey = articleTitle.toLowerCase().trim();
+      const now = Date.now();
+      if (imageCache[cacheKey] && (now - (imageCacheTimestamps[cacheKey] || 0)) < CONFIG.WIKIMEDIA_CACHE_TTL_MS) {
+        return imageCache[cacheKey];
+      }
+      
+      // Clean the title for search
+      const searchQuery = articleTitle
+        .replace(/[^\w\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 100);
+      
+      if (!searchQuery) return null;
+      
+      try {
+        // Use Wikimedia Commons API - query for images matching the search term
+        const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
+        
+        const req = new XMLHttpRequest();
+        req.open('GET', searchUrl, false);
+        req.send();
+        
+        if (req.status === 200) {
+          const data = JSON.parse(req.responseText);
+          const pages = data.query?.pages;
+          if (pages) {
+            const pageIds = Object.keys(pages);
+            if (pageIds.length) {
+              const firstPage = pages[pageIds[0]];
+              const imageInfo = firstPage?.imageinfo?.[0];
+              
+              if (imageInfo) {
+                const imageUrl = imageInfo.thumburl || imageInfo.url;
+                
+                if (imageUrl) {
+                  // Extract caption from extmetadata
+                  let caption = '';
+                  if (imageInfo.extmetadata) {
+                    const meta = imageInfo.extmetadata;
+                    if (meta.ImageDescription?.value) {
+                      caption = meta.ImageDescription.value
+                        .replace(/<[^>]*>/g, '')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .substring(0, 300);
+                    } else if (meta.ObjectName?.value) {
+                      caption = meta.ObjectName.value.trim().substring(0, 300);
+                    } else if (meta.Categories?.value) {
+                      caption = meta.Categories.value.replace(/\|/g, ', ').substring(0, 200);
+                    }
+                  }
+                  
+                  if (!caption) {
+                    caption = firstPage.title
+                      .replace(/^File:/, '')
+                      .replace(/\.[^.]+$/, '')
+                      .replace(/_/g, ' ')
+                      .trim();
+                  }
+                  
+                  const commonsPageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(firstPage.title)}`;
+                  
+                  const result = {
+                    url: imageUrl,
+                    caption: caption || 'Image from Wikimedia Commons',
+                    title: firstPage.title,
+                    pageUrl: commonsPageUrl,
+                    source: 'commons.wikimedia.org',
+                    searchQuery: searchQuery,
+                  };
+                  
+                  // Cache the result
+                  imageCache[cacheKey] = result;
+                  imageCacheTimestamps[cacheKey] = now;
+                  
+                  return result;
+                }
+              }
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('Wikimedia image fetch failed for:', searchQuery, e);
+      }
+      
+      // Cache empty result to avoid repeated failures
+      imageCache[cacheKey] = null;
+      imageCacheTimestamps[cacheKey] = now;
+      return null;
     }
     
     // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
@@ -1188,10 +1378,8 @@
       const trend = country.trend || {};
       const delta = trend.delta_7d || 0;
       
-      // Build candidate headlines with priorities
       const candidates = [];
       
-      // 1. GDACS Red Alert — highest priority
       if (s.gdacs && (s.gdacs.alert_level === 'red' || s.gdacs.alert_level === 'orange')) {
         const alertText = s.gdacs.alert_level === 'red' ? 'RED ALERT' : 'ORANGE ALERT';
         const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI Flags ${mlAnomalyProb}% Anomaly Risk` : '';
@@ -1201,7 +1389,6 @@
         });
       }
       
-      // 2. Massive Displacement
       const totalDisplaced = s.displacement?.total || 0;
       if (totalDisplaced > 1_000_000) {
         const displacedStr = totalDisplaced >= 10_000_000 ? '10 Million+' : 
@@ -1215,7 +1402,6 @@
         });
       }
       
-      // 3. IPC Famine / Food Crisis
       const ipcPhase = s.ipcPhase || 0;
       if (ipcPhase >= 4) {
         const phaseText = ipcPhase === 5 ? 'Famine Declared' : 'Emergency Level Food Crisis';
@@ -1226,7 +1412,6 @@
         });
       }
       
-      // 4. Major Earthquake
       const quakeMag = s.earthquake?.magnitude || 0;
       if (quakeMag >= 6.0) {
         const magStr = quakeMag >= 7.0 ? `M${quakeMag.toFixed(1)} Major Quake` : `M${quakeMag.toFixed(1)} Earthquake`;
@@ -1237,7 +1422,6 @@
         });
       }
       
-      // 5. Conflict Spike
       const fatalities = s.conflict_fatalities || 0;
       const events = s.conflict_events || 0;
       if (fatalities > 50 || events > 20) {
@@ -1249,7 +1433,6 @@
         });
       }
       
-      // 6. Disease Outbreak
       const outbreaks = s.who_outbreaks?.outbreaks || [];
       if (outbreaks.length > 0) {
         const diseases = outbreaks.map(o => o.disease).join(' & ');
@@ -1260,7 +1443,6 @@
         });
       }
       
-      // 7. Extreme Heat
       const maxTemp = s.heat?.max_temp_c || 0;
       if (maxTemp >= 40) {
         candidates.push({
@@ -1269,7 +1451,6 @@
         });
       }
       
-      // 8. Rapid Deterioration
       if (Math.abs(delta) > 5) {
         const dir = delta > 0 ? 'Rapidly Deteriorating' : 'Sudden Crisis Spike';
         const mlSuffix = mlAnomalyProb > 50 ? ` ⚡ AI Anomaly Alert` : '';
@@ -1279,7 +1460,6 @@
         });
       }
       
-      // 9. Extreme Anomaly
       if (anomalyDetected && anomalySeverity === 'EXTREME') {
         candidates.push({
           priority: 90,
@@ -1287,7 +1467,6 @@
         });
       }
       
-      // 10. Breaking: Multiple Signals
       if (heatScore >= 75 && heat.top_drivers && heat.top_drivers.length >= 2) {
         const driverText = heat.top_drivers.slice(0, 2).map(d => d.driver).join(' + ');
         const mlSuffix = mlAnomalyProb > 60 ? ` ⚡ AI ${mlAnomalyProb}% Anomaly` : '';
@@ -1297,7 +1476,6 @@
         });
       }
       
-      // Fallback: Always-available, still compelling
       const dimList = Object.values(dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0));
       const topDim = dimList[0];
       const dimLabel = topDim?.label || 'Crisis';
@@ -1306,11 +1484,9 @@
         text: `${name} ${dimLabel} Emergency: Score ${score}/100 (${severity}) — What's Happening on the Ground`
       });
       
-      // Sort by priority and pick the highest
       candidates.sort((a, b) => b.priority - a.priority);
       let headline = candidates[0].text;
       
-      // Add emoji prefix for visual impact
       if (headline.includes('RED ALERT') || headline.includes('BREAKING')) {
         headline = '🔴 ' + headline;
       } else if (headline.includes('Famine') || headline.includes('Emergency')) {
@@ -1343,7 +1519,6 @@
       const forecast = trend.forecast_7d || score;
       const rec = country.recommendation || {};
       
-      // Extract key stats
       const totalDisplaced = s.displacement?.total || 0;
       const ipcPhase = s.ipcPhase || 0;
       const ipcPop = s.ipcPopulation || 0;
@@ -1357,37 +1532,38 @@
       const inflation = s.economic?.inflation?.value || 0;
       const gdpGrowth = s.economic?.gdp_growth?.value || 0;
       
-      // Top dimensions
       const dimList = Object.values(dims || {}).sort((a, b) => (b.value || 0) - (a.value || 0));
       const topDim = dimList[0];
       const secondDim = dimList[1];
       
-      // Build article paragraphs
       const paragraphs = [];
-      const dateline = `${name.toUpperCase()} — ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+      
+      // ── PRIMARY IMAGE (NEW) ──
+      // Fetch the primary image from Wikimedia Commons based on the headline
+      const headline = generateExplosiveHeadline(country);
+      const image = fetchWikimediaImage(headline);
+      
+      if (image) {
+        paragraphs.push(`
+          <figure class="article-primary-image">
+            <img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.caption)}" loading="eager" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'image-loader\\'><span class=\\'img-icon\\'>🖼️</span><span>Image unavailable</span></div>';" />
+            <figcaption class="image-caption">
+              <span class="caption-text">${escapeHtml(image.caption)}</span>
+              <span class="caption-source">— <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></span>
+            </figcaption>
+          </figure>
+        `);
+      }
       
       // ── WIKIPEDIA INTRO ──
-      // Fetch Wikipedia intro for the country
       let wikiIntro = '';
       try {
-        // Try the exact country name first
         wikiIntro = fetchWikipediaIntro(name);
-        
-        // If that fails, try with " (country)" suffix
         if (!wikiIntro || wikiIntro.length < 30) {
           wikiIntro = fetchWikipediaIntro(name + ' (country)');
         }
-        
-        // If still nothing, try a more generic search
         if (!wikiIntro || wikiIntro.length < 30) {
-          // Try some common country name variations
-          const variations = [
-            name,
-            name + ' country',
-            name + ' (country)',
-            name + ' state',
-            name + ' nation'
-          ];
+          const variations = [name, name + ' country', name + ' (country)', name + ' state', name + ' nation'];
           for (const variant of variations) {
             const result = fetchWikipediaIntro(variant);
             if (result && result.length > 30) {
@@ -1400,7 +1576,7 @@
         console.warn('Wikipedia intro fetch error for:', name, e);
       }
       
-      // ── LEDE (opening paragraph) ──
+      // ── LEDE ──
       let lede = '';
       const ledeOptions = [];
       
@@ -1425,16 +1601,12 @@
         ledeOptions.push(`A ${diseaseNames} outbreak has been confirmed in ${name}, with health officials racing to contain the spread as the country's crisis score hit ${score}/100.`);
       }
       
-      // Use best lede or fallback
       if (ledeOptions.length > 0) {
         lede = ledeOptions[0];
       } else {
         lede = `The humanitarian situation in ${name} continues to worsen, with the country's crisis index reaching ${score}/100 — a ${severity} level that demands urgent international attention.`;
       }
       
-      // ── BUILD THE ARTICLE ──
-      
-      // If we have a Wikipedia intro, start with it as context
       if (wikiIntro && wikiIntro.length > 30) {
         paragraphs.push(`
           <div class="wikipedia-intro">
@@ -1445,12 +1617,9 @@
         `);
       }
       
-      // Then the lede
       paragraphs.push(`<p class="dropcap">${lede}</p>`);
       
-      // ── SECOND PARAGRAPH (context + data) ──
       let contextP = `The crisis, which ranks among the most severe tracked by the Global Crisis Index, is driven primarily by `;
-      
       const drivers = [];
       if (topDim) drivers.push(`${topDim.label.toLowerCase()} (${topDim.value}/100)`);
       if (secondDim) drivers.push(`${secondDim.label.toLowerCase()} (${secondDim.value}/100)`);
@@ -1477,7 +1646,6 @@
       
       paragraphs.push(`<p>${contextP}</p>`);
       
-      // ── QUOTE OR EXPERT INSIGHT ──
       if (gdacsAlert === 'red' || ipcPhase >= 4 || totalDisplaced > 1_000_000) {
         let quoteText = '';
         let quoteAttribution = '';
@@ -1499,7 +1667,6 @@
         }
       }
       
-      // ── EVIDENCE BOX (key stats) ──
       const stats = [];
       if (totalDisplaced > 0) stats.push({ label: 'People Displaced', value: formatPop(totalDisplaced) });
       if (ipcPhase >= 3) stats.push({ label: 'IPC Food Security Phase', value: `Phase ${ipcPhase}` });
@@ -1525,7 +1692,6 @@
         paragraphs.push(statHtml);
       }
       
-      // ── DETAILED SITUATION ANALYSIS ──
       if (totalDisplaced > 0 && ipcPhase >= 3) {
         paragraphs.push(`<p>The displacement crisis in ${name} is compounding the already dire food security situation. With ${formatPop(totalDisplaced)} people uprooted from their homes and ${formatPop(ipcPop)} facing acute hunger, humanitarian agencies are struggling to meet the overwhelming need. Access constraints and ongoing violence are further hampering relief efforts.</p>`);
       } else if (gdacsAlert === 'red' || gdacsAlert === 'orange') {
@@ -1541,7 +1707,6 @@
         paragraphs.push(`<p>The humanitarian situation in ${name} continues to evolve rapidly. Aid organizations are scaling up their presence, but access constraints and security concerns are limiting the reach of relief operations. The international community is being called upon to provide additional resources and political support to address the crisis.</p>`);
       }
       
-      // ── RECOMMENDATION ──
       const recText = rec.text || 'Monitor situation. No immediate action required.';
       const recTier = rec.tier || 'WATCH';
       
@@ -1552,7 +1717,6 @@
       
       paragraphs.push(`<p><strong>What happens next?</strong> The Global Crisis Index's recommendation tier for ${name} is <strong style="color:${recColor};">${recTier}</strong>. ${recText}</p>`);
       
-      // ── CLOSING ──
       const evidenceCount = country.live_evidence_count || 0;
       const evidenceSources = country.live_evidence_sources || [];
       const sourceStr = evidenceSources.slice(0, 5).join(', ');
@@ -1594,13 +1758,9 @@
       const anomalyDetected = anomaly.detected || false;
       const anomalySeverity = anomaly.severity || 'None';
       
-      // Generate explosive headline
       const headline = generateExplosiveHeadline(country);
-      
-      // Generate journalistic body
       const bodyHtml = generateJournalisticBody(country);
       
-      // ── BUILD HTML ──
       let html = '';
       
       const storyHeatClass = heatScore >= 75 ? 'story-heat-breaking' : 
@@ -1618,7 +1778,6 @@
       html += `<span class="severity-badge ${severityClass}">${severityLabel}</span>`;
       html += `</div>`;
       
-      // Byline
       const evidenceSources = country.live_evidence_sources || [];
       const sourceStr = evidenceSources.slice(0, 3).join(' · ');
       html += `<div class="story-byline">`;
@@ -1633,11 +1792,11 @@
       }
       html += `</div>`;
       
+      // ─── PRIMARY IMAGE AT TOP OF ARTICLE BODY (NEW) ───
       html += `<div class="story-body">`;
       html += bodyHtml;
       html += `</div>`;
       
-      // Dimensions
       html += `<div class="story-dimensions">`;
       for (const d of dimList) {
         const col = d.value >= 80 ? '#ff375f' : d.value >= 60 ? '#ff8c42' : d.value >= 40 ? '#ffb020' : '#6bc8ff';
@@ -1645,7 +1804,6 @@
       }
       html += `</div>`;
       
-      // Footer
       const anomalyScore = country.anomalyScore || 0;
       html += `<div class="story-footer">`;
       html += `<span class="anomaly-score">🔍 Anomaly score: ${anomalyScore.toFixed(1)}/10</span>`;
@@ -1708,7 +1866,7 @@
       const dateEl = document.getElementById('gcin-datetime');
       
       try {
-        const url = `${API_BASE}?top=${CONFIG.MAX_STORIES}&ml=true&sentiment=true&summary=true&keywords=true&related=true&schema=true`;
+        const url = `${API_BASE}?top=${CONFIG.MAX_STORIES}&ml=true&sentiment=true&summary=true&keywords=true&related=true&schema=true&images=true`;
         const response = await fetch(url);
         const data = await response.json();
         
@@ -1726,7 +1884,6 @@
           meta = data.meta || {};
         }
         
-        // Sort by heat score (newsworthiness)
         countries.sort((a, b) => (b.story_heat?.score || 0) - (a.story_heat?.score || 0));
         
         const enhancements = meta.enhancements || {};
