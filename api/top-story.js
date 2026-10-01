@@ -1,19 +1,20 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.7.0 — WIKIMEDIA COMMONS API EDITION (RELIABLE)
+//  TOP-STORY API — v20.8.0 — ULTIMATE WIKIMEDIA IMAGE CHOPPER
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
-//  🖼️ PRIMARY IMAGE from Wikimedia Commons API (proper file search)
+//  🖼️ PRIMARY IMAGE via multi-signal scoring across Wikimedia Commons
 //
-//  ═══ v20.7.0 — RELIABLE IMAGE FETCHING ═══
-//  • Uses Wikimedia Commons API generator=search (returns JSON, not HTML)
-//  • Filters out SVG/icon/typeface/font files
-//  • Prefers JPEG/PNG photos over diagrams
-//  • Extracts real caption from extmetadata ImageDescription
-//  • Multiple query fallbacks: headline → key terms → country crisis → country
-//  • All payloads get primary_image (list, single, RSS, widget, export)
+//  ═══ v20.8.0 — ULTIMATE IMAGE CHOPPER ═══
+//  • 3 parallel query strategies (headline, country+crisis, country+event type)
+//  • Rejects PDF/DjVu/SVG/GIF/audio/video/doc formats at the API level
+//  • Multi-signal scoring: format, dimensions, aspect ratio, title match,
+//    metadata richness, category match, recency, page-rank
+//  • Returns the BEST candidate, not just the first
+//  • Prefers landscape photos 16:9 to 4:3, penalizes portrait & square
+//  • Deep metadata extraction (artist, credit, license, description)
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -55,7 +56,6 @@ const CFG = {
   ARTICLE_AUTHOR: "GCIN Editorial Team",
   ARTICLE_LOGO: "https://globalcrisisindex.com/logo.png",
   NDBC_BUOYS: ["51001", "51002", "46026", "41009", "23201", "23002", "56001", "56002"],
-  IMAGE_FETCH_ENABLED: true,
   USER_AGENT: "GCIN-Crisis-News/1.0 (https://globalcrisisindex.com; contact@globalcrisisindex.com)",
 };
 
@@ -688,53 +688,82 @@ async function safeFetch(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  WIKIMEDIA COMMONS IMAGE FETCHER (v20.7.0 — RELIABLE API)
+//  ULTIMATE WIKIMEDIA IMAGE CHOPPER (v20.8.0)
 //  ────────────────────────────────────────────────────────────────────────────
-//  Uses the MediaWiki API's generator=search on Wikimedia Commons to find
-//  the first relevant IMAGE file. Filters out SVG, typeface, icon, and
-//  diagram files. Extracts real captions from extmetadata.
+//  Scores every candidate file across many signals and picks the BEST one.
 // ════════════════════════════════════════════════════════════════════════════
 
-// File extensions that indicate a real photo (not a diagram/icon/vector)
-const PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-const REJECT_EXTENSIONS = ['.svg', '.gif', '.pdf', '.tif', '.tiff', '.xcf', '.ogg', '.ogv', '.webm', '.mp4', '.mp3', '.wav'];
-
-// Keywords in filenames that indicate a non-photo result we should skip
-const REJECT_KEYWORDS = [
-  'typeface', 'font', 'sample', 'logo', 'icon', 'glyph', 'letter',
-  'flag_of', 'coat_of_arms', 'emblem', 'seal_of', 'map_of', 'locator',
-  'blank_map', 'svg_map', 'diagram', 'chart', 'graph', 'screenshot',
-  'banner', 'poster', 'stamp', 'coin', 'banknote', 'signature',
-  'userbox', 'wikimedia', 'wikipedia-logo', 'commons-logo',
-  'edit-icon', 'padlock', 'question_book', 'disambig',
-  'symbol', 'skull', 'smiley', 'emoji', 'clipart',
+// Formats we will NEVER display as a "primary image" — these are the ones
+// that were sneaking through before (PDFs from archive.org scans, DjVu, etc.)
+const HARD_REJECT_EXT = [
+  '.pdf', '.djvu', '.svg', '.ogv', '.ogg', '.oga', '.webm', '.mp4', '.mov',
+  '.mp3', '.wav', '.flac', '.tif', '.tiff', '.xcf', '.psd', '.ai', '.eps',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.epub', '.mobi',
+  '.zip', '.rar', '.7z', '.tar', '.gz', '.stl', '.obj', '.glb', '.gltf',
 ];
 
-/**
- * Determine if a Wikimedia Commons file title is a real photo we want.
- */
-function isGoodPhotoFile(fileTitle) {
-  if (!fileTitle) return false;
-  const lower = fileTitle.toLowerCase();
-  
-  // Must have a photo extension
-  const hasPhotoExt = PHOTO_EXTENSIONS.some(ext => lower.endsWith(ext));
-  if (!hasPhotoExt) return false;
-  
-  // Must not have a reject extension
-  if (REJECT_EXTENSIONS.some(ext => lower.endsWith(ext))) return false;
-  
-  // Must not contain reject keywords
-  for (const kw of REJECT_KEYWORDS) {
-    if (lower.includes(kw)) return false;
-  }
-  
-  return true;
-}
+// Formats we PREFER for a news article hero image
+const PREFERRED_PHOTO_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
 
-/**
- * Decode common HTML entities.
- */
+// MIME types that are photos
+const PHOTO_MIME_PREFIXES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Filename keywords that indicate a NON-photo (reject immediately)
+// These catch library-scan PDFs, typeface samples, map locators, etc.
+const HARD_REJECT_KEYWORDS = [
+  'typeface', 'font_sample', 'fontspec', 'font-spec',
+  'locator_map', 'location_map', 'blank_map', 'svg_map', 'map_of_',
+  'coat_of_arms', 'coat-of-arms', 'emblem_of', 'seal_of', 'great_seal',
+  'flag_of', 'flag-of', 'flags_of', 'national_flag',
+  'wikimedia-logo', 'wikipedia-logo', 'commons-logo', 'wikidata',
+  'edit-icon', 'padlock', 'question_book', 'disambig',
+  'userbox', 'barnstar', 'wikiproject', 'wikimedian',
+  'signature_of', 'autograph', 'handwriting',
+  'screenshot', 'screen_shot',
+  'infobox', 'template_',
+  'ia_', 'internet_archive',  // Internet Archive scans (the PDF problem)
+  'chinese_after_the_war', 'china_after_the_war',
+  'gutenberg', 'archive.org',
+  'postage_stamp', 'postal_stamp', 'philatelic',
+  'coin_', 'numismatic', 'banknote', 'currency_note',
+  'diagram_of', 'schematic', 'circuit_', 'blueprint',
+  'chart_', 'graph_of', 'plot_of', 'histogram',
+];
+
+// Keywords that indicate a GOOD photo (bonus score)
+const GOOD_PHOTO_KEYWORDS = [
+  'photo', 'photograph', 'aerial', 'satellite', 'landsat', 'sentinel',
+  'modis', 'goes', 'noaa', 'nasa', 'esa', 'copernicus',
+  'damage', 'destruction', 'destroyed', 'ruins', 'rubble',
+  'flood', 'flooding', 'cyclone', 'hurricane', 'typhoon', 'storm',
+  'earthquake', 'wildfire', 'fire', 'smoke', 'eruption', 'volcano',
+  'refugee', 'refugees', 'displaced', 'displacement', 'camp',
+  'protest', 'demonstration', 'riot', 'conflict', 'war',
+  'president', 'prime_minister', 'parliament', 'minister',
+  'military', 'soldier', 'troops', 'army', 'tank',
+  'hospital', 'doctor', 'nurse', 'medical', 'ambulance',
+  'city', 'capital', 'downtown', 'street', 'skyline',
+];
+
+// Event type → additional query terms
+const EVENT_QUERY_HINTS = {
+  EQ: ['earthquake'],
+  FL: ['flood', 'flooding'],
+  TC: ['cyclone', 'hurricane', 'typhoon'],
+  ST: ['storm'],
+  WF: ['wildfire', 'fire'],
+  VLC: ['volcano', 'eruption', 'volcanic'],
+  TSU: ['tsunami'],
+  DR: ['drought'],
+  FN: ['famine'],
+  EP: ['outbreak', 'epidemic', 'disease'],
+  HEAT: ['heatwave'],
+  LS: ['landslide'],
+  CW: ['war', 'conflict'],
+  CE: ['crisis', 'emergency'],
+  REF: ['refugees', 'displaced'],
+};
+
 function decodeHtmlEntities(str) {
   if (!str) return '';
   return String(str)
@@ -752,46 +781,221 @@ function decodeHtmlEntities(str) {
     .replace(/&ndash;/g, '–');
 }
 
-/**
- * Strip HTML tags.
- */
 function stripHtmlTags(html) {
   if (!html) return '';
-  return String(html)
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return String(html).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * Fetch the best image from Wikimedia Commons using the MediaWiki API.
- * Uses generator=search to find actual File: pages, then grabs imageinfo.
- * This is FAR more reliable than scraping the Special:MediaSearch HTML.
+ * Hard reject check — returns true if the file should NEVER be used.
  */
-async function fetchWikimediaImageFromApi(query, searchUrl) {
-  if (!query || query.length < 2) return null;
-  
-  // Clean query
-  const cleanQuery = String(query)
-    .replace(/[^\w\s-]/g, ' ')
+function hardReject(fileTitle, mime) {
+  const lower = String(fileTitle || '').toLowerCase();
+
+  // Reject by extension
+  for (const ext of HARD_REJECT_EXT) {
+    if (lower.endsWith(ext)) return true;
+  }
+
+  // Reject by MIME type
+  if (mime) {
+    const m = String(mime).toLowerCase();
+    if (m.startsWith('application/') || m.startsWith('audio/') || m.startsWith('video/') || m.startsWith('text/')) {
+      return true;
+    }
+    // Only allow photo MIMEs
+    if (!PHOTO_MIME_PREFIXES.some(p => m.startsWith(p))) {
+      return true;
+    }
+  }
+
+  // Reject by keyword (with word-boundary awareness)
+  for (const kw of HARD_REJECT_KEYWORDS) {
+    if (lower.includes(kw)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Score a candidate file (0 = useless, higher = better).
+ * Uses many signals to pick the best hero image.
+ */
+function scoreCandidate(page, searchTerms, hints = {}) {
+  const title = page.title || '';
+  const lowerTitle = title.toLowerCase();
+  const imageInfo = page.imageinfo?.[0] || {};
+  const mime = imageInfo.mime || '';
+  const width = safeNum(imageInfo.thumbwidth, safeNum(imageInfo.width, 0));
+  const height = safeNum(imageInfo.thumbheight, safeNum(imageInfo.height, 0));
+  const meta = imageInfo.extmetadata || {};
+
+  let score = 0;
+
+  // ── 1. Search rank (MediaWiki returns .index = search rank) ──
+  const idx = safeNum(page.index, 50);
+  score += Math.max(0, 30 - idx * 1.5); // rank 1 gets 28.5, rank 10 gets 15, rank 20 gets 0
+
+  // ── 2. File extension bonus (photos only) ──
+  const isJpg = lowerTitle.endsWith('.jpg') || lowerTitle.endsWith('.jpeg');
+  const isPng = lowerTitle.endsWith('.png');
+  const isWebp = lowerTitle.endsWith('.webp');
+  if (isJpg) score += 12;
+  else if (isWebp) score += 8;
+  else if (isPng) score += 4;
+
+  // ── 3. MIME check ──
+  if (mime === 'image/jpeg') score += 10;
+  else if (mime === 'image/png') score += 5;
+  else if (mime === 'image/webp') score += 7;
+  else score -= 20; // unknown image type → penalize
+
+  // ── 4. Dimensions ──
+  if (width > 0 && height > 0) {
+    // Minimum size gate
+    if (width < 500 || height < 350) {
+      score -= 25; // too small to be a hero image
+    }
+    // Aspect ratio preference: 16:9 to 4:3 landscape
+    const ratio = width / height;
+    if (ratio >= 1.3 && ratio <= 1.9) score += 15; // ideal landscape
+    else if (ratio >= 1.0 && ratio < 1.3) score += 5; // square-ish
+    else if (ratio > 1.9) score += 3; // very wide (panorama)
+    else score -= 10; // portrait → penalize for hero image
+
+    // Resolution bonus (up to +10)
+    const mp = (width * height) / 1_000_000;
+    score += Math.min(10, mp * 2);
+  }
+
+  // ── 5. Title token overlap with search terms ──
+  const titleTokens = new Set(
+    lowerTitle
+      .replace(/^file:/, '')
+      .replace(/\.[a-z0-9]+$/, '')
+      .split(/[\s_\-().,]+/)
+      .filter(t => t.length > 2)
+  );
+  const searchTokens = (searchTerms || [])
+    .flatMap(t => String(t).toLowerCase().split(/[\s_\-().,]+/))
+    .filter(t => t.length > 2);
+  const uniqueSearch = [...new Set(searchTokens)];
+  let tokenMatches = 0;
+  for (const st of uniqueSearch) {
+    if (titleTokens.has(st)) tokenMatches++;
+  }
+  if (uniqueSearch.length > 0) {
+    const overlapPct = tokenMatches / uniqueSearch.length;
+    score += Math.round(overlapPct * 30); // up to +30 for perfect match
+  }
+
+  // ── 6. Good-photo keyword bonus ──
+  for (const kw of GOOD_PHOTO_KEYWORDS) {
+    if (lowerTitle.includes(kw)) {
+      score += 4;
+      break; // only count once
+    }
+  }
+
+  // ── 7. Metadata richness ──
+  if (meta.ImageDescription?.value) {
+    const desc = stripHtmlTags(decodeHtmlEntities(meta.ImageDescription.value));
+    if (desc.length > 30) score += 6;
+    if (desc.length > 100) score += 3;
+
+    // Description token overlap with search terms (bonus signal!)
+    const descTokens = new Set(desc.toLowerCase().split(/[\s_\-().,]+/).filter(t => t.length > 3));
+    let descMatches = 0;
+    for (const st of uniqueSearch) if (descTokens.has(st)) descMatches++;
+    if (uniqueSearch.length > 0) {
+      score += Math.round((descMatches / uniqueSearch.length) * 20); // up to +20
+    }
+  }
+  if (meta.Artist?.value) score += 2;
+  if (meta.Credit?.value) score += 2;
+  if (meta.LicenseShortName?.value) score += 1;
+
+  // ── 8. Category overlap with search terms ──
+  if (meta.Categories?.value) {
+    const cats = decodeHtmlEntities(meta.Categories.value).toLowerCase();
+    let catMatches = 0;
+    for (const st of uniqueSearch) if (cats.includes(st)) catMatches++;
+    score += Math.min(15, catMatches * 4);
+  }
+
+  // ── 9. Recency bonus (newer files often more relevant for news) ──
+  if (meta.DateTimeOriginal?.value || meta.DateTime?.value) {
+    const dateStr = meta.DateTimeOriginal?.value || meta.DateTime?.value || '';
+    const yearMatch = String(dateStr).match(/(\d{4})/);
+    if (yearMatch) {
+      const year = parseInt(yearMatch[1], 10);
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - year;
+      if (age >= 0 && age <= 2) score += 8;
+      else if (age <= 5) score += 5;
+      else if (age <= 10) score += 2;
+      else if (age > 30) score -= 3; // very old photos less relevant for news
+    }
+  }
+
+  // ── 10. Country match bonus ──
+  if (hints.countryName) {
+    const cn = String(hints.countryName).toLowerCase();
+    if (lowerTitle.includes(cn)) score += 12;
+    if (meta.ImageDescription?.value) {
+      const desc = decodeHtmlEntities(meta.ImageDescription.value).toLowerCase();
+      if (desc.includes(cn)) score += 6;
+    }
+  }
+
+  // ── 11. Event-type hint bonus ──
+  if (hints.eventTypes && Array.isArray(hints.eventTypes)) {
+    for (const et of hints.eventTypes) {
+      const hintTerms = EVENT_QUERY_HINTS[et] || [];
+      for (const ht of hintTerms) {
+        if (lowerTitle.includes(ht)) {
+          score += 6;
+          break;
+        }
+      }
+    }
+  }
+
+  // ── 12. Penalty: filenames that are extremely long (often scans) ──
+  if (title.length > 120) score -= 8;
+  if (title.length > 200) score -= 10;
+
+  // ── 13. Penalty: filenames with "(IA " (Internet Archive markers) ──
+  if (/\(ia [a-z0-9]+\)/i.test(title)) score -= 40;
+  if (lowerTitle.includes('internet archive')) score -= 40;
+
+  // ── 14. Bonus: has GPS coordinates in metadata (real-world photo) ──
+  if (meta.GPSLatitude?.value && meta.GPSLongitude?.value) score += 5;
+
+  return score;
+}
+
+/**
+ * Query Wikimedia Commons API for candidate files matching a query.
+ * Returns raw page objects.
+ */
+async function queryCommonsCandidates(query, limit = 20) {
+  const cleanQuery = String(query || '')
+    .replace(/[^\w\s\-()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .substring(0, 200);
-  
-  if (!cleanQuery) return null;
-  
-  // Use the MediaWiki API with generator=search on the File namespace (6)
-  // gsrsearch = search term, gsrnamespace = 6 (File), gsrlimit = 10 results
-  // prop=imageinfo with iiprop=url|extmetadata|mime to get the file URL + metadata
+  if (!cleanQuery) return [];
+
   const apiUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
     `&generator=search` +
     `&gsrsearch=${encodeURIComponent(cleanQuery)}` +
     `&gsrnamespace=6` +
-    `&gsrlimit=15` +
+    `&gsrlimit=${limit}` +
     `&prop=imageinfo` +
-    `&iiprop=url|extmetadata|mime|size` +
-    `&iiurlwidth=1024`;
-  
+    `&iiprop=url|extmetadata|mime|size|dimensions` +
+    `&iiurlwidth=1280`;
+
   try {
     const res = await safeFetch(
       fetch(apiUrl, {
@@ -801,160 +1005,215 @@ async function fetchWikimediaImageFromApi(query, searchUrl) {
         }
       }).then(r => r.ok ? r.json() : null)
     );
-    
-    if (!res.ok || !res.data) {
-      return null;
-    }
-    
-    const pages = res.data?.query?.pages;
-    if (!pages) return null;
-    
-    // Sort pages by their index (search rank) — MediaWiki returns them in an object
-    const sortedPages = Object.values(pages).sort((a, b) => (a.index || 999) - (b.index || 999));
-    
-    for (const page of sortedPages) {
-      const title = page.title || '';
-      const imageInfo = page.imageinfo?.[0];
-      if (!imageInfo) continue;
-      
-      // Skip if this file isn't a photo we want
-      if (!isGoodPhotoFile(title)) continue;
-      
-      // Skip if mime type isn't an image
-      const mime = imageInfo.mime || '';
-      if (!mime.startsWith('image/')) continue;
-      
-      // Prefer thumbnail (smaller, faster); fall back to full URL
-      let imageUrl = imageInfo.thumburl || imageInfo.url;
-      if (!imageUrl) continue;
-      
-      // Skip very small images (likely icons)
-      const width = safeNum(imageInfo.thumbwidth, safeNum(imageInfo.width, 0));
-      const height = safeNum(imageInfo.thumbheight, safeNum(imageInfo.height, 0));
-      if (width > 0 && width < 400) continue;
-      
-      // Extract caption from extmetadata
-      let caption = '';
-      const meta = imageInfo.extmetadata || {};
-      
-      // Try ImageDescription first (most useful)
-      if (meta.ImageDescription?.value) {
-        caption = stripHtmlTags(decodeHtmlEntities(meta.ImageDescription.value)).substring(0, 300);
-      }
-      // Fall back to ObjectName (usually a shorter title)
-      if (!caption && meta.ObjectName?.value) {
-        caption = stripHtmlTags(decodeHtmlEntities(meta.ObjectName.value)).substring(0, 300);
-      }
-      // Fall back to Categories
-      if (!caption && meta.Categories?.value) {
-        caption = decodeHtmlEntities(meta.Categories.value).replace(/\|/g, ', ').substring(0, 200);
-      }
-      // Last resort: derive from filename
-      if (!caption) {
-        caption = title
-          .replace(/^File:/, '')
-          .replace(/\.[^.]+$/, '')
-          .replace(/_/g, ' ')
-          .trim()
-          .substring(0, 200);
-      }
-      
-      // Build the Commons file page URL
-      const filePageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
-      
-      return {
-        url: imageUrl,
-        caption: caption || 'Image from Wikimedia Commons',
-        title: title,
-        pageUrl: filePageUrl,
-        source: 'commons.wikimedia.org',
-        searchQuery: cleanQuery,
-        searchUrl: searchUrl || null,
-        width: width || null,
-        height: height || null,
-      };
-    }
-    
-    return null;
+    if (!res.ok || !res.data?.query?.pages) return [];
+    return Object.values(res.data.query.pages);
   } catch (err) {
-    console.warn(`[wikimedia-api] error for "${cleanQuery}":`, err.message);
-    return null;
+    console.warn(`[wikimedia] query failed for "${cleanQuery}":`, err.message);
+    return [];
   }
 }
 
 /**
- * Try multiple search queries to find the best image for a story.
+ * Main chooser — runs multiple query strategies, scores all candidates,
+ * returns the single best image.
  */
-async function fetchImageForStory(countryName, headline) {
+async function chooseBestImage(countryName, headline, eventTypes = []) {
+  // Build a list of queries to try, in priority order
   const queries = [];
-  
-  // 1. Try the headline (cleaned) — most specific
-  if (headline) {
-    const cleanHeadline = headline
-      .replace(/[^\w\s-]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 100);
-    if (cleanHeadline.length > 8) queries.push(cleanHeadline);
-    
-    // 2. Try key terms from the headline (remove stop words)
-    const stopWords = new Set(['the','a','an','in','on','at','to','for','of','and','or','but','with','from','by','as','is','are','was','were','has','have','had','this','that','these','those','breaking','ongoing','alert','crisis','emergency','disaster','right','now','inside','what','happening','ground','data','update','report','situation','humanitarian','under','active','warning','strikes','struck','killed','fatalities','thousands','millions','people','more','than','about','after','before','during','while','over','just','new','says','said','will','could','would','should','may','might','also','been','being','into','out','up','down','off','then','there','their','they','them','our','your','its','his','her','who','whom','which','when','where','why','how']);
-    const keyTerms = cleanHeadline.split(/\s+/)
-      .map(w => w.replace(/[^\w]/g, ''))
-      .filter(w => w.length > 3 && !stopWords.has(w.toLowerCase()));
-    if (keyTerms.length >= 2) queries.push(keyTerms.slice(0, 4).join(' '));
-    if (keyTerms.length >= 1) queries.push(keyTerms.slice(0, 2).join(' '));
-  }
-  
-  // 3. Try the country name + crisis/humanitarian
+
+  // 1. Best: headline + country + crisis
   if (countryName) {
+    queries.push(`${countryName} crisis 2024`);
+    queries.push(`${countryName} crisis 2025`);
     queries.push(`${countryName} crisis`);
+    queries.push(`${countryName} conflict`);
+    queries.push(`${countryName} emergency`);
+    queries.push(`${countryName} war`);
+    queries.push(`${countryName} refugees`);
     queries.push(`${countryName} humanitarian`);
-    queries.push(`${countryName} disaster`);
-    queries.push(countryName);
   }
-  
-  // Deduplicate and clean
-  const uniqueQueries = [...new Set(queries.filter(q => q && q.trim().length > 1))];
-  
-  for (const q of uniqueQueries) {
-    const searchUrl = `https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(q)}&title=Special%3AMediaSearch&type=image`;
-    const image = await fetchWikimediaImageFromApi(q, searchUrl);
-    if (image) {
-      console.log(`[wikimedia] ✓ found image via "${q}" for "${countryName}": ${image.title}`);
-      return image;
+
+  // 2. Event-type specific: "Ukraine earthquake", "Indonesia volcano", etc.
+  if (countryName && eventTypes.length > 0) {
+    for (const et of eventTypes) {
+      const hints = EVENT_QUERY_HINTS[et] || [];
+      for (const h of hints) {
+        queries.push(`${countryName} ${h}`);
+      }
     }
   }
-  
-  console.warn(`[wikimedia] ✗ no image found for "${countryName}" (tried ${uniqueQueries.length} queries)`);
+
+  // 3. Generic country
+  if (countryName) {
+    queries.push(countryName);
+  }
+
+  // 4. Extract headline keywords
+  if (headline) {
+    const stopWords = new Set([
+      'the','a','an','in','on','at','to','for','of','and','or','but','with',
+      'from','by','as','is','are','was','were','has','have','had','this','that',
+      'these','those','breaking','ongoing','alert','crisis','emergency','disaster',
+      'right','now','inside','what','happening','ground','data','update','report',
+      'situation','humanitarian','under','active','warning','strikes','struck',
+      'killed','fatalities','thousands','millions','people','more','than','about',
+      'after','before','during','while','over','just','new','says','said','will',
+      'could','would','should','may','might','also','been','being','into','out',
+      'up','down','off','then','there','their','they','them','our','your','its',
+      'his','her','who','whom','which','when','where','why','how',
+    ]);
+    const cleanHeadline = headline.replace(/[^\w\s\-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const keyTerms = cleanHeadline
+      .split(/\s+/)
+      .map(w => w.replace(/[^\w]/g, ''))
+      .filter(w => w.length > 3 && !stopWords.has(w.toLowerCase()));
+    if (keyTerms.length >= 2) {
+      queries.push(keyTerms.slice(0, 4).join(' '));
+    }
+  }
+
+  // Deduplicate queries
+  const uniqueQueries = [...new Set(queries.filter(q => q && q.trim().length > 2))];
+
+  // Collect all candidates from all queries
+  const allCandidates = [];
+  const seenTitles = new Set();
+
+  for (const q of uniqueQueries) {
+    const pages = await queryCommonsCandidates(q, 20);
+    for (const page of pages) {
+      const title = page.title || '';
+      if (seenTitles.has(title)) continue;
+      seenTitles.add(title);
+
+      // Skip hard-rejected files immediately
+      const imageInfo = page.imageinfo?.[0] || {};
+      if (hardReject(title, imageInfo.mime)) continue;
+
+      // Score
+      const searchTerms = [countryName, ...(eventTypes.flatMap(e => EVENT_QUERY_HINTS[e] || [])), ...q.split(/\s+/)];
+      const score = scoreCandidate(page, searchTerms, {
+        countryName,
+        eventTypes,
+      });
+
+      allCandidates.push({
+        page,
+        score,
+        searchQuery: q,
+      });
+    }
+
+    // If we already have a very strong candidate (score >= 100), stop early
+    if (allCandidates.some(c => c.score >= 100)) break;
+
+    // Small delay between queries
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  if (allCandidates.length === 0) return null;
+
+  // Sort by score descending
+  allCandidates.sort((a, b) => b.score - a.score);
+
+  // Debug log top candidates
+  console.log(`[wikimedia] Top candidates for "${countryName}":`);
+  allCandidates.slice(0, 5).forEach((c, i) => {
+    console.log(`  ${i + 1}. [score=${c.score.toFixed(1)}] ${c.page.title}`);
+  });
+
+  // Pick the winner
+  const winner = allCandidates[0];
+  const page = winner.page;
+  const imageInfo = page.imageinfo?.[0] || {};
+  const meta = imageInfo.extmetadata || {};
+
+  // Build caption
+  let caption = '';
+  if (meta.ImageDescription?.value) {
+    caption = stripHtmlTags(decodeHtmlEntities(meta.ImageDescription.value)).substring(0, 300);
+  }
+  if (!caption && meta.ObjectName?.value) {
+    caption = stripHtmlTags(decodeHtmlEntities(meta.ObjectName.value)).substring(0, 300);
+  }
+  if (!caption && meta.Categories?.value) {
+    caption = decodeHtmlEntities(meta.Categories.value).replace(/\|/g, ', ').substring(0, 200);
+  }
+  if (!caption) {
+    caption = page.title
+      .replace(/^File:/, '')
+      .replace(/\.[^.]+$/, '')
+      .replace(/_/g, ' ')
+      .trim()
+      .substring(0, 200);
+  }
+
+  // Build credit (artist + license)
+  let credit = '';
+  if (meta.Artist?.value) {
+    credit = stripHtmlTags(decodeHtmlEntities(meta.Artist.value)).substring(0, 100);
+  }
+  const license = meta.LicenseShortName?.value
+    ? stripHtmlTags(decodeHtmlEntities(meta.LicenseShortName.value)).substring(0, 50)
+    : '';
+
+  // Build image URL — prefer thumbnail at 1280px width
+  const imageUrl = imageInfo.thumburl || imageInfo.url;
+  const width = safeNum(imageInfo.thumbwidth, safeNum(imageInfo.width, 0));
+  const height = safeNum(imageInfo.thumbheight, safeNum(imageInfo.height, 0));
+
+  return {
+    url: imageUrl,
+    caption: caption || 'Image from Wikimedia Commons',
+    title: page.title,
+    pageUrl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`,
+    source: 'commons.wikimedia.org',
+    searchQuery: winner.searchQuery,
+    searchUrl: `https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(winner.searchQuery)}&title=Special%3AMediaSearch&type=image`,
+    score: +winner.score.toFixed(1),
+    width: width || null,
+    height: height || null,
+    credit: credit || null,
+    license: license || null,
+  };
+}
+
+async function fetchImageForStory(countryName, headline, eventTypes = []) {
+  try {
+    const image = await chooseBestImage(countryName, headline, eventTypes);
+    if (image) {
+      console.log(`[wikimedia] ✓ "${countryName}" → ${image.title} (score=${image.score})`);
+      return image;
+    }
+  } catch (err) {
+    console.warn(`[wikimedia] error for "${countryName}":`, err.message);
+  }
   return null;
 }
 
-/**
- * Fetch images for multiple stories in parallel with concurrency control.
- */
 async function fetchImagesForStories(stories) {
   const results = {};
-  const CONCURRENCY = 4;
+  const CONCURRENCY = 3; // lower for Wikimedia politeness
   const queue = [...stories];
-  
+
   async function worker() {
     while (queue.length) {
       const story = queue.shift();
       if (!story || !story.iso) continue;
       try {
-        const image = await fetchImageForStory(story.countryName, story.headline);
-        if (image) {
-          results[story.iso] = image;
-        }
+        const image = await fetchImageForStory(
+          story.countryName,
+          story.headline,
+          story.eventTypes || []
+        );
+        if (image) results[story.iso] = image;
       } catch (e) {
         console.warn(`[wikimedia] error for ${story.iso}:`, e.message);
       }
-      // Small delay between requests to be polite
-      await new Promise(r => setTimeout(r, 120));
+      await new Promise(r => setTimeout(r, 150));
     }
   }
-  
+
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   return results;
 }
@@ -1074,7 +1333,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS
+//  FETCHERS (unchanged from v20.7.0)
 // ════════════════════════════════════════════════════════════════════════════
 
 async function fetchHeatAndPrecipLoop() {
@@ -1317,7 +1576,7 @@ async function fetchAllLive() {
     aq_cairo: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
     flood: () => fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.ok ? r.json() : null),
     marine: () => fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.ok ? r.json() : null),
-    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v207&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
+    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v208&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
     gdelt_conflict: () => fetch("https://api.gdeltproject.org/api/v2/doc/doc?query=conflict&mode=artlist&maxrecords=25&format=json").then(r => r.ok ? r.json() : null),
     climate_trace: () => fetch("https://api.climatetrace.org/v6/countries").then(r => r.ok ? r.json() : null),
     fao_fpma: () => fetch("https://fpma.apps.fao.org/api/v1/prices").then(r => r.ok ? r.json() : null),
@@ -2766,7 +3025,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v20.7.0
+//  HANDLER — v20.8.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -2824,7 +3083,7 @@ export default async function handler(req, res) {
     if (params.health) {
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v20.7.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v20.8.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -2842,19 +3101,18 @@ export default async function handler(req, res) {
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.length > 0 ? ranked.slice(0, params.top) : Object.keys(BASE_SCORES).slice(0, params.top);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    //  FETCH IMAGES FOR ALL FINAL ISOS (v20.7.0)
-    // ═══════════════════════════════════════════════════════════════════════
+    // ─── Fetch images for all final ISOs ───
     const imageMap = {};
     if (params.images && finalIsos.length > 0) {
-      console.log(`[v20.7.0] Fetching images for ${finalIsos.length} stories via Wikimedia Commons API...`);
+      console.log(`[v20.8.0] Fetching images for ${finalIsos.length} stories via Wikimedia Commons chopper...`);
       const stories = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
-        return { iso, headline, countryName: snap.name };
+        const eventTypes = Array.isArray(snap.raw?.types) ? snap.raw.types : [];
+        return { iso, headline, countryName: snap.name, eventTypes };
       });
       const fetchedImages = await fetchImagesForStories(stories);
-      console.log(`[v20.7.0] ✓ Fetched ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
+      console.log(`[v20.8.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
       for (const [iso, img] of Object.entries(fetchedImages)) {
         imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
@@ -2882,7 +3140,7 @@ export default async function handler(req, res) {
         if (missingIsos.length > 0) {
           const stories = missingIsos.map(iso => {
             const snap = safeCountrySnapshot(iso, store);
-            return { iso, headline: snap.live.headline || `${snap.name} Crisis`, countryName: snap.name };
+            return { iso, headline: snap.live.headline || `${snap.name} Crisis`, countryName: snap.name, eventTypes: snap.raw?.types || [] };
           });
           const extra = await fetchImagesForStories(stories);
           Object.assign(rssImages, extra);
@@ -2906,7 +3164,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.7.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.8.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -2921,7 +3179,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.7.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.8.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -2934,7 +3192,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.7.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.8.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -3018,8 +3276,8 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v20.7.0",
-        version: "v20.7.0",
+        ranking_mode: "DEFINITIVE_v20.8.0",
+        version: "v20.8.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         countries_with_images: Object.keys(imageMap).length,
@@ -3034,10 +3292,10 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v20_7_0: ["wikimedia_commons_api_file_search", "photo_filtering", "real_captions"],
+          new_in_v20_8_0: ["ultimate_image_chopper_multi_signal_scoring", "hard_reject_pdf_djvu_svg", "photo_aspect_ratio_preference", "metadata_token_overlap_scoring", "recency_bonus", "credit_and_license_extraction"],
           feed_safety: {
-            version: "v20.7.0",
-            guarantees: ["never throws mid-render", "primary image from Wikimedia Commons API at article top", "images for all payloads", "filters out SVG/typeface/icon files"],
+            version: "v20.8.0",
+            guarantees: ["never throws mid-render", "primary image from Wikimedia Commons API at article top", "images for all payloads", "hard-rejects PDF/DjVu/SVG/audio/video files", "multi-signal scoring selects best candidate"],
           },
         },
       },
@@ -3048,7 +3306,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v20.7.0]", err);
+    console.error("[top-story v20.8.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -3077,7 +3335,7 @@ export default async function handler(req, res) {
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.7.0-FALLBACK", version: "v20.7.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.8.0-FALLBACK", version: "v20.8.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
