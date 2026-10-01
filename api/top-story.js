@@ -1,20 +1,15 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.3.0 — COMPLETE FREE-SOURCE EDITION
+//  TOP-STORY API — v20.4.0 — WIKIMEDIA COMMONS IMAGE EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  🖼️ PRIMARY IMAGE from Wikimedia Commons at article top
 //
-//  ═══ v20.3.0 — ALL FREE SOURCES WIRED ═══
-//  New server-side fetchers added:
-//    • OpenAQ v2/v3           → air_quality (global, free, no key required)
-//    • NOAA NDBC              → marine_buoy (real-time ocean observations)
-//    • Copernicus EMS         → cems_activation (rapid mapping activations)
-//    • ProMED RSS             → promed (emerging disease signals)
-//    • Smithsonian GVP        → gvp_volcano (weekly volcanic activity)
-//    • NOAA PTWC              → tsunami_alert (Pacific tsunami warnings)
-//    • INFORM Index           → inform (composite risk scores via JRC API)
+//  ═══ v20.4.0 — WIKIMEDIA COMMONS PRIMARY IMAGE ═══
+//  New server-side fetcher:
+//    • Wikimedia Commons image search → primary_image (with caption)
 //
 //  All sources are fetched server-side (no CORS issues in Node/Vercel).
 //  EM-DAT remains excluded (no live API — requires manual data request).
@@ -691,17 +686,138 @@ async function safeFetch(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  WIKIMEDIA COMMONS IMAGE FETCHER (NEW v20.4.0)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch the primary image and caption from Wikimedia Commons based on article title.
+ * Uses the MediaSearch API to find the first relevant image.
+ * Returns { url, caption, title, pageUrl, source } or null.
+ */
+async function fetchWikimediaImage(articleTitle) {
+  if (!articleTitle) return null;
+  
+  // Clean the title for search: replace special chars, keep it readable
+  const searchQuery = articleTitle
+    .replace(/[^\w\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100);
+  
+  if (!searchQuery) return null;
+  
+  try {
+    // Use Wikimedia Commons API - query for images matching the search term
+    // First, search for files on Commons
+    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchQuery)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
+    
+    const searchRes = await safeFetch(fetch(searchUrl).then(r => r.ok ? r.json() : null));
+    if (!searchRes.ok || !searchRes.data?.query?.pages) return null;
+    
+    const pages = searchRes.data.query.pages;
+    const pageIds = Object.keys(pages);
+    if (!pageIds.length) return null;
+    
+    // Pick the first result
+    const firstPage = pages[pageIds[0]];
+    const imageInfo = firstPage?.imageinfo?.[0];
+    if (!imageInfo) return null;
+    
+    // Get the thumbnail URL (or full URL)
+    const imageUrl = imageInfo.thumburl || imageInfo.url;
+    if (!imageUrl) return null;
+    
+    // Extract caption from extmetadata
+    let caption = '';
+    if (imageInfo.extmetadata) {
+      const meta = imageInfo.extmetadata;
+      // Try different metadata fields for a caption
+      if (meta.ImageDescription?.value) {
+        // Clean HTML from description
+        caption = meta.ImageDescription.value
+          .replace(/<[^>]*>/g, '')
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 300);
+      } else if (meta.ObjectName?.value) {
+        caption = meta.ObjectName.value.trim().substring(0, 300);
+      } else if (meta.Categories?.value) {
+        caption = meta.Categories.value.replace(/\|/g, ', ').substring(0, 200);
+      }
+    }
+    
+    // If no caption from metadata, use the file title (cleaned)
+    if (!caption) {
+      caption = firstPage.title
+        .replace(/^File:/, '')
+        .replace(/\.[^.]+$/, '')
+        .replace(/_/g, ' ')
+        .trim();
+    }
+    
+    // Build the Commons page URL
+    const commonsPageUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(firstPage.title)}`;
+    
+    return {
+      url: imageUrl,
+      caption: caption || 'Image from Wikimedia Commons',
+      title: firstPage.title,
+      pageUrl: commonsPageUrl,
+      source: 'commons.wikimedia.org',
+      searchQuery,
+    };
+  } catch (err) {
+    console.warn(`[wikimedia] failed for "${searchQuery}":`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch images for multiple article titles in parallel.
+ * Returns a map of iso -> image data.
+ */
+async function fetchImagesForArticles(articles) {
+  const results = {};
+  const CONCURRENCY = 5;
+  const queue = [...articles];
+  
+  async function worker() {
+    while (queue.length) {
+      const article = queue.shift();
+      if (!article || !article.iso || !article.title) continue;
+      try {
+        const image = await fetchWikimediaImage(article.title);
+        if (image) {
+          results[article.iso] = image;
+        }
+      } catch (e) {
+        // skip failures
+      }
+    }
+  }
+  
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  return results;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  EVIDENCE INDEX
 // ════════════════════════════════════════════════════════════════════════════
 
 const evidenceIndex = {
   sourceCoverage: {},
   population: {},
+  images: {},  // NEW: store images per ISO
 };
 
 function resetEvidenceIndex() {
   evidenceIndex.sourceCoverage = {};
   evidenceIndex.population = {};
+  evidenceIndex.images = {};
   for (const iso of Object.keys(BASE_SCORES)) {
     evidenceIndex.sourceCoverage[iso] = {};
   }
@@ -2228,19 +2344,71 @@ function buildJSONLD(iso, store, ranked) {
   };
 }
 
-function buildSEOArticle(iso, store, ranked) {
+/**
+ * NEW v20.4.0: Build SEO article with primary image at the top.
+ * Image is fetched from Wikimedia Commons and placed right after the headline.
+ */
+async function buildSEOArticle(iso, store, ranked) {
   try {
     const snap = safeCountrySnapshot(iso, store);
     const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
     const events = snap.live.distinct_event_count;
     const dek = `Score ${snap.score}/100 · ${events} event${events === 1 ? "" : "s"}`;
-    const articleBody = `## Overview\n\n${snap.name} scores ${snap.score}/100 (${snap.severity}).`;
-    const { words, minutes } = estimateReadTime(articleBody);
-    return { headline, dek, slug: snap.slug, url: snap.url, metaDescription: buildMetaDescription(iso, store), keywords: buildKeywords(iso, store), body_markdown: articleBody, body_html: `<article><h1>${escapeXml(headline)}</h1><p>${escapeXml(articleBody)}</p></article>`, word_count: words, read_time_minutes: minutes };
+    
+    // Fetch primary image from Wikimedia Commons
+    const image = await fetchWikimediaImage(headline);
+    
+    // Build article body with image at the top
+    let bodyMarkdown = '';
+    let bodyHtml = '';
+    
+    if (image) {
+      // Markdown: image with caption
+      bodyMarkdown = `![${escapeMarkdown(image.caption)}](${image.url})\n*${image.caption}* — [${image.source}](${image.pageUrl})\n\n`;
+      // HTML: figure with image and caption
+      bodyHtml = `<figure class="article-primary-image">` +
+        `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.caption)}" loading="eager" />` +
+        `<figcaption>${escapeHtml(image.caption)} — <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></figcaption>` +
+        `</figure>\n`;
+    }
+    
+    // Add the article body text
+    const overview = `## Overview\n\n${snap.name} scores ${snap.score}/100 (${snap.severity}).`;
+    bodyMarkdown += overview;
+    bodyHtml += `<h2>Overview</h2>\n<p>${escapeHtml(snap.name)} scores ${snap.score}/100 (${escapeHtml(snap.severity)}).</p>`;
+    
+    const { words, minutes } = estimateReadTime(bodyMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<[^>]*>/g, ''));
+    
+    return {
+      headline,
+      dek,
+      slug: snap.slug,
+      url: snap.url,
+      metaDescription: buildMetaDescription(iso, store),
+      keywords: buildKeywords(iso, store),
+      primary_image: image,  // NEW: include image object
+      body_markdown: bodyMarkdown,
+      body_html: `<article>\n<h1>${escapeHtml(headline)}</h1>\n${bodyHtml}\n</article>`,
+      word_count: words,
+      read_time_minutes: minutes,
+    };
   } catch (e) {
+    console.error(`[buildSEOArticle] error for ${iso}:`, e.message);
     const name = ISO_NAMES[iso] || iso;
     const slug = slugify(name);
-    return { headline: `${name} Crisis Monitor`, dek: "Crisis update pending.", slug, url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`, metaDescription: `${name} crisis update.`, keywords: [`${name} crisis`], body_markdown: `## Overview\n\n${name} crisis data unavailable.`, body_html: `<article><h1>${escapeXml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`, word_count: 3, read_time_minutes: 1 };
+    return {
+      headline: `${name} Crisis Monitor`,
+      dek: "Crisis update pending.",
+      slug,
+      url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`,
+      metaDescription: `${name} crisis update.`,
+      keywords: [`${name} crisis`],
+      primary_image: null,
+      body_markdown: `## Overview\n\n${name} crisis data unavailable.`,
+      body_html: `<article><h1>${escapeHtml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`,
+      word_count: 3,
+      read_time_minutes: 1,
+    };
   }
 }
 
@@ -2251,6 +2419,8 @@ function buildSitemap(payloads) {
 }
 
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
+function escapeHtml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+function escapeMarkdown(s) { return String(s ?? "").replace(/[\\`*_{}[\]()#+\-.!]/g, '\\$&'); }
 
 function buildRSSFeed(isos, store, ranked) {
   const now = new Date();
@@ -2272,6 +2442,7 @@ function buildRSSFeed(isos, store, ranked) {
         slug,
         url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`,
         body_html: `<article><h1>${escapeXml(name)}</h1><p>Crisis update pending.</p></article>`,
+        primary_image: null,
       };
     }
     const snap = safeCountrySnapshot(iso, store);
@@ -2279,7 +2450,23 @@ function buildRSSFeed(isos, store, ranked) {
     const title = a.headline || `${snap.name} Crisis Monitor`;
     const link = a.url || `${CFG.ARTICLE_BASE_URL}/crisis/${snap.slug}`;
     const desc = a.dek || `Score ${snap.score}/100`;
-    const body = a.body_html || `<article><h1>${escapeXml(snap.name)}</h1></article>`;
+    
+    // Build content with image at the top
+    let contentHtml = a.body_html || `<article><h1>${escapeXml(snap.name)}</h1></article>`;
+    if (a.primary_image) {
+      const img = a.primary_image;
+      contentHtml = `<figure class="article-primary-image">` +
+        `<img src="${escapeXml(img.url)}" alt="${escapeXml(img.caption)}" loading="eager" />` +
+        `<figcaption>${escapeXml(img.caption)} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
+        `</figure>\n` + contentHtml;
+    }
+    
+    // Add enclosure for the primary image if available
+    let enclosure = '';
+    if (a.primary_image?.url) {
+      enclosure = `<enclosure url="${escapeXml(a.primary_image.url)}" type="image/jpeg" />`;
+    }
+    
     return `<item>` +
       `<title>${escapeXml(title)}</title>` +
       `<link>${escapeXml(link)}</link>` +
@@ -2287,7 +2474,8 @@ function buildRSSFeed(isos, store, ranked) {
       `<pubDate>${now.toUTCString()}</pubDate>` +
       `<description>${escapeXml(desc)}</description>` +
       (isBreaking ? `<category>🔴 BREAKING NEWS</category>` : "") +
-      `<content:encoded><![CDATA[${body}]]></content:encoded>` +
+      enclosure +
+      `<content:encoded><![CDATA[${contentHtml}]]></content:encoded>` +
       `</item>`;
   }).join("");
 
@@ -2428,6 +2616,12 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
     const recCompat = recommendation(htmlScore, anom);
     const anomalyScore = Math.min(10, safeNum(anom.z_score, 0));
 
+    // Build article with primary image if requested
+    let article = null;
+    if (opts.summary) {
+      article = await buildSEOArticle(iso, store, ranked);
+    }
+
     return {
       iso, name: snap.name, flag: snap.flag,
       score: htmlScore,
@@ -2511,7 +2705,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
       ...(opts.keywords ? { keywords: buildKeywords(iso, store) } : {}),
       ...(opts.related ? { related_stories: buildRelatedStories(iso, store, ranked) } : {}),
       ...(opts.schema ? { schema_org: buildJSONLD(iso, store, ranked) } : {}),
-      ...(opts.summary ? { article: buildSEOArticle(iso, store, ranked) } : {}),
+      ...(opts.summary && article ? { article } : {}),
     };
   } catch (e) {
     console.error(`[buildPayload] fallback for ${iso}:`, e.message);
@@ -2545,7 +2739,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v20.3.0
+//  HANDLER — v20.4.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -2567,6 +2761,7 @@ export default async function handler(req, res) {
       related: url.searchParams.get("related") === "true",
       schema: url.searchParams.get("schema") === "true",
       summary: url.searchParams.get("summary") === "true",
+      images: url.searchParams.get("images") !== "false",  // NEW: default true
       force_live: url.searchParams.get("force_live") !== "false",
       export: url.searchParams.get("export") || null,
       widget: url.searchParams.get("widget") === "true",
@@ -2610,12 +2805,13 @@ export default async function handler(req, res) {
       }
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v20.3.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v20.4.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
         coverage_by_key: coverage,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
+        countries_with_images: Object.keys(evidenceIndex.images).length,
         static_fallbacks: { water_stress: Object.keys(AQUEDUCT_WATER_STRESS).length, ndvi_anomaly: Object.keys(FAO_NDVI_ANOMALY).length },
       }, null, 2));
       return;
@@ -2629,6 +2825,19 @@ export default async function handler(req, res) {
     else if (params.force_live && breakingRanked.length > 0) finalIsos = breakingRanked.slice(0, params.top);
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.length > 0 ? ranked.slice(0, params.top) : Object.keys(BASE_SCORES).slice(0, params.top);
+
+    // NEW: Fetch images for the final ISOs if images param is true
+    if (params.images && finalIsos.length > 0) {
+      const articles = finalIsos.map(iso => {
+        const snap = safeCountrySnapshot(iso, store);
+        const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
+        return { iso, title };
+      });
+      const images = await fetchImagesForArticles(articles);
+      for (const [iso, img] of Object.entries(images)) {
+        evidenceIndex.images[iso] = img;
+      }
+    }
 
     const isSingleIso = finalIsos.length === 1 && !params.region && !params.threshold && params.top === 1;
     const opts = isSingleIso
@@ -2658,7 +2867,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.3.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.4.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -2673,7 +2882,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.3.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.4.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -2686,7 +2895,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.3.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.4.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -2694,7 +2903,7 @@ export default async function handler(req, res) {
       const iso = finalIsos[0];
       const snap = safeCountrySnapshot(iso, store);
       const c = snap.raw;
-      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims };
+      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims, primary_image: evidenceIndex.images[iso] || null };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -2702,7 +2911,12 @@ export default async function handler(req, res) {
 
     if (params.widget && finalIsos.length === 1) {
       const snap = safeCountrySnapshot(finalIsos[0], store);
-      const html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;"><b>${snap.flag} ${snap.name}</b> — Score ${snap.score}/100 (${snap.live.tier_label})<br><small>${snap.live.headline || ""}</small></div>`;
+      const img = evidenceIndex.images[finalIsos[0]];
+      let html = `<div style="padding:16px;background:#0f1a30;color:#fff;font-family:system-ui;max-width:320px;border-radius:12px;">`;
+      if (img) {
+        html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.caption)}" style="width:100%;border-radius:8px;margin-bottom:8px;" />`;
+      }
+      html += `<b>${snap.flag} ${snap.name}</b> — Score ${snap.score}/100 (${snap.live.tier_label})<br><small>${snap.live.headline || ""}</small></div>`;
       res.writeHead(200, { ...CORS, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -2718,6 +2932,15 @@ export default async function handler(req, res) {
 
     const settled = await Promise.allSettled(finalIsos.map(iso => buildPayload(iso, store, ranked, rankIndex, opts)));
     let payloads = settled.filter(s => s.status === "fulfilled" && s.value).map(s => s.value);
+
+    // Attach images to payloads
+    if (params.images) {
+      for (const p of payloads) {
+        if (p && p.iso && evidenceIndex.images[p.iso]) {
+          p.primary_image = evidenceIndex.images[p.iso];
+        }
+      }
+    }
 
     if (payloads.length === 0 && finalIsos.length > 0) {
       payloads = await Promise.all(finalIsos.slice(0, params.top).map(async iso => {
@@ -2751,6 +2974,7 @@ export default async function handler(req, res) {
           recommendation: recommendation(snap.score, null),
           region: snap.region,
           fsi: { score: 50, rank: 999, band: "Unknown" },
+          primary_image: evidenceIndex.images[iso] || null,
         };
       });
     }
@@ -2764,10 +2988,11 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v20.3.0",
-        version: "v20.3.0",
+        ranking_mode: "DEFINITIVE_v20.4.0",
+        version: "v20.4.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
+        countries_with_images: Object.keys(evidenceIndex.images).length,
         payloads_emitted: payloads.length,
         score_seed: Math.floor(Date.now() / CFG.SEED_INTERVAL_MS),
         next_update: new Date((Math.floor(Date.now() / CFG.SEED_INTERVAL_MS) + 1) * CFG.SEED_INTERVAL_MS).toISOString(),
@@ -2781,6 +3006,7 @@ export default async function handler(req, res) {
           breaking: "GET /api/top-story?format=breaking",
           watchlist: "GET /api/top-story?format=wst",
           health: "GET /api/top-story?format=health",
+          images: "GET /api/top-story?images=true (default)",
         },
         enhancements: {
           machine_learning: {
@@ -2790,15 +3016,16 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
+          new_in_v20_4_0: ["wikimedia_commons_primary_image"],
           new_in_v20_3_0: ["openaq", "ndbc_buoys", "cems_activations", "promed", "smithsonian_gvp", "ptwc_tsunami", "inform"],
           static_fallbacks: { water_stress_countries: Object.keys(AQUEDUCT_WATER_STRESS).length, ndvi_anomaly_countries: Object.keys(FAO_NDVI_ANOMALY).length },
           feed_safety: {
-            version: "v20.3.0",
+            version: "v20.4.0",
             hardened_paths: ["rss", "live", "breaking", "watchlist", "story"],
             list_endpoint_omits_heavy_enrichments: true,
-            guarantees: ["never throws mid-render", "never emits empty <channel>", "never emits empty live_news[]", "never emits empty breaking[]", "never emits empty watchlist[]", "never emits empty countries[]"],
+            guarantees: ["never throws mid-render", "never emits empty <channel>", "never emits empty live_news[]", "never emits empty breaking[]", "never emits empty watchlist[]", "never emits empty countries[]", "primary image from Wikimedia Commons at article top"],
           },
-          html_compat: { version: "v20.3.0", render_safety: { rank_filters_nonfinite: true, buildPayload_try_catch: true, handler_uses_allSettled: true, guaranteed_nonempty_countries: true } },
+          html_compat: { version: "v20.4.0", render_safety: { rank_filters_nonfinite: true, buildPayload_try_catch: true, handler_uses_allSettled: true, guaranteed_nonempty_countries: true, primary_image_at_top: true } },
         },
       },
       ...(mode === "single" ? { top_story: payloads[0] } : {}),
@@ -2808,7 +3035,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v20.3.0]", err);
+    console.error("[top-story v20.4.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -2833,10 +3060,11 @@ export default async function handler(req, res) {
           recommendation: { tier: "WATCH", text: "Routine monitoring." },
           region: snap.region,
           fsi: { score: 50, rank: 999, band: "Unknown" },
+          primary_image: null,
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.3.0-FALLBACK", version: "v20.3.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.4.0-FALLBACK", version: "v20.4.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
