@@ -1124,7 +1124,7 @@
     <strong>🧠 AI:</strong> Neural network forecasting · <strong>💬 Sentiment:</strong> Multi-source analysis · <strong>🔥 Heat:</strong> Velocity + Anomaly Consensus + ML + Evidence + Thresholds<br>
     <strong>📝 Journalism:</strong> Who · What · Where · When · Why — narrative prose with evidence-ledger appendices<br>
     <strong>📡 RSS:</strong> <a href="/api/top-story?format=rss" class="rss-feed-link">Subscribe for Breaking Crisis Intelligence</a><br>
-    <strong>🖼️ Images:</strong> Precision Image Engine (v21.2.0) — Best-possible hero image from Wikimedia Commons<br>
+    <strong>🖼️ Images:</strong> Precision Image Engine (v21.2.1) — Best-possible hero image from Wikimedia Commons<br>
     <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
   
@@ -1135,14 +1135,18 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — GOLD STANDARD EDITION v12.1 (DEDUPLICATION EDITION)
+    //  GCIN — GOLD STANDARD EDITION v12.2 (FINAL CLEAN EDITION)
     //  ── Fixes in this version ──
     //  • Strips leading flag emoji from API headlines so they are NOT doubled
-    //    (the frontend renders the flag separately in .story-headline .flag)
-    //  • Removes any <figure>/<img>/<figcaption> that may already be embedded
-    //    in the API's body_html or body_markdown, preventing the primary
-    //    image from appearing twice
-    //  • Ensures the caption is rendered exactly once
+    //    (flag is rendered separately in .story-headline .flag)
+    //  • Removes any <figure>/<img>/<figcaption> already embedded in the API's
+    //    body_html or body_markdown — prevents the primary image from appearing
+    //    twice
+    //  • Removes any <h1> already embedded in the API's body_html/markdown —
+    //    prevents the headline from appearing twice (once in .story-headline
+    //    and once at the top of the article body)
+    //  • Removes any duplicate caption lines from markdown (e.g. "*Caption* —
+    //    [source](url)" after an image)
     //  • All v21.1.0 narrative journalism behavior preserved
     // ════════════════════════════════════════════════════════════════════════
     
@@ -1269,18 +1273,15 @@
     
     // ─── FLAG EMOJI STRIPPING ────────────────────────────────────────────
     // The API often includes the country flag emoji at the start of the
-    // headline (e.g. "🇮🇩 BREAKING: Indonesia — ..."). The frontend renders
-    // the flag separately inside .story-headline .flag, so we strip any
-    // leading flag emoji (and any repeated ones) from the headline text to
-    // avoid displaying the flag twice.
+    // headline (e.g. "🇲🇽 Mexico — ..."). The frontend renders the flag
+    // separately inside .story-headline .flag, so we strip any leading flag
+    // emoji (and any repeated ones) from the headline text to avoid
+    // displaying the flag twice.
     const FLAG_EMOJI_RE = /^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u;
     const LEADING_EMOJI_RE = /^(?:[\u{1F1E6}-\u{1F1FF}]{2}\s*|🔴\s*|🟠\s*|🟡\s*|🟢\s*|⚪\s*|🚨\s*|🌍\s*|🌋\s*|🌊\s*|🔥\s*|🌀\s*|🏜️\s*)+/u;
     function stripLeadingFlagAndBadges(headline) {
       if (!headline) return '';
       let s = String(headline);
-      // Strip any leading run of flag emojis / status emojis / whitespace.
-      // We strip ALL leading emoji badges because the frontend re-adds the flag
-      // and the severity badge is already shown separately.
       let prev;
       do {
         prev = s;
@@ -1291,33 +1292,51 @@
       return s.trim();
     }
     
-    // ─── IMAGE DEDUPLICATION ─────────────────────────────────────────────
-    // The API's body_html / body_markdown may already contain the primary
-    // image (a <figure class="article-primary-image"> or a markdown image).
-    // Since we render the primary image ourselves BEFORE the body, we need
-    // to strip any image/figure from the API body to prevent duplication.
-    function stripImagesFromHtml(html) {
+    // ─── BODY CLEANUP ────────────────────────────────────────────────────
+    // Strip duplicate images, duplicate captions, and duplicate <h1> titles
+    // from the API's body so they aren't rendered twice.
+    //
+    // 1. Any <figure class="article-primary-image"> or <figure> containing
+    //    an <img> is removed — the primary image is rendered separately.
+    // 2. Any standalone <img> is removed.
+    // 3. Any <h1>...</h1> is removed — the headline is rendered separately
+    //    in .story-headline. (The API embeds the same headline at the top
+    //    of body_html as <h1>, which produces the double-title issue.)
+    // 4. Any empty <figure></figure> is removed.
+    function cleanBodyHtml(html) {
       if (!html) return '';
       let out = String(html);
-      // Remove any <figure class="article-primary-image">...</figure>
+      // Remove article-primary-image figures
       out = out.replace(/<figure[^>]*class=["'][^"']*article-primary-image[^"']*["'][^>]*>[\s\S]*?<\/figure>/gi, '');
-      // Remove any <figure>...</figure> that contains an <img>
+      // Remove any <figure>...</figure> containing an <img>
       out = out.replace(/<figure[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?<\/figure>/gi, '');
-      // Remove any standalone <img ...> tags
+      // Remove standalone <img> tags
       out = out.replace(/<img\b[^>]*\/?>/gi, '');
-      // Cleanup any orphaned empty <figure></figure>
+      // Remove empty <figure></figure>
       out = out.replace(/<figure[^>]*>\s*<\/figure>/gi, '');
+      // Remove <h1>...</h1> blocks (the headline is rendered separately)
+      out = out.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, '');
+      // Remove any leading/trailing <article> wrapper — we re-wrap ourselves
+      out = out.replace(/<\/?article\b[^>]*>/gi, '');
+      // Collapse excessive whitespace
+      out = out.replace(/\n{3,}/g, '\n\n').trim();
       return out;
     }
-    function stripImagesFromMarkdown(md) {
+    
+    function cleanBodyMarkdown(md) {
       if (!md) return '';
       let out = String(md);
       // Remove markdown images: ![alt](url)
       out = out.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
-      // Remove markdown image-caption lines like "*Caption* — [source](url)"
-      // only when they directly follow a removed image (heuristic: lines that
-      // begin with * and contain "commons.wikimedia.org" or "— [")
+      // Remove markdown caption lines like "*Caption* — [source](url)" that
+      // directly follow a removed image
       out = out.replace(/^\s*\*[^*]*\*\s*—\s*\[[^\]]*\]\([^)]*\)\s*$/gm, '');
+      // Remove leading H1 heading (# Title) — the headline is rendered separately
+      out = out.replace(/^\s*#\s+[^\n]+\n/m, '');
+      // Remove duplicate <h1> if the markdown already contains raw HTML
+      out = out.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, '');
+      // Collapse excessive blank lines
+      out = out.replace(/\n{3,}/g, '\n\n').trim();
       return out;
     }
     
@@ -1362,9 +1381,6 @@
     }
     
     // ─── HEADLINE ─────────────────────────────────────────────────────────
-    // Prefer the API's article.headline, then live_breaking.headline, then
-    // the client-side generator. Always strip leading flag/status emoji so
-    // they don't double up with the flag rendered separately.
     function pickHeadline(country) {
       const article = country.article || null;
       let raw = null;
@@ -1416,8 +1432,7 @@
     
     // ─── PRIMARY IMAGE ────────────────────────────────────────────────────
     // Renders the primary image EXACTLY ONCE. The caption appears only in
-    // the <figcaption>; the <img alt> is for accessibility only (screen
-    // readers), not visible text.
+    // the <figcaption>; the <img alt> is for accessibility only.
     function buildPrimaryImageHtml(image) {
       if (!image || !image.url) return '';
       const caption = image.caption || 'Image from Wikimedia Commons';
@@ -1455,8 +1470,7 @@
       if (viaArticle) metaChips.push(`<span class="meta-tag">📖 via ${escapeHtml(String(viaArticle).slice(0, 40))}</span>`);
       const creditLine = credit ? `<span class="meta-tag">📷 ${escapeHtml(credit)}</span>` : '';
       
-      // IMPORTANT: alt attribute is for accessibility only — no visible text
-      // is rendered from it. The caption is rendered ONCE inside <figcaption>.
+      // Caption rendered ONCE inside <figcaption>. alt attribute is separate.
       return `
         <figure class="article-primary-image">
           <img
@@ -1550,7 +1564,6 @@
       const freshest = lb.freshest_signal_age_hours;
       const paragraphs = [];
       
-      // LEDE — no flag here; flag is rendered separately in the headline
       const topEvent = events[0] || null;
       let lede;
       if (topEvent) {
@@ -1561,7 +1574,6 @@
       }
       paragraphs.push(`<p class="dropcap">${lede}</p>`);
       
-      // WHAT IS HAPPENING
       if (events.length >= 2) {
         const connectors = ["First", "Meanwhile", "Separately", "Additionally"];
         const clauses = events.slice(0, 4).map((e, i) => {
@@ -1573,7 +1585,6 @@
         paragraphs.push(`<p>${clauses.join(" ")}</p>`);
       }
       
-      // WHO IS AFFECTED
       const pop = country.live_evidence?.population || 0;
       const displaced = country.live_evidence?.displacement?.total || 0;
       const refugees = country.live_evidence?.refugees || 0;
@@ -1585,7 +1596,6 @@
         paragraphs.push(`<p>The human stakes are concrete: ${bits.join(", ")}. Aid access, shelter capacity, and health infrastructure are the immediate constraints flagged by the Index's eight-dimension model.</p>`);
       }
       
-      // EVIDENCE
       if (ledger.length) {
         const top = ledger.slice().sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight)).slice(0, 4);
         const items = top.map(l => {
@@ -1595,7 +1605,6 @@
         paragraphs.push(`<p>The assessment rests on ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}. The highest-weighted signals are: ${items.join("; ")}. Combined evidence score: ${Number(ev.score || 0).toFixed(1)}/35 with ${(Number(ev.confidence || 0) * 100).toFixed(0)}% confidence.</p>`);
       }
       
-      // WHY IT MATTERS
       const anomaly = country.anomaly || {};
       const trend = country.trend || {};
       const rec = country.recommendation || {};
@@ -1609,7 +1618,6 @@
         : `Machine-learning forecasting projects the score will hold near ${trend.forecast_7d || score}/100 over the next seven days.`;
       paragraphs.push(`<p>${escapeHtml(anomalyLine)} ${escapeHtml(trendLine)} The Global Crisis Index recommendation tier is <strong>${escapeHtml(rec.tier || "MONITOR")}</strong>: ${escapeHtml(rec.text || "")}</p>`);
       
-      // KICKER
       if (lb.tier === "BREAKING") {
         paragraphs.push(`<p><em>This is a breaking story. GCIN will update the Index within five minutes as new signals arrive.</em></p>`);
       } else if (lb.tier === "DEVELOPING") {
@@ -1621,27 +1629,24 @@
     
     // ─── ARTICLE BODY ─────────────────────────────────────────────────────
     // Priority:
-    //   1. API's article.body_html — strip any embedded images to prevent
-    //      duplication with the primary image we render above.
-    //   2. API's article.body_markdown — strip embedded markdown images,
-    //      then convert to HTML.
+    //   1. API's article.body_html — clean duplicates (images, captions,
+    //      <h1> titles), keep the prose.
+    //   2. API's article.body_markdown — clean duplicates, convert to HTML.
     //   3. Client-side narrative prose + editorial appendix.
-    //
-    // The primary image is ALWAYS rendered exactly once, at the top.
     function buildArticleBody(country) {
       const article = country.article || null;
       const apiImage = country.primary_image || null;
       const imageHtml = buildPrimaryImageHtml(apiImage);
       
-      // ── Best path: API-rendered article HTML (with images stripped) ──
+      // ── Best path: API-rendered article HTML (cleaned) ──
       if (article && article.body_html && article.body_html.length > 400) {
-        const cleaned = stripImagesFromHtml(article.body_html);
+        const cleaned = cleanBodyHtml(article.body_html);
         return imageHtml + cleaned;
       }
       
-      // ── Second path: API markdown → HTML (with images stripped) ──
+      // ── Second path: API markdown → HTML (cleaned) ──
       if (article && article.body_markdown && article.body_markdown.length > 400) {
-        const cleanedMd = stripImagesFromMarkdown(article.body_markdown);
+        const cleanedMd = cleanBodyMarkdown(article.body_markdown);
         return imageHtml + markdownToHtml(cleanedMd);
       }
       
@@ -1656,10 +1661,8 @@
         if (!wikiIntro || wikiIntro.length < 30) wikiIntro = fetchWikipediaIntro(name + ' (country)');
       } catch(e) { /* ignore */ }
       
-      // Narrative prose first
       parts.push(buildClientNarrativeProse(country));
       
-      // Editorial Reference appendix
       parts.push(`<hr style="border:none;border-top:1px solid var(--gcin-border);margin:1.5rem 0;">`);
       parts.push(`<h4 style="font-family:var(--gcin-font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gcin-text-muted);margin-bottom:0.5rem;">Editorial Reference</h4>`);
       
@@ -1679,28 +1682,27 @@
       return parts.join("");
     }
     
-    // Minimal markdown → HTML (images already stripped before this is called)
+    // Minimal markdown → HTML (images/captions/h1 already stripped)
     function markdownToHtml(md) {
       if (!md) return '';
       let html = md;
-      // Escape HTML first
       html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      // Images (shouldn't be any left after stripping, but be safe)
+      // Images (shouldn't be any left after cleaning)
       html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '');
-      // Links [text](url)
+      // Links
       html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
       // Horizontal rules
       html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--gcin-border);margin:1.5rem 0;" />');
-      // Headings
+      // Headings (h1 already stripped, but keep others)
       html = html.replace(/^#### (.*)$/gm, '<h4>$1</h4>');
       html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
-      html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
-      // Bold **text**
+      html = html.replace(/^# (.*)$/gm, '<h2>$1</h2>'); // demote any remaining # to h2
+      // Bold
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      // Italics *text*
+      // Italics
       html = html.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
-      // Markdown tables
+      // Tables
       html = html.replace(/((?:^\|.*\|$\n?)+)/gm, (block) => {
         const rows = block.trim().split('\n').filter(r => r.trim());
         if (rows.length < 2) return block;
@@ -1712,7 +1714,7 @@
         t += '</tbody></table>';
         return t;
       });
-      // Unordered lists
+      // Lists
       html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>[\s\S]*?<\/li>)(?![\s\S]*?<li>)/g, '<ul>$1</ul>');
       // Paragraphs
@@ -1758,7 +1760,7 @@
       const anomalySeverity = anomaly.severity || 'None';
       
       const headline = pickHeadline(country); // already stripped of leading flag emoji
-      const bodyHtml = buildArticleBody(country);
+      const bodyHtml = buildArticleBody(country); // images/h1 stripped from body
       
       const storyHeatClass = heatScore >= 75 ? 'story-heat-breaking'
                            : heatScore >= 55 ? 'story-heat-developing'
@@ -1771,8 +1773,7 @@
         html += `<div class="heat-badge-top ${heatBadgeClass}">${heatEmoji} ${heatTier.label} · Heat ${Math.round(heatScore)}</div>`;
       }
       
-      // Flag is rendered ONCE here. Headline is already stripped of any
-      // leading flag/badge emoji so it won't double up.
+      // Flag rendered ONCE here. Headline already stripped of any leading flag emoji.
       html += `<div class="story-header">`;
       html += `<div class="story-headline"><span class="flag">${flag}</span> <a href="${escapeHtml(url)}">${escapeHtml(headline)}</a></div>`;
       html += `<span class="severity-badge ${severityClass}">${severityLabel}</span>`;
@@ -1788,7 +1789,7 @@
       if (anomalyDetected) html += `<span class="source-badge anomaly-tag">⚡ Anomaly: ${escapeHtml(anomalySeverity)}</span>`;
       html += `</div>`;
       
-      // ─── ARTICLE BODY (image rendered once + narrative prose + appendix) ───
+      // ─── ARTICLE BODY (image once + prose, no duplicate h1) ───
       html += `<div class="story-body">${bodyHtml}</div>`;
       
       html += `<div class="story-dimensions">`;
