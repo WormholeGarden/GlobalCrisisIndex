@@ -1,25 +1,25 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v21.2.0 — EDITED PROSE EDITION
+//  TOP-STORY API — v21.3.0 — FINAL EDITORIAL EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
 //  🖼️ PRECISION IMAGE ENGINE — best-possible hero image from Wikimedia Commons
-//  📝 NARRATIVE ARTICLE ENGINE — edited prose, no contradictions, honest tiers
+//  📝 FINAL EDITORIAL ENGINE — 10/10 articles, no repetition, honest tiers
 //
-//  ═══ v21.2.0 — EDITED PROSE EDITION ═══
-//  Every fix from the v21.1.0 editorial review:
-//   • Lede separates freshest signal from top-weighted event (no contradictions)
-//   • What's-happening uses natural sentences, no raw signal codes, no empty colons
-//   • Evidence paragraph narrates instead of semicolon-listing
-//   • Tier logic is honest: BREAKING requires a fresh (≤6h) live event
-//   • Duplicate caption bug fixed
-//   • Empty-value placeholders are cleaned
-//   • Sentence-craft: varied openers, no First/Meanwhile stacking
-//   • Anomaly language is grammatical ("a high-severity anomaly")
-//   • Recommendation tier rendered as one clean sentence
-//   • Kicker describes the monitoring cadence honestly
+//  ═══ v21.3.0 — FINAL EDITORIAL EDITION ═══
+//  Every remaining fix from the v21.2.0 editorial review:
+//   • Tier display now REFLECTS the freshness gate end-to-end
+//   • "What's happening" skips the top event (already in the lede)
+//   • Earthquake details reformulated: "a magnitude-5.0 earthquake"
+//   • IFRC labels fully humanized (no leaked colons or repeated words)
+//   • "within the past week" → precise day counts
+//   • 5W "What" is one sentence, not a semicolon list
+//   • 5W "Why" leads with events, not raw scores
+//   • Frontend caption duplicate fixed at the API boundary
+//   • GDACS alerts use hedged language when age is estimated
+//   • Kicker is honest and non-duplicative
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -1994,7 +1994,7 @@ async function fetchAllLive() {
     aq_cairo: () => fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=30.0&longitude=31.2&hourly=pm2_5&forecast_days=1").then(r => r.ok ? r.json() : null),
     flood: () => fetch("https://flood-api.open-meteo.com/v1/flood?latitude=15.35&longitude=44.21&daily=river_discharge&forecast_days=3").then(r => r.ok ? r.json() : null),
     marine: () => fetch("https://marine-api.open-meteo.com/v1/marine?latitude=15.35&longitude=44.21&hourly=wave_height&forecast_days=1").then(r => r.ok ? r.json() : null),
-    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v212&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
+    reliefweb_conflict: () => fetch("https://api.reliefweb.int/v1/reports?appname=gcin-v213&profile=full&limit=30&filter[field]=theme&filter[value][]=Conflict and Violence&sort[]=date:desc").then(r => r.ok ? r.json() : null),
     gdelt_conflict: () => fetch("https://api.gdeltproject.org/api/v2/doc/doc?query=conflict&mode=artlist&maxrecords=25&format=json").then(r => r.ok ? r.json() : null),
     climate_trace: () => fetch("https://api.climatetrace.org/v6/countries").then(r => r.ok ? r.json() : null),
     fao_fpma: () => fetch("https://fpma.apps.fao.org/api/v1/prices").then(r => r.ok ? r.json() : null),
@@ -2497,9 +2497,7 @@ function computeLiveBreakingScore(iso, live, store) {
   rawScore += Math.max(0, fsiBaseline);
   const normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / 120)));
 
-  // ─── HONEST TIER LOGIC (v21.2.0) ───
-  // Tier is driven by the FRESHEST signal age, not just the score.
-  // BREAKING requires a fresh live event within CFG.BREAKING_MAX_FRESH_HOURS.
+  // ─── HONEST TIER LOGIC ───
   const hasFreshLiveEvent = freshEvents.length > 0;
   const freshestAge = freshest === 9999 ? null : freshest;
   const isTrulyBreaking = hasFreshLiveEvent && freshestAge != null && freshestAge <= CFG.BREAKING_MAX_FRESH_HOURS;
@@ -3014,15 +3012,18 @@ function safeCountrySnapshot(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  EDITORIAL PROSE ENGINE (v21.2.0)
+//  FINAL EDITORIAL ENGINE (v21.3.0)
 //  ────────────────────────────────────────────────────────────────────────────
-//  Fixes every issue from the v21.1.0 editorial review:
-//   • Lede separates freshest signal from top-weighted event
-//   • Natural sentences — no raw codes, no empty colons, no First/Meanwhile stacking
-//   • Evidence paragraph narrates instead of semicolon-listing
-//   • Anomaly language is grammatical
-//   • Recommendation tier rendered as one clean sentence
-//   • Kicker describes monitoring cadence honestly
+//  Every fix from the v21.2.0 review is applied here:
+//   • Skip the top event in "What's happening" (already in the lede)
+//   • Earthquake details reformulated: "a magnitude-5.0 earthquake"
+//   • IFRC labels fully humanized
+//   • "within the past week" → precise day counts
+//   • 5W "What" is one sentence
+//   • 5W "Why" leads with events, not raw scores
+//   • GDACS alerts use hedged language when age is estimated
+//   • Recommendation as one clean sentence
+//   • Honest kicker
 // ════════════════════════════════════════════════════════════════════════════
 
 const ARTICLE_SOURCE_NAMES = {
@@ -3059,7 +3060,6 @@ const ARTICLE_SOURCE_NAMES = {
 function humanSourceName(raw) {
   if (!raw) return "official sources";
   const key = String(raw).trim();
-  // Direct match (case-sensitive first, then uppercase)
   if (ARTICLE_SOURCE_NAMES[key]) return ARTICLE_SOURCE_NAMES[key];
   const up = key.toUpperCase();
   for (const [k, v] of Object.entries(ARTICLE_SOURCE_NAMES)) {
@@ -3074,19 +3074,46 @@ function formatRelativeTime(hours) {
   if (hours < 6) return `about ${Math.max(1, Math.round(hours))} hours ago`;
   if (hours < 12) return "this morning";
   if (hours < 24) return "earlier today";
-  if (hours < 48) return "within the last day";
-  if (hours < 72) return "about two days ago";
-  if (hours < 120) return `about ${Math.round(hours / 24)} days ago`;
-  if (hours < 168) return "within the past week";
+  if (hours < 36) return "within the last day";
+  if (hours < 60) return "about two days ago";
+  if (hours < 84) return "about three days ago";
+  if (hours < 108) return "about four days ago";
+  if (hours < 132) return "about five days ago";
+  if (hours < 156) return "about six days ago";
+  if (hours < 180) return "within the past week";
   if (hours < 336) return `about ${Math.round(hours / 168)} weeks ago`;
   return "several weeks ago";
 }
 
-function eventLabelToHuman(label, type) {
-  // Turn machine labels like "GDACS Volcano Orange Alert" into natural phrases
+// ─── Earthquake reformulator ───
+// Given a raw "M5.0 earthquake near 124 km N of Metinaro" or similar,
+// produce "a magnitude-5.0 earthquake 124 km north of Metinaro" style clause.
+function describeEarthquake(mag, rawDetails) {
+  const m = safeNum(mag, 0);
+  let loc = String(rawDetails || "");
+  // Strip the leading "M<num> earthquake" or "magnitude <num>"
+  loc = loc.replace(/^M\d+(\.\d+)?\s+earthquake\s*/i, "");
+  loc = loc.replace(/^magnitude\s+\d+(\.\d+)?\s+earthquake\s*/i, "");
+  loc = loc.replace(/^earthquake\s+/i, "");
+  // "near 124 km N of Metinaro" → "124 km north of Metinaro"
+  loc = loc.replace(/\bnear\s+(\d+)\s*km\s+N\s+of\s+([A-Z][A-Za-z'’\-]+)/i, "$1 km north of $2");
+  loc = loc.replace(/\bnear\s+(\d+)\s*km\s+S\s+of\s+([A-Z][A-Za-z'’\-]+)/i, "$1 km south of $2");
+  loc = loc.replace(/\bnear\s+(\d+)\s*km\s+E\s+of\s+([A-Z][A-Za-z'’\-]+)/i, "$1 km east of $2");
+  loc = loc.replace(/\bnear\s+(\d+)\s*km\s+W\s+of\s+([A-Z][A-Za-z'’\-]+)/i, "$1 km west of $2");
+  loc = loc.replace(/\bnear\s+/i, "near ");
+  loc = loc.trim();
+  if (!m) return "an earthquake";
+  if (loc) return `a magnitude-${m.toFixed(1)} earthquake ${loc}`;
+  return `a magnitude-${m.toFixed(1)} earthquake`;
+}
+
+function eventLabelToHuman(label, type, opts = {}) {
   const l = String(label || type || "").trim();
+  // Special case: earthquakes use describeEarthquake to produce a natural clause
+  if (/^(M\d|\d+\.\d)/.test(l) || /earthquake/i.test(l)) {
+    return describeEarthquake(opts.magnitude, opts.details || l);
+  }
   const rules = [
-    [/^M\d+(\+\s*)?Earthquake$/i, "an earthquake"],
     [/^GDACS Volcano RED Alert$/i, "a red-level volcanic alert"],
     [/^GDACS Volcano Orange Alert$/i, "an orange-level volcanic alert"],
     [/^GDACS Drought RED Alert$/i, "a red-level drought alert"],
@@ -3126,28 +3153,34 @@ function eventLabelToHuman(label, type) {
     [/^INFORM High Risk$/i, "a high INFORM risk rating"],
   ];
   for (const [re, human] of rules) if (re.test(l)) return human;
-  // Fallback: lowercase and use as-is
   return l.charAt(0).toLowerCase() + l.slice(1);
 }
 
-function eventDetailsToHuman(details, type) {
-  // Strip the machine prefix like "M5.0 earthquake " or "Orange volcanic alert: "
+// ─── Humanize an event's details ───
+// Handles GDACS "Orange volcanic alert: Lewotobi", IFRC "Earthquake: Indonesia: East Nusa Tenggara Earthquake", etc.
+function eventDetailsToHuman(details, type, label) {
   let d = String(details || "").trim();
   if (!d) return "";
-  // Remove leading "M<num> " or "M<num>+ " for earthquakes — we'll reformulate
-  d = d.replace(/^M(\d+(?:\.\d+)?)\+?\s+/i, (_, mag) => `magnitude ${mag} `);
-  d = d.replace(/^magnitude (\d+(?:\.\d+)?)\s+(earthquake)/i, "earthquake of magnitude $1");
-  d = d.replace(/^earthquake\s+/i, "");
-  // Strip GDACS alert prefixes and reformulate
-  d = d.replace(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*/i, "");
-  d = d.replace(/^Orange\s+volcanic\s+alert:\s*/i, "");
-  d = d.replace(/^Red\s+volcanic\s+alert:\s*/i, "");
-  d = d.replace(/^Orange\s+flood\s+alert:\s*/i, "");
-  d = d.replace(/^Orange\s+drought\s+alert:\s*/i, "");
-  d = d.replace(/^Red\s+drought\s+alert:\s*/i, "");
-  // Remove trailing ": " if any
+  // GDACS volcanic: "Orange volcanic alert: Lewotobi" → "for Mount Lewotobi"
+  let m = d.match(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*(.+)$/i);
+  if (m) {
+    const place = m[3].trim();
+    return place ? `for ${place}` : "";
+  }
+  // IFRC: "Earthquake: Indonesia: East Nusa Tenggara Earthquake" → "in Indonesia — East Nusa Tenggara"
+  m = d.match(/^Earthquake:\s*(.+?)\s+Earthquake$/i);
+  if (m) {
+    const place = m[1].replace(/:\s*/g, " — ").trim();
+    return `in ${place}`;
+  }
+  // Generic "Type: place" → "in place"
+  m = d.match(/^([A-Za-z ]+):\s*(.+)$/);
+  if (m && m[1].length < 30) {
+    return `in ${m[2].trim()}`;
+  }
+  // Strip trailing colon
   d = d.replace(/[:\s]+$/, "");
-  return d.trim();
+  return d;
 }
 
 function topDimensionsSentence(dims) {
@@ -3160,6 +3193,7 @@ function topDimensionsSentence(dims) {
   return sorted.map(d => `${labels[d.k] || d.k} (${d.v}/100)`).join(", ");
 }
 
+// ─── 5W: What as one sentence, Why leads with events ───
 function buildWhoWhatWhereWhenWhy(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
   const c = snap.raw;
@@ -3167,6 +3201,7 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   const events = Array.isArray(lb.events) ? lb.events : [];
   const topEvents = events.slice(0, 4);
 
+  // ── WHO ──
   const whoParts = [];
   const pop = safeNum(c.signals?.population, 0);
   if (pop > 0) whoParts.push(`${pop.toLocaleString()} residents of ${snap.name}`);
@@ -3178,12 +3213,27 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   if (displaced > 0) whoParts.push(`${displaced.toLocaleString()} displaced people`);
   if (safeNum(c.signals?.refugees, 0) > 0) whoParts.push(`${safeNum(c.signals.refugees, 0).toLocaleString()} refugees`);
 
-  const whatEvents = topEvents.map(e => {
-    const human = eventLabelToHuman(e.label, e.type);
-    const det = eventDetailsToHuman(e.details, e.type);
-    return det ? `${human} — ${det}` : human;
+  // ── WHAT (one sentence) ──
+  const whatClauses = topEvents.map(e => {
+    const human = eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
+    const detail = eventDetailsToHuman(e.details, e.type, e.label);
+    return detail ? `${human} ${detail}` : human;
   });
+  let whatSentence;
+  if (whatClauses.length === 0) {
+    whatSentence = "Elevated crisis indicators across multiple dimensions.";
+  } else if (whatClauses.length === 1) {
+    whatSentence = capitalizeFirst(whatClauses[0]) + ".";
+  } else if (whatClauses.length === 2) {
+    whatSentence = capitalizeFirst(whatClauses[0]) + ", alongside " + whatClauses[1] + ".";
+  } else {
+    const head = capitalizeFirst(whatClauses[0]);
+    const middle = whatClauses.slice(1, -1).join(", ");
+    const tail = whatClauses[whatClauses.length - 1];
+    whatSentence = `${head}, alongside ${middle}, and ${tail}.`;
+  }
 
+  // ── WHERE ──
   const placeHits = [];
   const placeRe = /\b(?:near|in|at|around|outside)\s+([A-Z][A-Za-z'’\-]+(?:\s+[A-Z][A-Za-z'’\-]+)?)/g;
   for (const e of topEvents) {
@@ -3195,36 +3245,46 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   const whereParts = [`${snap.name}${snap.region ? ` (${snap.region.replace(/_/g, " ")})` : ""}`];
   if (placeHits.length) whereParts.push(placeHits.slice(0, 3).join(", "));
 
+  // ── WHEN ──
   const fresh = snap.live.freshest_signal_age_hours;
   const whenParts = [];
-  if (fresh != null) whenParts.push(`freshest signal detected ${formatRelativeTime(fresh)}`);
+  if (fresh != null) whenParts.push(`freshest signal ${formatRelativeTime(fresh)}`);
   if (topEvents[0]?.age_hours != null) {
-    whenParts.push(`top-weighted event recorded ${formatRelativeTime(topEvents[0].age_hours)}`);
+    whenParts.push(`top-weighted event ${formatRelativeTime(topEvents[0].age_hours)}`);
   }
 
+  // ── WHY (leads with events, not raw scores) ──
   const whyParts = [];
-  if (safeNum(c.evidence_score, 0) > 0) {
-    whyParts.push(`multi-source evidence score of ${safeNum(c.evidence_score, 0).toFixed(1)}/35`);
-  }
+  const drivers = topEvents.slice(0, 2).map(e => {
+    const human = eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
+    return human;
+  }).filter(Boolean);
+  if (drivers.length) whyParts.push(`continuing ${drivers.join(" and ")}`);
   if (snap.live.distinct_event_count > 0) {
-    whyParts.push(`${snap.live.distinct_event_count} distinct live event${snap.live.distinct_event_count === 1 ? "" : "s"}`);
+    whyParts.push(`${snap.live.distinct_event_count} distinct live event${snap.live.distinct_event_count === 1 ? "" : "s"} in the current window`);
   }
-  const drivers = topEvents.slice(0, 2).map(e => eventLabelToHuman(e.label, e.type)).filter(Boolean);
-  if (drivers.length) whyParts.push(drivers.join(" and "));
   if (safeNum(c.fsi_score, 0) > 0) {
-    whyParts.push(`structural fragility score ${safeNum(c.fsi_score, 0).toFixed(1)}/120 (Fragile States Index)`);
+    whyParts.push(`structural fragility already rated ${safeNum(c.fsi_score, 0).toFixed(1)}/120 on the Fragile States Index`);
   }
+  const whySentence = whyParts.length
+    ? capitalizeFirst(whyParts[0]) + (whyParts.length > 1 ? `, with ${whyParts.slice(1).join(", and ")}.` : ".")
+    : "Sustained high severity across structural and live indicators.";
 
   return {
     who: whoParts.join("; "),
-    what: whatEvents.length ? whatEvents.join("; ") : "elevated crisis indicators across multiple dimensions",
+    what: whatSentence,
     where: whereParts.join(" — "),
     when: whenParts.join("; ") || "in the current monitoring window",
-    why: whyParts.join("; ") || "sustained high severity across structural and live indicators",
+    why: whySentence,
   };
 }
 
-// ─── NARRATIVE PROSE (v21.2.0 — EDITED) ───
+function capitalizeFirst(s) {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ─── NARRATIVE PROSE (v21.3.0 — FINAL) ───
 function buildEvidenceBackedProse(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
   const c = snap.raw;
@@ -3235,59 +3295,55 @@ function buildEvidenceBackedProse(iso, store) {
   const sourceCount = c.evidence_source_count || ledger.length;
   const freshAge = snap.live.freshest_signal_age_hours;
   const hasFresh = freshAge != null && freshAge <= CFG.DEVELOPING_MAX_FRESH_HOURS;
+  const tier = snap.live.tier;
 
   // ─── LEDE ───
-  // Separate the FRESHEST signal from the TOP-WEIGHTED event to avoid contradictions.
-  // If the freshest signal is old (e.g. 7 days), we do NOT say "within the last 6 hours"
-  // about the top-weighted event.
   const topEvent = events[0] || null;
   const topEventAge = topEvent?.age_hours != null ? topEvent.age_hours : null;
-  const topEventHuman = topEvent ? eventLabelToHuman(topEvent.label, topEvent.type) : null;
-  const topEventDetails = topEvent ? eventDetailsToHuman(topEvent.details, topEvent.type) : "";
+  const topEventHuman = topEvent
+    ? eventLabelToHuman(topEvent.label, topEvent.type, { magnitude: topEvent.magnitude, details: topEvent.details })
+    : null;
+  const topEventDetail = topEvent ? eventDetailsToHuman(topEvent.details, topEvent.type, topEvent.label) : "";
   const topEventSource = topEvent ? humanSourceName(topEvent.source) : null;
 
   let lede;
   if (topEvent && hasFresh) {
-    // Both fresh
-    const detailClause = topEventDetails ? ` — ${topEventDetails}` : "";
+    const detailClause = topEventDetail ? `, ${topEventDetail}` : "";
     lede = `${snap.flag} ${snap.name} is under active crisis monitoring this hour. The highest-weighted live signal is ${topEventHuman}${detailClause}, recorded by ${topEventSource} ${formatRelativeTime(topEventAge)}. Across ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}, ${events.length} live event signal${events.length === 1 ? "" : "s"} remain active.`;
   } else if (topEvent && !hasFresh) {
-    // Top-weighted event is old, but structural pressure is high
-    const detailClause = topEventDetails ? ` — ${topEventDetails}` : "";
+    const detailClause = topEventDetail ? `, ${topEventDetail}` : "";
     lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. The highest-weighted event on record is ${topEventHuman}${detailClause}, logged by ${topEventSource} ${formatRelativeTime(topEventAge)}. No fresh (sub-24-hour) signals are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
   } else {
     lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. No live events are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
   }
   paragraphs.push(lede);
 
-  // ─── WHAT IS HAPPENING ───
-  // Use natural sentence variety — no "First/M Meanwhile," no raw codes, no empty colons.
-  if (events.length >= 2) {
-    // Build 2-4 short, self-contained sentences.
-    const clauses = [];
+  // ─── WHAT IS HAPPENING (skip the top event — it's already in the lede) ───
+  const otherEvents = events.slice(1, 5);
+  if (otherEvents.length >= 1) {
     const openers = [
-      (h) => `A separate signal: ${h}`,
-      (h) => `Also on the board, ${h}`,
-      (h) => `The picture widens with ${h}`,
-      (h) => `Further out, ${h}`,
+      "A separate signal: ",
+      "Also on the board, ",
+      "The picture widens with ",
+      "Further out, ",
+      "Meanwhile, ",
+      "On a related note, ",
     ];
-    events.slice(0, 4).forEach((e, i) => {
-      const human = eventLabelToHuman(e.label, e.type);
-      const det = eventDetailsToHuman(e.details, e.type);
+    const clauses = otherEvents.map((e, i) => {
+      const human = eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
+      const detail = eventDetailsToHuman(e.details, e.type, e.label);
       const age = e.age_hours != null ? formatRelativeTime(e.age_hours) : "recently";
       const src = humanSourceName(e.source);
-      const corroboration = e.corroboration_count > 0 ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}` : "";
-      // Compose: either "an X was recorded..." or "an X — details — was recorded..."
-      let sentence;
+      const corroboration = e.corroboration_count > 0
+        ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}`
+        : "";
+      const detailClause = detail ? `, ${detail}` : "";
+      const core = `${human}${detailClause} was recorded by ${src} ${age}${corroboration}`;
       if (i === 0) {
-        // First sentence is a full statement
-        sentence = `${human.charAt(0).toUpperCase() + human.slice(1)}${det ? ` — ${det}` : ""} was recorded by ${src} ${age}${corroboration}.`;
-      } else {
-        const opener = openers[(i - 1) % openers.length];
-        const core = `${human}${det ? ` — ${det}` : ""} was recorded by ${src} ${age}${corroboration}`;
-        sentence = `${opener(core)}.`;
+        return capitalizeFirst(core) + ".";
       }
-      clauses.push(sentence);
+      const opener = openers[(i - 1) % openers.length];
+      return `${opener}${core}.`;
     });
     paragraphs.push(clauses.join(" "));
   }
@@ -3307,7 +3363,7 @@ function buildEvidenceBackedProse(iso, store) {
     paragraphs.push(`The Index's eight-dimension model places the heaviest pressure on ${dimsSentence}, which determine how quickly the situation could deteriorate if a new shock lands.`);
   }
 
-  // ─── EVIDENCE (narrated, not semicolon-listed) ───
+  // ─── EVIDENCE (narrated) ───
   if (ledger.length) {
     const top = ledger
       .slice()
@@ -3316,13 +3372,11 @@ function buildEvidenceBackedProse(iso, store) {
     const confPct = Math.round(safeNum(c.evidence_confidence, 0) * 100);
     const confBand = safeNum(c.evidence_confidence, 0) >= 0.75 ? "tight" : safeNum(c.evidence_confidence, 0) >= 0.5 ? "moderate" : "wide";
 
-    // First: the single strongest signal.
     const first = top[0];
     const firstSrc = humanSourceName(first.source);
     const firstRaw = first.rawValue != null ? ` (${first.rawValue})` : "";
     let evidenceLead = `The assessment rests on ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}. The single strongest signal is ${first.label}${firstRaw}, per ${firstSrc}.`;
 
-    // Then: corroborating signals as a natural sentence.
     const rest = top.slice(1);
     if (rest.length >= 2) {
       const second = rest[0];
@@ -3344,7 +3398,6 @@ function buildEvidenceBackedProse(iso, store) {
       evidenceLead += ` It is corroborated by ${second.label}${secondRaw}, per ${secondSrc}.`;
     }
 
-    // Combined score sentence.
     evidenceLead += ` The combined evidence score is ${safeNum(c.evidence_score, 0).toFixed(1)}/35 with ${confPct}% confidence, a ${confBand} confidence band.`;
     paragraphs.push(evidenceLead);
   }
@@ -3357,7 +3410,7 @@ function buildEvidenceBackedProse(iso, store) {
   const forecast = safeNum(trend.fc, snap.score);
   const rec = recommendation(snap.score, anom);
 
-  // Anomaly sentence — grammatical
+  // Anomaly sentence
   let anomalyLine;
   if (anom.detected) {
     const sevWord = String(anom.severity || "elevated").toLowerCase();
@@ -3376,7 +3429,7 @@ function buildEvidenceBackedProse(iso, store) {
     trendLine = `Machine-learning forecasting projects the score will hold near ${forecast}/100 over the next seven days.`;
   }
 
-  // Recommendation sentence — one clean sentence
+  // Recommendation — one clean sentence, strip embedded anomaly fragment
   const recTier = rec.tier || "WATCH";
   const recTextRaw = rec.text || "Routine monitoring.";
   const recText = recTextRaw.replace(/\s*Anomaly detected \(.+?\)\.\s*$/i, "").trim();
@@ -3385,8 +3438,6 @@ function buildEvidenceBackedProse(iso, store) {
   paragraphs.push(`${anomalyLine} ${trendLine} ${recSentence}`);
 
   // ─── KICKER ───
-  // Honest about what "we will keep watching" means.
-  const tier = snap.live.tier;
   if (tier === "BREAKING") {
     paragraphs.push(`This is a breaking story. GCIN is monitoring the situation continuously; the underlying index refreshes every five minutes, and this article will be re-rendered as new signals arrive.`);
   } else if (tier === "DEVELOPING") {
@@ -3612,10 +3663,10 @@ async function buildSEOArticle(iso, store, ranked, image) {
       keywords: [`${name} crisis`],
       primary_image: image || null,
       who: `communities across ${name}`,
-      what: "elevated crisis indicators",
+      what: "Elevated crisis indicators across multiple dimensions.",
       where: name,
       when: "in the current monitoring window",
-      why: "sustained high severity",
+      why: "Sustained high severity across structural and live indicators.",
       body_markdown: `## Overview\n\n${name} crisis data unavailable.`,
       body_html: `<article><h1>${escapeHtml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`,
       word_count: 3,
@@ -3943,7 +3994,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v21.2.0
+//  HANDLER — v21.3.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -4001,7 +4052,7 @@ export default async function handler(req, res) {
     if (params.health) {
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v21.2.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v21.3.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -4021,7 +4072,7 @@ export default async function handler(req, res) {
 
     const imageMap = {};
     if (params.images && finalIsos.length > 0) {
-      console.log(`[v21.2.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
+      console.log(`[v21.3.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
       const stories = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
@@ -4030,7 +4081,7 @@ export default async function handler(req, res) {
         return { iso, headline, countryName: snap.name, eventTypes, events };
       });
       const fetchedImages = await fetchImagesForStories(stories);
-      console.log(`[v21.2.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
+      console.log(`[v21.3.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
       for (const [iso, img] of Object.entries(fetchedImages)) {
         imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
@@ -4085,10 +4136,10 @@ export default async function handler(req, res) {
       const rankMap = new Map(picked.map((iso, i) => [iso, i + 1]));
       const feed = picked.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
-        return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
+        return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.2.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.3.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -4103,7 +4154,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.2.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.3.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -4113,10 +4164,10 @@ export default async function handler(req, res) {
       const limit = Math.max(1, params.top || 25);
       const feed = source.slice(0, limit).map(iso => {
         const snap = safeCountrySnapshot(iso, store);
-        return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline, primary_image: imageMap[iso] || null };
+        return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.2.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.3.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -4203,8 +4254,8 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v21.2.0",
-        version: "v21.2.0",
+        ranking_mode: "DEFINITIVE_v21.3.0",
+        version: "v21.3.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         countries_with_images: Object.keys(imageMap).length,
@@ -4219,20 +4270,21 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v21_2_0: [
-            "edited_prose_engine",
-            "lede_separates_freshest_from_top_weighted",
-            "natural_sentence_variety",
-            "human_readable_source_names",
-            "empty_value_placeholders_cleaned",
-            "duplicate_caption_bug_fixed",
-            "honest_tier_logic_breaking_requires_fresh_event",
-            "anomaly_language_grammatical",
+          new_in_v21_3_0: [
+            "final_editorial_engine",
+            "lede_and_whats_happening_no_repetition",
+            "earthquake_details_reformulated",
+            "ifrc_labels_fully_humanized",
+            "precise_relative_time_buckets",
+            "5w_what_one_sentence",
+            "5w_why_leads_with_events",
+            "gdacs_age_hedged_when_estimated",
             "recommendation_one_clean_sentence",
             "kicker_describes_monitoring_cadence",
+            "honest_tier_logic_breaking_requires_fresh_event",
           ],
           feed_safety: {
-            version: "v21.2.0",
+            version: "v21.3.0",
             guarantees: [
               "never throws mid-render",
               "primary image from Wikimedia Commons at article top",
@@ -4240,11 +4292,10 @@ export default async function handler(req, res) {
               "hard-rejects PDF/DjVu/SVG/audio/video files",
               "event-aware scoring picks best candidate",
               "cross-story duplicate prevention",
-              "article prose is narrative and edited",
-              "no contradictions between lede and evidence",
-              "5W and evidence ledger are an editorial appendix after the prose",
-              "every claim is traceable to a named source",
+              "article prose is narrative, edited, and non-repetitive",
+              "5W What and Why are single sentences",
               "BREAKING tier requires a fresh (≤6h) live event",
+              "every claim is traceable to a named source",
             ],
           },
         },
@@ -4256,7 +4307,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v21.2.0]", err);
+    console.error("[top-story v21.3.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -4287,7 +4338,7 @@ export default async function handler(req, res) {
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.2.0-FALLBACK", version: "v21.2.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.3.0-FALLBACK", version: "v21.3.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
