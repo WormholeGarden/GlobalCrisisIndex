@@ -1,21 +1,20 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v20.9.0 — PRECISION IMAGE ENGINE EDITION
+//  TOP-STORY API — v21.0.0 — JOURNALISTIC PRECISION EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
 //  🖼️ PRECISION IMAGE ENGINE — best-possible hero image from Wikimedia Commons
+//  📝 JOURNALISTIC ARTICLE ENGINE — 10/10 standards, who/what/when/where/why
 //
-//  ═══ v20.9.0 — PRECISION IMAGE ENGINE ═══
-//  • Event-aware query plan built from live signals + headline + place names
-//  • Wikipedia lead-image lookups for curated event photos
-//  • Fixed hard-reject bug: Commons titles use SPACES, not underscores
-//  • Country-relevance gate with demonyms & city aliases
-//  • True file-size scoring (not 1280px thumbnail)
-//  • Featured/Quality-picture bonus, trusted-agency credit bonus
-//  • Staged search with early-exit, retry/backoff, 6h cache, in-flight de-dup
-//  • Cross-story duplicate prevention, per-story + global time budgets
+//  ═══ v21.0.0 — JOURNALISTIC PRECISION EDITION ═══
+//  • Every article answers Who, What, When, Where, Why in natural prose
+//  • Live-evidence-backed concrete details woven throughout
+//  • Full story construction from signals, events, and evidence ledger
+//  • All existing v20.9.0 behavior preserved (ranking, images, feeds)
+//  • Article body now contains real event details, sources, timestamps
+//  • Structured "who/what/where/when/why" fields for editors + schemas
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -689,10 +688,7 @@ async function safeFetch(p) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  PRECISION IMAGE ENGINE (v20.9.0) — paste block begins
-//  ────────────────────────────────────────────────────────────────────────────
-//  Picks the best possible hero image for every story from Wikimedia Commons.
-//  Public function names and return fields are unchanged (new fields are additive).
+//  PRECISION IMAGE ENGINE (v20.9.0) — unchanged core
 // ════════════════════════════════════════════════════════════════════════════
 
 const IMG = {
@@ -704,9 +700,9 @@ const IMG = {
   SEARCH_LIMIT: 25,
   QUERY_CONCURRENCY: 3,
   STORY_CONCURRENCY: 4,
-  EXCELLENT_SCORE: 125,   // stop searching immediately
-  GOOD_SCORE: 88,         // stop after the current stage
-  MIN_ACCEPT_SCORE: 38,   // never return anything below this
+  EXCELLENT_SCORE: 125,
+  GOOD_SCORE: 88,
+  MIN_ACCEPT_SCORE: 38,
   CACHE_TTL_MS: 6 * 3600e3,
   NEG_CACHE_TTL_MS: 20 * 60e3,
   CACHE_MAX: 600,
@@ -721,7 +717,6 @@ const imgKey = s => imgTokens(s).join(" ");
 const imgNorm = s => " " + imgTokens(s).join(" ") + " ";
 const imgHas = (N, phrase) => !!phrase && N.includes(" " + phrase + " ");
 
-// ─── Format / file-type rules ───────────────────────────────────────────────
 const HARD_REJECT_EXT = [
   '.pdf', '.djvu', '.svg', '.ogv', '.ogg', '.oga', '.webm', '.mp4', '.mov',
   '.mp3', '.wav', '.flac', '.tif', '.tiff', '.xcf', '.psd', '.ai', '.eps',
@@ -957,7 +952,6 @@ function imgAliasMatch(N, aliases) {
   return false;
 }
 
-// ─── Text helpers ───────────────────────────────────────────────────────────
 function decodeHtmlEntities(str) {
   if (!str) return '';
   return String(str)
@@ -1190,7 +1184,6 @@ function scoreCandidate(page, searchTerms, hints = {}) {
   return scoreCandidateDetailed(page, searchTerms, hints).score;
 }
 
-// ─── Network ────────────────────────────────────────────────────────────────
 async function wikiGetJson(url) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -1270,7 +1263,6 @@ async function queryWikipediaLeadImages(query, limit = 4) {
   return out;
 }
 
-// ─── Story context & query plan ─────────────────────────────────────────────
 const IMG_STOP = new Set([
   'the','a','an','in','on','at','to','for','of','and','or','but','with',
   'from','by','as','is','are','was','were','has','have','had','this','that',
@@ -1425,7 +1417,6 @@ function imgBuildQueryPlan(ctx) {
   ].filter(s => s.items.length);
 }
 
-// ─── Selection ──────────────────────────────────────────────────────────────
 function imgViability(c) {
   const f = c.flags;
   if (!f.countryHit || f.nonPhoto) return 0;
@@ -1500,7 +1491,6 @@ function imgBuildResult(c, ctx, candidatesEvaluated) {
   };
 }
 
-// ─── cache & in-flight de-dup ───────────────────────────────────────────────
 const _imgCache = new Map();
 const _imgInflight = new Map();
 
@@ -1638,10 +1628,6 @@ async function fetchImagesForStories(stories) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  Precision Image Engine — paste block ends
-// ════════════════════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════════════════════════
 //  EVIDENCE INDEX
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -1756,7 +1742,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS (unchanged)
+//  FETCHERS (unchanged from v20.9.0)
 // ════════════════════════════════════════════════════════════════════════════
 
 async function fetchHeatAndPrecipLoop() {
@@ -2026,7 +2012,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  INGEST
+//  INGEST (unchanged from v20.9.0)
 // ════════════════════════════════════════════════════════════════════════════
 function ingestFetchedData(out) {
   if (out.usgs_weekly?.features) {
@@ -2338,7 +2324,7 @@ function ingestFetchedData(out) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING
+//  LIVE BREAKING (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
@@ -2565,7 +2551,7 @@ function buildBreakingHeadline(signals, country) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  RANKING
+//  RANKING (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
 function rankByLiveBreaking(store) {
@@ -2616,7 +2602,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / ML
+//  ANOMALY / ML (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -3013,6 +2999,208 @@ function safeCountrySnapshot(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  JOURNALISTIC ARTICLE ENGINE (v21.0.0)
+//  Builds 10/10-standard articles answering who/what/where/when/why
+// ════════════════════════════════════════════════════════════════════════════
+
+const ARTICLE_SOURCE_NAMES = {
+  USGS: "the U.S. Geological Survey (USGS)",
+  EMSC: "the European-Mediterranean Seismological Centre (EMSC)",
+  GDACS: "the Global Disaster Alert and Coordination System (GDACS)",
+  NASA: "NASA's Earth Observatory",
+  OPENMETEO: "Open-Meteo",
+  IFRC: "the International Federation of Red Cross and Red Crescent Societies (IFRC)",
+  "DISEASE.SH": "disease.sh",
+  "WHO DON": "the World Health Organization (WHO) Disease Outbreak News",
+  UNHCR: "the UN Refugee Agency (UNHCR)",
+  WORLDBANK: "the World Bank",
+  GDELT: "GDELT",
+  RELIEFWEB: "ReliefWeb",
+  "ECB FX": "European Central Bank FX reference rates",
+  "US DM": "the U.S. Drought Monitor",
+  "WRI Aqueduct": "the World Resources Institute Aqueduct Water Risk Atlas",
+  "FAO GIEWS": "the FAO Global Information and Early Warning System",
+  "WHO GHO": "WHO Global Health Observatory",
+  OpenAQ: "OpenAQ",
+  "NOAA NDBC": "the NOAA National Data Buoy Center",
+  "Copernicus EMS": "the Copernicus Emergency Management Service",
+  ProMED: "ProMED-mail",
+  "Smithsonian GVP": "the Smithsonian Global Volcanism Program",
+  "NOAA PTWC": "the NOAA Pacific Tsunami Warning Center",
+  INFORM: "the INFORM Risk Index",
+  IPC: "the IPC food security phase classification",
+  UCDP: "the Uppsala Conflict Data Program",
+  "IOM DTM": "IOM's Displacement Tracking Matrix",
+  "FAO FPMA": "the FAO Food Price Monitoring and Analysis",
+};
+
+function humanSourceName(raw) {
+  if (!raw) return "official sources";
+  const key = String(raw).toUpperCase().replace(/\s+/g, " ");
+  for (const [k, v] of Object.entries(ARTICLE_SOURCE_NAMES)) {
+    if (k.toUpperCase() === key) return v;
+  }
+  return raw;
+}
+
+function formatRelativeTime(hours) {
+  if (hours == null || !Number.isFinite(hours)) return "in the past day";
+  if (hours <= 1) return "within the last hour";
+  if (hours <= 6) return `within the last ${Math.round(hours)} hours`;
+  if (hours <= 24) return "within the last 24 hours";
+  if (hours <= 48) return "in the past two days";
+  if (hours <= 168) return `about ${Math.round(hours / 24)} days ago`;
+  return `about ${Math.round(hours / 168)} weeks ago`;
+}
+
+function formatDateShort(iso2) {
+  const d = iso2 ? new Date(iso2) : new Date();
+  if (isNaN(d.getTime())) return "recently";
+  return d.toUTCString().replace(/GMT$/, "UTC").replace(/\s+\d{2}:\d{2}:\d{2} UTC$/, "");
+}
+
+function buildWhoWhatWhereWhenWhy(iso, store) {
+  const snap = safeCountrySnapshot(iso, store);
+  const c = snap.raw;
+  const lb = c.__live_breaking || {};
+  const events = Array.isArray(lb.events) ? lb.events : [];
+  const topEvents = events.slice(0, 4);
+
+  // WHO — affected population, named places, agencies
+  const whoParts = [];
+  const pop = safeNum(c.signals?.population, 0);
+  if (pop > 0) whoParts.push(`${pop.toLocaleString()} residents of ${snap.name}`);
+  else whoParts.push(`communities across ${snap.name}`);
+  if (snap.live.source_count > 0) {
+    whoParts.push(`${snap.live.source_count} independent monitoring source${snap.live.source_count === 1 ? "" : "s"}`);
+  }
+  const displaced = safeNum(c.signals?.totalDisplaced, 0);
+  if (displaced > 0) whoParts.push(`${displaced.toLocaleString()} displaced people`);
+  if (safeNum(c.signals?.refugees, 0) > 0) whoParts.push(`${safeNum(c.signals.refugees, 0).toLocaleString()} refugees`);
+
+  // WHAT — top concrete events with details
+  const whatEvents = topEvents.map(e => {
+    const label = e.label || e.type || "Crisis signal";
+    const det = e.details ? ` — ${e.details}` : "";
+    return `${label}${det}`;
+  });
+
+  // WHERE — country + named places from event details
+  const placeHits = [];
+  const placeRe = /\b(?:near|in|at|around|outside)\s+([A-Z][A-Za-z'’\-]+(?:\s+[A-Z][A-Za-z'’\-]+)?)/g;
+  for (const e of topEvents) {
+    if (!e.details) continue;
+    for (const m of e.details.matchAll(placeRe)) {
+      if (m[1] && !placeHits.includes(m[1])) placeHits.push(m[1]);
+    }
+  }
+  const whereParts = [`${snap.name}${snap.region ? ` (${snap.region.replace(/_/g, " ")})` : ""}`];
+  if (placeHits.length) whereParts.push(placeHits.slice(0, 3).join(", "));
+
+  // WHEN — freshest event age and per-event ages
+  const fresh = snap.live.freshest_signal_age_hours;
+  const whenParts = [];
+  if (fresh != null) whenParts.push(`signals detected ${formatRelativeTime(fresh)}`);
+  if (topEvents[0]?.age_hours != null) {
+    whenParts.push(`most recent event ${formatRelativeTime(topEvents[0].age_hours)}`);
+  }
+
+  // WHY — drivers from evidence + event labels
+  const whyParts = [];
+  if (safeNum(c.evidence_score, 0) > 0) {
+    whyParts.push(`multi-source evidence score of ${safeNum(c.evidence_score, 0).toFixed(1)}/35`);
+  }
+  if (snap.live.distinct_event_count > 0) {
+    whyParts.push(`${snap.live.distinct_event_count} distinct live event${snap.live.distinct_event_count === 1 ? "" : "s"}`);
+  }
+  const drivers = topEvents.slice(0, 2).map(e => (e.label || "").toLowerCase()).filter(Boolean);
+  if (drivers.length) whyParts.push(drivers.join(" and "));
+  if (safeNum(c.fsi_score, 0) > 0) {
+    whyParts.push(`structural fragility score ${safeNum(c.fsi_score, 0).toFixed(1)}/120 (Fragile States Index)`);
+  }
+
+  return {
+    who: whoParts.join("; "),
+    what: whatEvents.length ? whatEvents.join("; ") : "elevated crisis indicators across multiple dimensions",
+    where: whereParts.join(" — "),
+    when: whenParts.join("; ") || "in the current monitoring window",
+    why: whyParts.join("; ") || "sustained high severity across structural and live indicators",
+  };
+}
+
+function buildEvidenceBackedProse(iso, store) {
+  const snap = safeCountrySnapshot(iso, store);
+  const c = snap.raw;
+  const lb = c.__live_breaking || {};
+  const events = Array.isArray(lb.events) ? lb.events : [];
+  const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
+  const lines = [];
+
+  // Opening: who/what/where/when
+  const q = buildWhoWhatWhereWhenWhy(iso, store);
+  lines.push(
+    `${snap.flag} ${snap.name} — ${q.when}, ${q.who} are facing ${q.what}. ` +
+    `The situation is centred on ${q.where}.`
+  );
+
+  // Evidence paragraph with concrete numbers from ledger
+  if (ledger.length) {
+    const top = ledger
+      .slice()
+      .sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight))
+      .slice(0, 5);
+    const items = top.map(l => {
+      const src = humanSourceName(l.source);
+      const raw = l.rawValue != null ? ` (${l.rawValue})` : "";
+      return `${l.label}${raw} per ${src}`;
+    });
+    lines.push(
+      `The assessment draws on ${c.evidence_source_count || ledger.length} source${(c.evidence_source_count || ledger.length) === 1 ? "" : "s"}, ` +
+      `including ${items.join("; ")}. ` +
+      `Combined evidence score: ${safeNum(c.evidence_score, 0).toFixed(1)}/35 with confidence ${(safeNum(c.evidence_confidence, 0) * 100).toFixed(0)}%.`
+    );
+  }
+
+  // Live event detail paragraph
+  if (events.length) {
+    const lines2 = events.slice(0, 4).map(e => {
+      const src = humanSourceName(e.source);
+      const det = e.details ? `: ${e.details}` : "";
+      const age = formatRelativeTime(e.age_hours);
+      const corroboration = e.corroboration_count > 0
+        ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}`
+        : "";
+      return `${e.label || e.type}${det} (${src}, ${age}${corroboration})`;
+    });
+    lines.push(
+      `Live monitoring detected ${events.length} event signal${events.length === 1 ? "" : "s"}. ` +
+      `Key developments: ${lines2.join("; ")}.`
+    );
+  } else {
+    lines.push(
+      `No fresh live event signals are currently registered, but structural indicators remain elevated ` +
+      `(severity ${snap.severity}, score ${snap.score}/100).`
+    );
+  }
+
+  // Why this matters — needs and dimensions
+  const dims = c.dims || {};
+  const topDims = Object.entries(dims)
+    .map(([k, v]) => ({ k, v: safeNum(v, 0) }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 3);
+  if (topDims.length) {
+    const dimLabels = { conflict: "conflict", displacement: "displacement", food: "food security", health: "health", economic: "economic", climate: "climate", access: "access", political: "political" };
+    lines.push(
+      `Primary pressure areas: ${topDims.map(d => `${dimLabels[d.k] || d.k} (${d.v}/100)`).join(", ")}. ` +
+      `Recommended response tier: ${recommendation(snap.score, null).tier}.`
+    );
+  }
+
+  return lines.join("\n\n");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  PAYLOAD BUILDERS
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -3040,10 +3228,13 @@ function buildKeywords(iso, store) {
 
 function buildMetaDescription(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
+  const q = buildWhoWhatWhereWhenWhy(iso, store);
   let parts = [`${snap.name} crisis update: score ${snap.score}/100 (${snap.severity})`];
   if (snap.live.tier === "BREAKING" && snap.live.headline) parts.unshift(`🔴 BREAKING: ${snap.live.headline}`);
   else if (snap.live.tier === "DEVELOPING" && snap.live.headline) parts.unshift(`🟠 DEVELOPING: ${snap.live.headline}`);
-  return parts.slice(0, 3).join('. ') + '.';
+  parts.push(`Who: ${q.who.substring(0, 100)}`);
+  parts.push(`Where: ${q.where.substring(0, 80)}`);
+  return parts.slice(0, 4).join('. ') + '.';
 }
 
 function buildRelatedStories(iso, store, ranked) {
@@ -3056,14 +3247,15 @@ function buildRelatedStories(iso, store, ranked) {
   } catch { return []; }
 }
 
-function buildJSONLD(iso, store, ranked, image) {
+function buildJSONLD(iso, store, ranked, image, article) {
   const snap = safeCountrySnapshot(iso, store);
   const now = new Date().toISOString();
-  const article = {
+  const q = buildWhoWhatWhereWhenWhy(iso, store);
+  const jsonld = {
     "@type": "NewsArticle",
     "@id": `${snap.url}#article`,
-    "headline": snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
-    "description": buildMetaDescription(iso, store),
+    "headline": article?.headline || snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
+    "description": article?.metaDescription || buildMetaDescription(iso, store),
     "url": snap.url,
     "datePublished": now,
     "dateModified": now,
@@ -3071,29 +3263,38 @@ function buildJSONLD(iso, store, ranked, image) {
     "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
     "mainEntityOfPage": { "@type": "WebPage", "@id": snap.url },
     "articleSection": "Humanitarian Crisis",
-    "keywords": buildKeywords(iso, store).join(", "),
+    "keywords": (article?.keywords || buildKeywords(iso, store)).join(", "),
+    "about": {
+      "@type": "Event",
+      "name": `${snap.name} crisis`,
+      "description": q.what,
+      "location": { "@type": "Place", "name": q.where },
+    },
   };
   if (image && image.url) {
-    article.image = {
+    jsonld.image = {
       "@type": "ImageObject",
       "url": image.url,
       "caption": image.caption,
       "creditText": image.credit || image.source,
     };
   }
-  return { "@context": "https://schema.org", "@graph": [article] };
+  if (article?.word_count) jsonld.wordCount = article.word_count;
+  return { "@context": "https://schema.org", "@graph": [jsonld] };
 }
 
 async function buildSEOArticle(iso, store, ranked, image) {
   try {
     const snap = safeCountrySnapshot(iso, store);
+    const c = snap.raw;
+    const q = buildWhoWhatWhereWhenWhy(iso, store);
     const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
     const events = snap.live.distinct_event_count;
-    const dek = `Score ${snap.score}/100 · ${events} event${events === 1 ? "" : "s"}`;
-    
+    const dek = `Score ${snap.score}/100 · ${events} event${events === 1 ? "" : "s"} · ${snap.severity}`;
+
     let bodyMarkdown = '';
     let bodyHtml = '';
-    
+
     if (image && image.url) {
       bodyMarkdown = `![${image.caption}](${image.url})\n*${image.caption}* — [${image.source}](${image.pageUrl})\n\n`;
       bodyHtml = `<figure class="article-primary-image">` +
@@ -3101,13 +3302,69 @@ async function buildSEOArticle(iso, store, ranked, image) {
         `<figcaption>${escapeHtml(image.caption)} — <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></figcaption>` +
         `</figure>\n`;
     }
-    
-    const overview = `## Overview\n\n${snap.name} scores ${snap.score}/100 (${snap.severity}).`;
-    bodyMarkdown += overview;
-    bodyHtml += `<h2>Overview</h2>\n<p>${escapeHtml(snap.name)} scores ${escapeHtml(String(snap.score))}/100 (${escapeHtml(snap.severity)}).</p>`;
-    
-    const { words, minutes } = estimateReadTime(bodyMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<[^>]*>/g, ''));
-    
+
+    // ─── Structured 5W lead block ───
+    const whoWhatWhereWhenWhyBlock =
+      `## Who, What, Where, When, Why\n\n` +
+      `- **Who:** ${q.who}\n` +
+      `- **What:** ${q.what}\n` +
+      `- **Where:** ${q.where}\n` +
+      `- **When:** ${q.when}\n` +
+      `- **Why:** ${q.why}\n\n`;
+    bodyMarkdown += whoWhatWhereWhenWhyBlock;
+    bodyHtml += `<h2>Who, What, Where, When, Why</h2>\n<dl>\n` +
+      `<dt>Who</dt><dd>${escapeHtml(q.who)}</dd>` +
+      `<dt>What</dt><dd>${escapeHtml(q.what)}</dd>` +
+      `<dt>Where</dt><dd>${escapeHtml(q.where)}</dd>` +
+      `<dt>When</dt><dd>${escapeHtml(q.when)}</dd>` +
+      `<dt>Why</dt><dd>${escapeHtml(q.why)}</dd>\n</dl>\n`;
+
+    // ─── Evidence-backed prose body ───
+    const prose = buildEvidenceBackedProse(iso, store);
+    bodyMarkdown += `## Full Story\n\n${prose}\n\n`;
+    bodyHtml += `<h2>Full Story</h2>\n<p>${escapeHtml(prose).replace(/\n\n/g, "</p>\n<p>")}</p>\n`;
+
+    // ─── Evidence table ───
+    const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
+    if (ledger.length) {
+      const top = ledger
+        .slice()
+        .sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight))
+        .slice(0, 8);
+      bodyMarkdown += `## Evidence Ledger\n\n| Source | Indicator | Raw Value | Points | Weight |\n|---|---|---|---|---|\n`;
+      bodyHtml += `<h2>Evidence Ledger</h2>\n<table><thead><tr><th>Source</th><th>Indicator</th><th>Raw Value</th><th>Points</th><th>Weight</th></tr></thead><tbody>\n`;
+      for (const l of top) {
+        const src = humanSourceName(l.source);
+        const raw = l.rawValue != null ? String(l.rawValue) : "";
+        bodyMarkdown += `| ${src} | ${l.label} | ${raw} | ${l.pts} | ${l.weight} |\n`;
+        bodyHtml += `<tr><td>${escapeHtml(src)}</td><td>${escapeHtml(l.label)}</td><td>${escapeHtml(raw)}</td><td>${l.pts}</td><td>${l.weight}</td></tr>\n`;
+      }
+      bodyHtml += `</tbody></table>\n`;
+    }
+
+    // ─── Situation details ───
+    const dims = c.dims || {};
+    const dimLabels = { conflict: "Conflict", displacement: "Displacement", food: "Food Security", health: "Health", economic: "Economic", climate: "Climate", access: "Access", political: "Political" };
+    const dimLines = Object.entries(dims)
+      .map(([k, v]) => `- ${dimLabels[k] || k}: ${safeNum(v, 0)}/100`)
+      .join("\n");
+    bodyMarkdown += `## Situation Details\n\n${dimLines}\n\n`;
+    bodyHtml += `<h2>Situation Details</h2>\n<ul>\n` +
+      Object.entries(dims).map(([k, v]) => `<li>${escapeHtml(dimLabels[k] || k)}: ${safeNum(v, 0)}/100</li>`).join("\n") +
+      `\n</ul>\n`;
+
+    // ─── Sources ───
+    const sources = Array.isArray(c.evidence_sources) ? c.evidence_sources : [];
+    if (sources.length) {
+      const srcList = sources.map(s => humanSourceName(s)).join(", ");
+      bodyMarkdown += `## Sources\n\n${srcList}\n\n`;
+      bodyHtml += `<h2>Sources</h2>\n<p>${escapeHtml(srcList)}</p>\n`;
+    }
+
+    const { words, minutes } = estimateReadTime(
+      bodyMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<[^>]*>/g, '')
+    );
+
     return {
       headline,
       dek,
@@ -3116,6 +3373,11 @@ async function buildSEOArticle(iso, store, ranked, image) {
       metaDescription: buildMetaDescription(iso, store),
       keywords: buildKeywords(iso, store),
       primary_image: image || null,
+      who: q.who,
+      what: q.what,
+      where: q.where,
+      when: q.when,
+      why: q.why,
       body_markdown: bodyMarkdown,
       body_html: `<article>\n<h1>${escapeHtml(headline)}</h1>\n${bodyHtml}\n</article>`,
       word_count: words,
@@ -3132,6 +3394,11 @@ async function buildSEOArticle(iso, store, ranked, image) {
       metaDescription: `${name} crisis update.`,
       keywords: [`${name} crisis`],
       primary_image: image || null,
+      who: `communities across ${name}`,
+      what: "elevated crisis indicators",
+      where: name,
+      when: "in the current monitoring window",
+      why: "sustained high severity",
       body_markdown: `## Overview\n\n${name} crisis data unavailable.`,
       body_html: `<article><h1>${escapeHtml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`,
       word_count: 3,
@@ -3161,8 +3428,10 @@ function buildRSSFeed(isos, store, ranked, images) {
     const img = images[iso] || null;
     const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
     const link = snap.url;
-    const desc = `Score ${snap.score}/100 · ${snap.live.distinct_event_count} events · ${snap.severity}`;
-    
+    const q = buildWhoWhatWhereWhenWhy(iso, store);
+    const desc = `Score ${snap.score}/100 · ${snap.live.distinct_event_count} events · ${snap.severity}. ` +
+      `Who: ${q.who.substring(0, 80)}. Where: ${q.where.substring(0, 60)}.`;
+
     let contentHtml = '';
     if (img) {
       contentHtml += `<figure class="article-primary-image">` +
@@ -3170,10 +3439,15 @@ function buildRSSFeed(isos, store, ranked, images) {
         `<figcaption>${escapeXml(img.caption)} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
         `</figure>\n`;
     }
-    contentHtml += `<h1>${escapeXml(title)}</h1>\n<p>${escapeXml(desc)}</p>`;
-    
+    contentHtml += `<h1>${escapeXml(title)}</h1>\n` +
+      `<dl><dt>Who</dt><dd>${escapeXml(q.who)}</dd>` +
+      `<dt>What</dt><dd>${escapeXml(q.what)}</dd>` +
+      `<dt>Where</dt><dd>${escapeXml(q.where)}</dd>` +
+      `<dt>When</dt><dd>${escapeXml(q.when)}</dd>` +
+      `<dt>Why</dt><dd>${escapeXml(q.why)}</dd></dl>\n`;
+
     const enclosure = img && img.url ? `<enclosure url="${escapeXml(img.url)}" type="${escapeXml(img.mime || 'image/jpeg')}" />` : '';
-    
+
     return `<item>` +
       `<title>${escapeXml(title)}</title>` +
       `<link>${escapeXml(link)}</link>` +
@@ -3327,7 +3601,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
       article = await buildSEOArticle(iso, store, ranked, image);
     }
 
-    const schemaOrg = opts.schema ? buildJSONLD(iso, store, ranked, image) : null;
+    const schemaOrg = opts.schema ? buildJSONLD(iso, store, ranked, image, article) : null;
 
     return {
       iso, name: snap.name, flag: snap.flag,
@@ -3344,6 +3618,13 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
       percentile: ranked.length > 0 ? Math.round((1 - rank / ranked.length) * 100) : 0,
       slug: snap.slug, url: snap.url,
       primary_image: image || null,
+      ...(article ? {
+        who: article.who,
+        what: article.what,
+        where: article.where,
+        when: article.when,
+        why: article.why,
+      } : {}),
       evidence: {
         score: safeNum(c.evidence_score, 0),
         confidence: safeNum(c.evidence_confidence, 0),
@@ -3448,7 +3729,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v20.9.0
+//  HANDLER — v21.0.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -3506,7 +3787,7 @@ export default async function handler(req, res) {
     if (params.health) {
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v20.9.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v21.0.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -3524,10 +3805,9 @@ export default async function handler(req, res) {
     else finalIsos = ranked.slice(0, params.top);
     if (!finalIsos.length && !isoList.length) finalIsos = ranked.length > 0 ? ranked.slice(0, params.top) : Object.keys(BASE_SCORES).slice(0, params.top);
 
-    // ─── Precision Image Engine fetch ───
     const imageMap = {};
     if (params.images && finalIsos.length > 0) {
-      console.log(`[v20.9.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
+      console.log(`[v21.0.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
       const stories = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
@@ -3536,7 +3816,7 @@ export default async function handler(req, res) {
         return { iso, headline, countryName: snap.name, eventTypes, events };
       });
       const fetchedImages = await fetchImagesForStories(stories);
-      console.log(`[v20.9.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
+      console.log(`[v21.0.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
       for (const [iso, img] of Object.entries(fetchedImages)) {
         imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
@@ -3557,7 +3837,7 @@ export default async function handler(req, res) {
         : (liveEventsOnly.length ? liveEventsOnly : (breakingRanked.length ? breakingRanked : ranked));
       if (!source || source.length === 0) source = ranked.length > 0 ? ranked : Object.keys(BASE_SCORES);
       const feedIsos = source.slice(0, 30);
-      
+
       const rssImages = { ...imageMap };
       if (params.images) {
         const missingIsos = feedIsos.filter(iso => !rssImages[iso]);
@@ -3576,7 +3856,7 @@ export default async function handler(req, res) {
           Object.assign(rssImages, extra);
         }
       }
-      
+
       const f = buildRSSFeed(feedIsos, store, ranked, rssImages);
       res.writeHead(200, { ...CORS, "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "public, s-maxage=120" });
       res.end(f);
@@ -3594,7 +3874,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v20.9.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.0.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -3609,7 +3889,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v20.9.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.0.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -3622,7 +3902,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v20.9.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.0.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -3630,7 +3910,8 @@ export default async function handler(req, res) {
       const iso = finalIsos[0];
       const snap = safeCountrySnapshot(iso, store);
       const c = snap.raw;
-      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims, primary_image: imageMap[iso] || null };
+      const q = buildWhoWhatWhereWhenWhy(iso, store);
+      const data = { iso, name: snap.name, score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score, live_breaking: c.__live_breaking, evidence: c.evidence_ledger, dimensions: c.dims, primary_image: imageMap[iso] || null, who: q.who, what: q.what, where: q.where, when: q.when, why: q.why };
       res.writeHead(200, { ...CORS, 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="${iso}.json"` });
       res.end(JSON.stringify(data, null, 2));
       return;
@@ -3670,6 +3951,7 @@ export default async function handler(req, res) {
       const isos = Object.keys(BASE_SCORES).slice(0, Math.min(params.top, 10));
       payloads = isos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
+        const q = buildWhoWhatWhereWhenWhy(iso, store);
         return {
           iso, name: snap.name, flag: snap.flag,
           score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score,
@@ -3678,6 +3960,7 @@ export default async function handler(req, res) {
           rank: 0, total_countries: isos.length, percentile: 0,
           slug: snap.slug, url: snap.url,
           primary_image: imageMap[iso] || null,
+          who: q.who, what: q.what, where: q.where, when: q.when, why: q.why,
           evidence: { score: 0, confidence: 0, source_count: 0, sources: [], ledger: [] },
           live_breaking: { score: 0, tier: "BACKGROUND", tier_label: "Background", tier_icon: "⚪", headline: null, signal_count: 0, raw_signal_count: 0, distinct_event_count: 0, has_fresh_live_event: false, source_count: 0, sources: [], freshest_signal_age_hours: null, events: [], signals: [] },
           story_heat: { score: 0, tier: "BACKGROUND", top_drivers: [] },
@@ -3706,8 +3989,8 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v20.9.0",
-        version: "v20.9.0",
+        ranking_mode: "DEFINITIVE_v21.0.0",
+        version: "v21.0.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         countries_with_images: Object.keys(imageMap).length,
@@ -3722,10 +4005,29 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v20_9_0: ["precision_image_engine", "event_aware_query_plan", "wikipedia_lead_images", "staged_search_with_early_exit", "6h_image_cache", "cross_story_duplicate_prevention"],
+          new_in_v21_0_0: [
+            "journalistic_article_engine",
+            "who_what_where_when_why_5W",
+            "evidence_backed_prose",
+            "structured_article_fields",
+            "precision_image_engine",
+            "event_aware_query_plan",
+            "staged_search_with_early_exit",
+            "6h_image_cache",
+            "cross_story_duplicate_prevention",
+          ],
           feed_safety: {
-            version: "v20.9.0",
-            guarantees: ["never throws mid-render", "primary image from Wikimedia Commons at article top", "images for all payloads", "hard-rejects PDF/DjVu/SVG/audio/video files", "event-aware scoring picks best candidate", "cross-story duplicate prevention"],
+            version: "v21.0.0",
+            guarantees: [
+              "never throws mid-render",
+              "primary image from Wikimedia Commons at article top",
+              "images for all payloads",
+              "hard-rejects PDF/DjVu/SVG/audio/video files",
+              "event-aware scoring picks best candidate",
+              "cross-story duplicate prevention",
+              "every article answers who/what/where/when/why",
+              "evidence-ledger-backed concrete details",
+            ],
           },
         },
       },
@@ -3736,11 +4038,12 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v20.9.0]", err);
+    console.error("[top-story v21.0.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
         const snap = safeCountrySnapshot(iso, {});
+        const q = buildWhoWhatWhereWhenWhy(iso, {});
         return {
           iso, name: snap.name, flag: snap.flag,
           score: snap.score, structural_score: snap.structural_score, effective_score: snap.effective_score,
@@ -3749,6 +4052,7 @@ export default async function handler(req, res) {
           rank: 0, total_countries: isos.length, percentile: 0,
           slug: snap.slug, url: snap.url,
           primary_image: null,
+          who: q.who, what: q.what, where: q.where, when: q.when, why: q.why,
           evidence: { score: 0, confidence: 0, source_count: 0, sources: [], ledger: [] },
           live_breaking: { score: 0, tier: "BACKGROUND", tier_label: "Background", tier_icon: "⚪", headline: null, signal_count: 0, raw_signal_count: 0, distinct_event_count: 0, has_fresh_live_event: false, source_count: 0, sources: [], freshest_signal_age_hours: null, events: [], signals: [] },
           story_heat: { score: 0, tier: "BACKGROUND", top_drivers: [] },
@@ -3765,7 +4069,7 @@ export default async function handler(req, res) {
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v20.9.0-FALLBACK", version: "v20.9.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.0.0-FALLBACK", version: "v21.0.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
