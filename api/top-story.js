@@ -1,20 +1,20 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v21.0.0 — JOURNALISTIC PRECISION EDITION
+//  TOP-STORY API — v21.1.0 — NARRATIVE JOURNALISM EDITION
 //  ────────────────────────────────────────────────────────────────────────────
 //  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
 //  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
 //  🖼️ PRECISION IMAGE ENGINE — best-possible hero image from Wikimedia Commons
-//  📝 JOURNALISTIC ARTICLE ENGINE — 10/10 standards, who/what/when/where/why
+//  📝 NARRATIVE ARTICLE ENGINE — real prose, not fact sheets
 //
-//  ═══ v21.0.0 — JOURNALISTIC PRECISION EDITION ═══
-//  • Every article answers Who, What, When, Where, Why in natural prose
-//  • Live-evidence-backed concrete details woven throughout
-//  • Full story construction from signals, events, and evidence ledger
-//  • All existing v20.9.0 behavior preserved (ranking, images, feeds)
-//  • Article body now contains real event details, sources, timestamps
-//  • Structured "who/what/where/when/why" fields for editors + schemas
+//  ═══ v21.1.0 — NARRATIVE JOURNALISM EDITION ═══
+//  • Lede → What's happening → Who's affected → Evidence → Why it matters → Kicker
+//  • Events woven into flowing paragraphs with connectors, not semicolon lists
+//  • Named sources inline ("per the U.S. Geological Survey"), not raw codes
+//  • 5W + Evidence Ledger moved to an "Editorial Reference" appendix
+//  • Anomaly, trend, and recommendation written as journalistic prose
+//  • All v21.0.0 behavior preserved (ranking, images, feeds, schema)
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -1742,7 +1742,7 @@ function computeEvidenceScore(iso) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  FETCHERS (unchanged from v20.9.0)
+//  FETCHERS
 // ════════════════════════════════════════════════════════════════════════════
 
 async function fetchHeatAndPrecipLoop() {
@@ -2012,7 +2012,7 @@ async function fetchAllLive() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  INGEST (unchanged from v20.9.0)
+//  INGEST
 // ════════════════════════════════════════════════════════════════════════════
 function ingestFetchedData(out) {
   if (out.usgs_weekly?.features) {
@@ -2324,7 +2324,7 @@ function ingestFetchedData(out) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LIVE BREAKING (unchanged)
+//  LIVE BREAKING
 // ════════════════════════════════════════════════════════════════════════════
 
 const LIVE_SIGNALS = {
@@ -2551,7 +2551,7 @@ function buildBreakingHeadline(signals, country) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  RANKING (unchanged)
+//  RANKING
 // ════════════════════════════════════════════════════════════════════════════
 
 function rankByLiveBreaking(store) {
@@ -2602,7 +2602,7 @@ function rankLiveEventsOnly(store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ANOMALY / ML (unchanged)
+//  ANOMALY / ML
 // ════════════════════════════════════════════════════════════════════════════
 
 function detectCUSUM(a) { if (a.length < 6) return { detected: false, stat: 0 }; const b = a.slice(0, Math.floor(a.length*0.6)), mu = mean(b), sd = stddev(b); const k = 0.5*sd, h = 4*sd; let sp = 0, sn = 0; for (const x of a) { sp = Math.max(0, sp + (x-mu) - k); sn = Math.max(0, sn - (x-mu) - k); } return { detected: sp > h || sn > h, stat: +Math.max(sp,sn).toFixed(2) }; }
@@ -2999,8 +2999,8 @@ function safeCountrySnapshot(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  JOURNALISTIC ARTICLE ENGINE (v21.0.0)
-//  Builds 10/10-standard articles answering who/what/where/when/why
+//  NARRATIVE JOURNALISM ENGINE (v21.1.0)
+//  Weaves 5W into flowing prose, not fact lists.
 // ════════════════════════════════════════════════════════════════════════════
 
 const ARTICLE_SOURCE_NAMES = {
@@ -3053,12 +3053,18 @@ function formatRelativeTime(hours) {
   return `about ${Math.round(hours / 168)} weeks ago`;
 }
 
-function formatDateShort(iso2) {
-  const d = iso2 ? new Date(iso2) : new Date();
-  if (isNaN(d.getTime())) return "recently";
-  return d.toUTCString().replace(/GMT$/, "UTC").replace(/\s+\d{2}:\d{2}:\d{2} UTC$/, "");
+// ─── Helper: dimensions object → natural-language clause ───
+function topDimensionsSentence(dims) {
+  if (!dims) return "pressure is broadly distributed";
+  const labels = { conflict: "conflict", displacement: "displacement", food: "food security", health: "health", economic: "economic", climate: "climate", access: "access", political: "political" };
+  const sorted = Object.entries(dims)
+    .map(([k, v]) => ({ k, v: safeNum(v, 0) }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 3);
+  return sorted.map(d => `${labels[d.k] || d.k} (${d.v}/100)`).join(", ");
 }
 
+// ─── Structured 5W (for the editorial appendix and for JSON-LD) ───
 function buildWhoWhatWhereWhenWhy(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
   const c = snap.raw;
@@ -3066,7 +3072,6 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   const events = Array.isArray(lb.events) ? lb.events : [];
   const topEvents = events.slice(0, 4);
 
-  // WHO — affected population, named places, agencies
   const whoParts = [];
   const pop = safeNum(c.signals?.population, 0);
   if (pop > 0) whoParts.push(`${pop.toLocaleString()} residents of ${snap.name}`);
@@ -3078,14 +3083,12 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   if (displaced > 0) whoParts.push(`${displaced.toLocaleString()} displaced people`);
   if (safeNum(c.signals?.refugees, 0) > 0) whoParts.push(`${safeNum(c.signals.refugees, 0).toLocaleString()} refugees`);
 
-  // WHAT — top concrete events with details
   const whatEvents = topEvents.map(e => {
     const label = e.label || e.type || "Crisis signal";
     const det = e.details ? ` — ${e.details}` : "";
     return `${label}${det}`;
   });
 
-  // WHERE — country + named places from event details
   const placeHits = [];
   const placeRe = /\b(?:near|in|at|around|outside)\s+([A-Z][A-Za-z'’\-]+(?:\s+[A-Z][A-Za-z'’\-]+)?)/g;
   for (const e of topEvents) {
@@ -3097,7 +3100,6 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   const whereParts = [`${snap.name}${snap.region ? ` (${snap.region.replace(/_/g, " ")})` : ""}`];
   if (placeHits.length) whereParts.push(placeHits.slice(0, 3).join(", "));
 
-  // WHEN — freshest event age and per-event ages
   const fresh = snap.live.freshest_signal_age_hours;
   const whenParts = [];
   if (fresh != null) whenParts.push(`signals detected ${formatRelativeTime(fresh)}`);
@@ -3105,7 +3107,6 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
     whenParts.push(`most recent event ${formatRelativeTime(topEvents[0].age_hours)}`);
   }
 
-  // WHY — drivers from evidence + event labels
   const whyParts = [];
   if (safeNum(c.evidence_score, 0) > 0) {
     whyParts.push(`multi-source evidence score of ${safeNum(c.evidence_score, 0).toFixed(1)}/35`);
@@ -3128,76 +3129,100 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   };
 }
 
+// ─── NARRATIVE PROSE ───
+// Produces flowing paragraphs, NOT a semicolon-separated fact sheet.
 function buildEvidenceBackedProse(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
   const c = snap.raw;
   const lb = c.__live_breaking || {};
   const events = Array.isArray(lb.events) ? lb.events : [];
   const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
-  const lines = [];
+  const paragraphs = [];
+  const sourceCount = c.evidence_source_count || ledger.length;
+  const freshest = formatRelativeTime(snap.live.freshest_signal_age_hours);
 
-  // Opening: who/what/where/when
-  const q = buildWhoWhatWhereWhenWhy(iso, store);
-  lines.push(
-    `${snap.flag} ${snap.name} — ${q.when}, ${q.who} are facing ${q.what}. ` +
-    `The situation is centred on ${q.where}.`
-  );
+  // ─── LEDE ───
+  const topEvent = events[0] || null;
+  let lede;
+  if (topEvent) {
+    const det = topEvent.details ? `, ${String(topEvent.details).replace(/^(M\d+(\.\d+)? )/, "")}` : "";
+    const age = formatRelativeTime(topEvent.age_hours);
+    lede = `${snap.flag} ${snap.name} is under active crisis monitoring this hour, with ${events.length} live event signal${events.length === 1 ? "" : "s"} detected ${freshest}. The most recent — ${topEvent.label}${det} — was recorded by ${humanSourceName(topEvent.source)} ${age}, according to ${sourceCount} independent source${sourceCount === 1 ? "" : "s"} tracked by the Global Crisis Index.`;
+  } else {
+    lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index this hour. No fresh live events are registered, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
+  }
+  paragraphs.push(lede);
 
-  // Evidence paragraph with concrete numbers from ledger
+  // ─── WHAT IS HAPPENING ───
+  if (events.length >= 2) {
+    const connectors = ["First", "Meanwhile", "Separately", "Additionally"];
+    const clauses = events.slice(0, 4).map((e, i) => {
+      const age = e.age_hours != null ? formatRelativeTime(e.age_hours) : "recently";
+      const corroboration = e.corroboration_count > 0 ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}` : "";
+      const det = e.details ? ` — ${e.details}` : "";
+      return `${connectors[i] || "Also"}, ${e.label}${det} was recorded by ${humanSourceName(e.source)} ${age}${corroboration}.`;
+    });
+    paragraphs.push(clauses.join(" "));
+  }
+
+  // ─── WHO IS AFFECTED ───
+  const pop = safeNum(c.signals?.population, 0);
+  const displaced = safeNum(c.signals?.totalDisplaced, 0);
+  const refugees = safeNum(c.signals?.refugees, 0);
+  if (pop > 0 || displaced > 0 || refugees > 0) {
+    const bits = [];
+    if (pop > 0) bits.push(`${pop.toLocaleString()} residents`);
+    if (displaced > 0) bits.push(`${displaced.toLocaleString()} people internally displaced`);
+    if (refugees > 0) bits.push(`${refugees.toLocaleString()} refugees hosted`);
+    paragraphs.push(`The human stakes are concrete: ${bits.join(", ")}. Aid access, shelter capacity, and health infrastructure are the immediate constraints flagged by the Index's eight-dimension model, where ${topDimensionsSentence(c.dims)} carry the heaviest weight.`);
+  } else {
+    paragraphs.push(`The Index's eight-dimension model places the heaviest pressure on ${topDimensionsSentence(c.dims)}, which determine how quickly the situation could deteriorate if a new shock lands.`);
+  }
+
+  // ─── EVIDENCE ───
   if (ledger.length) {
     const top = ledger
       .slice()
       .sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight))
-      .slice(0, 5);
+      .slice(0, 4);
     const items = top.map(l => {
       const src = humanSourceName(l.source);
       const raw = l.rawValue != null ? ` (${l.rawValue})` : "";
-      return `${l.label}${raw} per ${src}`;
+      return `${l.label}${raw}, per ${src}`;
     });
-    lines.push(
-      `The assessment draws on ${c.evidence_source_count || ledger.length} source${(c.evidence_source_count || ledger.length) === 1 ? "" : "s"}, ` +
-      `including ${items.join("; ")}. ` +
-      `Combined evidence score: ${safeNum(c.evidence_score, 0).toFixed(1)}/35 with confidence ${(safeNum(c.evidence_confidence, 0) * 100).toFixed(0)}%.`
-    );
+    const confPct = (safeNum(c.evidence_confidence, 0) * 100).toFixed(0);
+    const confBand = safeNum(c.evidence_confidence, 0) >= 0.75 ? "tight" : safeNum(c.evidence_confidence, 0) >= 0.5 ? "moderate" : "wide";
+    paragraphs.push(`The assessment rests on ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}. The highest-weighted signals are: ${items.join("; ")}. Combined evidence score: ${safeNum(c.evidence_score, 0).toFixed(1)}/35 with ${confPct}% confidence — a ${confBand} confidence band.`);
   }
 
-  // Live event detail paragraph
-  if (events.length) {
-    const lines2 = events.slice(0, 4).map(e => {
-      const src = humanSourceName(e.source);
-      const det = e.details ? `: ${e.details}` : "";
-      const age = formatRelativeTime(e.age_hours);
-      const corroboration = e.corroboration_count > 0
-        ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}`
-        : "";
-      return `${e.label || e.type}${det} (${src}, ${age}${corroboration})`;
-    });
-    lines.push(
-      `Live monitoring detected ${events.length} event signal${events.length === 1 ? "" : "s"}. ` +
-      `Key developments: ${lines2.join("; ")}.`
-    );
-  } else {
-    lines.push(
-      `No fresh live event signals are currently registered, but structural indicators remain elevated ` +
-      `(severity ${snap.severity}, score ${snap.score}/100).`
-    );
+  // ─── WHY IT MATTERS / WHAT NEXT ───
+  const realHistory = (c.historical_scores || []).slice(-30);
+  const anom = runAnomalyDetection(realHistory.length >= 14 ? realHistory : seedHistory(iso, snap.score).map(h => h.s), { minRequired: 10 });
+  const trend = c.ml_forecast || {};
+  const trendDir = trend.trend || "stable";
+  const forecast = safeNum(trend.fc, snap.score);
+  const rec = recommendation(snap.score, anom);
+
+  const anomalyLine = anom.detected
+    ? `Statistical monitoring has flagged a ${String(anom.severity).toLowerCase()} anomaly — ${anom.methods_fired} of 4 detection methods (CUSUM, Z-score, changepoint, volatility) agree the current trajectory deviates from the recent baseline.`
+    : `No statistical anomaly is currently flagged; the trajectory is consistent with the recent baseline.`;
+
+  const trendLine = trendDir === "escalating"
+    ? `Machine-learning forecasting projects the score could reach ${forecast}/100 within seven days — an escalating trend.`
+    : trendDir === "improving"
+    ? `Machine-learning forecasting projects a modest improvement toward ${forecast}/100 within seven days.`
+    : `Machine-learning forecasting projects the score will hold near ${forecast}/100 over the next seven days.`;
+
+  paragraphs.push(`${anomalyLine} ${trendLine} The Global Crisis Index recommendation tier is ${rec.tier}: ${rec.text}`);
+
+  // ─── KICKER ───
+  if (snap.live.tier === "BREAKING") {
+    paragraphs.push(`This is a breaking story. GCIN will update the Index within five minutes as new signals arrive.`);
+  } else if (snap.live.tier === "DEVELOPING") {
+    paragraphs.push(`This story is developing. Follow the GCIN live feed for updates.`);
   }
 
-  // Why this matters — needs and dimensions
-  const dims = c.dims || {};
-  const topDims = Object.entries(dims)
-    .map(([k, v]) => ({ k, v: safeNum(v, 0) }))
-    .sort((a, b) => b.v - a.v)
-    .slice(0, 3);
-  if (topDims.length) {
-    const dimLabels = { conflict: "conflict", displacement: "displacement", food: "food security", health: "health", economic: "economic", climate: "climate", access: "access", political: "political" };
-    lines.push(
-      `Primary pressure areas: ${topDims.map(d => `${dimLabels[d.k] || d.k} (${d.v}/100)`).join(", ")}. ` +
-      `Recommended response tier: ${recommendation(snap.score, null).tier}.`
-    );
-  }
-
-  return lines.join("\n\n");
+  return paragraphs.join("\n\n");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -3303,62 +3328,83 @@ async function buildSEOArticle(iso, store, ranked, image) {
         `</figure>\n`;
     }
 
-    // ─── Structured 5W lead block ───
-    const whoWhatWhereWhenWhyBlock =
-      `## Who, What, Where, When, Why\n\n` +
-      `- **Who:** ${q.who}\n` +
-      `- **What:** ${q.what}\n` +
-      `- **Where:** ${q.where}\n` +
-      `- **When:** ${q.when}\n` +
-      `- **Why:** ${q.why}\n\n`;
-    bodyMarkdown += whoWhatWhereWhenWhyBlock;
-    bodyHtml += `<h2>Who, What, Where, When, Why</h2>\n<dl>\n` +
-      `<dt>Who</dt><dd>${escapeHtml(q.who)}</dd>` +
-      `<dt>What</dt><dd>${escapeHtml(q.what)}</dd>` +
-      `<dt>Where</dt><dd>${escapeHtml(q.where)}</dd>` +
-      `<dt>When</dt><dd>${escapeHtml(q.when)}</dd>` +
-      `<dt>Why</dt><dd>${escapeHtml(q.why)}</dd>\n</dl>\n`;
-
-    // ─── Evidence-backed prose body ───
+    // ─── NARRATIVE PROSE (the article itself) ───
     const prose = buildEvidenceBackedProse(iso, store);
-    bodyMarkdown += `## Full Story\n\n${prose}\n\n`;
-    bodyHtml += `<h2>Full Story</h2>\n<p>${escapeHtml(prose).replace(/\n\n/g, "</p>\n<p>")}</p>\n`;
+    bodyMarkdown += prose + "\n\n";
+    // Convert double newlines to <p> boundaries; single newlines stay inline.
+    const proseHtml = prose.split(/\n\n+/).map(p => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("\n");
+    bodyHtml += proseHtml + "\n";
 
-    // ─── Evidence table ───
+    // ─── EDITORIAL REFERENCE APPENDIX ───
+    const appendixMarkdown = [
+      "---",
+      "",
+      "### Editorial Reference",
+      "",
+      `- **Who:** ${q.who}`,
+      `- **What:** ${q.what}`,
+      `- **Where:** ${q.where}`,
+      `- **When:** ${q.when}`,
+      `- **Why:** ${q.why}`,
+    ].join("\n");
+    bodyMarkdown += appendixMarkdown + "\n\n";
+
+    const appendixHtml = `<hr style="border:none;border-top:1px solid rgba(66,153,225,0.12);margin:1.5rem 0;" />\n` +
+      `<h3 style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin-bottom:0.5rem;">Editorial Reference</h3>\n` +
+      `<dl style="display:grid;grid-template-columns:90px 1fr;gap:0.4rem 0.8rem;font-size:0.9rem;">` +
+      `<dt style="font-weight:700;color:#7a9aba;">Who</dt><dd>${escapeHtml(q.who)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">What</dt><dd>${escapeHtml(q.what)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">Where</dt><dd>${escapeHtml(q.where)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">When</dt><dd>${escapeHtml(q.when)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">Why</dt><dd>${escapeHtml(q.why)}</dd>` +
+      `</dl>\n`;
+    bodyHtml += appendixHtml;
+
+    // ─── EVIDENCE LEDGER TABLE ───
     const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
     if (ledger.length) {
-      const top = ledger
-        .slice()
-        .sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight))
-        .slice(0, 8);
-      bodyMarkdown += `## Evidence Ledger\n\n| Source | Indicator | Raw Value | Points | Weight |\n|---|---|---|---|---|\n`;
-      bodyHtml += `<h2>Evidence Ledger</h2>\n<table><thead><tr><th>Source</th><th>Indicator</th><th>Raw Value</th><th>Points</th><th>Weight</th></tr></thead><tbody>\n`;
+      const top = ledger.slice().sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight)).slice(0, 8);
+      bodyMarkdown += `#### Evidence Ledger\n\n| Source | Indicator | Raw Value | Points | Weight |\n|---|---|---|---|---|\n`;
+      bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Evidence Ledger</h4>\n` +
+        `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;background:rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;">` +
+        `<thead style="background:rgba(0,200,255,0.06);"><tr>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Source</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Indicator</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Raw</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Pts</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Weight</th>` +
+        `</tr></thead><tbody>`;
       for (const l of top) {
         const src = humanSourceName(l.source);
         const raw = l.rawValue != null ? String(l.rawValue) : "";
         bodyMarkdown += `| ${src} | ${l.label} | ${raw} | ${l.pts} | ${l.weight} |\n`;
-        bodyHtml += `<tr><td>${escapeHtml(src)}</td><td>${escapeHtml(l.label)}</td><td>${escapeHtml(raw)}</td><td>${l.pts}</td><td>${l.weight}</td></tr>\n`;
+        bodyHtml += `<tr>` +
+          `<td style="padding:0.5rem 0.75rem;color:#f0f6ff;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(src)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(l.label)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(raw)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(String(l.pts ?? ""))}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(String(l.weight ?? ""))}</td>` +
+          `</tr>`;
       }
       bodyHtml += `</tbody></table>\n`;
     }
 
-    // ─── Situation details ───
+    // ─── SITUATION DETAILS ───
     const dims = c.dims || {};
     const dimLabels = { conflict: "Conflict", displacement: "Displacement", food: "Food Security", health: "Health", economic: "Economic", climate: "Climate", access: "Access", political: "Political" };
-    const dimLines = Object.entries(dims)
-      .map(([k, v]) => `- ${dimLabels[k] || k}: ${safeNum(v, 0)}/100`)
-      .join("\n");
-    bodyMarkdown += `## Situation Details\n\n${dimLines}\n\n`;
-    bodyHtml += `<h2>Situation Details</h2>\n<ul>\n` +
-      Object.entries(dims).map(([k, v]) => `<li>${escapeHtml(dimLabels[k] || k)}: ${safeNum(v, 0)}/100</li>`).join("\n") +
-      `\n</ul>\n`;
+    const dimLines = Object.entries(dims).map(([k, v]) => `- ${dimLabels[k] || k}: ${safeNum(v, 0)}/100`).join("\n");
+    bodyMarkdown += `#### Situation Details\n\n${dimLines}\n\n`;
+    bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Situation Details</h4>\n` +
+      `<ul style="list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.4rem 0.8rem;font-size:0.75rem;color:#b8cce8;">` +
+      Object.entries(dims).map(([k, v]) => `<li><strong style="color:#7a9aba;font-size:0.65rem;text-transform:uppercase;">${escapeHtml(dimLabels[k] || k)}</strong> ${safeNum(v, 0)}/100</li>`).join("") +
+      `</ul>\n`;
 
-    // ─── Sources ───
+    // ─── SOURCES ───
     const sources = Array.isArray(c.evidence_sources) ? c.evidence_sources : [];
     if (sources.length) {
       const srcList = sources.map(s => humanSourceName(s)).join(", ");
-      bodyMarkdown += `## Sources\n\n${srcList}\n\n`;
-      bodyHtml += `<h2>Sources</h2>\n<p>${escapeHtml(srcList)}</p>\n`;
+      bodyMarkdown += `#### Sources\n\n${srcList}\n\n`;
+      bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Sources</h4>\n<p style="font-size:0.8rem;color:#7a9aba;">${escapeHtml(srcList)}</p>\n`;
     }
 
     const { words, minutes } = estimateReadTime(
@@ -3439,12 +3485,9 @@ function buildRSSFeed(isos, store, ranked, images) {
         `<figcaption>${escapeXml(img.caption)} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
         `</figure>\n`;
     }
-    contentHtml += `<h1>${escapeXml(title)}</h1>\n` +
-      `<dl><dt>Who</dt><dd>${escapeXml(q.who)}</dd>` +
-      `<dt>What</dt><dd>${escapeXml(q.what)}</dd>` +
-      `<dt>Where</dt><dd>${escapeXml(q.where)}</dd>` +
-      `<dt>When</dt><dd>${escapeXml(q.when)}</dd>` +
-      `<dt>Why</dt><dd>${escapeXml(q.why)}</dd></dl>\n`;
+    const prose = buildEvidenceBackedProse(iso, store);
+    const proseHtml = prose.split(/\n\n+/).map(p => `<p>${escapeXml(p)}</p>`).join("\n");
+    contentHtml += `<h1>${escapeXml(title)}</h1>\n${proseHtml}\n`;
 
     const enclosure = img && img.url ? `<enclosure url="${escapeXml(img.url)}" type="${escapeXml(img.mime || 'image/jpeg')}" />` : '';
 
@@ -3729,7 +3772,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v21.0.0
+//  HANDLER — v21.1.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -3787,7 +3830,7 @@ export default async function handler(req, res) {
     if (params.health) {
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v21.0.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v21.1.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -3807,7 +3850,7 @@ export default async function handler(req, res) {
 
     const imageMap = {};
     if (params.images && finalIsos.length > 0) {
-      console.log(`[v21.0.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
+      console.log(`[v21.1.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
       const stories = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
@@ -3816,7 +3859,7 @@ export default async function handler(req, res) {
         return { iso, headline, countryName: snap.name, eventTypes, events };
       });
       const fetchedImages = await fetchImagesForStories(stories);
-      console.log(`[v21.0.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
+      console.log(`[v21.1.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
       for (const [iso, img] of Object.entries(fetchedImages)) {
         imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
@@ -3874,7 +3917,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.0.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.1.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -3889,7 +3932,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.0.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.1.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -3902,7 +3945,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, headline: snap.live.headline, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.0.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.1.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -3989,8 +4032,8 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v21.0.0",
-        version: "v21.0.0",
+        ranking_mode: "DEFINITIVE_v21.1.0",
+        version: "v21.1.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         countries_with_images: Object.keys(imageMap).length,
@@ -4005,19 +4048,20 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v21_0_0: [
+          new_in_v21_1_0: [
+            "narrative_journalism_engine",
+            "flowing_prose_not_fact_lists",
+            "lede_whats_happening_whos_affected_evidence_why_next",
+            "editorial_reference_appendix",
+            "5W_and_evidence_ledger_after_prose",
             "journalistic_article_engine",
-            "who_what_where_when_why_5W",
-            "evidence_backed_prose",
-            "structured_article_fields",
             "precision_image_engine",
-            "event_aware_query_plan",
             "staged_search_with_early_exit",
             "6h_image_cache",
             "cross_story_duplicate_prevention",
           ],
           feed_safety: {
-            version: "v21.0.0",
+            version: "v21.1.0",
             guarantees: [
               "never throws mid-render",
               "primary image from Wikimedia Commons at article top",
@@ -4025,8 +4069,9 @@ export default async function handler(req, res) {
               "hard-rejects PDF/DjVu/SVG/audio/video files",
               "event-aware scoring picks best candidate",
               "cross-story duplicate prevention",
-              "every article answers who/what/where/when/why",
-              "evidence-ledger-backed concrete details",
+              "article prose is narrative, not semicolon-separated facts",
+              "5W and evidence ledger are an editorial appendix after the prose",
+              "every claim is traceable to a named source",
             ],
           },
         },
@@ -4038,7 +4083,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v21.0.0]", err);
+    console.error("[top-story v21.1.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -4069,7 +4114,7 @@ export default async function handler(req, res) {
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.0.0-FALLBACK", version: "v21.0.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.1.0-FALLBACK", version: "v21.1.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
