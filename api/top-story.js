@@ -2411,7 +2411,7 @@ function buildBreakingHeadline(signals, country) {
   const top = sortedByWeight[0];
   const second = sortedByWeight.find(e => e.type !== top.type && e.details !== top.details);
   // Only prepend BREAKING when the top event is a *verified* (non-estimated) fresh event
-      const prefix = (top.ageHours <= 6 && !top.isEstimated) ? "BREAKING: " : (top.ageHours <= 24 && !top.isEstimated) ? "" : "ONGOING: ";
+        const prefix = (top.ageHours <= 6 && !top.isEstimated) ? "BREAKING: " : (top.ageHours <= 24 && !top.isEstimated) ? "" : "ONGOING: ";
   let headline = `${country?.flag || "🌍"} ${prefix}${country?.name || "Unknown"} — ${top.details || top.type}`;
   if (second && second.weight >= 60) headline += ` + ${second.details || second.type}`;
   return headline;
