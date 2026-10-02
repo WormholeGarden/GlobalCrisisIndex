@@ -2974,6 +2974,12 @@ function eventLabelToHuman(label, type, opts = {}) {
     if (opts.details) return describeEarthquake(opts.magnitude, opts.details);
     return "an earthquake";
   }
+  // Disease / case-count events: use the raw case count as the human label
+  // so the sentence reads "20,054 active COVID cases was recorded..." instead of
+  // "a disease outbreak, 20,054 active COVID cases was recorded..."
+  if (/^Disease Outbreak$/i.test(l) && opts.details) {
+    return opts.details;
+  }
   const rules = [
     [/^GDACS Volcano RED Alert$/i, "a red-level volcanic alert"],
     [/^GDACS Volcano Orange Alert$/i, "an orange-level volcanic alert"],
@@ -3075,14 +3081,17 @@ function humanizeLedgerLabel(source, label) {
     }
     return l;
   }
-  // GDACS: "Orange volcanic alert: Lewotobi" → "an orange volcanic alert for Lewotobi"
+  // GDACS: "Orange volcanic alert: Lewotobi" → "an orange-level volcanic alert for Lewotobi"
   if (src === "GDACS") {
     const m = l.match(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*(.*)$/i);
     if (m) {
       const [, level, kind, place] = m;
       const lvl = level.toLowerCase();
       const kindWord = kind.toLowerCase();
-      return place ? `a ${lvl}-level ${kindWord} alert for ${place}` : `a ${lvl}-level ${kindWord} alert`;
+      const article = /^[aeiou]/i.test(lvl) ? "an" : "a";
+      return place
+        ? `${article} ${lvl}-level ${kindWord} alert for ${place}`
+        : `${article} ${lvl}-level ${kindWord} alert`;
     }
     return l;
   }
@@ -3233,7 +3242,9 @@ function buildEvidenceBackedProse(iso, store) {
       const age = e.age_hours != null ? formatRelativeTime(e.age_hours) : "recently";
       const src = humanSourceName(e.source);
       const corroboration = e.corroboration_count > 0 ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}` : "";
-      const detailClause = detail ? `, ${detail}` : "";
+            const detailClause = detail
+        ? (/^(for|in|at|near|over|across|along)\s/i.test(detail) ? ` ${detail}` : `, ${detail}`)
+        : "";
       const core = `${human}${detailClause} was recorded by ${src} ${age}${corroboration}`;
       if (i === 0) return capitalizeFirst(core) + ".";
       const opener = openers[(i - 1) % openers.length];
