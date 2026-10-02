@@ -3029,7 +3029,9 @@ function eventLabelToHuman(label, type, opts = {}) {
 function eventDetailsToHuman(details, type, label) {
   let d = String(details || "").trim();
   if (!d) return "";
-  // GDACS volcanic/drought/flood/cyclone alert: "Orange volcanic alert: Lewotobi" → "for Mount Lewotobi"
+  // Guard: if the detail string is already contained in the label, don't append it again.
+  const labelStr = String(label || "").trim().toLowerCase();
+  if (labelStr && labelStr.includes(d.toLowerCase())) return "";  // GDACS volcanic/drought/flood/cyclone alert: "Orange volcanic alert: Lewotobi" → "for Mount Lewotobi"
   let m = d.match(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*(.*)$/i);
   if (m) {
     const place = m[3].trim();
@@ -3194,6 +3196,7 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
 }
 
 // ─── NARRATIVE PROSE (v21.4.0 — ULTIMATE) ───
+// ─── NARRATIVE PROSE (v21.5.0 — EVENT vs QUANTITY TEMPLATES) ───
 function buildEvidenceBackedProse(iso, store) {
   const snap = safeCountrySnapshot(iso, store);
   const c = snap.raw;
@@ -3206,6 +3209,27 @@ function buildEvidenceBackedProse(iso, store) {
   const hasFresh = freshAge != null && freshAge <= CFG.DEVELOPING_MAX_FRESH_HOURS;
   const tier = snap.live.tier;
 
+  // ─── Classify an event: is its human label a "quantity" (case count, volatility %) or an "event" (alert, earthquake)?
+  // Quantities use ", per <source>" — events use "was recorded by <source>".
+  function isQuantityEvent(e) {
+    const label = String(e.label || "").trim();
+    // disease_active / disease_outbreak with a numeric case count
+    if (/^Disease Outbreak$/i.test(label) && /^\d/.test(String(e.details || "").trim())) return true;
+    // currency stress / volatility percentages
+    if (/^Currency Stress$/i.test(label)) return true;
+    // Any label that starts with a digit is definitely a quantity
+    if (/^\d/.test(label)) return true;
+    return false;
+  }
+
+  function quantityHumanLabel(e) {
+    // For disease_outbreak: use the raw case-count string as the label.
+    if (/^Disease Outbreak$/i.test(String(e.label || ""))) return String(e.details || "").trim();
+    // For currency stress: use the raw "% volatility" string.
+    if (/^Currency Stress$/i.test(String(e.label || ""))) return String(e.details || "").trim();
+    return String(e.label || "");
+  }
+
   // ─── LEDE ───
   const topEvent = events[0] || null;
   const topEventAge = topEvent?.age_hours != null ? topEvent.age_hours : null;
@@ -3215,10 +3239,14 @@ function buildEvidenceBackedProse(iso, store) {
 
   let lede;
   if (topEvent && hasFresh) {
-    const detailClause = topEventDetail ? `, ${topEventDetail}` : "";
+    const detailClause = topEventDetail
+      ? (/^(for|in|at|near|over|across|along)\s/i.test(topEventDetail) ? ` ${topEventDetail}` : `, ${topEventDetail}`)
+      : "";
     lede = `${snap.flag} ${snap.name} is under active crisis monitoring this hour. The highest-weighted live signal is ${topEventHuman}${detailClause}, recorded by ${topEventSource} ${formatRelativeTime(topEventAge)}. Across ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}, ${events.length} live event signal${events.length === 1 ? "" : "s"} remain active.`;
   } else if (topEvent && !hasFresh) {
-    const detailClause = topEventDetail ? `, ${topEventDetail}` : "";
+    const detailClause = topEventDetail
+      ? (/^(for|in|at|near|over|across|along)\s/i.test(topEventDetail) ? ` ${topEventDetail}` : `, ${topEventDetail}`)
+      : "";
     lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. The highest-weighted event on record is ${topEventHuman}${detailClause}, logged by ${topEventSource} ${formatRelativeTime(topEventAge)}. No fresh (sub-24-hour) signals are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
   } else {
     lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. No live events are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
@@ -3237,15 +3265,30 @@ function buildEvidenceBackedProse(iso, store) {
       "On a related note, ",
     ];
     const clauses = otherEvents.map((e, i) => {
-      const human = eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
-      const detail = eventDetailsToHuman(e.details, e.type, e.label);
+      const isQuantity = isQuantityEvent(e);
+      const humanLabel = isQuantity
+        ? quantityHumanLabel(e)
+        : eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
+      const detail = isQuantity ? "" : eventDetailsToHuman(e.details, e.type, e.label);
       const age = e.age_hours != null ? formatRelativeTime(e.age_hours) : "recently";
       const src = humanSourceName(e.source);
-      const corroboration = e.corroboration_count > 0 ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}` : "";
-            const detailClause = detail
-        ? (/^(for|in|at|near|over|across|along)\s/i.test(detail) ? ` ${detail}` : `, ${detail}`)
+      const corroboration = e.corroboration_count > 0
+        ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}`
         : "";
-      const core = `${human}${detailClause} was recorded by ${src} ${age}${corroboration}`;
+
+      let core;
+      if (isQuantity) {
+        // Quantity template: "<label>, per <source>, <age>"
+        // e.g. "20,054 active COVID cases, per disease.sh, earlier today"
+        core = `${humanLabel}, per ${src} ${age}${corroboration}`;
+      } else {
+        // Event template: "<label> <detail> was recorded by <source> <age>"
+        const detailClause = detail
+          ? (/^(for|in|at|near|over|across|along)\s/i.test(detail) ? ` ${detail}` : `, ${detail}`)
+          : "";
+        core = `${humanLabel}${detailClause} was recorded by ${src} ${age}${corroboration}`;
+      }
+
       if (i === 0) return capitalizeFirst(core) + ".";
       const opener = openers[(i - 1) % openers.length];
       return `${opener}${core}.`;
@@ -3345,7 +3388,6 @@ function buildEvidenceBackedProse(iso, store) {
 
   return paragraphs.join("\n\n");
 }
-
 // ════════════════════════════════════════════════════════════════════════════
 //  PAYLOAD BUILDERS
 // ════════════════════════════════════════════════════════════════════════════
