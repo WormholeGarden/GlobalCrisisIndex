@@ -57,7 +57,7 @@ const CFG = {
   DEVELOPING_MAX_FRESH_HOURS: 24,
   LIVE_EVENT_FLAT_BOOST: 35,
   ARTICLE_SITE_NAME: "GCIN · Global Crisis Index News",
-  ARTICLE_BASE_URL: "https://globalcrisisindex.com",
+  ARTICLE_BASE_URL: "https://www.globalcrisisindex.com",
   ARTICLE_AUTHOR: "GCIN Editorial Team",
   ARTICLE_LOGO: "https://globalcrisisindex.com/logo.png",
   NDBC_BUOYS: ["51001", "51002", "46026", "41009", "23201", "23002", "56001", "56002"],
@@ -2385,12 +2385,13 @@ function computeLiveBreakingScore(iso, live, store) {
     fsi_baseline: +fsiBaseline.toFixed(2),
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
     signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
-    events: dedupedSignals.map(sig => ({
+        events: dedupedSignals.map(sig => ({
       type: sig.type,
       label: LIVE_SIGNALS[sig.type]?.label || sig.type,
       icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
       weight: sig.weight,
       age_hours: +(sig.ageHours || 0).toFixed(1),
+      is_estimated: !!sig.isEstimated,
       weighted_score: sig.weighted_score,
       source: sig.source,
       details: sig.details,
@@ -2404,11 +2405,13 @@ function computeLiveBreakingScore(iso, live, store) {
 
 function buildBreakingHeadline(signals, country) {
   if (!signals || signals.length === 0) return `${country?.flag || "🌍"} ${country?.name || "Unknown"}: No active breaking crisis signals`;
-  const freshEvents = signals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
+  // Only non-estimated signals count for the "BREAKING" prefix
+  const freshEvents = signals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS && !s.isEstimated);
   const sortedByWeight = [...(freshEvents.length ? freshEvents : signals)].sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
   const top = sortedByWeight[0];
   const second = sortedByWeight.find(e => e.type !== top.type && e.details !== top.details);
-  const prefix = top.ageHours <= 6 ? "BREAKING: " : top.ageHours <= 24 ? "" : "ONGOING: ";
+  // Only prepend BREAKING when the top event is a *verified* (non-estimated) fresh event
+    const prefix = (top.ageHours <= 6 && !top.isEstimated) ? "BREAKING: " : (top.ageHours <= 24 && !top.isEstimated) ? "" : "ONGOING: ";
   let headline = `${country?.flag || "🌍"} ${prefix}${country?.name || "Unknown"} — ${top.details || top.type}`;
   if (second && second.weight >= 60) headline += ` + ${second.details || second.type}`;
   return headline;
@@ -2834,8 +2837,8 @@ function safeCountrySnapshot(iso, store) {
   const name = c.name || ISO_NAMES[iso] || iso;
   const flag = c.flag || (FSI_2024[iso]?.flag) || "🌍";
   const region = c.region || (FSI_2024[iso]?.region) || "other";
-  const slug = slugify(name);
-  const url = `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`;
+    const slug = slugify(name);
+  const url = `${CFG.ARTICLE_BASE_URL}/?country=${iso}`;
   return {
     iso, name, flag, region, slug, url,
     score,
@@ -3429,8 +3432,10 @@ function buildRelatedStories(iso, store, ranked) {
   try {
     return ranked.filter(r => r !== iso && store[r]?.region === store[iso]?.region).slice(0, 5)
       .map(r => {
-        const s = safeCountrySnapshot(r, store);
-        return { iso: r, name: s.name, score: s.score, live_score: s.live.score, slug: s.slug };
+               const s = safeCountrySnapshot(r, store);
+        const topCrisisType = (s.raw?.types && s.raw.types[0]) || null;
+        const relatedUrl = topCrisisType ? buildCrisisUrl(r, topCrisisType) : s.url;
+        return { iso: r, name: s.name, score: s.score, live_score: s.live.score, slug: s.slug, url: relatedUrl };
       });
   } catch { return []; }
 }
@@ -3444,7 +3449,7 @@ function buildJSONLD(iso, store, ranked, image, article) {
     "@id": `${snap.url}#article`,
     "headline": article?.headline || snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
     "description": article?.metaDescription || buildMetaDescription(iso, store),
-    "url": snap.url,
+        "url": article?.url || snap.url,
     "datePublished": now,
     "dateModified": now,
     "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
@@ -3578,7 +3583,8 @@ async function buildSEOArticle(iso, store, ranked, image) {
     const slug = slugify(name);
     return {
       headline: `${name} Crisis Monitor`, dek: "Crisis update pending.",
-      slug, url: `${CFG.ARTICLE_BASE_URL}/crisis/${slug}`,
+            slug,
+      url: `${CFG.ARTICLE_BASE_URL}/?country=${iso}`,
       metaDescription: `${name} crisis update.`, keywords: [`${name} crisis`],
       primary_image: image || null,
       who: `communities across ${name}`, what: "Elevated crisis indicators across multiple dimensions.",
@@ -3590,13 +3596,19 @@ async function buildSEOArticle(iso, store, ranked, image) {
     };
   }
 }
-
+function buildCrisisUrl(iso, crisisCode) {
+  if (!iso) return CFG.ARTICLE_BASE_URL;
+  if (!crisisCode) return `${CFG.ARTICLE_BASE_URL}/?country=${iso}`;
+  return `${CFG.ARTICLE_BASE_URL}/?country=${iso}&crisis=${encodeURIComponent(crisisCode)}`;
+}
 function buildSitemap(payloads) {
   const now = new Date().toISOString();
-  const rows = payloads.filter(p => p && p.slug).map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/crisis/${p.slug}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`).join("\n");
+  const rows = payloads
+    .filter(p => p && p.iso)
+    .map(p => `  <url><loc>${CFG.ARTICLE_BASE_URL}/?country=${p.iso}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq></url>`)
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows}\n</urlset>`;
 }
-
 function escapeXml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 function escapeHtml(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 
@@ -3605,10 +3617,12 @@ function buildRSSFeed(isos, store, ranked, images) {
   let feedIsos = Array.isArray(isos) && isos.length > 0 ? isos.slice(0, 30) : [];
   if (feedIsos.length === 0) feedIsos = Array.isArray(ranked) && ranked.length > 0 ? ranked.slice(0, 30) : Object.keys(BASE_SCORES).slice(0, 30);
   const items = feedIsos.map(iso => {
-    const snap = safeCountrySnapshot(iso, store);
+        const snap = safeCountrySnapshot(iso, store);
     const img = images[iso] || null;
     const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
-    const link = snap.url;
+    // Deep-link to the top crisis type if available
+    const topCrisisType = (snap.raw?.types && snap.raw.types[0]) || null;
+    const link = topCrisisType ? buildCrisisUrl(iso, topCrisisType) : snap.url;
     const q = buildWhoWhatWhereWhenWhy(iso, store);
     const desc = `Score ${snap.score}/100 · ${snap.live.distinct_event_count} events · ${snap.severity}. Who: ${q.who.substring(0, 80)}. Where: ${q.where.substring(0, 60)}.`;
     let contentHtml = '';
