@@ -53,7 +53,7 @@ const CFG = {
   DEDUP_TIME_WINDOW_HOURS: 6,
   DEDUP_MAG_TOLERANCE: 0.8,
   FRESH_SIGNAL_HOURS: 24,
-  BREAKING_MAX_FRESH_HOURS: 6,
+  BREAKING_MAX_FRESH_HOURS: 4,
   DEVELOPING_MAX_FRESH_HOURS: 24,
   LIVE_EVENT_FLAT_BOOST: 35,
   ARTICLE_SITE_NAME: "GCIN · Global Crisis Index News",
@@ -2244,70 +2244,93 @@ function computeLiveBreakingScore(iso, live, store) {
   const now = Date.now();
   const cov = evidenceIndex.sourceCoverage[iso] || {};
 
+  // ─── SEISMIC (USGS — real timestamp from cov.usgs.time) ───
   if (cov.usgs?.mag >= 4.5) {
     const ageHours = cov.usgs.time ? (now - cov.usgs.time) / 36e5 : 24;
     signals.push({
       type: cov.usgs.mag >= 6 ? "earthquake_m6" : cov.usgs.mag >= 5 ? "earthquake_m5" : "earthquake_m45",
       weight: cov.usgs.mag >= 6 ? 95 : cov.usgs.mag >= 5 ? 65 : 40,
-      ageHours, source: "USGS",
+      ageHours, isEstimated: !cov.usgs.time, source: "USGS",
       details: `M${cov.usgs.mag.toFixed(1)} earthquake${cov.usgs.place ? " near " + cov.usgs.place.split(",")[0] : ""}`,
       magnitude: cov.usgs.mag,
     });
   }
+  // ─── EMSC (secondary seismic — timestamps available but we don't parse them yet) ───
   if (cov.emsc?.mag >= 4.5 && (!cov.usgs || cov.emsc.mag > cov.usgs.mag)) {
-    signals.push({ type: "earthquake_m5", weight: 55, ageHours: 12, source: "EMSC", details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag });
+    signals.push({ type: "earthquake_m5", weight: 55, ageHours: 12, isEstimated: true, source: "EMSC", details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag });
   }
+  // ─── GDACS (all GDACS feeds default to 12h/24h — no event timestamp parsed) ───
   if (cov.gdacs?.alert) {
     const a = String(cov.gdacs.alert).toLowerCase();
-    signals.push({ type: a === "red" ? "gdacs_red" : "gdacs_orange", weight: a === "red" ? 100 : 70, ageHours: 12, source: "GDACS", details: `${cov.gdacs.alert} alert: ${cov.gdacs.event || "disaster"}` });
+    signals.push({ type: a === "red" ? "gdacs_red" : "gdacs_orange", weight: a === "red" ? 100 : 70, ageHours: 12, isEstimated: true, source: "GDACS", details: `${cov.gdacs.alert} alert: ${cov.gdacs.event || "disaster"}` });
   }
   if (cov.gdacs_volcano?.alert) {
     const a = cov.gdacs_volcano.alert.toLowerCase();
-    signals.push({ type: a === "red" ? "gdacs_volcano_red" : "gdacs_volcano_orange", weight: a === "red" ? 90 : 60, ageHours: 12, source: "GDACS", details: `${cov.gdacs_volcano.alert} volcanic alert: ${cov.gdacs_volcano.event || ""}` });
+    signals.push({ type: a === "red" ? "gdacs_volcano_red" : "gdacs_volcano_orange", weight: a === "red" ? 90 : 60, ageHours: 12, isEstimated: true, source: "GDACS", details: `${cov.gdacs_volcano.alert} volcanic alert: ${cov.gdacs_volcano.event || ""}` });
   }
   if (cov.gdacs_drought?.alert) {
     const a = cov.gdacs_drought.alert.toLowerCase();
-    signals.push({ type: a === "red" ? "gdacs_drought_red" : "gdacs_drought_orange", weight: a === "red" ? 85 : 55, ageHours: 24, source: "GDACS", details: `${cov.gdacs_drought.alert} drought alert: ${cov.gdacs_drought.event || ""}` });
+    signals.push({ type: a === "red" ? "gdacs_drought_red" : "gdacs_drought_orange", weight: a === "red" ? 85 : 55, ageHours: 24, isEstimated: true, source: "GDACS", details: `${cov.gdacs_drought.alert} drought alert: ${cov.gdacs_drought.event || ""}` });
   }
   if (cov.gdacs_flood?.alert) {
     const a = cov.gdacs_flood.alert.toLowerCase();
-    signals.push({ type: a === "red" ? "gdacs_flood_red" : "gdacs_flood_orange", weight: a === "red" ? 85 : 55, ageHours: 12, source: "GDACS", details: `${cov.gdacs_flood.alert} flood alert: ${cov.gdacs_flood.event || ""}` });
+    signals.push({ type: a === "red" ? "gdacs_flood_red" : "gdacs_flood_orange", weight: a === "red" ? 85 : 55, ageHours: 12, isEstimated: true, source: "GDACS", details: `${cov.gdacs_flood.alert} flood alert: ${cov.gdacs_flood.event || ""}` });
   }
   if (cov.gdacs_cyclone?.alert) {
     const a = cov.gdacs_cyclone.alert.toLowerCase();
-    signals.push({ type: a === "red" ? "gdacs_cyclone_red" : "gdacs_cyclone_orange", weight: a === "red" ? 95 : 65, ageHours: 12, source: "GDACS", details: `${cov.gdacs_cyclone.alert} cyclone alert: ${cov.gdacs_cyclone.event || ""}` });
+    signals.push({ type: a === "red" ? "gdacs_cyclone_red" : "gdacs_cyclone_orange", weight: a === "red" ? 95 : 65, ageHours: 12, isEstimated: true, source: "GDACS", details: `${cov.gdacs_cyclone.alert} cyclone alert: ${cov.gdacs_cyclone.event || ""}` });
   }
-  if (cov.wildfire) signals.push({ type: "nasa_wildfire", weight: 75, ageHours: 24, source: "NASA", details: cov.wildfire.title || "Active wildfire" });
-  if (cov.nasa) signals.push({ type: "nasa_storm", weight: 60, ageHours: 24, source: "NASA", details: cov.nasa.title || "Natural event" });
-  if (cov.heat?.temp >= 40) signals.push({ type: "heat_extreme", weight: cov.heat.temp >= 45 ? 75 : 60, ageHours: 12, source: "OPENMETEO", details: `${cov.heat.temp}°C extreme heat` });
-  if (cov.ifrc) signals.push({ type: "ifrc_emergency", weight: 75, ageHours: 48, source: "IFRC", details: `${cov.ifrc.dtype || "Emergency"}: ${(cov.ifrc.name || "").substring(0, 40)}` });
-  if (cov.covid?.active > 10000) signals.push({ type: "disease_active", weight: 50, ageHours: 24, source: "DISEASE.SH", details: `${cov.covid.active.toLocaleString()} active COVID cases` });
-  if (cov.who_don) signals.push({ type: "who_don", weight: 90, ageHours: 48, source: "WHO DON", details: (cov.who_don.title || "").substring(0, 60) });
-  if (cov.displaced > 100000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${cov.displaced.toLocaleString()} displaced` });
-  if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, source: cov.air_quality.source || "OPENMETEO", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
-  if (cov.flood_risk?.discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 24, source: "OPENMETEO", details: `River discharge ${cov.flood_risk.discharge}m³/s` });
-  if (cov.marine?.wave_height > 5) signals.push({ type: "marine_hazard", weight: 55, ageHours: 12, source: "OPENMETEO", details: `${cov.marine.wave_height}m waves` });
-  if (cov.gdp_growth !== undefined && cov.gdp_growth < -2) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "WORLDBANK", details: `GDP growth ${cov.gdp_growth.toFixed(1)}%` });
-  if (cov.inflation > 30) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "WORLDBANK", details: `Inflation ${cov.inflation.toFixed(1)}%` });
-  if (cov.conflict_event) signals.push({ type: "conflict_spike", weight: 50, ageHours: 48, source: "RELIEFWEB", details: (cov.conflict_event.title || "").substring(0, 60) });
-  if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60) });
-  if (cov.gdelt_conflict?.count >= 3) signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, source: "GDELT", details: `${cov.gdelt_conflict.count} conflict/unrest articles` });
-  if (cov.currency_stress?.volatility_pct >= 15) signals.push({ type: "currency_stress", weight: cov.currency_stress.volatility_pct >= 30 ? 70 : 55, ageHours: 6, source: "ECB FX", details: `${cov.currency_stress.volatility_pct.toFixed(1)}% implied currency stress (${cov.currency_stress.source_currency})` });
+  // ─── NASA EONET (timestamps available but we don't parse them yet) ───
+  if (cov.wildfire) signals.push({ type: "nasa_wildfire", weight: 75, ageHours: 24, isEstimated: true, source: "NASA", details: cov.wildfire.title || "Active wildfire" });
+  if (cov.nasa) signals.push({ type: "nasa_storm", weight: 60, ageHours: 24, isEstimated: true, source: "NASA", details: cov.nasa.title || "Natural event" });
+  // ─── HEAT (Open-Meteo forecast — current data, but age is default) ───
+  if (cov.heat?.temp >= 40) signals.push({ type: "heat_extreme", weight: cov.heat.temp >= 45 ? 75 : 60, ageHours: 12, isEstimated: true, source: "OPENMETEO", details: `${cov.heat.temp}°C extreme heat` });
+  // ─── IFRC (has real disaster_start_date, but we don't compute exact age — mark estimated for now) ───
+  if (cov.ifrc) signals.push({ type: "ifrc_emergency", weight: 75, ageHours: 48, isEstimated: true, source: "IFRC", details: `${cov.ifrc.dtype || "Emergency"}: ${(cov.ifrc.name || "").substring(0, 40)}` });
+  // ─── DISEASE.SH (active case count — data updated daily, but no timestamp) ───
+  if (cov.covid?.active > 10000) signals.push({ type: "disease_active", weight: 50, ageHours: 24, isEstimated: true, source: "DISEASE.SH", details: `${cov.covid.active.toLocaleString()} active COVID cases` });
+  // ─── WHO DON (has PublicationDate but we don't parse it yet) ───
+  if (cov.who_don) signals.push({ type: "who_don", weight: 90, ageHours: 48, isEstimated: true, source: "WHO DON", details: (cov.who_don.title || "").substring(0, 60) });
+  // ─── UNHCR displacement (yearly data) ───
+  if (cov.displaced > 100000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, isEstimated: true, source: "UNHCR", details: `${cov.displaced.toLocaleString()} displaced` });
+  // ─── Air quality (Open-Meteo hourly, but we use a fixed default) ───
+  if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, isEstimated: true, source: cov.air_quality.source || "OPENMETEO", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
+  // ─── Flood / marine (Open-Meteo forecasts) ───
+  if (cov.flood_risk?.discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 24, isEstimated: true, source: "OPENMETEO", details: `River discharge ${cov.flood_risk.discharge}m³/s` });
+  if (cov.marine?.wave_height > 5) signals.push({ type: "marine_hazard", weight: 55, ageHours: 12, isEstimated: true, source: "OPENMETEO", details: `${cov.marine.wave_height}m waves` });
+  // ─── Economic (World Bank — yearly data) ───
+  if (cov.gdp_growth !== undefined && cov.gdp_growth < -2) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, isEstimated: true, source: "WORLDBANK", details: `GDP growth ${cov.gdp_growth.toFixed(1)}%` });
+  if (cov.inflation > 30) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, isEstimated: true, source: "WORLDBANK", details: `Inflation ${cov.inflation.toFixed(1)}%` });
+  // ─── Conflict (ReliefWeb, GDELT — no timestamp parsing yet) ───
+  if (cov.conflict_event) signals.push({ type: "conflict_spike", weight: 50, ageHours: 48, isEstimated: true, source: "RELIEFWEB", details: (cov.conflict_event.title || "").substring(0, 60) });
+  if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, isEstimated: true, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60) });
+  if (cov.gdelt_conflict?.count >= 3) signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, isEstimated: true, source: "GDELT", details: `${cov.gdelt_conflict.count} conflict/unrest articles` });
+  // ─── Currency (ECB FX reference rates — daily data, not breaking) ───
+  if (cov.currency_stress?.volatility_pct >= 15) signals.push({ type: "currency_stress", weight: cov.currency_stress.volatility_pct >= 30 ? 70 : 55, ageHours: 6, isEstimated: true, source: "ECB FX", details: `${cov.currency_stress.volatility_pct.toFixed(1)}% implied currency stress (${cov.currency_stress.source_currency})` });
+  // ─── US drought (weekly data) ───
   if (cov.us_drought && iso === "USA") {
     const lvl = cov.us_drought.level || "D0";
     const w = lvl === "D4" ? 80 : lvl === "D3" ? 70 : lvl === "D2" ? 60 : lvl === "D1" ? 50 : 40;
-    signals.push({ type: "us_drought", weight: w, ageHours: 72, source: "US DM", details: `US Drought ${lvl} — ${cov.us_drought.area_pct || 0}% area affected` });
+    signals.push({ type: "us_drought", weight: w, ageHours: 72, isEstimated: true, source: "US DM", details: `US Drought ${lvl} — ${cov.us_drought.area_pct || 0}% area affected` });
   }
-  if (cov.water_stress_static?.baseline_stress >= 3.0) signals.push({ type: "water_stress", weight: 45, ageHours: 720, source: "WRI Aqueduct", details: `Baseline water stress ${cov.water_stress_static.baseline_stress.toFixed(1)}/5.0` });
-  if (cov.ndvi_static && Math.abs(cov.ndvi_static.ndvi_anomaly_pct) >= 15) signals.push({ type: "crop_stress", weight: 50, ageHours: 720, source: "FAO GIEWS", details: `NDVI ${cov.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM` });
-  if (cov.health_capacity?.hospital_beds_per_10k < 10) signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, source: "WHO GHO", details: `${cov.health_capacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
-  if (cov.openaq?.pm25 >= 35) signals.push({ type: "openaq_air_quality", weight: cov.openaq.pm25 >= 100 ? 70 : 55, ageHours: 6, source: "OpenAQ", details: `PM2.5 ${cov.openaq.pm25.toFixed(0)} µg/m³ (${cov.openaq.city || "station"})` });
-  if (cov.ndbc?.wave_height > 3) signals.push({ type: "ndbc_marine", weight: cov.ndbc.wave_height > 6 ? 80 : 60, ageHours: 1, source: "NOAA NDBC", details: `${cov.ndbc.wave_height}m waves (buoy ${cov.ndbc.buoy})` });
-  if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}` });
-  if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}` });
-  if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano || "active"}` });
-  if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}` });
-  if (cov.inform?.score >= 5) signals.push({ type: "inform_risk", weight: cov.inform.score >= 7 ? 65 : 50, ageHours: 720, source: "INFORM", details: `INFORM risk score ${cov.inform.score.toFixed(1)} (rank ${cov.inform.rank || "N/A"})` });
+  // ─── Static water stress / NDVI / health capacity (baseline indicators) ───
+  if (cov.water_stress_static?.baseline_stress >= 3.0) signals.push({ type: "water_stress", weight: 45, ageHours: 720, isEstimated: true, source: "WRI Aqueduct", details: `Baseline water stress ${cov.water_stress_static.baseline_stress.toFixed(1)}/5.0` });
+  if (cov.ndvi_static && Math.abs(cov.ndvi_static.ndvi_anomaly_pct) >= 15) signals.push({ type: "crop_stress", weight: 50, ageHours: 720, isEstimated: true, source: "FAO GIEWS", details: `NDVI ${cov.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM` });
+  if (cov.health_capacity?.hospital_beds_per_10k < 10) signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, isEstimated: true, source: "WHO GHO", details: `${cov.health_capacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
+  // ─── OpenAQ (hourly, but we use a fixed default) ───
+  if (cov.openaq?.pm25 >= 35) signals.push({ type: "openaq_air_quality", weight: cov.openaq.pm25 >= 100 ? 70 : 55, ageHours: 6, isEstimated: true, source: "OpenAQ", details: `PM2.5 ${cov.openaq.pm25.toFixed(0)} µg/m³ (${cov.openaq.city || "station"})` });
+  // ─── NDBC (real-time buoy, but we don't parse exact timestamp) ───
+  if (cov.ndbc?.wave_height > 3) signals.push({ type: "ndbc_marine", weight: cov.ndbc.wave_height > 6 ? 80 : 60, ageHours: 1, isEstimated: true, source: "NOAA NDBC", details: `${cov.ndbc.wave_height}m waves (buoy ${cov.ndbc.buoy})` });
+  // ─── Copernicus EMS (activation date available but not parsed) ───
+  if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, isEstimated: true, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}` });
+  // ─── ProMED (RSS pubDate available but not parsed) ───
+  if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, isEstimated: true, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}` });
+  // ─── Smithsonian GVP (weekly report) ───
+  if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, isEstimated: true, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano || "active"}` });
+  // ─── NOAA PTWC (recent alerts, but timestamp parsing not implemented) ───
+  if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, isEstimated: true, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}` });
+  // ─── INFORM (yearly index) ───
+  if (cov.inform?.score >= 5) signals.push({ type: "inform_risk", weight: cov.inform.score >= 7 ? 65 : 50, ageHours: 720, isEstimated: true, source: "INFORM", details: `INFORM risk score ${cov.inform.score.toFixed(1)} (rank ${cov.inform.rank || "N/A"})` });
 
   const rawSignals = signals.map(sig => ({ ...sig, is_live_event: true }));
   const dedupedSignals = deduplicateEvents(rawSignals, iso);
@@ -2333,7 +2356,8 @@ function computeLiveBreakingScore(iso, live, store) {
   const signalCount = rawSignals.length;
   const distinctEventCount = dedupedSignals.length;
   let liveEventBoost = 0;
-  const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
+  // ─── Fresh event gate: only non-estimated signals count for BREAKING/DEVELOPING ───
+  const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS && !s.isEstimated);
   if (freshEvents.length > 0) {
     liveEventBoost = CFG.LIVE_EVENT_FLAT_BOOST + Math.min(CFG.LIVE_EVENT_FLAT_BOOST * 0.5, (freshEvents.length - 1) * 15);
     rawScore += liveEventBoost;
@@ -2343,7 +2367,14 @@ function computeLiveBreakingScore(iso, live, store) {
   const uniqueTypes = new Set(dedupedSignals.map(s => s.type));
   const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
   rawScore += diversityBonus;
+
+  // Freshest age including estimated signals (for narrative "freshest signal" display)
   const freshest = dedupedSignals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
+  // Freshest age of only VERIFIED (non-estimated) signals (for tier gate)
+  const freshestVerified = dedupedSignals
+    .filter(s => !s.isEstimated)
+    .reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
+
   let freshnessBonus = 0;
   if (freshest <= 6) freshnessBonus = 40;
   else if (freshest <= 12) freshnessBonus = 25;
@@ -2354,10 +2385,15 @@ function computeLiveBreakingScore(iso, live, store) {
   rawScore += Math.max(0, fsiBaseline);
   const normalizedScore = Math.round(100 * (1 - Math.exp(-rawScore / 120)));
 
+  // ─── HONEST TIER LOGIC ───
+  // BREAKING and DEVELOPING require a VERIFIED (non-estimated) fresh signal.
+  // A daily FX rate, GDACS default age, or yearly World Bank indicator cannot
+  // trigger BREAKING — they are structural data, not live events.
   const hasFreshLiveEvent = freshEvents.length > 0;
   const freshestAge = freshest === 9999 ? null : freshest;
-  const isTrulyBreaking = hasFreshLiveEvent && freshestAge != null && freshestAge <= CFG.BREAKING_MAX_FRESH_HOURS;
-  const isDeveloping   = hasFreshLiveEvent && freshestAge != null && freshestAge <= CFG.DEVELOPING_MAX_FRESH_HOURS;
+  const freshestVerifiedAge = freshestVerified === 9999 ? null : freshestVerified;
+  const isTrulyBreaking = hasFreshLiveEvent && freshestVerifiedAge != null && freshestVerifiedAge <= CFG.BREAKING_MAX_FRESH_HOURS;
+  const isDeveloping   = hasFreshLiveEvent && freshestVerifiedAge != null && freshestVerifiedAge <= CFG.DEVELOPING_MAX_FRESH_HOURS;
 
   let tier, tierLabel, tierIcon;
   if (isTrulyBreaking && normalizedScore >= 55) { tier = "BREAKING"; tierLabel = "BREAKING NEWS"; tierIcon = "🔴"; }
@@ -2384,6 +2420,7 @@ function computeLiveBreakingScore(iso, live, store) {
     freshness_bonus: freshnessBonus,
     fsi_baseline: +fsiBaseline.toFixed(2),
     freshest_signal_age_hours: freshest === 9999 ? null : +freshest.toFixed(1),
+    freshest_verified_age_hours: freshestVerified === 9999 ? null : +freshestVerified.toFixed(1),
     signals: activeSignals.sort((a, b) => b.weighted_score - a.weighted_score),
     events: dedupedSignals.map(sig => ({
       type: sig.type,
@@ -2391,6 +2428,7 @@ function computeLiveBreakingScore(iso, live, store) {
       icon: LIVE_SIGNALS[sig.type]?.icon || "⚠️",
       weight: sig.weight,
       age_hours: +(sig.ageHours || 0).toFixed(1),
+      is_estimated: !!sig.isEstimated,
       weighted_score: sig.weighted_score,
       source: sig.source,
       details: sig.details,
@@ -2401,7 +2439,6 @@ function computeLiveBreakingScore(iso, live, store) {
     breaking_headline: buildBreakingHeadline(activeSignals, c),
   };
 }
-
 function buildBreakingHeadline(signals, country) {
   if (!signals || signals.length === 0) return `${country?.flag || "🌍"} ${country?.name || "Unknown"}: No active breaking crisis signals`;
   const freshEvents = signals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
@@ -3280,7 +3317,7 @@ function buildEvidenceBackedProse(iso, store) {
       if (isQuantity) {
         // Quantity template: "<label>, per <source>, <age>"
         // e.g. "20,054 active COVID cases, per disease.sh, earlier today"
-        core = `${humanLabel}, per ${src} ${age}${corroboration}`;
+                core = `${humanLabel}, per ${src}, ${age}${corroboration}`;
       } else {
         // Event template: "<label> <detail> was recorded by <source> <age>"
         const detailClause = detail
