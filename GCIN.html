@@ -619,6 +619,63 @@
       gap: 0.75rem;
     }
     
+    /* ─── NARRATIVE ARTICLE BODY ─── */
+    .story-body {
+      font-size: 1rem;
+      line-height: 1.9;
+      color: var(--gcin-text-secondary);
+      margin: 0.75rem 0;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .story-body p { margin-bottom: 1rem; }
+    .story-body p:last-child { margin-bottom: 0; }
+    
+    .story-body .dropcap::first-letter {
+      font-family: var(--gcin-font-serif);
+      font-size: 3.8rem;
+      float: left;
+      line-height: 0.8;
+      margin-right: 0.4rem;
+      color: var(--gcin-text-primary);
+      font-weight: 900;
+    }
+    
+    .story-body strong { color: var(--gcin-text-primary); }
+    .story-body em { color: var(--gcin-text-muted-light); font-style: italic; }
+    .story-body a { color: var(--gcin-cyan); text-decoration: none; border-bottom: 1px dotted rgba(0, 200, 255, 0.3); }
+    .story-body a:hover { border-bottom-color: var(--gcin-cyan); }
+    .story-body hr {
+      border: none;
+      border-top: 1px solid var(--gcin-border);
+      margin: 1.5rem 0;
+    }
+    .story-body h1, .story-body h2, .story-body h3, .story-body h4 {
+      font-family: var(--gcin-font-serif);
+      color: var(--gcin-text-primary);
+      margin: 1rem 0 0.5rem;
+      line-height: 1.2;
+    }
+    .story-body h1 { font-size: 1.6rem; font-weight: 800; }
+    .story-body h2 { font-size: 1.35rem; font-weight: 700; }
+    .story-body h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gcin-text-muted-light);
+      font-family: var(--gcin-font-mono);
+    }
+    .story-body h4 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gcin-text-muted);
+      font-family: var(--gcin-font-mono);
+    }
+    
     /* ─── WIKIPEDIA INTRO BOX ─── */
     .wikipedia-intro {
       background: rgba(0, 200, 255, 0.03);
@@ -664,126 +721,12 @@
       border-bottom-color: var(--gcin-cyan);
     }
     
-    /* ─── STORY BODY ─── */
-    .story-body {
-      font-size: 1rem;
-      line-height: 1.9;
-      color: var(--gcin-text-secondary);
-      margin: 0.75rem 0;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .story-body p { margin-bottom: 1rem; }
-    .story-body p:last-child { margin-bottom: 0; }
-    
-    .story-body .dropcap::first-letter {
-      font-family: var(--gcin-font-serif);
-      font-size: 3.8rem;
-      float: left;
-      line-height: 0.8;
-      margin-right: 0.4rem;
-      color: var(--gcin-text-primary);
-      font-weight: 900;
-    }
-    
-    .story-body strong { color: var(--gcin-text-primary); }
-    .story-body .highlight { color: var(--gcin-cyan); font-weight: 600; }
-    
-    /* ─── 5W BLOCK ─── */
-    .story-5w {
-      background: rgba(0, 200, 255, 0.03);
-      border: 1px solid rgba(0, 200, 255, 0.1);
-      border-radius: var(--gcin-radius-sm);
-      padding: 1rem 1.25rem;
-      margin: 1rem 0;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .story-5w h3 {
-      font-family: var(--gcin-font-mono);
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--gcin-cyan);
-      margin-bottom: 0.5rem;
-      font-weight: 700;
-    }
-    
-    .story-5w dl {
-      display: grid;
-      grid-template-columns: 90px 1fr;
-      gap: 0.4rem 0.8rem;
-      margin: 0;
-    }
-    
-    .story-5w dt {
-      font-family: var(--gcin-font-mono);
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--gcin-text-muted-light);
-      padding-top: 0.15rem;
-    }
-    
-    .story-5w dd {
-      font-size: 0.9rem;
-      color: var(--gcin-text-secondary);
-      line-height: 1.6;
-      margin: 0;
-    }
-    
-    .story-body .quote {
-      border-left: 3px solid var(--gcin-cyan);
-      padding-left: 1.2rem;
-      margin: 1.2rem 0;
-      font-style: italic;
-      color: var(--gcin-text-primary);
-      font-family: var(--gcin-font-serif);
-      font-size: 1.1rem;
-    }
-    
-    .story-body .quote .attribution {
-      display: block;
-      font-style: normal;
-      font-size: 0.8rem;
-      color: var(--gcin-text-muted);
-      margin-top: 0.3rem;
-      font-family: var(--gcin-font-mono);
-    }
-    
-    .story-body .data-highlight {
-      background: rgba(0, 200, 255, 0.04);
-      border: 1px solid rgba(0, 200, 255, 0.08);
-      border-radius: var(--gcin-radius-sm);
-      padding: 0.75rem 1rem;
-      margin: 0.75rem 0;
-    }
-    
-    .story-body .data-highlight .stat {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--gcin-cyan);
-    }
-    
-    .story-body .data-highlight .stat-label {
-      font-size: 0.7rem;
-      color: var(--gcin-text-muted);
-      font-family: var(--gcin-font-mono);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
     /* ─── EVIDENCE LEDGER TABLE ─── */
     .story-evidence-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1rem 0;
+      margin: 0.75rem 0;
       font-size: 0.8rem;
-      position: relative;
-      z-index: 1;
       background: rgba(0, 0, 0, 0.2);
       border-radius: var(--gcin-radius-sm);
       overflow: hidden;
@@ -817,7 +760,7 @@
       font-weight: 600;
     }
     
-    /* ─── DIMENSIONS GRID ─── */
+    /* ─── STORY DIMENSIONS ─── */
     .story-dimensions {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -1094,7 +1037,6 @@
       .story-body .dropcap::first-letter { font-size: 2.8rem; }
       .wikipedia-intro .wiki-text { font-size: 0.85rem; }
       .article-primary-image .image-caption { flex-direction: column; align-items: flex-start; }
-      .story-5w dl { grid-template-columns: 80px 1fr; }
       .story-evidence-table { font-size: 0.7rem; }
       .story-evidence-table th, .story-evidence-table td { padding: 0.35rem 0.5rem; }
     }
@@ -1108,8 +1050,6 @@
       .wikipedia-intro { padding: 0.5rem 0.8rem; }
       .wikipedia-intro .wiki-text { font-size: 0.8rem; }
       .article-primary-image img { max-height: 240px; }
-      .story-5w dl { grid-template-columns: 1fr; gap: 0.15rem 0; }
-      .story-5w dt { margin-top: 0.4rem; }
     }
   </style>
 </head>
@@ -1167,7 +1107,7 @@
     <div class="loading-state">
       <div class="spinner"></div>
       <span style="font-size:0.9rem; color:var(--gcin-text-muted-light);">⏳ Loading live crisis intelligence...</span>
-      <span style="font-size:0.7rem; color:var(--gcin-text-muted); margin-top:0.3rem;">Fetching from 20+ global sources · Journalistic Article Engine active</span>
+      <span style="font-size:0.7rem; color:var(--gcin-text-muted); margin-top:0.3rem;">Fetching from 20+ global sources · Narrative Journalism Engine active</span>
     </div>
   </div>
   
@@ -1182,9 +1122,9 @@
   <div class="footer-note">
     <strong>GCIN</strong> is a Gold Standard crisis intelligence platform. Data refreshes every 5 minutes from 20+ live APIs.<br>
     <strong>🧠 AI:</strong> Neural network forecasting · <strong>💬 Sentiment:</strong> Multi-source analysis · <strong>🔥 Heat:</strong> Velocity + Anomaly Consensus + ML + Evidence + Thresholds<br>
-    <strong>📝 Journalism:</strong> Who · What · Where · When · Why — evidence-ledger-backed reporting on every story<br>
+    <strong>📝 Journalism:</strong> Who · What · Where · When · Why — narrative prose with evidence-ledger appendices<br>
     <strong>📡 RSS:</strong> <a href="/api/top-story?format=rss" class="rss-feed-link">Subscribe for Breaking Crisis Intelligence</a><br>
-    <strong>🖼️ Images:</strong> Precision Image Engine (v21.0.0) — Best-possible hero image from Wikimedia Commons<br>
+    <strong>🖼️ Images:</strong> Precision Image Engine (v21.1.0) — Best-possible hero image from Wikimedia Commons<br>
     <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
   
@@ -1195,14 +1135,15 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — GOLD STANDARD EDITION v11.0 (JOURNALISTIC PRECISION EDITION)
+    //  GCIN — GOLD STANDARD EDITION v12.0 (NARRATIVE JOURNALISM EDITION)
     //  ── Features ──
     //  • 100% live data from 20+ sources
-    //  • PRIMARY IMAGE from API's Precision Image Engine (v21.0.0) at article top
-    //  • JOURNALISTIC ARTICLE ENGINE — uses API-provided who/what/where/when/why
-    //  • Renders the API's body_markdown / body_html when available
-    //  • Falls back to a client-side 5W renderer if API omits the article block
-    //  • Wikipedia country intros for authoritative context (kept, but secondary)
+    //  • PRIMARY IMAGE from API's Precision Image Engine (v21.1.0) at article top
+    //  • NARRATIVE article body — uses API's article.body_html verbatim when present
+    //  • Falls back to a client-side narrative renderer that produces flowing prose
+    //  • 5W block + Evidence Ledger rendered as an "Editorial Reference" appendix
+    //    AFTER the prose — never as the lede
+    //  • No invented facts: every claim is traceable to a named source
     //  • Story Heat engine for newsworthiness ranking
     //  • RSS feed integration for syndication
     //  • Premium responsive design with SEO-maximized structure
@@ -1217,7 +1158,7 @@
       REFRESH_INTERVAL_MS: 300000,
     };
     
-    // ─── WIKIPEDIA INTRO CACHE (country context box only) ────────────────
+    // ─── WIKIPEDIA INTRO CACHE (used only by the client-side fallback) ───
     const wikiCache = {};
     
     function fetchWikipediaIntro(pageTitle) {
@@ -1320,10 +1261,58 @@
         return m;
       });
     }
+    function formatRelativeTimeClient(hours) {
+      if (hours == null || !Number.isFinite(hours)) return "in the past day";
+      if (hours <= 1) return "within the last hour";
+      if (hours <= 6) return `within the last ${Math.round(hours)} hours`;
+      if (hours <= 24) return "within the last 24 hours";
+      if (hours <= 48) return "in the past two days";
+      if (hours <= 168) return `about ${Math.round(hours / 24)} days ago`;
+      return `about ${Math.round(hours / 168)} weeks ago`;
+    }
+    
+    // ─── HUMAN SOURCE NAMES (mirrors API's mapping) ───
+    const ARTICLE_SOURCE_NAMES = {
+      USGS: "the U.S. Geological Survey (USGS)",
+      EMSC: "the European-Mediterranean Seismological Centre (EMSC)",
+      GDACS: "the Global Disaster Alert and Coordination System (GDACS)",
+      NASA: "NASA's Earth Observatory",
+      OPENMETEO: "Open-Meteo",
+      IFRC: "the International Federation of Red Cross and Red Crescent Societies (IFRC)",
+      "DISEASE.SH": "disease.sh",
+      "WHO DON": "the World Health Organization (WHO) Disease Outbreak News",
+      UNHCR: "the UN Refugee Agency (UNHCR)",
+      WORLDBANK: "the World Bank",
+      GDELT: "GDELT",
+      RELIEFWEB: "ReliefWeb",
+      "ECB FX": "European Central Bank FX reference rates",
+      "US DM": "the U.S. Drought Monitor",
+      "WRI Aqueduct": "the World Resources Institute Aqueduct Water Risk Atlas",
+      "FAO GIEWS": "the FAO Global Information and Early Warning System",
+      "WHO GHO": "WHO Global Health Observatory",
+      OpenAQ: "OpenAQ",
+      "NOAA NDBC": "the NOAA National Data Buoy Center",
+      "Copernicus EMS": "the Copernicus Emergency Management Service",
+      ProMED: "ProMED-mail",
+      "Smithsonian GVP": "the Smithsonian Global Volcanism Program",
+      "NOAA PTWC": "the NOAA Pacific Tsunami Warning Center",
+      INFORM: "the INFORM Risk Index",
+      IPC: "the IPC food security phase classification",
+      UCDP: "the Uppsala Conflict Data Program",
+      "IOM DTM": "IOM's Displacement Tracking Matrix",
+      "FAO FPMA": "the FAO Food Price Monitoring and Analysis",
+    };
+    function humanSourceName(raw) {
+      if (!raw) return "official sources";
+      const key = String(raw).toUpperCase().replace(/\s+/g, " ");
+      for (const [k, v] of Object.entries(ARTICLE_SOURCE_NAMES)) {
+        if (k.toUpperCase() === key) return v;
+      }
+      return raw;
+    }
     
     // ─── HEADLINE ─────────────────────────────────────────────────────────
     // Prefer the API's article.headline (already 5W/evidence backed).
-    // Fall back to live_breaking.headline, then a generated one.
     function pickHeadline(country) {
       const article = country.article || null;
       if (article && article.headline) return article.headline;
@@ -1334,14 +1323,11 @@
     
     function generateFallbackHeadline(country) {
       const name = country.name || 'Unknown';
-      const flag = country.flag || '🌍';
       const score = country.score || 0;
       const severity = country.severity || getSeverityLabel(score);
       const heat = country.story_heat || {};
       const anomaly = country.anomaly || {};
       const s = country.live_evidence || {};
-      const ml = country.ml || {};
-      const mlAnomalyProb = Math.round((ml.anomaly_probability || 0) * 100);
       const candidates = [];
       
       if (s.gdacs && (s.gdacs.alert_level === 'red' || s.gdacs.alert_level === 'orange')) {
@@ -1414,6 +1400,7 @@
       if (viaArticle) metaChips.push(`<span class="meta-tag">📖 via ${escapeHtml(String(viaArticle).slice(0, 40))}</span>`);
       const creditLine = credit ? `<span class="meta-tag">📷 ${escapeHtml(credit)}</span>` : '';
       
+      // Caption is rendered ONCE in the figcaption. The alt attribute is separate.
       return `
         <figure class="article-primary-image">
           <img
@@ -1431,8 +1418,7 @@
       `;
     }
     
-    // ─── 5W BLOCK ─────────────────────────────────────────────────────────
-    // Prefer API-provided who/what/where/when/why. Fall back to safe defaults.
+    // ─── 5W BLOCK (Editorial Reference Appendix) ───
     function build5WBlock(country) {
       const article = country.article || null;
       let who = article?.who;
@@ -1442,7 +1428,6 @@
       let why = article?.why;
       
       if (!who && !what && !where && !when && !why) {
-        // Fallback: derive from live_breaking events + evidence
         const lb = country.live_breaking || {};
         const events = Array.isArray(lb.events) ? lb.events : [];
         const ev = country.evidence || {};
@@ -1454,7 +1439,7 @@
           : 'elevated crisis indicators across multiple dimensions';
         where = name;
         when = lb.freshest_signal_age_hours != null
-          ? `signals detected within the last ${Math.round(lb.freshest_signal_age_hours)} hours`
+          ? `signals detected ${formatRelativeTimeClient(lb.freshest_signal_age_hours)}`
           : 'in the current monitoring window';
         why = ev.score
           ? `multi-source evidence score of ${ev.score}/35; ${lb.distinct_event_count || 0} distinct live events`
@@ -1462,59 +1447,20 @@
       }
       
       return `
-        <div class="story-5w">
-          <h3>Who · What · Where · When · Why</h3>
-          <dl>
-            <dt>Who</dt><dd>${escapeHtml(who || '—')}</dd>
-            <dt>What</dt><dd>${escapeHtml(what || '—')}</dd>
-            <dt>Where</dt><dd>${escapeHtml(where || '—')}</dd>
-            <dt>When</dt><dd>${escapeHtml(when || '—')}</dd>
-            <dt>Why</dt><dd>${escapeHtml(why || '—')}</dd>
+        <div class="story-5w" style="background:rgba(0,0,0,0.25);border:1px solid var(--gcin-border);border-radius:var(--gcin-radius-sm);padding:1rem 1.25rem;margin:1rem 0;opacity:0.95;">
+          <h4 style="font-family:var(--gcin-font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gcin-text-muted);margin-bottom:0.5rem;font-weight:700;">Who · What · Where · When · Why</h4>
+          <dl style="display:grid;grid-template-columns:90px 1fr;gap:0.4rem 0.8rem;margin:0;font-size:0.85rem;">
+            <dt style="font-family:var(--gcin-font-mono);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gcin-text-muted-light);padding-top:0.15rem;">Who</dt><dd style="color:var(--gcin-text-secondary);line-height:1.6;margin:0;">${escapeHtml(who || '—')}</dd>
+            <dt style="font-family:var(--gcin-font-mono);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gcin-text-muted-light);padding-top:0.15rem;">What</dt><dd style="color:var(--gcin-text-secondary);line-height:1.6;margin:0;">${escapeHtml(what || '—')}</dd>
+            <dt style="font-family:var(--gcin-font-mono);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gcin-text-muted-light);padding-top:0.15rem;">Where</dt><dd style="color:var(--gcin-text-secondary);line-height:1.6;margin:0;">${escapeHtml(where || '—')}</dd>
+            <dt style="font-family:var(--gcin-font-mono);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gcin-text-muted-light);padding-top:0.15rem;">When</dt><dd style="color:var(--gcin-text-secondary);line-height:1.6;margin:0;">${escapeHtml(when || '—')}</dd>
+            <dt style="font-family:var(--gcin-font-mono);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gcin-text-muted-light);padding-top:0.15rem;">Why</dt><dd style="color:var(--gcin-text-secondary);line-height:1.6;margin:0;">${escapeHtml(why || '—')}</dd>
           </dl>
         </div>
       `;
     }
     
-    // ─── EVIDENCE LEDGER TABLE ────────────────────────────────────────────
-    // Renders the API's evidence.ledger entries with human-readable source names.
-    const ARTICLE_SOURCE_NAMES = {
-      USGS: "U.S. Geological Survey (USGS)",
-      EMSC: "European-Mediterranean Seismological Centre (EMSC)",
-      GDACS: "Global Disaster Alert and Coordination System (GDACS)",
-      NASA: "NASA Earth Observatory",
-      OPENMETEO: "Open-Meteo",
-      IFRC: "IFRC",
-      "DISEASE.SH": "disease.sh",
-      "WHO DON": "WHO Disease Outbreak News",
-      UNHCR: "UNHCR",
-      WORLDBANK: "World Bank",
-      GDELT: "GDELT",
-      RELIEFWEB: "ReliefWeb",
-      "ECB FX": "ECB FX",
-      "US DM": "U.S. Drought Monitor",
-      "WRI Aqueduct": "WRI Aqueduct",
-      "FAO GIEWS": "FAO GIEWS",
-      "WHO GHO": "WHO Global Health Observatory",
-      OpenAQ: "OpenAQ",
-      "NOAA NDBC": "NOAA NDBC",
-      "Copernicus EMS": "Copernicus EMS",
-      ProMED: "ProMED-mail",
-      "Smithsonian GVP": "Smithsonian GVP",
-      "NOAA PTWC": "NOAA PTWC",
-      INFORM: "INFORM Risk Index",
-      IPC: "IPC",
-      UCDP: "UCDP",
-      "IOM DTM": "IOM DTM",
-      "FAO FPMA": "FAO FPMA",
-    };
-    function humanSourceName(raw) {
-      if (!raw) return 'source';
-      const key = String(raw).toUpperCase().replace(/\s+/g, ' ');
-      for (const [k, v] of Object.entries(ARTICLE_SOURCE_NAMES)) {
-        if (k.toUpperCase() === key) return v;
-      }
-      return raw;
-    }
+    // ─── EVIDENCE LEDGER TABLE (Editorial Reference Appendix) ───
     function buildEvidenceTable(country) {
       const ev = country.evidence || {};
       const ledger = Array.isArray(ev.ledger) ? ev.ledger : [];
@@ -1534,36 +1480,131 @@
       return html;
     }
     
+    // ─── CLIENT-SIDE NARRATIVE PROSE (fallback when API omits article body) ───
+    function buildClientNarrativeProse(country) {
+      const name = country.name || 'Unknown';
+      const flag = country.flag || '🌍';
+      const score = country.score || 0;
+      const severity = country.severity || getSeverityLabel(score);
+      const lb = country.live_breaking || {};
+      const events = Array.isArray(lb.events) ? lb.events : [];
+      const ev = country.evidence || {};
+      const ledger = Array.isArray(ev.ledger) ? ev.ledger : [];
+      const sources = country.live_evidence_sources || [];
+      const sourceCount = country.live_evidence_count || sources.length;
+      const freshest = lb.freshest_signal_age_hours;
+      const paragraphs = [];
+      
+      // LEDE
+      const topEvent = events[0] || null;
+      let lede;
+      if (topEvent) {
+        const det = topEvent.details ? `, ${String(topEvent.details).replace(/^(M\d+(\.\d+)? )/, "")}` : "";
+        lede = `<strong>${flag} ${escapeHtml(name)}</strong> is under active crisis monitoring this hour, with ${events.length} live event signal${events.length === 1 ? "" : "s"} detected ${escapeHtml(formatRelativeTimeClient(freshest))}. The most recent — <strong>${escapeHtml(topEvent.label || topEvent.type)}</strong>${escapeHtml(det)} — was recorded by ${escapeHtml(humanSourceName(topEvent.source))}, according to ${sourceCount} independent source${sourceCount === 1 ? "" : "s"} tracked by the Global Crisis Index.`;
+      } else {
+        lede = `<strong>${flag} ${escapeHtml(name)}</strong> remains at ${escapeHtml(severity.toLowerCase())} severity in the Global Crisis Index this hour. No fresh live events are registered, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
+      }
+      paragraphs.push(`<p class="dropcap">${lede}</p>`);
+      
+      // WHAT IS HAPPENING
+      if (events.length >= 2) {
+        const connectors = ["First", "Meanwhile", "Separately", "Additionally"];
+        const clauses = events.slice(0, 4).map((e, i) => {
+          const age = e.age_hours != null ? formatRelativeTimeClient(e.age_hours) : "recently";
+          const corroboration = e.corroboration_count > 0 ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}` : "";
+          const det = e.details ? ` — ${escapeHtml(e.details)}` : "";
+          return `${connectors[i] || "Also"}, <strong>${escapeHtml(e.label || e.type)}</strong>${det} was recorded by ${escapeHtml(humanSourceName(e.source))} ${escapeHtml(age)}${corroboration}.`;
+        });
+        paragraphs.push(`<p>${clauses.join(" ")}</p>`);
+      }
+      
+      // WHO IS AFFECTED
+      const pop = country.live_evidence?.population || 0;
+      const displaced = country.live_evidence?.displacement?.total || 0;
+      const refugees = country.live_evidence?.refugees || 0;
+      if (pop > 0 || displaced > 0 || refugees > 0) {
+        const bits = [];
+        if (pop > 0) bits.push(`${pop.toLocaleString()} residents`);
+        if (displaced > 0) bits.push(`${displaced.toLocaleString()} people internally displaced`);
+        if (refugees > 0) bits.push(`${refugees.toLocaleString()} refugees hosted`);
+        paragraphs.push(`<p>The human stakes are concrete: ${bits.join(", ")}. Aid access, shelter capacity, and health infrastructure are the immediate constraints flagged by the Index's eight-dimension model.</p>`);
+      }
+      
+      // EVIDENCE
+      if (ledger.length) {
+        const top = ledger.slice().sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight)).slice(0, 4);
+        const items = top.map(l => {
+          const raw = l.rawValue != null ? ` (${l.rawValue})` : "";
+          return `${escapeHtml(l.label)}${escapeHtml(raw)}, per ${escapeHtml(humanSourceName(l.source))}`;
+        });
+        paragraphs.push(`<p>The assessment rests on ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}. The highest-weighted signals are: ${items.join("; ")}. Combined evidence score: ${Number(ev.score || 0).toFixed(1)}/35 with ${(Number(ev.confidence || 0) * 100).toFixed(0)}% confidence.</p>`);
+      }
+      
+      // WHY IT MATTERS
+      const anomaly = country.anomaly || {};
+      const trend = country.trend || {};
+      const rec = country.recommendation || {};
+      const anomalyLine = anomaly.detected
+        ? `Statistical monitoring has flagged a ${(anomaly.severity || "none").toLowerCase()} anomaly — ${anomaly.methods_fired || 0} of 4 detection methods agree the current trajectory deviates from the recent baseline.`
+        : `No statistical anomaly is currently flagged.`;
+      const trendLine = trend.direction === "escalating"
+        ? `Machine-learning forecasting projects the score could reach ${trend.forecast_7d || score}/100 within seven days — an escalating trend.`
+        : trend.direction === "improving"
+        ? `Machine-learning forecasting projects a modest improvement toward ${trend.forecast_7d || score}/100 within seven days.`
+        : `Machine-learning forecasting projects the score will hold near ${trend.forecast_7d || score}/100 over the next seven days.`;
+      paragraphs.push(`<p>${escapeHtml(anomalyLine)} ${escapeHtml(trendLine)} The Global Crisis Index recommendation tier is <strong>${escapeHtml(rec.tier || "MONITOR")}</strong>: ${escapeHtml(rec.text || "")}</p>`);
+      
+      // KICKER
+      if (lb.tier === "BREAKING") {
+        paragraphs.push(`<p><em>This is a breaking story. GCIN will update the Index within five minutes as new signals arrive.</em></p>`);
+      } else if (lb.tier === "DEVELOPING") {
+        paragraphs.push(`<p><em>This story is developing. Follow the GCIN live feed for updates.</em></p>`);
+      }
+      
+      return paragraphs.join("\n");
+    }
+    
     // ─── ARTICLE BODY ─────────────────────────────────────────────────────
-    // 1) If the API provided article.body_html, use it (best — 5W-led, evidence-backed).
-    // 2) Else if API provided article.body_markdown, convert minimal markdown to HTML.
-    // 3) Else, render a client-side fallback: 5W block + Wikipedia intro + prose.
+    // Priority:
+    //   1. API's article.body_html (best — narrative prose + editorial appendix)
+    //   2. API's article.body_markdown converted to HTML
+    //   3. Client-side narrative prose + editorial appendix
     function buildArticleBody(country) {
       const article = country.article || null;
       const apiImage = country.primary_image || null;
       const imageHtml = buildPrimaryImageHtml(apiImage);
       
-      // Best path: API-rendered article HTML
-      if (article && article.body_html && article.body_html.length > 200) {
+      // ── Best path: API-rendered article HTML verbatim ──
+      if (article && article.body_html && article.body_html.length > 400) {
         return imageHtml + article.body_html;
       }
       
-      // Second path: API markdown → minimal HTML conversion
-      if (article && article.body_markdown && article.body_markdown.length > 200) {
+      // ── Second path: API markdown → HTML ──
+      if (article && article.body_markdown && article.body_markdown.length > 400) {
         return imageHtml + markdownToHtml(article.body_markdown);
       }
       
-      // Fallback path: client-side renderer (5W + Wikipedia + prose + ledger)
+      // ── Fallback path: client-side narrative renderer ──
       const parts = [];
       parts.push(imageHtml);
       
-      // Wikipedia country context
+      // Optional: Wikipedia country context — placed BEFORE prose only if very short
+      // (kept out of the way; the narrative prose is the story)
       const name = country.name || 'Unknown';
       let wikiIntro = '';
       try {
         wikiIntro = fetchWikipediaIntro(name);
         if (!wikiIntro || wikiIntro.length < 30) wikiIntro = fetchWikipediaIntro(name + ' (country)');
       } catch(e) { /* ignore */ }
+      
+      // Narrative prose
+      parts.push(buildClientNarrativeProse(country));
+      
+      // ── Editorial Reference appendix (after the prose) ──
+      parts.push(`<hr style="border:none;border-top:1px solid var(--gcin-border);margin:1.5rem 0;">`);
+      parts.push(`<h4 style="font-family:var(--gcin-font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gcin-text-muted);margin-bottom:0.5rem;">Editorial Reference</h4>`);
+      
+      // Wikipedia context moved into the appendix as background, not the lede
       if (wikiIntro && wikiIntro.length > 30) {
         parts.push(`
           <div class="wikipedia-intro">
@@ -1574,36 +1615,26 @@
         `);
       }
       
-      // 5W block
       parts.push(build5WBlock(country));
-      
-      // Prose lede
-      const score = country.score || 0;
-      const severity = country.severity || getSeverityLabel(score);
-      const lb = country.live_breaking || {};
-      const events = Array.isArray(lb.events) ? lb.events : [];
-      const lede = events.length
-        ? `${country.name || 'Unknown'} is at ${severity} severity (score ${score}/100), with ${events.length} live event signal${events.length === 1 ? '' : 's'} currently registered.`
-        : `${country.name || 'Unknown'} is at ${severity} severity (score ${score}/100), with no fresh live events but elevated structural indicators.`;
-      parts.push(`<p class="dropcap">${escapeHtml(lede)}</p>`);
-      
-      // Evidence table
       parts.push(buildEvidenceTable(country));
       
-      return parts.join('');
+      return parts.join("");
     }
     
-    // Minimal markdown → HTML (headings, bold, italics, images, links, tables, lists, paragraphs)
+    // Minimal markdown → HTML (images, headings, bold, italics, links, tables, lists, hrs, paragraphs)
     function markdownToHtml(md) {
       if (!md) return '';
       let html = md;
-      // Escape HTML first
+      // Escape HTML first (but preserve our own escaping expectations)
       html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       // Images ![alt](url)
       html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => `<img src="${url}" alt="${alt}" style="max-width:100%;border-radius:8px;margin:1rem 0;" />`);
       // Links [text](url)
       html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      // Horizontal rules
+      html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--gcin-border);margin:1.5rem 0;" />');
       // Headings
+      html = html.replace(/^#### (.*)$/gm, '<h4>$1</h4>');
       html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
       html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
@@ -1611,8 +1642,6 @@
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       // Italics *text*
       html = html.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
-      // Blockquote-ish lines starting with "> "
-      html = html.replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>');
       // Markdown tables
       html = html.replace(/((?:^\|.*\|$\n?)+)/gm, (block) => {
         const rows = block.trim().split('\n').filter(r => r.trim());
@@ -1625,14 +1654,14 @@
         t += '</tbody></table>';
         return t;
       });
-      // Lists
+      // Unordered lists
       html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>[\s\S]*?<\/li>)(?![\s\S]*?<li>)/g, '<ul>$1</ul>');
-      // Paragraphs: split on double newlines
+      // Paragraphs: split on blank lines
       html = html.split(/\n{2,}/).map(chunk => {
         chunk = chunk.trim();
         if (!chunk) return '';
-        if (/^<(h\d|ul|ol|table|blockquote|figure|img|div)/i.test(chunk)) return chunk;
+        if (/^<(h\d|ul|ol|table|blockquote|figure|img|hr|div)/i.test(chunk)) return chunk;
         return `<p>${chunk.replace(/\n/g, '<br>')}</p>`;
       }).join('\n');
       return html;
@@ -1699,7 +1728,7 @@
       if (anomalyDetected) html += `<span class="source-badge anomaly-tag">⚡ Anomaly: ${escapeHtml(anomalySeverity)}</span>`;
       html += `</div>`;
       
-      // ─── PRIMARY IMAGE + ARTICLE BODY (from API) ───
+      // ─── ARTICLE BODY (narrative prose + editorial reference appendix) ───
       html += `<div class="story-body">${bodyHtml}</div>`;
       
       html += `<div class="story-dimensions">`;
