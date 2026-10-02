@@ -3142,10 +3142,23 @@ function buildWhoWhatWhereWhenWhy(iso, store) {
   if (safeNum(c.signals?.refugees, 0) > 0) whoParts.push(`${safeNum(c.signals.refugees, 0).toLocaleString()} refugees`);
 
   // ── WHAT (one sentence) ──
+  // For quantity events (disease, currency, air quality), use the detail string directly
+  // as the human label and skip the eventDetailsToHuman append to avoid doubling.
   const whatClauses = topEvents.map(e => {
-    const human = eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
-    const detail = eventDetailsToHuman(e.details, e.type, e.label);
-    return detail ? `${human} ${detail}` : human;
+    const label = String(e.label || "").trim();
+    const detail = String(e.details || "").trim();
+    const isQuantity =
+      /^Disease Outbreak$/i.test(label) ||
+      /^Currency Stress$/i.test(label) ||
+      /^Air Quality Alert$/i.test(label) ||
+      /^INFORM High Risk$/i.test(label) ||
+      /^\d/.test(detail);
+    if (isQuantity && detail) {
+      return detail;
+    }
+    const human = eventLabelToHuman(label, e.type, { magnitude: e.magnitude, details: e.details });
+    const detailStr = eventDetailsToHuman(e.details, e.type, e.label);
+    return detailStr ? `${human} ${detailStr}` : human;
   });
   let whatSentence;
   if (whatClauses.length === 0) {
@@ -3214,22 +3227,27 @@ function buildEvidenceBackedProse(iso, store) {
 
   // ─── Classify an event: is its human label a "quantity" (case count, volatility %) or an "event" (alert, earthquake)?
   // Quantities use ", per <source>" — events use "was recorded by <source>".
-  function isQuantityEvent(e) {
+    function isQuantityEvent(e) {
     const label = String(e.label || "").trim();
-    // disease_active / disease_outbreak with a numeric case count
-    if (/^Disease Outbreak$/i.test(label) && /^\d/.test(String(e.details || "").trim())) return true;
-    // currency stress / volatility percentages
+    const detail = String(e.details || "").trim();
+    // Any numeric-dominant detail means the event is a "quantity" not an "event"
+    // This catches: case counts, PM2.5 readings, currency volatility percentages, etc.
+    if (/^\d/.test(detail)) return true;
+    if (/^PM2\.5\s+\d/i.test(detail)) return true;
+    // disease_active / disease_outbreak
+    if (/^Disease Outbreak$/i.test(label)) return true;
+    // currency stress
     if (/^Currency Stress$/i.test(label)) return true;
+    // Air quality
+    if (/^Air Quality Alert$/i.test(label)) return true;
     // Any label that starts with a digit is definitely a quantity
     if (/^\d/.test(label)) return true;
     return false;
   }
-
-  function quantityHumanLabel(e) {
-    // For disease_outbreak: use the raw case-count string as the label.
-    if (/^Disease Outbreak$/i.test(String(e.label || ""))) return String(e.details || "").trim();
-    // For currency stress: use the raw "% volatility" string.
-    if (/^Currency Stress$/i.test(String(e.label || ""))) return String(e.details || "").trim();
+   function quantityHumanLabel(e) {
+    // For any quantity event, use the raw detail string as the human label.
+    const detail = String(e.details || "").trim();
+    if (detail) return detail;
     return String(e.label || "");
   }
 
