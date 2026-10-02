@@ -1124,7 +1124,7 @@
     <strong>🧠 AI:</strong> Neural network forecasting · <strong>💬 Sentiment:</strong> Multi-source analysis · <strong>🔥 Heat:</strong> Velocity + Anomaly Consensus + ML + Evidence + Thresholds<br>
     <strong>📝 Journalism:</strong> Who · What · Where · When · Why — narrative prose with evidence-ledger appendices<br>
     <strong>📡 RSS:</strong> <a href="/api/top-story?format=rss" class="rss-feed-link">Subscribe for Breaking Crisis Intelligence</a><br>
-    <strong>🖼️ Images:</strong> Precision Image Engine (v21.1.0) — Best-possible hero image from Wikimedia Commons<br>
+    <strong>🖼️ Images:</strong> Precision Image Engine (v21.2.0) — Best-possible hero image from Wikimedia Commons<br>
     <span style="opacity:0.6;">Conflict · Displacement · Food Security · Health · Economic · Climate · Access · Political</span>
   </div>
   
@@ -1135,19 +1135,15 @@
     "use strict";
     
     // ════════════════════════════════════════════════════════════════════════
-    //  GCIN — GOLD STANDARD EDITION v12.0 (NARRATIVE JOURNALISM EDITION)
-    //  ── Features ──
-    //  • 100% live data from 20+ sources
-    //  • PRIMARY IMAGE from API's Precision Image Engine (v21.1.0) at article top
-    //  • NARRATIVE article body — uses API's article.body_html verbatim when present
-    //  • Falls back to a client-side narrative renderer that produces flowing prose
-    //  • 5W block + Evidence Ledger rendered as an "Editorial Reference" appendix
-    //    AFTER the prose — never as the lede
-    //  • No invented facts: every claim is traceable to a named source
-    //  • Story Heat engine for newsworthiness ranking
-    //  • RSS feed integration for syndication
-    //  • Premium responsive design with SEO-maximized structure
-    //  • Auto-refresh every 5 minutes
+    //  GCIN — GOLD STANDARD EDITION v12.1 (DEDUPLICATION EDITION)
+    //  ── Fixes in this version ──
+    //  • Strips leading flag emoji from API headlines so they are NOT doubled
+    //    (the frontend renders the flag separately in .story-headline .flag)
+    //  • Removes any <figure>/<img>/<figcaption> that may already be embedded
+    //    in the API's body_html or body_markdown, preventing the primary
+    //    image from appearing twice
+    //  • Ensures the caption is rendered exactly once
+    //  • All v21.1.0 narrative journalism behavior preserved
     // ════════════════════════════════════════════════════════════════════════
     
     const API_BASE = "https://www.globalcrisisindex.com/api/top-story";
@@ -1271,6 +1267,60 @@
       return `about ${Math.round(hours / 168)} weeks ago`;
     }
     
+    // ─── FLAG EMOJI STRIPPING ────────────────────────────────────────────
+    // The API often includes the country flag emoji at the start of the
+    // headline (e.g. "🇮🇩 BREAKING: Indonesia — ..."). The frontend renders
+    // the flag separately inside .story-headline .flag, so we strip any
+    // leading flag emoji (and any repeated ones) from the headline text to
+    // avoid displaying the flag twice.
+    const FLAG_EMOJI_RE = /^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u;
+    const LEADING_EMOJI_RE = /^(?:[\u{1F1E6}-\u{1F1FF}]{2}\s*|🔴\s*|🟠\s*|🟡\s*|🟢\s*|⚪\s*|🚨\s*|🌍\s*|🌋\s*|🌊\s*|🔥\s*|🌀\s*|🏜️\s*)+/u;
+    function stripLeadingFlagAndBadges(headline) {
+      if (!headline) return '';
+      let s = String(headline);
+      // Strip any leading run of flag emojis / status emojis / whitespace.
+      // We strip ALL leading emoji badges because the frontend re-adds the flag
+      // and the severity badge is already shown separately.
+      let prev;
+      do {
+        prev = s;
+        s = s.replace(FLAG_EMOJI_RE, '');
+        s = s.replace(LEADING_EMOJI_RE, '');
+        s = s.replace(/^\s+/, '');
+      } while (s !== prev);
+      return s.trim();
+    }
+    
+    // ─── IMAGE DEDUPLICATION ─────────────────────────────────────────────
+    // The API's body_html / body_markdown may already contain the primary
+    // image (a <figure class="article-primary-image"> or a markdown image).
+    // Since we render the primary image ourselves BEFORE the body, we need
+    // to strip any image/figure from the API body to prevent duplication.
+    function stripImagesFromHtml(html) {
+      if (!html) return '';
+      let out = String(html);
+      // Remove any <figure class="article-primary-image">...</figure>
+      out = out.replace(/<figure[^>]*class=["'][^"']*article-primary-image[^"']*["'][^>]*>[\s\S]*?<\/figure>/gi, '');
+      // Remove any <figure>...</figure> that contains an <img>
+      out = out.replace(/<figure[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?<\/figure>/gi, '');
+      // Remove any standalone <img ...> tags
+      out = out.replace(/<img\b[^>]*\/?>/gi, '');
+      // Cleanup any orphaned empty <figure></figure>
+      out = out.replace(/<figure[^>]*>\s*<\/figure>/gi, '');
+      return out;
+    }
+    function stripImagesFromMarkdown(md) {
+      if (!md) return '';
+      let out = String(md);
+      // Remove markdown images: ![alt](url)
+      out = out.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+      // Remove markdown image-caption lines like "*Caption* — [source](url)"
+      // only when they directly follow a removed image (heuristic: lines that
+      // begin with * and contain "commons.wikimedia.org" or "— [")
+      out = out.replace(/^\s*\*[^*]*\*\s*—\s*\[[^\]]*\]\([^)]*\)\s*$/gm, '');
+      return out;
+    }
+    
     // ─── HUMAN SOURCE NAMES (mirrors API's mapping) ───
     const ARTICLE_SOURCE_NAMES = {
       USGS: "the U.S. Geological Survey (USGS)",
@@ -1312,13 +1362,19 @@
     }
     
     // ─── HEADLINE ─────────────────────────────────────────────────────────
-    // Prefer the API's article.headline (already 5W/evidence backed).
+    // Prefer the API's article.headline, then live_breaking.headline, then
+    // the client-side generator. Always strip leading flag/status emoji so
+    // they don't double up with the flag rendered separately.
     function pickHeadline(country) {
       const article = country.article || null;
-      if (article && article.headline) return article.headline;
-      const lb = country.live_breaking || {};
-      if (lb.headline && lb.headline.length > 10) return lb.headline;
-      return generateFallbackHeadline(country);
+      let raw = null;
+      if (article && article.headline) raw = article.headline;
+      else {
+        const lb = country.live_breaking || {};
+        if (lb.headline && lb.headline.length > 10) raw = lb.headline;
+      }
+      if (!raw) raw = generateFallbackHeadline(country);
+      return stripLeadingFlagAndBadges(raw);
     }
     
     function generateFallbackHeadline(country) {
@@ -1355,14 +1411,13 @@
       }
       candidates.push({ priority: 10, text: `${name} Crisis Monitor: Score ${score}/100 (${severity})` });
       candidates.sort((a, b) => b.priority - a.priority);
-      let headline = candidates[0].text;
-      if (/RED ALERT|BREAKING/.test(headline)) headline = '🔴 ' + headline;
-      else if (/Famine|Emergency|ALERT/.test(headline)) headline = '🚨 ' + headline;
-      else if (/Earthquake|Disaster|Volcan|Cyclone|Flood/.test(headline)) headline = '🌍 ' + headline;
-      return headline;
+      return candidates[0].text;
     }
     
     // ─── PRIMARY IMAGE ────────────────────────────────────────────────────
+    // Renders the primary image EXACTLY ONCE. The caption appears only in
+    // the <figcaption>; the <img alt> is for accessibility only (screen
+    // readers), not visible text.
     function buildPrimaryImageHtml(image) {
       if (!image || !image.url) return '';
       const caption = image.caption || 'Image from Wikimedia Commons';
@@ -1400,7 +1455,8 @@
       if (viaArticle) metaChips.push(`<span class="meta-tag">📖 via ${escapeHtml(String(viaArticle).slice(0, 40))}</span>`);
       const creditLine = credit ? `<span class="meta-tag">📷 ${escapeHtml(credit)}</span>` : '';
       
-      // Caption is rendered ONCE in the figcaption. The alt attribute is separate.
+      // IMPORTANT: alt attribute is for accessibility only — no visible text
+      // is rendered from it. The caption is rendered ONCE inside <figcaption>.
       return `
         <figure class="article-primary-image">
           <img
@@ -1483,7 +1539,6 @@
     // ─── CLIENT-SIDE NARRATIVE PROSE (fallback when API omits article body) ───
     function buildClientNarrativeProse(country) {
       const name = country.name || 'Unknown';
-      const flag = country.flag || '🌍';
       const score = country.score || 0;
       const severity = country.severity || getSeverityLabel(score);
       const lb = country.live_breaking || {};
@@ -1495,14 +1550,14 @@
       const freshest = lb.freshest_signal_age_hours;
       const paragraphs = [];
       
-      // LEDE
+      // LEDE — no flag here; flag is rendered separately in the headline
       const topEvent = events[0] || null;
       let lede;
       if (topEvent) {
         const det = topEvent.details ? `, ${String(topEvent.details).replace(/^(M\d+(\.\d+)? )/, "")}` : "";
-        lede = `<strong>${flag} ${escapeHtml(name)}</strong> is under active crisis monitoring this hour, with ${events.length} live event signal${events.length === 1 ? "" : "s"} detected ${escapeHtml(formatRelativeTimeClient(freshest))}. The most recent — <strong>${escapeHtml(topEvent.label || topEvent.type)}</strong>${escapeHtml(det)} — was recorded by ${escapeHtml(humanSourceName(topEvent.source))}, according to ${sourceCount} independent source${sourceCount === 1 ? "" : "s"} tracked by the Global Crisis Index.`;
+        lede = `<strong>${escapeHtml(name)}</strong> is under active crisis monitoring this hour, with ${events.length} live event signal${events.length === 1 ? "" : "s"} detected ${escapeHtml(formatRelativeTimeClient(freshest))}. The most recent — <strong>${escapeHtml(topEvent.label || topEvent.type)}</strong>${escapeHtml(det)} — was recorded by ${escapeHtml(humanSourceName(topEvent.source))}, according to ${sourceCount} independent source${sourceCount === 1 ? "" : "s"} tracked by the Global Crisis Index.`;
       } else {
-        lede = `<strong>${flag} ${escapeHtml(name)}</strong> remains at ${escapeHtml(severity.toLowerCase())} severity in the Global Crisis Index this hour. No fresh live events are registered, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
+        lede = `<strong>${escapeHtml(name)}</strong> remains at ${escapeHtml(severity.toLowerCase())} severity in the Global Crisis Index this hour. No fresh live events are registered, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
       }
       paragraphs.push(`<p class="dropcap">${lede}</p>`);
       
@@ -1566,30 +1621,34 @@
     
     // ─── ARTICLE BODY ─────────────────────────────────────────────────────
     // Priority:
-    //   1. API's article.body_html (best — narrative prose + editorial appendix)
-    //   2. API's article.body_markdown converted to HTML
-    //   3. Client-side narrative prose + editorial appendix
+    //   1. API's article.body_html — strip any embedded images to prevent
+    //      duplication with the primary image we render above.
+    //   2. API's article.body_markdown — strip embedded markdown images,
+    //      then convert to HTML.
+    //   3. Client-side narrative prose + editorial appendix.
+    //
+    // The primary image is ALWAYS rendered exactly once, at the top.
     function buildArticleBody(country) {
       const article = country.article || null;
       const apiImage = country.primary_image || null;
       const imageHtml = buildPrimaryImageHtml(apiImage);
       
-      // ── Best path: API-rendered article HTML verbatim ──
+      // ── Best path: API-rendered article HTML (with images stripped) ──
       if (article && article.body_html && article.body_html.length > 400) {
-        return imageHtml + article.body_html;
+        const cleaned = stripImagesFromHtml(article.body_html);
+        return imageHtml + cleaned;
       }
       
-      // ── Second path: API markdown → HTML ──
+      // ── Second path: API markdown → HTML (with images stripped) ──
       if (article && article.body_markdown && article.body_markdown.length > 400) {
-        return imageHtml + markdownToHtml(article.body_markdown);
+        const cleanedMd = stripImagesFromMarkdown(article.body_markdown);
+        return imageHtml + markdownToHtml(cleanedMd);
       }
       
       // ── Fallback path: client-side narrative renderer ──
       const parts = [];
       parts.push(imageHtml);
       
-      // Optional: Wikipedia country context — placed BEFORE prose only if very short
-      // (kept out of the way; the narrative prose is the story)
       const name = country.name || 'Unknown';
       let wikiIntro = '';
       try {
@@ -1597,14 +1656,13 @@
         if (!wikiIntro || wikiIntro.length < 30) wikiIntro = fetchWikipediaIntro(name + ' (country)');
       } catch(e) { /* ignore */ }
       
-      // Narrative prose
+      // Narrative prose first
       parts.push(buildClientNarrativeProse(country));
       
-      // ── Editorial Reference appendix (after the prose) ──
+      // Editorial Reference appendix
       parts.push(`<hr style="border:none;border-top:1px solid var(--gcin-border);margin:1.5rem 0;">`);
       parts.push(`<h4 style="font-family:var(--gcin-font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gcin-text-muted);margin-bottom:0.5rem;">Editorial Reference</h4>`);
       
-      // Wikipedia context moved into the appendix as background, not the lede
       if (wikiIntro && wikiIntro.length > 30) {
         parts.push(`
           <div class="wikipedia-intro">
@@ -1621,14 +1679,14 @@
       return parts.join("");
     }
     
-    // Minimal markdown → HTML (images, headings, bold, italics, links, tables, lists, hrs, paragraphs)
+    // Minimal markdown → HTML (images already stripped before this is called)
     function markdownToHtml(md) {
       if (!md) return '';
       let html = md;
-      // Escape HTML first (but preserve our own escaping expectations)
+      // Escape HTML first
       html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      // Images ![alt](url)
-      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => `<img src="${url}" alt="${alt}" style="max-width:100%;border-radius:8px;margin:1rem 0;" />`);
+      // Images (shouldn't be any left after stripping, but be safe)
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '');
       // Links [text](url)
       html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
       // Horizontal rules
@@ -1648,7 +1706,7 @@
         if (rows.length < 2) return block;
         const cells = rows.map(r => r.split('|').slice(1, -1).map(c => c.trim()));
         const header = cells[0];
-        const body = cells.slice(2); // skip separator
+        const body = cells.slice(2);
         let t = '<table class="story-evidence-table"><thead><tr>' + header.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
         for (const row of body) t += '<tr>' + row.map(c => `<td>${c}</td>`).join('') + '</tr>';
         t += '</tbody></table>';
@@ -1657,7 +1715,7 @@
       // Unordered lists
       html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
       html = html.replace(/(<li>[\s\S]*?<\/li>)(?![\s\S]*?<li>)/g, '<ul>$1</ul>');
-      // Paragraphs: split on blank lines
+      // Paragraphs
       html = html.split(/\n{2,}/).map(chunk => {
         chunk = chunk.trim();
         if (!chunk) return '';
@@ -1699,7 +1757,7 @@
       const anomalyDetected = anomaly.detected || false;
       const anomalySeverity = anomaly.severity || 'None';
       
-      const headline = pickHeadline(country);
+      const headline = pickHeadline(country); // already stripped of leading flag emoji
       const bodyHtml = buildArticleBody(country);
       
       const storyHeatClass = heatScore >= 75 ? 'story-heat-breaking'
@@ -1713,6 +1771,8 @@
         html += `<div class="heat-badge-top ${heatBadgeClass}">${heatEmoji} ${heatTier.label} · Heat ${Math.round(heatScore)}</div>`;
       }
       
+      // Flag is rendered ONCE here. Headline is already stripped of any
+      // leading flag/badge emoji so it won't double up.
       html += `<div class="story-header">`;
       html += `<div class="story-headline"><span class="flag">${flag}</span> <a href="${escapeHtml(url)}">${escapeHtml(headline)}</a></div>`;
       html += `<span class="severity-badge ${severityClass}">${severityLabel}</span>`;
@@ -1728,7 +1788,7 @@
       if (anomalyDetected) html += `<span class="source-badge anomaly-tag">⚡ Anomaly: ${escapeHtml(anomalySeverity)}</span>`;
       html += `</div>`;
       
-      // ─── ARTICLE BODY (narrative prose + editorial reference appendix) ───
+      // ─── ARTICLE BODY (image rendered once + narrative prose + appendix) ───
       html += `<div class="story-body">${bodyHtml}</div>`;
       
       html += `<div class="story-dimensions">`;
@@ -1763,7 +1823,7 @@
         const heatTier = getHeatTier(heat.score || 0);
         const hasML = c.ml?.trained || false;
         const scoreVal = c.score || 0;
-        const headline = pickHeadline(c);
+        const headline = pickHeadline(c); // already stripped
         const url = c.url || '/crisis/' + (c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
         return `
           <div class="top-story-mini" onclick="window.location.href='${escapeHtml(url)}'">
