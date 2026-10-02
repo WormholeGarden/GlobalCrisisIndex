@@ -1769,14 +1769,27 @@
       let html = '';
       html += `<div class="story-card severity-${severityClass} ${storyHeatClass}">`;
       
+           // Prefer the API's honest tier_label over a locally computed one
+      const apiTierLabel = (country.live_breaking && country.live_breaking.tier_label) || heatTier.label;
+      const apiTierClass = (country.live_breaking && country.live_breaking.tier) 
+        ? String(country.live_breaking.tier).toLowerCase() 
+        : heatBadgeClass;
+      const apiTierIcon = (country.live_breaking && country.live_breaking.tier_icon) || heatEmoji;
       if (heatScore >= 30) {
-        html += `<div class="heat-badge-top ${heatBadgeClass}">${heatEmoji} ${heatTier.label} · Heat ${Math.round(heatScore)}</div>`;
+        html += `<div class="heat-badge-top ${apiTierClass}">${apiTierIcon} ${apiTierLabel} · Heat ${Math.round(heatScore)}</div>`;
       }
       
       // Flag rendered ONCE here. Headline already stripped of any leading flag emoji.
       html += `<div class="story-header">`;
       html += `<div class="story-headline"><span class="flag">${flag}</span> <a href="${escapeHtml(url)}">${escapeHtml(headline)}</a></div>`;
-      html += `<span class="severity-badge ${severityClass}">${severityLabel}</span>`;
+            // Prefer API tier_label when the story is BREAKING/DEVELOPING — otherwise show severity
+      const headlineBadgeLabel = (country.live_breaking && (country.live_breaking.tier === "BREAKING" || country.live_breaking.tier === "DEVELOPING"))
+        ? country.live_breaking.tier_label
+        : severityLabel;
+      const headlineBadgeClass = (country.live_breaking && (country.live_breaking.tier === "BREAKING" || country.live_breaking.tier === "DEVELOPING"))
+        ? String(country.live_breaking.tier).toLowerCase()
+        : severityClass;
+      html += `<span class="severity-badge ${headlineBadgeClass}">${headlineBadgeClass === "breaking" ? "BREAKING" : headlineBadgeLabel}</span>`;
       html += `</div>`;
       
       const evidenceSources = country.live_evidence_sources || [];
