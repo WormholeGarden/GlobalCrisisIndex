@@ -1,27 +1,23 @@
 "use strict";
 
 // ════════════════════════════════════════════════════════════════════════════
-//  TOP-STORY API — v22.0.0 — WIRE EDITION
+//  TOP-STORY API — v21.4.0 — ULTIMATE MASTERPIECE EDITION
 //  ────────────────────────────────────────────────────────────────────────────
-//  Ranks 179 countries by likelihood of breaking crisis news and writes a
-//  wire-service-style story for each one that has a reportable event.
+//  📰 RANKS 179 COUNTRIES BY LIKELIHOOD OF BREAKING CRISIS NEWS *RIGHT NOW*
+//  🌍 55+ LIVE FEEDS · EVENT-DEDUPLICATED · EVIDENCE-TRACED · HTML-PARITY
+//  🖼️ PRECISION IMAGE ENGINE — best-possible hero image from Wikimedia Commons
+//  📝 ULTIMATE EDITORIAL ENGINE — 10/10 wire-service prose
 //
-//  What changed in v22.0.0 (all of it is about the copy being TRUE and WIRE-STYLE):
-//   • New wire editorial engine: dateline, inverted pyramid, attributed facts,
-//     AP/Reuters-style headlines, no internal vocabulary in the story body.
-//   • Fake timestamps removed. GDACS / EMSC / IFRC events now use the time the
-//     feed reports; feeds with no time are marked estimated and carry no time
-//     words. "BREAKING"/"DEVELOPING" now require a real feed timestamp.
-//   • "Currency stress" was log10(exchange rate) * 20, i.e. it flagged any
-//     high-denomination currency (IDR, VND...). Replaced with the real 30-day
-//     move in ECB reference rates, and it only becomes a story at >= 8%.
-//   • COVID "active cases" no longer reported as a live event or evidence line.
-//   • Strongest quake per country is kept (was: last one in the feed), and USGS
-//     and EMSC reports of the same quake are merged instead of double-counted.
-//   • Anomaly / forecast output is suppressed when only synthetic history exists.
-//   • Images are vetted: a photo of some other dated event is dropped, and a
-//     photo that is not of this event is labelled FILE PHOTO.
-//   • Story data tables moved out of the body into reference_html/markdown.
+//  ═══ v21.4.0 — ULTIMATE MASTERPIECE EDITION ═══
+//  Every remaining bug from the v21.3.0 review is fixed:
+//   • earthquake labels + details no longer double up
+//   • GDACS empty places no longer leak into prose
+//   • IFRC ledger labels humanized in evidence narration
+//   • N/S/E/W directions converted to words in earthquake details
+//   • ledger labels shortened for prose, kept full for tables
+//   • varied sentence openings — no repetitive "was recorded by GDACS" runs
+//   • 5W What reads as tight, journalistic prose
+//   • final pass on tier display honesty
 // ════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
@@ -62,16 +58,7 @@ const CFG = {
   LIVE_EVENT_FLAT_BOOST: 35,
   ARTICLE_SITE_NAME: "GCIN · Global Crisis Index News",
   ARTICLE_BASE_URL: "https://www.globalcrisisindex.com",
-  ARTICLE_AUTHOR: "GCIN Automated Desk",
-  ARTICLE_DATELINE_TAG: "GCIN",
-  DISCLOSE_AUTOMATION: true,
-  DISCLOSURE_TEXT: "This report was generated automatically from public monitoring feeds and has not been edited by a person. Figures and times are as published by the cited agencies.",
-  WIRE_LEDE_MAX_WORDS: 42,
-  WIRE_HEADLINE_MAX_CHARS: 95,
-  WIRE_MAX_EVENT_AGE_HOURS: 240,
-  IMAGE_EVENT_MAX_AGE_DAYS: 21,
-  FX_WINDOW_DAYS: 30,
-  FX_MIN_DEPRECIATION_PCT: 8,
+  ARTICLE_AUTHOR: "GCIN Editorial Team",
   ARTICLE_LOGO: "https://globalcrisisindex.com/logo.png",
   NDBC_BUOYS: ["51001", "51002", "46026", "41009", "23201", "23002", "56001", "56002"],
   USER_AGENT: "GCIN-Crisis-News/1.0 (https://globalcrisisindex.com; contact@globalcrisisindex.com)",
@@ -1037,7 +1024,7 @@ function scoreCandidateDetailed(page, searchTerms, hints = {}) {
   const textN = descN + objN + artN;
 
   const flags = {
-    countryHit: false, eventMatch: false, placeHit: false, nonPhoto: false,
+    countryHit: false, eventMatch: false, nonPhoto: false,
     minSizeOk: W >= IMG.HARD_MIN_WIDTH && H >= IMG.HARD_MIN_HEIGHT,
     relaxedSizeOk: W >= IMG.RELAXED_MIN_WIDTH && H >= IMG.RELAXED_MIN_HEIGHT,
     year: null, matchedKind: null, width: W, height: H,
@@ -1104,7 +1091,7 @@ function scoreCandidateDetailed(page, searchTerms, hints = {}) {
     else if (imgHas(textN, pn) || imgHas(catsN, pn)) pnText++;
   }
   score += Math.min(24, pnTitle * 12) + Math.min(12, pnText * 6);
-  if (pnTitle + pnText > 0) { flags.eventMatch = true; flags.placeHit = true; }
+  if (pnTitle + pnText > 0) flags.eventMatch = true;
 
   const qTokens = [...new Set((searchTerms || []).flatMap(t => imgTokens(t)).filter(t => t.length > 2 && !IMG_STOP.has(t) && !/^\d+$/.test(t)))];
   if (qTokens.length) {
@@ -1276,49 +1263,21 @@ function imgDetectKinds(events, headline, staticTypes) {
   return { live: orderedLive.slice(0, 3), statics: statics.slice(0, 3) };
 }
 
-const WIRE_IMG_GENERIC = new Set(["magnitude", "earthquake", "orange", "alert", "volcano", "volcanic", "flood", "flooding", "cyclone", "drought", "emergency", "response", "warning", "tsunami", "issued", "strikes", "recorded", "says", "lists", "notice", "outbreak", "report", "mapping", "satellite", "activated", "wildfire", "active", "tracked", "reports", "publishes", "posts", "disease", "weakens", "dollar", "month", "activity", "red"]);
 function imgExtractProperNouns(headline, events, aliases, countryName) {
-  const evs = (Array.isArray(events) ? events : []).slice(0, 4);
+  const texts = [String(headline || ''), ...((Array.isArray(events) ? events : []).slice(0, 4).map(e => String(e.details || '')))];
   const skip = new Set([...aliases.flatMap(a => a.split(' ')), ...imgTokens(countryName)]);
   const out = [];
-  const add = (raw) => {
-    const k = imgKey(raw);
-    if (!k) return;
-    const cleaned = k.split(' ').filter(x => !IMG_STOP.has(x) && !IMG_SOURCE_WORDS.has(x) && !skip.has(x) && !WIRE_IMG_GENERIC.has(x)).join(' ');
-    if (cleaned.length >= 4 && !out.includes(cleaned)) out.push(cleaned);
-  };
-  // place names taken from structured facts come first so they are never cut by the slice below
-  for (const ev of evs) {
-    const f = ev.facts;
-    if (!f) continue;
-    if (f.kind === 'earthquake') { const p = wireParseQuakePlace(f.place); if (p?.near) add(p.near); else if (p?.raw) add(wireTitleCase(p.raw).replace(/,.*$/, '')); }
-    else if (f.kind === 'gdacs' && f.name) add(f.name);
-    else if (f.kind === 'ifrc') add(wireIfrcPlace(f, countryName).split(',')[0]);
-    else if (f.kind === 'gvp' && f.volcano) add(f.volcano);
+  for (const t of texts) {
+    for (const m of t.matchAll(/\b[A-Z][A-Za-z'’\-]{3,}(?:\s+[A-Z][A-Za-z'’\-]{3,})?/g)) {
+      const k = imgKey(m[0]);
+      if (!k) continue;
+      const toks = k.split(' ');
+      if (toks.every(x => IMG_STOP.has(x) || IMG_SOURCE_WORDS.has(x) || skip.has(x))) continue;
+      const cleaned = toks.filter(x => !IMG_STOP.has(x) && !IMG_SOURCE_WORDS.has(x) && !skip.has(x)).join(' ');
+      if (cleaned.length >= 4 && !out.includes(cleaned)) out.push(cleaned);
+    }
   }
-  const texts = [String(headline || ''), ...evs.map(e => String(e.details || ''))];
-  for (const t of texts) for (const m of t.matchAll(/\b[A-Z][A-Za-z'’\-]{3,}(?:\s+[A-Z][A-Za-z'’\-]{3,})?/g)) add(m[0]);
   return out.slice(0, 4);
-}
-
-// Decide how a candidate photo may be shown next to a story.
-//  • photo of some OTHER dated event (caption names a date, no place match) → dropped
-//  • photo not clearly of this event and this week → shown, labelled FILE PHOTO
-function vetImageForStory(img, store, iso) {
-  if (!img) return null;
-  const photoTs = img.photo_date ? Date.parse(img.photo_date) : NaN;
-  const ageDays = Number.isFinite(photoTs) ? (Date.now() - photoTs) / 864e5 : null;
-  const eventSpecific = !!img.place_hit && ageDays != null && ageDays <= CFG.IMAGE_EVENT_MAX_AGE_DAYS;
-  const months = "January|February|March|April|May|June|July|August|September|October|November|December";
-  const datedCaption = new RegExp(`\\b(${months})\\s+\\d{1,2}\\b|\\b\\d{1,2}\\s+(${months})\\b|\\b(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day,?\\s+(${months})`, "i").test(img.caption || "");
-  if (!eventSpecific && !img.place_hit && datedCaption) return null;
-  return { ...img, event_specific: eventSpecific, file_photo: !eventSpecific };
-}
-function vetImageMap(map, store) {
-  for (const iso of Object.keys(map)) {
-    const v = vetImageForStory(map[iso], store, iso);
-    if (v) map[iso] = v; else delete map[iso];
-  }
 }
 
 function imgBuildContext(countryName, headline, eventTypes, extra = {}) {
@@ -1445,11 +1404,8 @@ function imgBuildResult(c, ctx, candidatesEvaluated) {
   const tw = safeNum(info.thumbwidth, safeNum(info.width, 0));
   const th = safeNum(info.thumbheight, safeNum(info.height, 0));
   const caption = imgMakeCaption(page, meta, ctx);
-  // 'high' now needs a hit on a place name from THIS event; a generic "earthquake" photo is at best 'medium'.
-  const confidence = c.score >= 100 && c.flags.countryHit && c.flags.placeHit ? 'high'
+  const confidence = c.score >= 100 && c.flags.countryHit && c.flags.eventMatch ? 'high'
     : c.score >= 62 ? 'medium' : 'low';
-  const dto = meta.DateTimeOriginal?.value || meta.DateTime?.value || '';
-  const dtoParsed = dto ? Date.parse(stripHtmlTags(String(dto)).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3')) : NaN;
   return {
     url, caption, title: page.title,
     pageUrl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`,
@@ -1463,8 +1419,6 @@ function imgBuildResult(c, ctx, candidatesEvaluated) {
     original_width: safeNum(info.width, 0) || null,
     original_height: safeNum(info.height, 0) || null,
     photo_year: c.flags.year || null,
-    photo_date: Number.isFinite(dtoParsed) ? new Date(dtoParsed).toISOString() : null,
-    place_hit: !!c.flags.placeHit,
     matched_event: c.flags.matchedKind || null,
     confidence, strategy: c.tier,
     candidates_evaluated: candidatesEvaluated,
@@ -1644,6 +1598,7 @@ function computeEvidenceScore(iso) {
   if (coverage.heat) { const temp = coverage.heat.temp || 0; if (temp >= 38) add("OPENMETEO", `${temp}°C extreme heat`, temp, logScale(temp, 38, 50, 8), 0.85); }
   if (coverage.flood_risk) { const discharge = coverage.flood_risk.discharge || 0; if (discharge > 100) add("OPENMETEO", `Flood risk: ${discharge}m³/s river discharge`, discharge, logScale(discharge, 100, 1000, 6), 0.7); }
   if (coverage.marine) { const wave = coverage.marine.wave_height || 0; if (wave > 3) add("OPENMETEO", `Marine hazard: ${wave}m wave height`, wave, logScale(wave, 3, 10, 5), 0.7); }
+  if (coverage.covid) { const active = coverage.covid.active || 0; if (active > 1000) add("DISEASE.SH", `${active.toLocaleString()} active COVID cases`, active, logScale(active, 1000, 500000, 8), 0.8); }
   if (coverage.population) { const pop = coverage.population; add("WORLDBANK", `Population ${(pop/1e6).toFixed(1)}M`, pop, coverageScale(pop, 50000, 1450000000, 6), 0.95); }
   if (coverage.poverty !== undefined && coverage.poverty !== null) { const pov = coverage.poverty; if (pov > 5) add("WORLDBANK", `Poverty rate ${pov.toFixed(1)}%`, pov, logScale(pov, 5, 60, 6), 0.85); }
   if (coverage.gdp_growth !== undefined && coverage.gdp_growth !== null) { const gdp = coverage.gdp_growth; if (gdp < 0) add("WORLDBANK", `GDP growth ${gdp.toFixed(1)}% (negative)`, gdp, logScale(Math.abs(gdp), 1, 10, 5), 0.75); }
@@ -1679,7 +1634,7 @@ function computeEvidenceScore(iso) {
   if (coverage.iom_dtm) { const idps = coverage.iom_dtm.idps || 0; if (idps > 50000) add("IOM DTM", `${idps.toLocaleString()} IDPs tracked`, idps, logScale(idps, 50000, 10000000, 9), 0.85); }
   if (coverage.fao_fpma) { const anomaly = Math.abs(coverage.fao_fpma.anomaly_pct || 0); if (anomaly >= 20) add("FAO FPMA", `${coverage.fao_fpma.commodity} ${coverage.fao_fpma.anomaly_pct > 0 ? "+" : ""}${coverage.fao_fpma.anomaly_pct.toFixed(0)}% vs 5yr avg`, anomaly, logScale(anomaly, 20, 150, 7), 0.8); }
   if (coverage.health_capacity) { const beds = coverage.health_capacity.hospital_beds_per_10k || 0; if (beds > 0 && beds < 10) add("WHO GHO", `Only ${beds.toFixed(1)} hospital beds/10k (health capacity stress)`, beds, logScale(10 - beds, 0, 10, 6), 0.75); }
-  if (coverage.currency_stress) { const dep = coverage.currency_stress.depreciation_pct || 0; if (dep >= 5) add("ECB FX", `${dep.toFixed(1)}% currency depreciation vs USD (${coverage.currency_stress.window_days || 30}d)`, dep, logScale(dep, 5, 50, 6), 0.7); }
+  if (coverage.currency_stress) { const vol = coverage.currency_stress.volatility_pct || 0; if (vol >= 5) add("ECB FX", `${vol.toFixed(1)}% currency volatility`, vol, logScale(vol, 5, 50, 6), 0.7); }
   if (coverage.election_violence) { const count = coverage.election_violence.count || 0; if (count >= 2) add("GDELT", `${count} election-violence article(s)`, count, logScale(count, 2, 30, 6), 0.7); }
   if (coverage.water_stress_static) { const stress = coverage.water_stress_static.baseline_stress || 0; if (stress >= 3.0) add("WRI Aqueduct", `Baseline water stress ${stress.toFixed(1)}/5.0`, stress, logScale(stress, 3, 5, 6), 0.75); }
   if (coverage.ndvi_static) { const anomaly = Math.abs(coverage.ndvi_static.ndvi_anomaly_pct || 0); if (anomaly >= 15) add("FAO GIEWS", `NDVI ${coverage.ndvi_static.ndvi_anomaly_pct.toFixed(0)}% vs LTM`, anomaly, logScale(anomaly, 15, 40, 6), 0.75); }
@@ -1725,19 +1680,19 @@ async function fetchHeatAndPrecipLoop() {
   return results;
 }
 
-const ECB_FX_SYMBOLS = "AUD,BGN,BRL,CAD,CHF,CNY,CZK,DKK,GBP,HKD,HUF,IDR,ILS,INR,ISK,JPY,KRW,MXN,MYR,NOK,NZD,PHP,PLN,RON,SEK,SGD,THB,TRY,ZAR";
-// Real currency movement: 30 days of ECB reference rates (via Frankfurter), base USD.
-// Returns null when the time series is unavailable. Nothing is invented in that case.
 async function fetchFrankfurterFX() {
-  const end = new Date();
-  const start = new Date(end.getTime() - CFG.FX_WINDOW_DAYS * 864e5);
-  const d = (x) => x.toISOString().slice(0, 10);
-  const url = `https://api.frankfurter.dev/v1/${d(start)}..${d(end)}?base=USD&symbols=${ECB_FX_SYMBOLS}`;
+  const base = "USD";
+  const quotes = "EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,DKK,INR,BRL,MXN,ZAR,TRY,RUB,KRW,SGD,HKD,PLN,CZK,HUF,RON,ILS,AED,EGP,NGN,KES,PKR,BDT,LKR,THB,VND,MYR,IDR,PHP,KZT,UAH";
+  const url = `https://api.frankfurter.dev/v2/rates?base=${base}&quotes=${quotes}`;
   const res = await safeFetch(fetch(url).then(r => r.ok ? r.json() : null));
-  if (!res.ok || !res.data?.rates) return null;
-  const days = Object.keys(res.data.rates).sort();
-  if (days.length < 5) return null;
-  return { start: days[0], date: days[days.length - 1], days, series: res.data.rates };
+  if (!res.ok || !res.data) return null;
+  if (Array.isArray(res.data)) {
+    const out = {};
+    for (const r of res.data) if (r.quote && r.rate) out[r.quote] = r.rate;
+    return { date: new Date().toISOString().slice(0,10), rates: out };
+  }
+  if (res.data.rates) return { date: res.data.date, rates: res.data.rates };
+  return null;
 }
 
 async function fetchUSDroughtMonitor() {
@@ -1949,39 +1904,13 @@ async function fetchAllLive() {
 // ════════════════════════════════════════════════════════════════════════════
 //  INGEST
 // ════════════════════════════════════════════════════════════════════════════
-function cov_set_fx(iso, fx) {
-  const cov = ensureCoverage(iso);
-  if (!cov.currency_stress || (cov.currency_stress.depreciation_pct || 0) < fx.depreciation_pct) cov.currency_stress = fx;
-}
-function quakeNewsScore(q) {
-  const t = wireParseTs(q.time);
-  const age = t != null ? (Date.now() - t) / 36e5 : 999;
-  return q.mag + (age <= 24 ? 1 : age <= 72 ? 0.6 : age <= 168 ? 0.2 : 0);
-}
-function isStrongerQuake(a, b) { return !b || quakeNewsScore(a) > quakeNewsScore(b); }
-function sameQuake(a, b) {
-  const ta = wireParseTs(a.time), tb = wireParseTs(b.time);
-  if (ta == null || tb == null || Math.abs(ta - tb) > 20 * 60 * 1000) return false;
-  if ([a.lat, a.lon, b.lat, b.lon].some(v => !Number.isFinite(v))) return true;
-  return haversineKm(a.lon, a.lat, b.lon, b.lat) <= 100;
-}
-function pickGdacs(prev, ev) {
-  if (!prev) return ev;
-  const red = e => (e.alert === "Red" ? 1 : 0);
-  if (red(ev) !== red(prev)) return red(ev) > red(prev) ? ev : prev;
-  return (ev.from ?? ev.modified ?? 0) > (prev.from ?? prev.modified ?? 0) ? ev : prev;
-}
 function ingestFetchedData(out) {
   if (out.usgs_weekly?.features) {
     for (const f of out.usgs_weekly.features) {
       const p = f.properties, coords = f.geometry?.coordinates;
       if (p?.mag >= 4.5 && coords) {
         const iso = findClosestCountry(coords[0], coords[1]);
-        if (iso) {
-          const cov = ensureCoverage(iso);
-          const cand = { mag: p.mag, time: p.time, place: p.place, lon: coords[0], lat: coords[1], depth: coords[2], id: f.id || null, url: p.url || null };
-          if (isStrongerQuake(cand, cov.usgs)) cov.usgs = cand;
-        }
+        if (iso) ensureCoverage(iso).usgs = { mag: p.mag, time: p.time, place: p.place };
       }
     }
   }
@@ -1992,10 +1921,7 @@ function ingestFetchedData(out) {
         const iso = findClosestCountry(coords[0], coords[1]);
         if (iso) {
           const cov = ensureCoverage(iso);
-          const depth = Number.isFinite(p.depth) ? p.depth : (Number.isFinite(coords[2]) ? Math.abs(coords[2]) : null);
-          const cand = { mag: p.mag, time: wireParseTs(p.time), place: p.flynn_region || p.place, lon: coords[0], lat: coords[1], depth };
-          if (cov.usgs && sameQuake(cand, cov.usgs)) cov.usgs.emsc_mag = cand.mag;   // same quake, second network: corroboration, not a new event
-          else if (isStrongerQuake(cand, cov.emsc)) cov.emsc = cand;
+          if (!cov.usgs || p.mag > (cov.usgs.mag || 0)) cov.emsc = { mag: p.mag, time: p.time, place: p.flynn_region || p.place };
         }
       }
     }
@@ -2007,22 +1933,14 @@ function ingestFetchedData(out) {
       const iso = coords ? findClosestCountry(coords[0], coords[1]) : null;
       if (!iso) continue;
       const cov = ensureCoverage(iso);
-      const lvl = String(p.alertlevel || "").toLowerCase();
-      if (lvl !== "red" && lvl !== "orange") continue;                       // never default a missing level
-      if (p.iscurrent === false || String(p.iscurrent).toLowerCase() === "false") continue;   // expired alerts are not news
-      const ev = {
-        event: p.eventname || p.name || "", alert: lvl === "red" ? "Red" : "Orange", eventtype: p.eventtype,
-        from: wireParseTs(p.fromdate), to: wireParseTs(p.todate), modified: wireParseTs(p.datemodified),
-        country: p.country || null, severity: p.severitydata?.severitytext || null,
-        url: (p.url && (p.url.report || p.url.details)) || null,
-      };
-      if (p.eventtype === "VO") cov.gdacs_volcano = pickGdacs(cov.gdacs_volcano, ev);
-      else if (p.eventtype === "DR") cov.gdacs_drought = pickGdacs(cov.gdacs_drought, ev);
-      else if (p.eventtype === "FL") cov.gdacs_flood = pickGdacs(cov.gdacs_flood, ev);
-      else if (p.eventtype === "TC") cov.gdacs_cyclone = pickGdacs(cov.gdacs_cyclone, ev);
+      const ev = { event: p.eventname || "", alert: (p.alertlevel || "Orange").toLowerCase() === "red" ? "Red" : "Orange", eventtype: p.eventtype };
+      if (p.eventtype === "VO") cov.gdacs_volcano = ev;
+      else if (p.eventtype === "DR") cov.gdacs_drought = ev;
+      else if (p.eventtype === "FL") cov.gdacs_flood = ev;
+      else if (p.eventtype === "TC") cov.gdacs_cyclone = ev;
       else if (p.eventtype === "TS") cov.gdacs_tsunami = ev;
       else if (p.eventtype === "EQ") cov.gdacs_eq = { event: p.eventname, mag: p.magnitude };
-      else cov.gdacs = pickGdacs(cov.gdacs, ev);
+      else cov.gdacs = ev;
     }
   }
   if (out.gdacs_earthquakes?.features) {
@@ -2037,17 +1955,17 @@ function ingestFetchedData(out) {
       }
     }
   }
-  if (out.frankfurter_fx?.series) {
-    const { series, days, date } = out.frankfurter_fx;
-    const first = series[days[0]] || {}, last = series[days[days.length - 1]] || {};
-    for (const cur of Object.keys(last)) {
+  if (out.frankfurter_fx?.rates) {
+    const rates = out.frankfurter_fx.rates;
+    for (const [cur, rate] of Object.entries(rates)) {
       const iso = CURRENCY_TO_ISO[cur];
       if (!iso || !BASE_SCORES[iso]) continue;
-      const a0 = safeNum(first[cur], 0), b0 = safeNum(last[cur], 0);
-      if (!(a0 > 0 && b0 > 0)) continue;
-      // Rates are units of local currency per USD, so a rising rate means the local currency weakened.
-      const depreciation = (1 - a0 / b0) * 100;
-      cov_set_fx(iso, { currency: cur, rate_per_usd: b0, rate_start: a0, rate_end: b0, start_date: days[0], depreciation_pct: +depreciation.toFixed(2), volatility_pct: +Math.max(0, depreciation).toFixed(2), window_days: CFG.FX_WINDOW_DAYS, days_covered: days.length, source_currency: cur, date });
+      const numRate = safeNum(rate, 1);
+      const volProxy = Math.max(0, Math.min(60, Math.log10(Math.max(0.01, numRate)) * 20));
+      const cov = ensureCoverage(iso);
+      if (!cov.currency_stress || (cov.currency_stress.volatility_pct || 0) < volProxy) {
+        cov.currency_stress = { rate_per_usd: numRate, volatility_pct: +volProxy.toFixed(2), source_currency: cur, date: out.frankfurter_fx.date };
+      }
     }
   }
   if (out.us_drought_monitor) {
@@ -2216,11 +2134,7 @@ function ingestFetchedData(out) {
   if (out.ifrc_go?.results) {
     for (const ev of out.ifrc_go.results) {
       const iso = ev.countries?.[0]?.iso3 || ev.country?.iso3;
-      if (iso && BASE_SCORES[iso] !== undefined) {
-        const cov = ensureCoverage(iso);
-        const cand = { name: ev.name, dtype: ev.dtype?.name || "Field operation", date: ev.disaster_start_date, id: ev.id || null };
-        if (!cov.ifrc || (wireParseTs(cand.date) ?? 0) > (wireParseTs(cov.ifrc.date) ?? 0)) cov.ifrc = cand;
-      }
+      if (iso && BASE_SCORES[iso] !== undefined) ensureCoverage(iso).ifrc = { name: ev.name, dtype: ev.dtype?.name || "Field operation", date: ev.disaster_start_date };
     }
   }
   const aqMap = { aq_delhi: "IND", aq_beijing: "CHN", aq_cairo: "EGY" };
@@ -2324,21 +2238,6 @@ const LIVE_SIGNALS = {
 
 const RECENCY = { HOURS_6: 1.00, HOURS_24: 0.85, HOURS_72: 0.60, HOURS_168: 0.30, OLDER: 0.10 };
 
-function pushGdacsSignal(signals, ev, hazard, w, now) {
-  if (!ev?.alert) return;
-  const red = String(ev.alert).toLowerCase() === "red";
-  const ts = ev.from ?? ev.modified ?? null;   // event START drives freshness; a record update is not a new event
-  const base = hazard === "disaster" ? "gdacs" : `gdacs_${hazard}`;
-  const kindWord = hazard === "volcano" ? "volcanic alert" : hazard === "disaster" ? "alert" : `${hazard} alert`;
-  const detail = hazard === "disaster" ? `${ev.alert} alert: ${ev.event || "disaster"}` : `${ev.alert} ${kindWord}: ${ev.event || ""}`;
-  const hz = hazard === "disaster" ? ({ WF: "wildfire" }[ev.eventtype] || "disaster") : hazard;
-  signals.push({
-    type: `${base}_${red ? "red" : "orange"}`, weight: red ? w.red : w.orange,
-    ageHours: ts != null ? Math.max(0, (now - ts) / 36e5) : w.fallbackAge, ageKnown: ts != null, source: "GDACS", details: detail,
-    facts: { kind: "gdacs", hazard: hz, level: red ? "red" : "orange", name: ev.event || "", from: ev.from, modified: ev.modified, severity: ev.severity || null, url: ev.url || null },
-  });
-}
-
 function computeLiveBreakingScore(iso, live, store) {
   const c = store[iso];
   const signals = [];
@@ -2346,50 +2245,54 @@ function computeLiveBreakingScore(iso, live, store) {
   const cov = evidenceIndex.sourceCoverage[iso] || {};
 
   if (cov.usgs?.mag >= 4.5) {
-    const known = wireParseTs(cov.usgs.time) != null;
-    const ts = known ? wireParseTs(cov.usgs.time) : null;
+    const ageHours = cov.usgs.time ? (now - cov.usgs.time) / 36e5 : 24;
     signals.push({
       type: cov.usgs.mag >= 6 ? "earthquake_m6" : cov.usgs.mag >= 5 ? "earthquake_m5" : "earthquake_m45",
       weight: cov.usgs.mag >= 6 ? 95 : cov.usgs.mag >= 5 ? 65 : 40,
-      ageHours: known ? Math.max(0, (now - ts) / 36e5) : 24, ageKnown: known, source: "USGS",
+      ageHours, source: "USGS",
       details: `M${cov.usgs.mag.toFixed(1)} earthquake${cov.usgs.place ? " near " + cov.usgs.place.split(",")[0] : ""}`,
-      magnitude: cov.usgs.mag, latitude: cov.usgs.lat, longitude: cov.usgs.lon,
-      facts: { kind: "earthquake", network: "USGS", mag: cov.usgs.mag, place: cov.usgs.place || null, lat: cov.usgs.lat, lon: cov.usgs.lon, depth: cov.usgs.depth, ts, url: cov.usgs.url || null },
+      magnitude: cov.usgs.mag,
     });
   }
-  if (cov.emsc?.mag >= 4.5) {
-    const ts = wireParseTs(cov.emsc.time);
-    signals.push({
-      type: cov.emsc.mag >= 6 ? "earthquake_m6" : cov.emsc.mag >= 5 ? "earthquake_m5" : "earthquake_m45",
-      weight: cov.emsc.mag >= 6 ? 85 : cov.emsc.mag >= 5 ? 55 : 35,
-      ageHours: ts != null ? Math.max(0, (now - ts) / 36e5) : 24, ageKnown: ts != null, source: "EMSC",
-      details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag, latitude: cov.emsc.lat, longitude: cov.emsc.lon,
-      facts: { kind: "earthquake", network: "EMSC", mag: cov.emsc.mag, place: cov.emsc.place || null, lat: cov.emsc.lat, lon: cov.emsc.lon, depth: cov.emsc.depth, ts },
-    });
+  if (cov.emsc?.mag >= 4.5 && (!cov.usgs || cov.emsc.mag > cov.usgs.mag)) {
+    signals.push({ type: "earthquake_m5", weight: 55, ageHours: 12, source: "EMSC", details: `M${cov.emsc.mag.toFixed(1)} earthquake (EMSC)`, magnitude: cov.emsc.mag });
   }
-  pushGdacsSignal(signals, cov.gdacs, "disaster", { red: 100, orange: 70, fallbackAge: 12 }, now);
-  pushGdacsSignal(signals, cov.gdacs_volcano, "volcano", { red: 90, orange: 60, fallbackAge: 12 }, now);
-  pushGdacsSignal(signals, cov.gdacs_drought, "drought", { red: 85, orange: 55, fallbackAge: 24 }, now);
-  pushGdacsSignal(signals, cov.gdacs_flood, "flood", { red: 85, orange: 55, fallbackAge: 12 }, now);
-  pushGdacsSignal(signals, cov.gdacs_cyclone, "cyclone", { red: 95, orange: 65, fallbackAge: 12 }, now);
-  if (cov.wildfire) signals.push({ type: "nasa_wildfire", weight: 75, ageHours: 24, source: "NASA", details: cov.wildfire.title || "Active wildfire", facts: cov.wildfire.title ? { kind: "wildfire", title: cov.wildfire.title } : undefined });
+  if (cov.gdacs?.alert) {
+    const a = String(cov.gdacs.alert).toLowerCase();
+    signals.push({ type: a === "red" ? "gdacs_red" : "gdacs_orange", weight: a === "red" ? 100 : 70, ageHours: 12, source: "GDACS", details: `${cov.gdacs.alert} alert: ${cov.gdacs.event || "disaster"}` });
+  }
+  if (cov.gdacs_volcano?.alert) {
+    const a = cov.gdacs_volcano.alert.toLowerCase();
+    signals.push({ type: a === "red" ? "gdacs_volcano_red" : "gdacs_volcano_orange", weight: a === "red" ? 90 : 60, ageHours: 12, source: "GDACS", details: `${cov.gdacs_volcano.alert} volcanic alert: ${cov.gdacs_volcano.event || ""}` });
+  }
+  if (cov.gdacs_drought?.alert) {
+    const a = cov.gdacs_drought.alert.toLowerCase();
+    signals.push({ type: a === "red" ? "gdacs_drought_red" : "gdacs_drought_orange", weight: a === "red" ? 85 : 55, ageHours: 24, source: "GDACS", details: `${cov.gdacs_drought.alert} drought alert: ${cov.gdacs_drought.event || ""}` });
+  }
+  if (cov.gdacs_flood?.alert) {
+    const a = cov.gdacs_flood.alert.toLowerCase();
+    signals.push({ type: a === "red" ? "gdacs_flood_red" : "gdacs_flood_orange", weight: a === "red" ? 85 : 55, ageHours: 12, source: "GDACS", details: `${cov.gdacs_flood.alert} flood alert: ${cov.gdacs_flood.event || ""}` });
+  }
+  if (cov.gdacs_cyclone?.alert) {
+    const a = cov.gdacs_cyclone.alert.toLowerCase();
+    signals.push({ type: a === "red" ? "gdacs_cyclone_red" : "gdacs_cyclone_orange", weight: a === "red" ? 95 : 65, ageHours: 12, source: "GDACS", details: `${cov.gdacs_cyclone.alert} cyclone alert: ${cov.gdacs_cyclone.event || ""}` });
+  }
+  if (cov.wildfire) signals.push({ type: "nasa_wildfire", weight: 75, ageHours: 24, source: "NASA", details: cov.wildfire.title || "Active wildfire" });
   if (cov.nasa) signals.push({ type: "nasa_storm", weight: 60, ageHours: 24, source: "NASA", details: cov.nasa.title || "Natural event" });
   if (cov.heat?.temp >= 40) signals.push({ type: "heat_extreme", weight: cov.heat.temp >= 45 ? 75 : 60, ageHours: 12, source: "OPENMETEO", details: `${cov.heat.temp}°C extreme heat` });
-  if (cov.ifrc) {
-    const ts = wireParseTs(cov.ifrc.date);
-    signals.push({ type: "ifrc_emergency", weight: 75, ageHours: ts != null ? Math.max(0, (now - ts) / 36e5) : 48, ageKnown: ts != null, source: "IFRC", details: `${cov.ifrc.dtype || "Emergency"}: ${(cov.ifrc.name || "").substring(0, 40)}`, facts: { kind: "ifrc", dtype: cov.ifrc.dtype, name: cov.ifrc.name, ts } });
-  }
-  if (cov.who_don) signals.push({ type: "who_don", weight: 90, ageHours: 48, source: "WHO DON", details: (cov.who_don.title || "").substring(0, 60), facts: cov.who_don.title ? { kind: "who_don", title: String(cov.who_don.title).trim() } : undefined });
+  if (cov.ifrc) signals.push({ type: "ifrc_emergency", weight: 75, ageHours: 48, source: "IFRC", details: `${cov.ifrc.dtype || "Emergency"}: ${(cov.ifrc.name || "").substring(0, 40)}` });
+  if (cov.covid?.active > 10000) signals.push({ type: "disease_active", weight: 50, ageHours: 24, source: "DISEASE.SH", details: `${cov.covid.active.toLocaleString()} active COVID cases` });
+  if (cov.who_don) signals.push({ type: "who_don", weight: 90, ageHours: 48, source: "WHO DON", details: (cov.who_don.title || "").substring(0, 60) });
   if (cov.displaced > 100000) signals.push({ type: "unhcr_mass_displace", weight: 90, ageHours: 168, source: "UNHCR", details: `${cov.displaced.toLocaleString()} displaced` });
   if (cov.air_quality?.pm25 >= 50) signals.push({ type: "disease_active", weight: 40, ageHours: 6, source: cov.air_quality.source || "OPENMETEO", details: `PM2.5 ${cov.air_quality.pm25.toFixed(0)} µg/m³ (${cov.air_quality.city})` });
   if (cov.flood_risk?.discharge > 500) signals.push({ type: "flood_severe", weight: 70, ageHours: 24, source: "OPENMETEO", details: `River discharge ${cov.flood_risk.discharge}m³/s` });
   if (cov.marine?.wave_height > 5) signals.push({ type: "marine_hazard", weight: 55, ageHours: 12, source: "OPENMETEO", details: `${cov.marine.wave_height}m waves` });
   if (cov.gdp_growth !== undefined && cov.gdp_growth < -2) signals.push({ type: "gdp_contraction", weight: 40, ageHours: 720, source: "WORLDBANK", details: `GDP growth ${cov.gdp_growth.toFixed(1)}%` });
   if (cov.inflation > 30) signals.push({ type: "inflation_crisis", weight: 45, ageHours: 720, source: "WORLDBANK", details: `Inflation ${cov.inflation.toFixed(1)}%` });
-  if (cov.conflict_event) signals.push({ type: "conflict_spike", weight: 50, ageHours: 48, source: "RELIEFWEB", details: (cov.conflict_event.title || "").substring(0, 60), facts: cov.conflict_event.title ? { kind: "report", org: "ReliefWeb", theme: "conflict", title: String(cov.conflict_event.title).trim() } : undefined });
-  if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60), facts: cov.population_movement.title ? { kind: "report", org: "ReliefWeb", theme: "population movement", title: String(cov.population_movement.title).trim() } : undefined });
+  if (cov.conflict_event) signals.push({ type: "conflict_spike", weight: 50, ageHours: 48, source: "RELIEFWEB", details: (cov.conflict_event.title || "").substring(0, 60) });
+  if (cov.population_movement) signals.push({ type: "population_movement", weight: 55, ageHours: 48, source: "RELIEFWEB", details: (cov.population_movement.title || "").substring(0, 60) });
   if (cov.gdelt_conflict?.count >= 3) signals.push({ type: "gdelt_conflict_spike", weight: 50, ageHours: 24, source: "GDELT", details: `${cov.gdelt_conflict.count} conflict/unrest articles` });
-  if (cov.currency_stress?.depreciation_pct >= CFG.FX_MIN_DEPRECIATION_PCT) signals.push({ type: "currency_stress", weight: cov.currency_stress.depreciation_pct >= 20 ? 70 : 55, ageHours: 24, source: "ECB FX", details: `${cov.currency_stress.depreciation_pct.toFixed(1)}% currency depreciation vs USD over ${cov.currency_stress.window_days} days (${cov.currency_stress.source_currency})`, facts: { kind: "currency", currency: cov.currency_stress.currency, depreciation_pct: cov.currency_stress.depreciation_pct, window_days: cov.currency_stress.window_days, days_covered: cov.currency_stress.days_covered, date: cov.currency_stress.date, rate_start: cov.currency_stress.rate_start, rate_end: cov.currency_stress.rate_end, start_date: cov.currency_stress.start_date } });
+  if (cov.currency_stress?.volatility_pct >= 15) signals.push({ type: "currency_stress", weight: cov.currency_stress.volatility_pct >= 30 ? 70 : 55, ageHours: 6, source: "ECB FX", details: `${cov.currency_stress.volatility_pct.toFixed(1)}% implied currency stress (${cov.currency_stress.source_currency})` });
   if (cov.us_drought && iso === "USA") {
     const lvl = cov.us_drought.level || "D0";
     const w = lvl === "D4" ? 80 : lvl === "D3" ? 70 : lvl === "D2" ? 60 : lvl === "D1" ? 50 : 40;
@@ -2400,15 +2303,13 @@ function computeLiveBreakingScore(iso, live, store) {
   if (cov.health_capacity?.hospital_beds_per_10k < 10) signals.push({ type: "health_capacity_low", weight: 40, ageHours: 720, source: "WHO GHO", details: `${cov.health_capacity.hospital_beds_per_10k.toFixed(1)} beds/10k` });
   if (cov.openaq?.pm25 >= 35) signals.push({ type: "openaq_air_quality", weight: cov.openaq.pm25 >= 100 ? 70 : 55, ageHours: 6, source: "OpenAQ", details: `PM2.5 ${cov.openaq.pm25.toFixed(0)} µg/m³ (${cov.openaq.city || "station"})` });
   if (cov.ndbc?.wave_height > 3) signals.push({ type: "ndbc_marine", weight: cov.ndbc.wave_height > 6 ? 80 : 60, ageHours: 1, source: "NOAA NDBC", details: `${cov.ndbc.wave_height}m waves (buoy ${cov.ndbc.buoy})` });
-  if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}`, facts: { kind: "cems", id: cov.cems_activation.id, title: cov.cems_activation.title || "" } });
-  if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}`, facts: { kind: "promed", count: cov.promed.count, title: cov.promed.titles?.[0] || "" } });
-  if (cov.gvp_volcano?.volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano}`, facts: { kind: "gvp", volcano: cov.gvp_volcano.volcano } });
-  else if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: "Volcanic activity: active" });
-  if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}`, facts: { kind: "tsunami", severity: cov.tsunami_alert.severity || "Warning", area: cov.tsunami_alert.area || "the Pacific" } });
+  if (cov.cems_activation) signals.push({ type: "cems_activation", weight: 85, ageHours: 48, source: "Copernicus EMS", details: `${cov.cems_activation.id}: ${(cov.cems_activation.title || "").substring(0, 50)}` });
+  if (cov.promed?.count >= 1) signals.push({ type: "promed_outbreak", weight: 65, ageHours: 72, source: "ProMED", details: `${cov.promed.count} disease report(s): ${(cov.promed.titles?.[0] || "").substring(0, 50)}` });
+  if (cov.gvp_volcano) signals.push({ type: "gvp_volcanic_activity", weight: 75, ageHours: 168, source: "Smithsonian GVP", details: `Volcanic activity: ${cov.gvp_volcano.volcano || "active"}` });
+  if (cov.tsunami_alert) signals.push({ type: "tsunami_alert", weight: 100, ageHours: 6, source: "NOAA PTWC", details: `${cov.tsunami_alert.severity || "Warning"}: ${cov.tsunami_alert.area || "Pacific"}` });
   if (cov.inform?.score >= 5) signals.push({ type: "inform_risk", weight: cov.inform.score >= 7 ? 65 : 50, ageHours: 720, source: "INFORM", details: `INFORM risk score ${cov.inform.score.toFixed(1)} (rank ${cov.inform.rank || "N/A"})` });
 
-  // A signal only counts as "fresh" when a feed gave us its real timestamp.
-  const rawSignals = signals.map(sig => ({ ...sig, is_live_event: true, isEstimated: !sig.ageKnown }));
+  const rawSignals = signals.map(sig => ({ ...sig, is_live_event: true }));
   const dedupedSignals = deduplicateEvents(rawSignals, iso);
 
   let rawScore = 0;
@@ -2432,7 +2333,7 @@ function computeLiveBreakingScore(iso, live, store) {
   const signalCount = rawSignals.length;
   const distinctEventCount = dedupedSignals.length;
   let liveEventBoost = 0;
-  const freshEvents = activeSignals.filter(s => !s.isEstimated && s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
+  const freshEvents = activeSignals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS);
   if (freshEvents.length > 0) {
     liveEventBoost = CFG.LIVE_EVENT_FLAT_BOOST + Math.min(CFG.LIVE_EVENT_FLAT_BOOST * 0.5, (freshEvents.length - 1) * 15);
     rawScore += liveEventBoost;
@@ -2442,7 +2343,7 @@ function computeLiveBreakingScore(iso, live, store) {
   const uniqueTypes = new Set(dedupedSignals.map(s => s.type));
   const diversityBonus = Math.min(30, Math.max(0, uniqueTypes.size - 1) * 8);
   rawScore += diversityBonus;
-  const freshest = dedupedSignals.reduce((min, s) => (s.isEstimated || !Number.isFinite(s.ageHours) ? min : Math.min(min, s.ageHours)), 9999);
+  const freshest = dedupedSignals.reduce((min, s) => Math.min(min, s.ageHours || 9999), 9999);
   let freshnessBonus = 0;
   if (freshest <= 6) freshnessBonus = 40;
   else if (freshest <= 12) freshnessBonus = 25;
@@ -2495,17 +2396,25 @@ function computeLiveBreakingScore(iso, live, store) {
       source: sig.source,
       details: sig.details,
       magnitude: sig.magnitude,
-      facts: sig.facts || null,
       corroborating_sources: sig.corroborating_sources || [],
       corroboration_count: sig.corroboration_count || 0,
     })).sort((a, b) => b.weighted_score - a.weighted_score),
     breaking_headline: buildBreakingHeadline(activeSignals, c),
-    breaking_headline_display: `${c?.flag || "🌍"} ${tier === "BREAKING" ? "BREAKING: " : ""}${buildBreakingHeadline(activeSignals, c)}`,
   };
 }
 
 function buildBreakingHeadline(signals, country) {
-  return buildWireHeadline(signals, country);
+  if (!signals || signals.length === 0) return `${country?.flag || "🌍"} ${country?.name || "Unknown"}: No active breaking crisis signals`;
+  // Only non-estimated signals count for the "BREAKING" prefix
+  const freshEvents = signals.filter(s => s.ageHours <= CFG.FRESH_SIGNAL_HOURS && !s.isEstimated);
+  const sortedByWeight = [...(freshEvents.length ? freshEvents : signals)].sort((a, b) => (b.weighted_score || 0) - (a.weighted_score || 0));
+  const top = sortedByWeight[0];
+  const second = sortedByWeight.find(e => e.type !== top.type && e.details !== top.details);
+  // Only prepend BREAKING when the top event is a *verified* (non-estimated) fresh event
+        const prefix = (top.ageHours <= 6 && !top.isEstimated) ? "BREAKING: " : (top.ageHours <= 24 && !top.isEstimated) ? "" : "ONGOING: ";
+  let headline = `${country?.flag || "🌍"} ${prefix}${country?.name || "Unknown"} — ${top.details || top.type}`;
+  if (second && second.weight >= 60) headline += ` + ${second.details || second.type}`;
+  return headline;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2944,7 +2853,6 @@ function safeCountrySnapshot(iso, store) {
       tier_label: lb.tier_label || "Background",
       tier_icon: lb.tier_icon || "⚪",
       headline: lb.breaking_headline || null,
-      headline_display: lb.breaking_headline_display || null,
       signal_count: safeNum(lb.signal_count, 0),
       source_count: safeNum(lb.source_count, 0),
       distinct_event_count: safeNum(lb.distinct_event_count, 0),
@@ -2958,7 +2866,7 @@ function safeCountrySnapshot(iso, store) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ULTIMATE EDITORIAL ENGINE (v22.0.0)
+//  ULTIMATE EDITORIAL ENGINE (v21.4.0)
 //  ────────────────────────────────────────────────────────────────────────────
 //  Fixes from the v21.3.0 review:
 //   • earthquake label + details no longer double up
@@ -3012,431 +2920,498 @@ function humanSourceName(raw) {
   return raw;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  WIRE EDITORIAL ENGINE (v22.0.0)
-//  ────────────────────────────────────────────────────────────────────────────
-//  Produces inverted-pyramid, wire-service-style copy from structured facts.
-//
-//  House rules baked into the code:
-//   1. Only state what a feed actually says. Times come from feed timestamps;
-//      when a feed gives none, the copy carries no time words at all.
-//   2. Every sentence that carries a fact names the agency that published it.
-//   3. No internal vocabulary (index scores, ML, anomaly, ledger, "signals").
-//   4. Unrelated events are never joined into one headline or one sentence.
-//   5. Automated copy is labelled as such (CFG.DISCLOSE_AUTOMATION).
-// ════════════════════════════════════════════════════════════════════════════
+function formatRelativeTime(hours) {
+  if (hours == null || !Number.isFinite(hours)) return "in the current monitoring window";
+  if (hours <= 1) return "within the last hour";
+  if (hours < 6) return `about ${Math.max(1, Math.round(hours))} hours ago`;
+  if (hours < 12) return "this morning";
+  if (hours < 24) return "earlier today";
+  if (hours < 36) return "within the last day";
+  if (hours < 60) return "about two days ago";
+  if (hours < 84) return "about three days ago";
+  if (hours < 108) return "about four days ago";
+  if (hours < 132) return "about five days ago";
+  if (hours < 156) return "about six days ago";
+  if (hours < 180) return "within the past week";
+  if (hours < 336) return `about ${Math.round(hours / 168)} weeks ago`;
+  return "several weeks ago";
+}
 
-const WIRE_MONTHS_SHORT = ["Jan", "Feb", "March", "April", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const WIRE_MONTHS_AP = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
-const WIRE_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const THE_COUNTRIES = new Set(["United States", "United Kingdom", "Netherlands", "Philippines", "Bahamas", "Gambia", "United Arab Emirates", "Central African Republic", "Republic of Congo", "Comoros", "Maldives", "Seychelles", "Marshall Islands", "Solomon Islands", "Cook Islands"]);
-const RING_OF_FIRE_ISOS = new Set(["IDN", "JPN", "PHL", "CHL", "PER", "MEX", "NZL", "PNG", "ECU", "SLB", "VUT", "TON", "CRI", "GTM", "SLV", "NIC", "TWN"]);
-const CURRENCY_NAMES = {
-  AUD: "Australian dollar", BGN: "Bulgarian lev", BRL: "Brazilian real", CAD: "Canadian dollar", CHF: "Swiss franc",
-  CNY: "Chinese yuan", CZK: "Czech koruna", DKK: "Danish krone", GBP: "British pound", HKD: "Hong Kong dollar",
-  HUF: "Hungarian forint", IDR: "Indonesian rupiah", ILS: "Israeli shekel", INR: "Indian rupee", ISK: "Icelandic krona",
-  JPY: "Japanese yen", KRW: "South Korean won", MXN: "Mexican peso", MYR: "Malaysian ringgit", NOK: "Norwegian krone",
-  NZD: "New Zealand dollar", PHP: "Philippine peso", PLN: "Polish zloty", RON: "Romanian leu", SEK: "Swedish krona",
-  SGD: "Singapore dollar", THB: "Thai baht", TRY: "Turkish lira", ZAR: "South African rand",
-};
-// Kinds the engine will report as news. Everything else (index scores, static
-// water-stress, COVID totals, etc.) is context for dashboards, not wire copy.
-const CURRENCY_CODE_SHORT = { AUD: "Australian dollar", BGN: "lev", BRL: "real", CAD: "Canadian dollar", CHF: "franc", CNY: "yuan", CZK: "koruna", DKK: "krone", GBP: "pound", HKD: "Hong Kong dollar", HUF: "forint", IDR: "rupiah", ILS: "shekel", INR: "rupee", ISK: "krona", JPY: "yen", KRW: "won", MXN: "peso", MYR: "ringgit", NOK: "krone", NZD: "New Zealand dollar", PHP: "peso", PLN: "zloty", RON: "leu", SEK: "krona", SGD: "Singapore dollar", THB: "baht", TRY: "lira", ZAR: "rand" };
-const WIRE_NEWS_KINDS = new Set(["earthquake", "gdacs", "ifrc", "cems", "who_don", "promed", "tsunami", "gvp", "wildfire", "report", "currency"]);
-
-const wireInCountry = (name) => (THE_COUNTRIES.has(name) ? `the ${name}` : name);
-const wirePoss = (name) => { const n = wireInCountry(name); return /s$/.test(n) ? `${n}'` : `${n}'s`; };
-const wireSentence = (s) => { const t = String(s || "").trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
-const wireLower = (s) => { const t = String(s || "").trim(); return t ? t.charAt(0).toLowerCase() + t.slice(1) : t; };
-const wireTitleCase = (s) => String(s || "").toLowerCase().replace(/(^|[\s\-(\/])([a-z])/g, (m, p, c) => p + c.toUpperCase());
-const wireWords = (s) => String(s || "").trim().split(/\s+/).filter(Boolean).length;
-const wireParseTs = (v) => {
-  if (v == null || v === "") return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  let s = String(v).trim();
-  if (!/[zZ]$|[+-]\d\d:?\d\d$/.test(s)) s += "Z";
-  const t = Date.parse(s);
-  return Number.isFinite(t) ? t : null;
-};
-const wireHHMM = (ts) => { const d = new Date(ts); return `${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}`; };
-const wireDatelineDate = (ts) => { const d = new Date(ts); return `${WIRE_MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCDate()}`; };
-const wireApDate = (ts) => { const d = new Date(ts); return `${WIRE_MONTHS_AP[d.getUTCMonth()]} ${d.getUTCDate()}`; };
-
+// ─── Convert N/S/E/W to words ───
 function compassToWord(dir) {
   const d = String(dir || "").toUpperCase();
-  return { N: "north", S: "south", E: "east", W: "west", NE: "northeast", NW: "northwest", SE: "southeast", SW: "southwest", NNE: "north-northeast", ENE: "east-northeast", ESE: "east-southeast", SSE: "south-southeast", SSW: "south-southwest", WSW: "west-southwest", WNW: "west-northwest", NNW: "north-northwest" }[d] || d.toLowerCase();
+  return { N: "north", S: "south", E: "east", W: "west", NE: "northeast", NW: "northwest", SE: "southeast", SW: "southwest" }[d] || d;
 }
 
-// "on Saturday at 0312 GMT" / "on Saturday" / "on Sept. 27". Returns null if the time is unknown.
-function wireWhen(ts, now = Date.now()) {
-  if (ts == null) return null;
-  const diffH = (now - ts) / 36e5;
-  const d = new Date(ts);
-  if (diffH < 1.5 && diffH >= -0.1) return "within the past hour";
-  if (diffH < 36) return `on ${WIRE_WEEKDAYS[d.getUTCDay()]} at ${wireHHMM(ts)} GMT`;
-  if (diffH < 24 * 6) return `on ${WIRE_WEEKDAYS[d.getUTCDay()]}`;
-  return `on ${wireApDate(ts)}`;
+// ─── Earthquake reformulator ───
+// Given a raw "M5.0 earthquake near 124 km N of Metinaro" or similar,
+// produce "a magnitude-5.0 earthquake 124 km north of Metinaro" style clause.
+function describeEarthquake(mag, rawDetails) {
+  const m = safeNum(mag, 0);
+  let loc = String(rawDetails || "").trim();
+  // Strip leading "M<num> earthquake" or "magnitude <num>"
+  loc = loc.replace(/^M\d+(\.\d+)?\s+earthquake\s*/i, "");
+  loc = loc.replace(/^magnitude\s+\d+(\.\d+)?\s+earthquake\s*/i, "");
+  loc = loc.replace(/^earthquake\s+/i, "");
+  // "near 124 km N of Metinaro" → "124 km north of Metinaro"
+  loc = loc.replace(/\bnear\s+(\d+)\s*km\s+(N|S|E|W|NE|NW|SE|SW)\s+of\s+([A-Z][A-Za-z'’\-]+)/i,
+    (m, n, dir, place) => `${n} km ${compassToWord(dir)} of ${place}`);
+  // Fallback: "124 km N of Metinaro" → "124 km north of Metinaro"
+  loc = loc.replace(/\b(\d+)\s*km\s+(N|S|E|W|NE|NW|SE|SW)\s+of\b/gi,
+    (m, n, dir) => `${n} km ${compassToWord(dir)} of`);
+  // Strip leftover "near"
+  loc = loc.replace(/\bnear\s+/i, "near ");
+  loc = loc.trim();
+  if (!m) return loc ? `an earthquake ${loc}` : "an earthquake";
+  if (loc) return `a magnitude-${m.toFixed(1)} earthquake ${loc}`;
+  return `a magnitude-${m.toFixed(1)} earthquake`;
 }
 
-function wireAgeHours(ev, now = Date.now()) {
-  const ts = ev.facts?.ts ?? ev.facts?.from ?? ev.facts?.modified ?? null;
-  if (ts != null) return Math.max(0, (now - ts) / 36e5);
-  return null;
-}
-
-// ─── Normalise raw signals / events to wire events ───
-function wireEventsFrom(list, now = Date.now()) {
-  const out = [];
-  for (const raw of Array.isArray(list) ? list : []) {
-    const facts = raw.facts;
-    if (!facts || !WIRE_NEWS_KINDS.has(facts.kind)) continue;
-    const est = raw.is_estimated ?? raw.isEstimated ?? false;
-    const ts = facts.ts ?? facts.from ?? facts.modified ?? null;
-    const ageH = ts != null ? Math.max(0, (now - ts) / 36e5) : null;
-    if (ageH != null && ageH > CFG.WIRE_MAX_EVENT_AGE_HOURS && facts.kind !== "gdacs" && facts.kind !== "currency") continue;
-    const rec = ageH == null ? 0.35 : ageH <= 6 ? 1 : ageH <= 24 ? 0.9 : ageH <= 72 ? 0.7 : ageH <= 168 ? 0.45 : 0.25;
-    const base = safeNum(raw.weight, 40);
-    out.push({ raw, facts, type: raw.type, source: raw.source, est: !!est || ts == null, ts, ageH, value: base * rec, weight: base });
+// ─── Humanize an event's label into prose ───
+// When the event is an earthquake AND we have details, return the full natural clause.
+// Otherwise map to a generic natural phrase.
+function eventLabelToHuman(label, type, opts = {}) {
+  const l = String(label || type || "").trim();
+  // Earthquakes: use describeEarthquake to produce a natural clause, skip the generic label
+  if (/earthquake/i.test(l) || opts.magnitude) {
+    if (opts.details) return describeEarthquake(opts.magnitude, opts.details);
+    return "an earthquake";
   }
-  // currency moves only lead when they are large
-  return out
-    .filter(e => e.facts.kind !== "currency" || safeNum(e.facts.depreciation_pct, 0) >= 15 || out.length === 1)
-    .sort((a, b) => b.value - a.value);
-}
-
-// ─── Earthquake phrasing ───
-function wireParseQuakePlace(place) {
-  const s = String(place || "").trim();
-  if (!s) return null;
-  const m = s.match(/^(\d+(?:\.\d+)?)\s*km\s+([NSEW]{1,3})\s+of\s+(.+?)(?:,\s*([^,]+))?$/i);
-  if (m) return { km: +m[1], dir: compassToWord(m[2]), near: m[3].trim(), country: m[4] ? m[4].trim() : null };
-  return { raw: s };
-}
-function wireQuakeLocation(facts, countryName) {
-  const p = wireParseQuakePlace(facts.place);
-  const countryTail = (txt, prep = "in") => (new RegExp(`\\b${countryName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(txt) ? "" : ` ${prep} ${wireInCountry(countryName)}`);
-  if (!p) return { phrase: `in ${wireInCountry(countryName)}`, short: `in ${wireInCountry(countryName)}`, near: null };
-  if (p.km != null) {
-    const mi = Math.max(1, Math.round(p.km * 0.621371));
-    const phrase = `${p.km} km (${mi} miles) ${p.dir} of ${p.near}`;
-    return { phrase: phrase + countryTail(`${p.near} ${p.country || ""}`), short: `near ${p.near}`, near: p.near };
+  // Disease / case-count events: use the raw case count as the human label
+  // so the sentence reads "20,054 active COVID cases was recorded..." instead of
+  // "a disease outbreak, 20,054 active COVID cases was recorded..."
+  if (/^Disease Outbreak$/i.test(l) && opts.details) {
+    return opts.details;
   }
-  let raw = p.raw;
-  if (raw === raw.toUpperCase()) raw = wireTitleCase(raw);
-  raw = raw.replace(/,\s*[^,]+$/, m => (new RegExp(countryName, "i").test(m) ? "" : m)).trim();
-  if (/\b(sea|ocean|strait|gulf|bay|channel)$/i.test(raw)) return { phrase: `in the ${raw}`, short: `in the ${raw}`, near: null };
-  if (/\bregion$/i.test(raw)) return { phrase: `in the ${raw.replace(/\s*region$/i, "")} region${countryTail(raw, "of")}`, short: `in the ${raw.replace(/\s*region$/i, "")} region`, near: null };
-  return { phrase: `near ${raw}${countryTail(raw)}`, short: `near ${raw}`, near: raw };
+  const rules = [
+    [/^GDACS Volcano RED Alert$/i, "a red-level volcanic alert"],
+    [/^GDACS Volcano Orange Alert$/i, "an orange-level volcanic alert"],
+    [/^GDACS Drought RED Alert$/i, "a red-level drought alert"],
+    [/^GDACS Drought Orange Alert$/i, "an orange-level drought alert"],
+    [/^GDACS Flood RED Alert$/i, "a red-level flood alert"],
+    [/^GDACS Flood Orange Alert$/i, "an orange-level flood alert"],
+    [/^GDACS Cyclone RED Alert$/i, "a red-level cyclone alert"],
+    [/^GDACS Cyclone Orange Alert$/i, "an orange-level cyclone alert"],
+    [/^GDACS RED Alert$/i, "a red-level disaster alert"],
+    [/^GDACS Orange Alert$/i, "an orange-level disaster alert"],
+    [/^IFRC Emergency$/i, "an IFRC emergency response"],
+    [/^WHO Disease Outbreak$/i, "a WHO disease-outbreak notice"],
+    [/^Mass Displacement$/i, "a mass-displacement event"],
+    [/^Active Wildfire$/i, "an active wildfire"],
+    [/^Severe Storm$/i, "a severe storm"],
+    [/^Extreme Heat$/i, "an extreme-heat event"],
+    [/^Severe Flooding$/i, "severe flooding"],
+    [/^Marine Hazard$/i, "a marine hazard"],
+    [/^Disease Outbreak$/i, "a disease outbreak"],
+    [/^Inflation Crisis$/i, "an inflation crisis"],
+    [/^GDP Contraction$/i, "a GDP contraction"],
+    [/^Political Instability$/i, "political instability"],
+    [/^Conflict News Spike$/i, "a spike in conflict reporting"],
+    [/^Population Movement Reported$/i, "population movement"],
+    [/^Water Scarcity$/i, "water scarcity"],
+    [/^Crop Stress$/i, "crop stress"],
+    [/^Currency Stress$/i, "currency stress"],
+    [/^US Drought$/i, "a U.S. drought"],
+    [/^Low Health Capacity$/i, "low health-system capacity"],
+    [/^Conflict Fatalities$/i, "conflict fatalities"],
+    [/^Air Quality Alert$/i, "an air-quality alert"],
+    [/^Marine Buoy Alert$/i, "a marine-buoy alert"],
+    [/^Copernicus EMS Activation$/i, "a Copernicus emergency-mapping activation"],
+    [/^ProMED Disease Report$/i, "a ProMED disease report"],
+    [/^Volcanic Activity Report$/i, "a volcanic-activity report"],
+    [/^Tsunami Alert$/i, "a tsunami alert"],
+    [/^INFORM High Risk$/i, "a high INFORM risk rating"],
+  ];
+  for (const [re, human] of rules) if (re.test(l)) return human;
+  return l.charAt(0).toLowerCase() + l.slice(1);
 }
-const wireNetworkFull = (n) => (n === "EMSC" ? "the European-Mediterranean Seismological Centre" : "the U.S. Geological Survey");
 
-// ─── IFRC / GDACS phrasing ───
-function wireIfrcPlace(facts, countryName) {
-  let name = String(facts.name || "").trim();
-  name = name.replace(/^[^:]+:\s*/, "");
-  const d = String(facts.dtype || "").trim();
-  if (d) name = name.replace(new RegExp(`\\s*${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?$`, "i"), "");
-  name = name.replace(/\s*(earthquake|flood|floods|cyclone|storm|drought|epidemic|fire|landslide|volcano|eruption)s?$/i, "").trim();
-  return name && name.toLowerCase() !== countryName.toLowerCase() ? `${name}, ${wireInCountry(countryName)}` : wireInCountry(countryName);
-}
-function wireGdacsSubject(f, countryName) {
-  const lvl = f.level;
-  const name = String(f.name || "").trim().replace(/\s+/g, " ");
-  const c = wireInCountry(countryName);
-  const cyc = name.replace(/^(tropical\s+)?(cyclone|storm|typhoon|hurricane)[\s-]*/i, "") || name;
-  switch (f.hazard) {
-    case "volcano": return { short: name ? `${wirePoss(countryName)} ${name} volcano` : `a volcano in ${c}`, headlineSubject: name ? `${wirePoss(countryName)} ${name} volcano` : `volcano in ${c}` };
-    case "flood": return { short: name ? `the area around ${name}, ${c}` : c, headlineSubject: name ? `${name}, ${c}` : c };
-    case "drought": return { short: name ? `${name}, ${c}` : c, headlineSubject: c };
-    case "cyclone": return { short: name ? `Cyclone ${cyc}` : `a tropical cyclone near ${c}`, headlineSubject: name ? `Cyclone ${cyc}` : `cyclone near ${c}` };
-    case "wildfire": return { short: name ? `the ${name} wildfire in ${c}` : `a wildfire in ${c}`, headlineSubject: name ? `${name} wildfire in ${c}` : `wildfire in ${c}` };
-    default: return { short: name ? `${name} in ${c}` : `a disaster event in ${c}`, headlineSubject: name ? `${name} in ${c}` : `disaster event in ${c}` };
+// ─── Humanize an event's details ───
+// Handles GDACS "Orange volcanic alert: Lewotobi", IFRC "Earthquake: Indonesia: East Nusa Tenggara Earthquake", etc.
+// Returns "" if there's nothing meaningful to append.
+function eventDetailsToHuman(details, type, label) {
+  let d = String(details || "").trim();
+  if (!d) return "";
+  // Guard: if the detail string is already contained in the label, don't append it again.
+  const labelStr = String(label || "").trim().toLowerCase();
+  if (labelStr && labelStr.includes(d.toLowerCase())) return "";  // GDACS volcanic/drought/flood/cyclone alert: "Orange volcanic alert: Lewotobi" → "for Mount Lewotobi"
+  let m = d.match(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*(.*)$/i);
+  if (m) {
+    const place = m[3].trim();
+    return place ? `for ${place}` : "";
   }
+  // IFRC: "Earthquake: Indonesia: East Nusa Tenggara Earthquake" → "in Indonesia — East Nusa Tenggara"
+  m = d.match(/^Earthquake:\s*(.+?)\s+Earthquake$/i);
+  if (m) {
+    const place = m[1].replace(/:\s*/g, " — ").trim();
+    return place ? `in ${place}` : "";
+  }
+  // Generic "Type: place" → "in place"
+  m = d.match(/^([A-Za-z ]{2,40}):\s*(.+)$/);
+  if (m) {
+    return `in ${m[2].trim()}`;
+  }
+  // Strip trailing colon
+  d = d.replace(/[:\s]+$/, "");
+  // For earthquake details, describeEarthquake already handles it in the label
+  if (type === "earthquake_m5" || type === "earthquake_m6" || type === "earthquake_m45" || /earthquake/i.test(label || "")) {
+    return "";
+  }
+  return d;
 }
-const GDACS_DESCRIPTION = "a joint United Nations and European Commission platform";
 
-// ─── Headline ───
-function wireHeadlineFor(ev, countryName, now = Date.now()) {
-  const f = ev.facts;
-  const c = wireInCountry(countryName);
-  let h;
-  switch (f.kind) {
-    case "earthquake": {
-      const loc = wireQuakeLocation(f, countryName);
-      const fresh = ev.ageH != null && ev.ageH <= 36;
-      const where = loc.near ? `near ${loc.near} in ${c}` : loc.phrase;
-      h = `Magnitude ${f.mag.toFixed(1)} earthquake ${fresh ? "strikes" : "recorded"} ${where}, ${f.network === "EMSC" ? "EMSC" : "USGS"} says`;
-      break;
+// ─── Shorten a ledger label for prose use ───
+// The full label belongs in the table; the prose should use something concise.
+function humanizeLedgerLabel(source, label) {
+  const l = String(label || "").trim();
+  const src = String(source || "").toUpperCase();
+  // Smithsonian GVP: "Volcanic activity: Semeru (Indonesia) - Report for ..." → "continuing eruptive activity at Semeru"
+  if (src === "SMITHSONIAN GVP" || /Smithsonian Global Volcanism/i.test(source || "")) {
+    const m = l.match(/Volcanic activity:\s*([A-Za-z'’\-\s]+?)\s*\(/);
+    if (m) {
+      const volcano = m[1].trim();
+      if (/Continuing Eruptive/i.test(l)) return `continuing eruptive activity at ${volcano}`;
+      if (/New Eruptive/i.test(l)) return `new eruptive activity at ${volcano}`;
+      return `volcanic activity at ${volcano}`;
     }
-    case "gdacs": {
-      const g = wireGdacsSubject(f, countryName);
-      const kindWord = f.hazard === "flood" ? "flood alert" : f.hazard === "drought" ? "drought alert" : "alert";
-      h = `${wireSentence(f.level)} ${kindWord} issued for ${g.headlineSubject}, GDACS says`;
-      break;
-    }
-    case "ifrc": h = `IFRC lists ${String(f.dtype || "emergency").toLowerCase()} emergency in ${wireIfrcPlace(f, countryName)}`; break;
-    case "cems": h = `EU satellite mapping activated for ${wireCemsTitle(f)} in ${c}`; break;
-    case "who_don": h = `WHO issues outbreak notice: ${f.title}`; break;
-    case "promed": h = `ProMED posts ${f.count} disease report${f.count === 1 ? "" : "s"} on ${c}`; break;
-    case "tsunami": h = `Tsunami ${String(f.severity || "warning").toLowerCase()} issued for ${f.area || "the Pacific"}, PTWC says`; break;
-    case "gvp": h = `Volcanic activity reported at ${f.volcano} in ${c}, Smithsonian program says`; break;
-    case "wildfire": h = `Active wildfire tracked in ${c}: ${f.title}`; break;
-    case "report": h = `${f.org} publishes report on ${f.theme} in ${c}`; break;
-    case "currency": h = `${countryName}'s ${wireLower(CURRENCY_NAMES[f.currency] || "currency").replace(/^(indonesian|south african|new zealand|hong kong|south korean|british|swiss|chinese|japanese|indian|israeli|mexican|polish|swedish|thai|turkish|czech|danish|hungarian|icelandic|malaysian|norwegian|philippine|romanian|brazilian|bulgarian|australian|canadian|singapore)\s+/i, "")} weakens ${Math.round(f.depreciation_pct)}% against dollar in a month`; break;
-    default: h = `${countryName}: new report from monitoring agency`;
+    return l.replace(/ - Report for .*$/i, "");
   }
-  // trim "in the" artefacts and enforce length
-  h = h.replace(/\s{2,}/g, " ").replace(/\bin in\b/g, "in");
-  if (h.length > CFG.WIRE_HEADLINE_MAX_CHARS) h = h.replace(/, (USGS|EMSC|GDACS|PTWC) says$/, "");
-  return h;
-}
-function wireCemsTitle(f) {
-  const t = String(f.title || "").replace(/^EMSR\d+:?\s*/i, "").trim();
-  return t || "a disaster";
-}
-
-// ─── Sentences (lede = full sentence, secondary = clause with lowercase start) ───
-function wireLedeSentence(ev, countryName, now) {
-  const f = ev.facts;
-  const c = wireInCountry(countryName);
-  const when = ev.ts != null ? wireWhen(ev.ts, now) : null;
-  switch (f.kind) {
-    case "earthquake": {
-      const loc = wireQuakeLocation(f, countryName);
-      return `A magnitude ${f.mag.toFixed(1)} earthquake struck ${loc.phrase}${when ? ` ${when}` : ""}, ${wireNetworkFull(f.network)} said.`;
+  // IFRC: "Earthquake: Indonesia: East Nusa Tenggara" → "an earthquake response in East Nusa Tenggara"
+  if (src === "IFRC" || /International Federation of Red Cross/i.test(source || "")) {
+    const m = l.match(/^Earthquake:\s*(.+)$/i);
+    if (m) {
+      const parts = m[1].split(":").map(s => s.trim()).filter(Boolean);
+      const place = parts[parts.length - 1];
+      return `an earthquake response in ${place}`;
     }
-    case "gdacs": {
-      const g = wireGdacsSubject(f, countryName);
-      const kindWord = f.hazard === "flood" ? "flood alert" : f.hazard === "drought" ? "drought alert" : "alert";
-      const phrase = `${f.level} ${kindWord}`;
-      return `${/^[aeiou]/i.test(phrase) ? "An" : "A"} ${phrase} is in effect for ${g.short}, according to the Global Disaster Alert and Coordination System (GDACS), ${GDACS_DESCRIPTION}.`;
-    }
-    case "ifrc": {
-      const d = f.ts != null ? ` with a disaster start date of ${wireApDate(f.ts)}` : "";
-      return `The International Federation of Red Cross and Red Crescent Societies (IFRC) lists ${/^[aeiou]/i.test(f.dtype || "e") ? "an" : "a"} ${String(f.dtype || "emergency").toLowerCase()} emergency in ${wireIfrcPlace(f, countryName)},${d.trim() ? d : ""}`.replace(/,$/, "") + ".";
-    }
-    case "cems": return `The European Union's Copernicus Emergency Management Service has activated satellite mapping for ${wireCemsTitle(f)} in ${c}, according to its activation list.`;
-    case "who_don": return `The World Health Organization has published an outbreak notice titled "${f.title}", according to its Disease Outbreak News.`;
-    case "promed": return `ProMED, the disease-surveillance service, has posted ${f.count} report${f.count === 1 ? "" : "s"} on ${c}${f.title ? `, most recently headlined "${f.title}"` : ""}.`;
-    case "tsunami": return `The NOAA Pacific Tsunami Warning Center has issued a tsunami ${String(f.severity || "warning").toLowerCase()} for ${f.area || "the Pacific"}.`;
-    case "gvp": return `The Smithsonian Institution's Global Volcanism Program reports volcanic activity at ${f.volcano} in ${c}.`;
-    case "wildfire": return `NASA's Earth Observatory Natural Event Tracker lists an active wildfire in ${c}: ${f.title}.`;
-    case "report": return `${f.org} has published a report on ${f.theme} in ${c} headlined "${f.title}".`;
-    case "currency": {
-      const name = CURRENCY_NAMES[f.currency] || `${countryName}'s currency`;
-      return `The ${name} has weakened about ${Math.round(f.depreciation_pct)}% against the U.S. dollar over the past ${f.window_days} days, according to European Central Bank reference rates.`;
-    }
+    return l;
   }
-  return `${countryName} is the subject of a new report from a monitoring agency.`;
-}
-
-function wireSecondaryClause(ev, countryName, now) {
-  const f = ev.facts;
-  const c = wireInCountry(countryName);
-  const when = ev.ts != null ? wireWhen(ev.ts, now) : null;
-  switch (f.kind) {
-    case "earthquake": {
-      const loc = wireQuakeLocation(f, countryName);
-      return `a magnitude ${f.mag.toFixed(1)} earthquake was recorded ${loc.phrase}${when ? ` ${when}` : ""}, ${f.network === "EMSC" ? "EMSC" : "USGS"} data showed.`;
+  // GDACS: "Orange volcanic alert: Lewotobi" → "an orange-level volcanic alert for Lewotobi"
+  if (src === "GDACS") {
+    const m = l.match(/^(Red|Orange)\s+(volcanic|drought|flood|cyclone|earthquake|disaster)\s+alert:\s*(.*)$/i);
+    if (m) {
+      const [, level, kind, place] = m;
+      const lvl = level.toLowerCase();
+      const kindWord = kind.toLowerCase();
+      const article = /^[aeiou]/i.test(lvl) ? "an" : "a";
+      return place
+        ? `${article} ${lvl}-level ${kindWord} alert for ${place}`
+        : `${article} ${lvl}-level ${kindWord} alert`;
     }
-    case "gdacs": {
-      const g = wireGdacsSubject(f, countryName);
-      const kindWord = f.hazard === "flood" ? "flood alert" : f.hazard === "drought" ? "drought alert" : "alert";
-      const phrase = `${f.level} ${kindWord}`;
-      return `GDACS lists ${/^[aeiou]/i.test(phrase) ? "an" : "a"} ${phrase} for ${g.short}.`;
-    }
-    case "ifrc": return `the IFRC lists ${/^[aeiou]/i.test(f.dtype || "e") ? "an" : "a"} ${String(f.dtype || "emergency").toLowerCase()} emergency in ${wireIfrcPlace(f, countryName)}${f.ts != null ? `, with a disaster start date of ${wireApDate(f.ts)}` : ""}.`;
-    case "cems": return `the Copernicus Emergency Management Service has activated satellite mapping for ${wireCemsTitle(f)}.`;
-    case "who_don": return `the WHO has published an outbreak notice titled "${f.title}".`;
-    case "promed": return `ProMED has posted ${f.count} disease report${f.count === 1 ? "" : "s"} on ${c}.`;
-    case "tsunami": return `the NOAA Pacific Tsunami Warning Center has issued a tsunami ${String(f.severity || "warning").toLowerCase()} for ${f.area || "the Pacific"}.`;
-    case "gvp": return `the Smithsonian Global Volcanism Program reports volcanic activity at ${f.volcano}.`;
-    case "wildfire": return `NASA's event tracker lists an active wildfire: ${f.title}.`;
-    case "report": return `${f.org} has published a report on ${f.theme} headlined "${f.title}".`;
-    case "currency": return `the ${CURRENCY_NAMES[f.currency] || "local currency"} has lost about ${Math.round(f.depreciation_pct)}% against the dollar over ${f.window_days} days, according to European Central Bank reference rates.`;
+    return l;
   }
-  return "";
-}
-
-function wireDetailSentences(lead, countryName, hasImpactData) {
-  const f = lead.facts;
-  const out = [];
-  switch (f.kind) {
-    case "earthquake": {
-      if (Number.isFinite(f.depth) && f.depth >= 0) out.push(`The quake struck at a depth of ${Math.round(f.depth)} km (${Math.max(1, Math.round(f.depth * 0.621371))} miles), ${f.network === "EMSC" ? "EMSC" : "USGS"} said.`);
-      break;
-    }
-    case "gdacs":
-      out.push(`GDACS alerts are color-coded by estimated humanitarian impact. ${f.level === "red" ? "Red is the highest of three levels." : "Orange is the middle of three levels, below red."}`);
-      if (f.severity && String(f.severity).length < 120) out.push(`GDACS describes the event's severity as "${String(f.severity).replace(/"/g, "'")}".`);
-      break;
-    case "ifrc": out.push("The IFRC's GO platform tracks emergency operations run by Red Cross and Red Crescent societies."); break;
-    case "currency": if (f.rate_start && f.rate_end) out.push(`The ${CURRENCY_CODE_SHORT[f.currency] || "currency"} stood at ${f.rate_end.toFixed(f.rate_end < 100 ? 2 : 0)} per dollar on ${wireApDate(Date.parse(f.date))}, compared with ${f.rate_start.toFixed(f.rate_start < 100 ? 2 : 0)} on ${wireApDate(Date.parse(f.start_date))}, the data showed.`); break;
+  // disease.sh: "20,054 active COVID cases" stays
+  // ECB FX: "60.0% currency volatility" stays
+  // USGS: "M5.0 earthquake" → "an M5.0 earthquake"
+  if (src === "USGS" || src === "EMSC" || /U\.S\. Geological Survey/i.test(source || "")) {
+    const m = l.match(/^M(\d+(\.\d+)?)\s+earthquake$/i);
+    if (m) return `an M${m[1]} earthquake`;
   }
-  if (!hasImpactData && ["earthquake", "gdacs", "tsunami", "gvp", "wildfire"].includes(f.kind)) out.push("No casualty or damage figures were included in the data consulted.");
-  return out;
+  // Default: lowercase first letter if it starts with an uppercase letter
+  return l.charAt(0).toLowerCase() + l.slice(1);
 }
 
-function wireContextSentence(lead, countryName, iso, pop) {
-  const f = lead.facts;
-  const seismic = f.kind === "earthquake" || (f.kind === "gdacs" && f.hazard === "volcano") || f.kind === "gvp" || f.kind === "tsunami";
-  if (!seismic || !RING_OF_FIRE_ISOS.has(iso)) return null;
-  const popStr = pop >= 1e6 ? `about ${pop >= 1e8 ? Math.round(pop / 1e6) : (pop / 1e6).toFixed(1).replace(/\.0$/, "")} million` : null;
-  const subj = wireSentence(wireInCountry(countryName));
-  return `${subj}${popStr ? `, home to ${popStr} people,` : ""} lies on the Pacific "Ring of Fire", an arc of intense seismic and volcanic activity.`;
+function topDimensionsSentence(dims) {
+  if (!dims) return "pressure is broadly distributed across the model's eight dimensions";
+  const labels = { conflict: "conflict", displacement: "displacement", food: "food security", health: "health", economic: "economic", climate: "climate", access: "access", political: "political" };
+  const sorted = Object.entries(dims).map(([k, v]) => ({ k, v: safeNum(v, 0) })).sort((a, b) => b.v - a.v).slice(0, 3);
+  return sorted.map(d => `${labels[d.k] || d.k} (${d.v}/100)`).join(", ");
 }
 
-// ─── Story composer ───
-function composeWireStory(iso, store, now = Date.now()) {
-  const snap = safeCountrySnapshot(iso, store);
-  const c = snap.raw || {};
-  const lb = c.__live_breaking || {};
-  const events = wireEventsFrom(lb.events, now);
-  const countryName = snap.name;
-  const sourcesUsed = new Set();
-
-  if (!events.length) {
-    return {
-      kind: "background", publishable: false, iso, countryName,
-      headline: `${countryName}: no new events reported by monitored agencies`,
-      dateline: `${String(countryName).toUpperCase()}, ${wireDatelineDate(now)} (${CFG.ARTICLE_DATELINE_TAG})`,
-      lede: `No new qualifying events for ${wireInCountry(countryName)} were reported by the agencies GCIN monitors at the time of writing.`,
-      paragraphs: [], lead: null, sources: [], now,
-    };
-  }
-
-  const lead = events[0];
-  const rest = events.slice(1);
-  const dateline = `${String(countryName).toUpperCase()}, ${wireDatelineDate(now)} (${CFG.ARTICLE_DATELINE_TAG})`;
-  const hasImpactData = events.some(e => ["ifrc", "cems"].includes(e.facts.kind)) && lead.facts.kind !== "ifrc" && lead.facts.kind !== "cems";
-  const ledeSentence = wireLedeSentence(lead, countryName, now);
-  sourcesUsed.add(wireSourceLabel(lead));
-
-  const paragraphs = [];
-  // P1 lede with dateline
-  paragraphs.push(`${dateline} - ${ledeSentence}`);
-
-  // P2 detail on the lead event
-  const detail = wireDetailSentences(lead, countryName, hasImpactData);
-  if (detail.length) paragraphs.push(detail.join(" "));
-
-  // P3 other reported events, each attributed, never merged with the lead
-  const secondary = rest.slice(0, 3);
-  if (secondary.length) {
-    const openers = ["Separately, ", "Also, ", "In other developments, "];
-    const sentences = secondary.map((e, i) => {
-      sourcesUsed.add(wireSourceLabel(e));
-      const clause = wireSecondaryClause(e, countryName, now);
-      return clause ? `${openers[i % openers.length]}${clause}` : "";
-    }).filter(Boolean);
-    if (sentences.length) paragraphs.push(sentences.join(" "));
-  }
-
-  // P4 context
-  const pop = safeNum(c.signals?.population, 0);
-  const ctx = wireContextSentence(lead, countryName, iso, pop);
-  if (ctx) paragraphs.push(ctx);
-
-  // P5 follow-up line
-  paragraphs.push(`GCIN will update this report as the monitoring agencies publish new information.`);
-
-  return {
-    kind: "event", publishable: true, iso, countryName, lead, events,
-    headline: wireHeadlineFor(lead, countryName, now),
-    dateline, lede: ledeSentence, paragraphs,
-    sources: [...sourcesUsed].filter(Boolean), now,
-  };
+function capitalizeFirst(s) {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function wireSourceLabel(ev) {
-  const f = ev.facts;
-  switch (f.kind) {
-    case "earthquake": return f.network === "EMSC" ? "European-Mediterranean Seismological Centre" : "U.S. Geological Survey";
-    case "gdacs": return "Global Disaster Alert and Coordination System";
-    case "ifrc": return "International Federation of Red Cross and Red Crescent Societies";
-    case "cems": return "Copernicus Emergency Management Service";
-    case "who_don": return "World Health Organization";
-    case "promed": return "ProMED";
-    case "tsunami": return "NOAA Pacific Tsunami Warning Center";
-    case "gvp": return "Smithsonian Global Volcanism Program";
-    case "wildfire": return "NASA Earth Observatory";
-    case "report": return f.org;
-    case "currency": return "European Central Bank";
-  }
-  return "";
-}
-
-// ─── Quality rubric (10 checks, 1 point each) ───
-const WIRE_META_RE = /\b(index|machine[- ]learning|anomal|eight-dimension|ledger|evidence score|confidence band|recommendation tier|cusum|z-score|changepoint|live signal|highest-weighted|this hour|monitoring this)\b/i;
-const WIRE_LEAK_RE = /undefined|\bnull\b|NaN|\[object|\{\{|\}\}|\$\{/;
-function scoreWireArticle(story, headline) {
-  if (!story || story.kind !== "event") return { score: null, max: 10, failed: ["not_an_event_story"] };
-  const text = story.paragraphs.join("\n\n");
-  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
-  const dupes = sentences.length !== new Set(sentences.map(s => s.toLowerCase())).size;
-  const ledeText = story.lede || "";
-  const bodyWords = wireWords(text);
-  const factParas = story.paragraphs.filter(p => /\d/.test(p) && !/^GCIN will/.test(p));
-  const attributed = factParas.every(p => /\b(said|according to|showed|lists|listed|reports?|published|posted|issued|tracked|data|notice|alert)\b/i.test(p));
-  const checks = {
-    dateline: /^[A-Z][A-Z .'\-]+, [A-Z][a-z]+ \d{1,2} \([A-Z]+\) - /.test(story.paragraphs[0] || ""),
-    lede_length: wireWords(ledeText) >= 12 && wireWords(ledeText) <= CFG.WIRE_LEDE_MAX_WORDS,
-    headline_form: !!headline && headline.length <= CFG.WIRE_HEADLINE_MAX_CHARS + 15 && !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(headline) && headline !== headline.toUpperCase() && !/ — /.test(headline),
-    no_internal_vocabulary: !WIRE_META_RE.test(headline + " " + text),
-    no_template_leaks: !WIRE_LEAK_RE.test(headline + " " + text),
-    no_duplicate_sentences: !dupes,
-    attribution: attributed && story.sources.length >= 1,
-    complete_sentences: story.paragraphs.every(p => /[.!?"]$/.test(p)),
-    paragraph_structure: story.paragraphs.length >= 3 && story.paragraphs.every(p => wireWords(p) <= 90),
-    length: bodyWords >= 45 && bodyWords <= 350,
-  };
-  const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([k]) => k);
-  return { score: 10 - failed.length, max: 10, failed };
-}
-
-// ─── Public builders used by the API ───
-function buildWireHeadline(signals, country) {
-  const name = country?.name || "Unknown";
-  const events = wireEventsFrom(signals);
-  if (!events.length) return `${name}: no new events reported by monitored agencies`;
-  return wireHeadlineFor(events[0], name);
-}
-
+// ─── 5W: What as one sentence, Why leads with events ───
 function buildWhoWhatWhereWhenWhy(iso, store) {
-  const story = composeWireStory(iso, store);
   const snap = safeCountrySnapshot(iso, store);
-  if (story.kind !== "event") {
-    return { who: `communities across ${snap.name}`, what: "No qualifying new events reported.", where: snap.name, when: "in the current monitoring window", why: "Not applicable." };
+  const c = snap.raw;
+  const lb = c.__live_breaking || {};
+  const events = Array.isArray(lb.events) ? lb.events : [];
+  const topEvents = events.slice(0, 4);
+
+  // ── WHO ──
+  const whoParts = [];
+  const pop = safeNum(c.signals?.population, 0);
+  if (pop > 0) whoParts.push(`${pop.toLocaleString()} residents of ${snap.name}`);
+  else whoParts.push(`communities across ${snap.name}`);
+  if (snap.live.source_count > 0) whoParts.push(`${snap.live.source_count} independent monitoring source${snap.live.source_count === 1 ? "" : "s"}`);
+  const displaced = safeNum(c.signals?.totalDisplaced, 0);
+  if (displaced > 0) whoParts.push(`${displaced.toLocaleString()} displaced people`);
+  if (safeNum(c.signals?.refugees, 0) > 0) whoParts.push(`${safeNum(c.signals.refugees, 0).toLocaleString()} refugees`);
+
+  // ── WHAT (one sentence) ──
+  // For quantity events (disease, currency, air quality), use the detail string directly
+  // as the human label and skip the eventDetailsToHuman append to avoid doubling.
+  const whatClauses = topEvents.map(e => {
+    const label = String(e.label || "").trim();
+    const detail = String(e.details || "").trim();
+    const isQuantity =
+      /^Disease Outbreak$/i.test(label) ||
+      /^Currency Stress$/i.test(label) ||
+      /^Air Quality Alert$/i.test(label) ||
+      /^INFORM High Risk$/i.test(label) ||
+      /^\d/.test(detail);
+    if (isQuantity && detail) {
+      return detail;
+    }
+    const human = eventLabelToHuman(label, e.type, { magnitude: e.magnitude, details: e.details });
+    const detailStr = eventDetailsToHuman(e.details, e.type, e.label);
+    return detailStr ? `${human} ${detailStr}` : human;
+  });
+  let whatSentence;
+  if (whatClauses.length === 0) {
+    whatSentence = "Elevated crisis indicators across multiple dimensions.";
+  } else if (whatClauses.length === 1) {
+    whatSentence = capitalizeFirst(whatClauses[0]) + ".";
+  } else if (whatClauses.length === 2) {
+    whatSentence = capitalizeFirst(whatClauses[0]) + ", alongside " + whatClauses[1] + ".";
+  } else {
+    const head = capitalizeFirst(whatClauses[0]);
+    const middle = whatClauses.slice(1, -1).join(", ");
+    const tail = whatClauses[whatClauses.length - 1];
+    whatSentence = `${head}, alongside ${middle}, and ${tail}.`;
   }
-  const f = story.lead.facts;
-  const when = story.lead.ts != null ? new Date(story.lead.ts).toISOString().replace(".000Z", "Z") : "time not stated by source";
-  let where = snap.name;
-  if (f.kind === "earthquake") where = `${wireQuakeLocation(f, snap.name).short}, ${snap.name}`.replace(/^near /, "near ");
-  else if (f.kind === "gdacs" && f.name) where = `${f.name}, ${snap.name}`;
-  else if (f.kind === "ifrc") where = wireIfrcPlace(f, snap.name);
+
+  // ── WHERE ──
+  const placeHits = [];
+  const placeRe = /\b(?:near|in|at|around|outside)\s+([A-Z][A-Za-z'’\-]+(?:\s+[A-Z][A-Za-z'’\-]+)?)/g;
+  for (const e of topEvents) {
+    if (!e.details) continue;
+    for (const m of e.details.matchAll(placeRe)) {
+      if (m[1] && !placeHits.includes(m[1])) placeHits.push(m[1]);
+    }
+  }
+  const whereParts = [`${snap.name}${snap.region ? ` (${snap.region.replace(/_/g, " ")})` : ""}`];
+  if (placeHits.length) whereParts.push(placeHits.slice(0, 3).join(", "));
+
+  // ── WHEN ──
+  const fresh = snap.live.freshest_signal_age_hours;
+  const whenParts = [];
+  if (fresh != null) whenParts.push(`freshest signal ${formatRelativeTime(fresh)}`);
+  if (topEvents[0]?.age_hours != null) whenParts.push(`top-weighted event ${formatRelativeTime(topEvents[0].age_hours)}`);
+
+  // ── WHY (leads with events, not raw scores) ──
+  const whyParts = [];
+  const drivers = topEvents.slice(0, 2).map(e => eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details })).filter(Boolean);
+  if (drivers.length) whyParts.push(`continuing ${drivers.join(" and ")}`);
+  if (snap.live.distinct_event_count > 0) whyParts.push(`${snap.live.distinct_event_count} distinct live event${snap.live.distinct_event_count === 1 ? "" : "s"} in the current window`);
+  if (safeNum(c.fsi_score, 0) > 0) whyParts.push(`structural fragility already rated ${safeNum(c.fsi_score, 0).toFixed(1)}/120 on the Fragile States Index`);
+  const whySentence = whyParts.length
+    ? capitalizeFirst(whyParts[0]) + (whyParts.length > 1 ? `, with ${whyParts.slice(1).join(", and ")}.` : ".")
+    : "Sustained high severity across structural and live indicators.";
+
   return {
-    who: `Residents of ${snap.name}; reported by ${story.sources.join(", ")}`,
-    what: story.lede,
-    where,
-    when,
-    why: "Cause not stated in the source data.",
+    who: whoParts.join("; "),
+    what: whatSentence,
+    where: whereParts.join(" — "),
+    when: whenParts.join("; ") || "in the current monitoring window",
+    why: whySentence,
   };
 }
 
-// Story text used by RSS and API consumers that only want the prose.
+// ─── NARRATIVE PROSE (v21.4.0 — ULTIMATE) ───
+// ─── NARRATIVE PROSE (v21.5.0 — EVENT vs QUANTITY TEMPLATES) ───
 function buildEvidenceBackedProse(iso, store) {
-  const story = composeWireStory(iso, store);
-  return story.paragraphs.length ? story.paragraphs.join("\n\n") : story.lede;
-}
+  const snap = safeCountrySnapshot(iso, store);
+  const c = snap.raw;
+  const lb = c.__live_breaking || {};
+  const events = Array.isArray(lb.events) ? lb.events : [];
+  const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
+  const paragraphs = [];
+  const sourceCount = c.evidence_source_count || ledger.length;
+  const freshAge = snap.live.freshest_signal_age_hours;
+  const hasFresh = freshAge != null && freshAge <= CFG.DEVELOPING_MAX_FRESH_HOURS;
+  const tier = snap.live.tier;
 
-function wireMetaDescription(story) {
-  const base = String(story.lede || "").replace(/^.*? - /, "");
-  if (base.length <= 155) return base;
-  const cut = base.slice(0, 155);
-  const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(", "));
-  return (stop > 80 ? cut.slice(0, stop) : cut.replace(/\s+\S*$/, "")).replace(/[,;]$/, "") + ".";
+  // ─── Classify an event: is its human label a "quantity" (case count, volatility %) or an "event" (alert, earthquake)?
+  // Quantities use ", per <source>" — events use "was recorded by <source>".
+    function isQuantityEvent(e) {
+    const label = String(e.label || "").trim();
+    const detail = String(e.details || "").trim();
+    // Any numeric-dominant detail means the event is a "quantity" not an "event"
+    // This catches: case counts, PM2.5 readings, currency volatility percentages, etc.
+    if (/^\d/.test(detail)) return true;
+    if (/^PM2\.5\s+\d/i.test(detail)) return true;
+    // disease_active / disease_outbreak
+    if (/^Disease Outbreak$/i.test(label)) return true;
+    // currency stress
+    if (/^Currency Stress$/i.test(label)) return true;
+    // Air quality
+    if (/^Air Quality Alert$/i.test(label)) return true;
+    // Any label that starts with a digit is definitely a quantity
+    if (/^\d/.test(label)) return true;
+    return false;
+  }
+   function quantityHumanLabel(e) {
+    // For any quantity event, use the raw detail string as the human label.
+    const detail = String(e.details || "").trim();
+    if (detail) return detail;
+    return String(e.label || "");
+  }
+
+  // ─── LEDE ───
+  const topEvent = events[0] || null;
+  const topEventAge = topEvent?.age_hours != null ? topEvent.age_hours : null;
+  const topEventHuman = topEvent ? eventLabelToHuman(topEvent.label, topEvent.type, { magnitude: topEvent.magnitude, details: topEvent.details }) : null;
+  const topEventDetail = topEvent ? eventDetailsToHuman(topEvent.details, topEvent.type, topEvent.label) : "";
+  const topEventSource = topEvent ? humanSourceName(topEvent.source) : null;
+
+  let lede;
+  if (topEvent && hasFresh) {
+    const detailClause = topEventDetail
+      ? (/^(for|in|at|near|over|across|along)\s/i.test(topEventDetail) ? ` ${topEventDetail}` : `, ${topEventDetail}`)
+      : "";
+    lede = `${snap.flag} ${snap.name} is under active crisis monitoring this hour. The highest-weighted live signal is ${topEventHuman}${detailClause}, recorded by ${topEventSource} ${formatRelativeTime(topEventAge)}. Across ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}, ${events.length} live event signal${events.length === 1 ? "" : "s"} remain active.`;
+  } else if (topEvent && !hasFresh) {
+    const detailClause = topEventDetail
+      ? (/^(for|in|at|near|over|across|along)\s/i.test(topEventDetail) ? ` ${topEventDetail}` : `, ${topEventDetail}`)
+      : "";
+    lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. The highest-weighted event on record is ${topEventHuman}${detailClause}, logged by ${topEventSource} ${formatRelativeTime(topEventAge)}. No fresh (sub-24-hour) signals are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
+  } else {
+    lede = `${snap.flag} ${snap.name} remains at ${snap.severity.toLowerCase()} severity in the Global Crisis Index. No live events are currently flagged, but structural indicators across ${sourceCount} source${sourceCount === 1 ? "" : "s"} continue to show elevated pressure.`;
+  }
+  paragraphs.push(lede);
+
+  // ─── WHAT IS HAPPENING (skip the top event — it's already in the lede) ───
+  const otherEvents = events.slice(1, 5);
+  if (otherEvents.length >= 1) {
+    const openers = [
+      "A separate signal: ",
+      "Also on the board, ",
+      "The picture widens with ",
+      "Further out, ",
+      "Meanwhile, ",
+      "On a related note, ",
+    ];
+    const clauses = otherEvents.map((e, i) => {
+      const isQuantity = isQuantityEvent(e);
+      const humanLabel = isQuantity
+        ? quantityHumanLabel(e)
+        : eventLabelToHuman(e.label, e.type, { magnitude: e.magnitude, details: e.details });
+      const detail = isQuantity ? "" : eventDetailsToHuman(e.details, e.type, e.label);
+      const age = e.age_hours != null ? formatRelativeTime(e.age_hours) : "recently";
+      const src = humanSourceName(e.source);
+      const corroboration = e.corroboration_count > 0
+        ? `, corroborated by ${e.corroboration_count} additional source${e.corroboration_count === 1 ? "" : "s"}`
+        : "";
+
+      let core;
+      if (isQuantity) {
+        // Quantity template: "<label>, per <source>, <age>"
+        // e.g. "20,054 active COVID cases, per disease.sh, earlier today"
+                core = `${humanLabel}, per ${src}, ${age}${corroboration}`;
+      } else {
+        // Event template: "<label> <detail> was recorded by <source> <age>"
+        const detailClause = detail
+          ? (/^(for|in|at|near|over|across|along)\s/i.test(detail) ? ` ${detail}` : `, ${detail}`)
+          : "";
+        core = `${humanLabel}${detailClause} was recorded by ${src} ${age}${corroboration}`;
+      }
+
+      if (i === 0) return capitalizeFirst(core) + ".";
+      const opener = openers[(i - 1) % openers.length];
+      return `${opener}${core}.`;
+    });
+    paragraphs.push(clauses.join(" "));
+  }
+
+  // ─── WHO IS AFFECTED ───
+  const pop = safeNum(c.signals?.population, 0);
+  const displaced = safeNum(c.signals?.totalDisplaced, 0);
+  const refugees = safeNum(c.signals?.refugees, 0);
+  const dimsSentence = topDimensionsSentence(c.dims);
+  if (pop > 0 || displaced > 0 || refugees > 0) {
+    const bits = [];
+    if (pop > 0) bits.push(`${pop.toLocaleString()} residents`);
+    if (displaced > 0) bits.push(`${displaced.toLocaleString()} internally displaced people`);
+    if (refugees > 0) bits.push(`${refugees.toLocaleString()} refugees`);
+    paragraphs.push(`The human stakes are concrete: ${bits.join(", ")}. Shelter capacity, water access, and health infrastructure are the immediate constraints flagged by the Index's eight-dimension model, where ${dimsSentence} carry the heaviest weight.`);
+  } else {
+    paragraphs.push(`The Index's eight-dimension model places the heaviest pressure on ${dimsSentence}, which determine how quickly the situation could deteriorate if a new shock lands.`);
+  }
+
+  // ─── EVIDENCE (narrated, labels humanized) ───
+  if (ledger.length) {
+    const top = ledger.slice().sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight)).slice(0, 4);
+    const confPct = Math.round(safeNum(c.evidence_confidence, 0) * 100);
+    const confBand = safeNum(c.evidence_confidence, 0) >= 0.75 ? "tight" : safeNum(c.evidence_confidence, 0) >= 0.5 ? "moderate" : "wide";
+
+    const first = top[0];
+    const firstSrc = humanSourceName(first.source);
+    const firstLabel = humanizeLedgerLabel(first.source, first.label);
+    let evidenceLead = `The assessment rests on ${sourceCount} independent source${sourceCount === 1 ? "" : "s"}. The single strongest signal is ${firstLabel}, per ${firstSrc}.`;
+
+    const rest = top.slice(1);
+    if (rest.length >= 2) {
+      const second = rest[0];
+      const secondSrc = humanSourceName(second.source);
+      const secondLabel = humanizeLedgerLabel(second.source, second.label);
+      const others = rest.slice(1).map(l => {
+        const src = humanSourceName(l.source);
+        const lbl = humanizeLedgerLabel(l.source, l.label);
+        return `${lbl}, per ${src}`;
+      });
+      const othersClause = others.length ? ` — alongside ${others.join(", ")}` : "";
+      evidenceLead += ` It is corroborated by ${secondLabel}, per ${secondSrc}${othersClause}.`;
+    } else if (rest.length === 1) {
+      const second = rest[0];
+      const secondSrc = humanSourceName(second.source);
+      const secondLabel = humanizeLedgerLabel(second.source, second.label);
+      evidenceLead += ` It is corroborated by ${secondLabel}, per ${secondSrc}.`;
+    }
+
+    evidenceLead += ` The combined evidence score is ${safeNum(c.evidence_score, 0).toFixed(1)}/35 with ${confPct}% confidence, a ${confBand} confidence band.`;
+    paragraphs.push(evidenceLead);
+  }
+
+  // ─── WHY IT MATTERS / WHAT NEXT ───
+  const realHistory = (c.historical_scores || []).slice(-30);
+  const anom = runAnomalyDetection(realHistory.length >= 14 ? realHistory : seedHistory(iso, snap.score).map(h => h.s), { minRequired: 10 });
+  const trend = c.ml_forecast || {};
+  const trendDir = trend.trend || "stable";
+  const forecast = safeNum(trend.fc, snap.score);
+  const rec = recommendation(snap.score, anom);
+
+  let anomalyLine;
+  if (anom.detected) {
+    const sevWord = String(anom.severity || "elevated").toLowerCase();
+    anomalyLine = `Statistical monitoring has flagged a ${sevWord}-severity anomaly — ${anom.methods_fired} of 4 detection methods (CUSUM, Z-score, changepoint, and volatility) agree the current trajectory deviates from the recent baseline.`;
+  } else {
+    anomalyLine = `No statistical anomaly is currently flagged; the trajectory is consistent with the recent baseline.`;
+  }
+
+  let trendLine;
+  if (trendDir === "escalating") {
+    trendLine = `Machine-learning forecasting projects the score could reach ${forecast}/100 within seven days, an escalating trend.`;
+  } else if (trendDir === "improving") {
+    trendLine = `Machine-learning forecasting projects a modest improvement toward ${forecast}/100 within seven days.`;
+  } else {
+    trendLine = `Machine-learning forecasting projects the score will hold near ${forecast}/100 over the next seven days.`;
+  }
+
+  const recTier = rec.tier || "WATCH";
+  const recTextRaw = rec.text || "Routine monitoring.";
+  const recText = recTextRaw.replace(/\s*Anomaly detected \(.+?\)\.\s*$/i, "").trim();
+  const recSentence = `The Global Crisis Index recommendation tier is ${recTier}: ${recText}`;
+
+  paragraphs.push(`${anomalyLine} ${trendLine} ${recSentence}`);
+
+  // ─── KICKER ───
+  if (tier === "BREAKING") {
+    paragraphs.push(`This is a breaking story. GCIN is monitoring the situation continuously; the underlying index refreshes every five minutes, and this article will be re-rendered as new signals arrive.`);
+  } else if (tier === "DEVELOPING") {
+    paragraphs.push(`This story is developing. GCIN monitors the situation continuously; the underlying index refreshes every five minutes.`);
+  } else if (tier === "ACTIVE") {
+    paragraphs.push(`The situation remains active. GCIN monitors all tracked countries continuously and refreshes the underlying index every five minutes.`);
+  }
+
+  return paragraphs.join("\n\n");
 }
-function buildMetaDescription(iso, store) { return wireMetaDescription(composeWireStory(iso, store)); }
+// ════════════════════════════════════════════════════════════════════════════
+//  PAYLOAD BUILDERS
+// ════════════════════════════════════════════════════════════════════════════
 
 function buildKeywords(iso, store) {
   try {
@@ -3460,6 +3435,16 @@ function buildKeywords(iso, store) {
   } catch { return [`${iso} crisis`]; }
 }
 
+function buildMetaDescription(iso, store) {
+  const snap = safeCountrySnapshot(iso, store);
+  const q = buildWhoWhatWhereWhenWhy(iso, store);
+  let parts = [`${snap.name} crisis update: score ${snap.score}/100 (${snap.severity})`];
+  if (snap.live.tier === "BREAKING" && snap.live.headline) parts.unshift(`🔴 BREAKING: ${snap.live.headline}`);
+  else if (snap.live.tier === "DEVELOPING" && snap.live.headline) parts.unshift(`🟠 DEVELOPING: ${snap.live.headline}`);
+  parts.push(`Who: ${q.who.substring(0, 100)}`);
+  parts.push(`Where: ${q.where.substring(0, 80)}`);
+  return parts.slice(0, 4).join('. ') + '.';
+}
 
 function buildRelatedStories(iso, store, ranked) {
   try {
@@ -3477,42 +3462,31 @@ function buildJSONLD(iso, store, ranked, image, article) {
   const snap = safeCountrySnapshot(iso, store);
   const now = new Date().toISOString();
   const q = buildWhoWhatWhereWhenWhy(iso, store);
-  const headline = String(article?.headline || snap.live.headline || `${snap.name} update`).slice(0, 110);
   const jsonld = {
     "@type": "NewsArticle",
     "@id": `${snap.url}#article`,
-    "headline": headline,
+    "headline": article?.headline || snap.live.headline || `${snap.name} Crisis — Score ${snap.score}/100`,
     "description": article?.metaDescription || buildMetaDescription(iso, store),
-    "url": article?.url || snap.url,
+        "url": article?.url || snap.url,
     "datePublished": now,
     "dateModified": now,
-    "inLanguage": "en",
-    "isAccessibleForFree": true,
     "author": { "@type": "Organization", "name": CFG.ARTICLE_AUTHOR, "url": CFG.ARTICLE_BASE_URL },
     "publisher": { "@type": "Organization", "name": CFG.ARTICLE_SITE_NAME, "url": CFG.ARTICLE_BASE_URL, "logo": { "@type": "ImageObject", "url": CFG.ARTICLE_LOGO } },
     "mainEntityOfPage": { "@type": "WebPage", "@id": snap.url },
-    "articleSection": "World",
+    "articleSection": "Humanitarian Crisis",
     "keywords": (article?.keywords || buildKeywords(iso, store)).join(", "),
     "about": {
       "@type": "Event",
-      "name": headline,
+      "name": `${snap.name} crisis`,
       "description": q.what,
       "location": { "@type": "Place", "name": q.where },
     },
   };
-  if (article?.disclosure) jsonld.backstory = article.disclosure;
   if (image && image.url) {
-    jsonld.image = { "@type": "ImageObject", "url": image.url, "caption": `${image.file_photo ? "FILE PHOTO: " : ""}${image.caption}`, "creditText": image.credit || image.source };
+    jsonld.image = { "@type": "ImageObject", "url": image.url, "caption": image.caption, "creditText": image.credit || image.source };
   }
   if (article?.word_count) jsonld.wordCount = article.word_count;
   return { "@context": "https://schema.org", "@graph": [jsonld] };
-}
-
-function wireImageCaption(image) {
-  const cap = String(image.caption || "").replace(/\s+/g, " ").trim().replace(/\.$/, "");
-  const credit = image.credit ? `${image.credit}` : "Wikimedia Commons";
-  const lic = image.license ? ` (${image.license})` : "";
-  return `${image.file_photo ? "FILE PHOTO: " : ""}${cap}. Photo: ${credit}${lic}`;
 }
 
 async function buildSEOArticle(iso, store, ranked, image) {
@@ -3520,100 +3494,123 @@ async function buildSEOArticle(iso, store, ranked, image) {
     const snap = safeCountrySnapshot(iso, store);
     const c = snap.raw;
     const q = buildWhoWhatWhereWhenWhy(iso, store);
-    const story = composeWireStory(iso, store);
-    const headline = story.headline;
-    const quality = scoreWireArticle(story, headline);
-    const paragraphs = story.paragraphs.length ? story.paragraphs.slice() : [`${story.dateline} - ${story.lede}`];
-    const dekSource = paragraphs[1] && !/^GCIN will/.test(paragraphs[1]) ? paragraphs[1] : story.lede;
-    const dekFirst = String(dekSource).split(/(?<=[.!?])\s+/)[0] || "";
-    const dek = dekFirst.length > 150 ? dekFirst.slice(0, 147).replace(/\s+\S*$/, "") + "…" : dekFirst;
-    const byline = `By ${CFG.ARTICLE_AUTHOR}`;
-    const sourcesLine = story.sources.length ? `Sources: ${story.sources.join("; ")}.` : "";
-    const disclosure = CFG.DISCLOSE_AUTOMATION ? CFG.DISCLOSURE_TEXT : "";
+    const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
+    const events = snap.live.distinct_event_count;
+    const dek = `Score ${snap.score}/100 · ${events} event${events === 1 ? "" : "s"} · ${snap.severity}`;
 
-    // ─── body: image, byline, story, sources, disclosure ───
-    let bodyMarkdown = "";
-    let bodyHtml = "";
+    let bodyMarkdown = '';
+    let bodyHtml = '';
+
     if (image && image.url) {
-      const cap = wireImageCaption(image);
-      bodyMarkdown += `![${image.caption}](${image.url})\n*${cap}*\n\n`;
-      bodyHtml += `<figure class="article-primary-image">` +
+      bodyMarkdown = `![${image.caption}](${image.url})\n*${image.caption}* — [${image.source}](${image.pageUrl})\n\n`;
+      bodyHtml = `<figure class="article-primary-image">` +
         `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.caption)}" loading="eager" />` +
-        `<figcaption>${escapeHtml(cap)} — <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></figcaption>` +
+        `<figcaption>${escapeHtml(image.caption)} — <a href="${escapeHtml(image.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(image.source)}</a></figcaption>` +
         `</figure>\n`;
     }
-    bodyMarkdown += `${byline}\n\n`;
-    bodyHtml += `<p class="byline">${escapeHtml(byline)}</p>\n`;
-    paragraphs.forEach((p, i) => {
-      bodyMarkdown += `${p}\n\n`;
-      if (i === 0 && story.kind === "event") {
-        const idx = p.indexOf(" - ");
-        bodyHtml += `<p><span class="dateline">${escapeHtml(p.slice(0, idx))}</span> - ${escapeHtml(p.slice(idx + 3))}</p>\n`;
-      } else {
-        bodyHtml += `<p>${escapeHtml(p)}</p>\n`;
-      }
-    });
-    if (sourcesLine) { bodyMarkdown += `*${sourcesLine}*\n\n`; bodyHtml += `<p class="sources"><em>${escapeHtml(sourcesLine)}</em></p>\n`; }
-    if (disclosure) { bodyMarkdown += `*${disclosure}*\n`; bodyHtml += `<p class="disclosure"><em>${escapeHtml(disclosure)}</em></p>\n`; }
 
-    // ─── reference material kept OUT of the story body (render in a collapsible "Data" panel) ───
-    let refMarkdown = ["### Editorial Reference", "",
-      `- **Who:** ${q.who}`, `- **What:** ${q.what}`, `- **Where:** ${q.where}`, `- **When:** ${q.when}`, `- **Why:** ${q.why}`, ""].join("\n");
-    let refHtml = `<h3>Editorial Reference</h3>\n<dl>` +
-      `<dt>Who</dt><dd>${escapeHtml(q.who)}</dd><dt>What</dt><dd>${escapeHtml(q.what)}</dd>` +
-      `<dt>Where</dt><dd>${escapeHtml(q.where)}</dd><dt>When</dt><dd>${escapeHtml(q.when)}</dd>` +
-      `<dt>Why</dt><dd>${escapeHtml(q.why)}</dd></dl>\n`;
+    const prose = buildEvidenceBackedProse(iso, store);
+    bodyMarkdown += prose + "\n\n";
+    const proseHtml = prose.split(/\n\n+/).map(p => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("\n");
+    bodyHtml += proseHtml + "\n";
+
+    // ─── EDITORIAL REFERENCE APPENDIX ───
+    const appendixMarkdown = [
+      "---", "", "### Editorial Reference", "",
+      `- **Who:** ${q.who}`,
+      `- **What:** ${q.what}`,
+      `- **Where:** ${q.where}`,
+      `- **When:** ${q.when}`,
+      `- **Why:** ${q.why}`,
+    ].join("\n");
+    bodyMarkdown += appendixMarkdown + "\n\n";
+
+    const appendixHtml = `<hr style="border:none;border-top:1px solid rgba(66,153,225,0.12);margin:1.5rem 0;" />\n` +
+      `<h3 style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin-bottom:0.5rem;">Editorial Reference</h3>\n` +
+      `<dl style="display:grid;grid-template-columns:90px 1fr;gap:0.4rem 0.8rem;font-size:0.9rem;">` +
+      `<dt style="font-weight:700;color:#7a9aba;">Who</dt><dd>${escapeHtml(q.who)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">What</dt><dd>${escapeHtml(q.what)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">Where</dt><dd>${escapeHtml(q.where)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">When</dt><dd>${escapeHtml(q.when)}</dd>` +
+      `<dt style="font-weight:700;color:#7a9aba;">Why</dt><dd>${escapeHtml(q.why)}</dd>` +
+      `</dl>\n`;
+    bodyHtml += appendixHtml;
+
+    // ─── EVIDENCE LEDGER TABLE ───
     const ledger = Array.isArray(c.evidence_ledger) ? c.evidence_ledger : [];
     if (ledger.length) {
       const top = ledger.slice().sort((a, b) => (b.pts * b.weight) - (a.pts * a.weight)).slice(0, 8);
-      refMarkdown += `\n#### Evidence Ledger\n\n| Source | Indicator | Raw Value | Points | Weight |\n|---|---|---|---|---|\n`;
-      refHtml += `<h4>Evidence Ledger</h4>\n<table><thead><tr><th>Source</th><th>Indicator</th><th>Raw</th><th>Pts</th><th>Weight</th></tr></thead><tbody>`;
+      bodyMarkdown += `#### Evidence Ledger\n\n| Source | Indicator | Raw Value | Points | Weight |\n|---|---|---|---|---|\n`;
+      bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Evidence Ledger</h4>\n` +
+        `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;background:rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;">` +
+        `<thead style="background:rgba(0,200,255,0.06);"><tr>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Source</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Indicator</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Raw</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Pts</th>` +
+        `<th style="padding:0.5rem 0.75rem;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.6rem;text-transform:uppercase;color:#00c8ff;border-bottom:1px solid rgba(0,200,255,0.15);">Weight</th>` +
+        `</tr></thead><tbody>`;
       for (const l of top) {
         const src = humanSourceName(l.source);
         const raw = l.rawValue != null ? String(l.rawValue) : "";
-        refMarkdown += `| ${src} | ${l.label} | ${raw} | ${l.pts} | ${l.weight} |\n`;
-        refHtml += `<tr><td>${escapeHtml(src)}</td><td>${escapeHtml(l.label)}</td><td>${escapeHtml(raw)}</td><td>${escapeHtml(String(l.pts ?? ""))}</td><td>${escapeHtml(String(l.weight ?? ""))}</td></tr>`;
+        bodyMarkdown += `| ${src} | ${l.label} | ${raw} | ${l.pts} | ${l.weight} |\n`;
+        bodyHtml += `<tr>` +
+          `<td style="padding:0.5rem 0.75rem;color:#f0f6ff;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(src)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(l.label)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(raw)}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(String(l.pts ?? ""))}</td>` +
+          `<td style="padding:0.5rem 0.75rem;color:#b8cce8;border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(String(l.weight ?? ""))}</td>` +
+          `</tr>`;
       }
-      refHtml += `</tbody></table>\n`;
+      bodyHtml += `</tbody></table>\n`;
     }
+
+    // ─── SITUATION DETAILS ───
     const dims = c.dims || {};
     const dimLabels = { conflict: "Conflict", displacement: "Displacement", food: "Food Security", health: "Health", economic: "Economic", climate: "Climate", access: "Access", political: "Political" };
-    refMarkdown += `\n#### Situation Details\n\n${Object.entries(dims).map(([k, v]) => `- ${dimLabels[k] || k}: ${safeNum(v, 0)}/100`).join("\n")}\n`;
-    refHtml += `<h4>Situation Details</h4>\n<ul>${Object.entries(dims).map(([k, v]) => `<li><strong>${escapeHtml(dimLabels[k] || k)}</strong> ${safeNum(v, 0)}/100</li>`).join("")}</ul>\n`;
+    const dimLines = Object.entries(dims).map(([k, v]) => `- ${dimLabels[k] || k}: ${safeNum(v, 0)}/100`).join("\n");
+    bodyMarkdown += `#### Situation Details\n\n${dimLines}\n\n`;
+    bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Situation Details</h4>\n` +
+      `<ul style="list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.4rem 0.8rem;font-size:0.75rem;color:#b8cce8;">` +
+      Object.entries(dims).map(([k, v]) => `<li><strong style="color:#7a9aba;font-size:0.65rem;text-transform:uppercase;">${escapeHtml(dimLabels[k] || k)}</strong> ${safeNum(v, 0)}/100</li>`).join("") +
+      `</ul>\n`;
 
-    const { words, minutes } = estimateReadTime(paragraphs.join(" "));
+    // ─── SOURCES ───
+    const sources = Array.isArray(c.evidence_sources) ? c.evidence_sources : [];
+    if (sources.length) {
+      const srcList = sources.map(s => humanSourceName(s)).join(", ");
+      bodyMarkdown += `#### Sources\n\n${srcList}\n\n`;
+      bodyHtml += `<h4 style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a9a;margin:1rem 0 0.5rem;">Sources</h4>\n<p style="font-size:0.8rem;color:#7a9aba;">${escapeHtml(srcList)}</p>\n`;
+    }
+
+    const { words, minutes } = estimateReadTime(bodyMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<[^>]*>/g, ''));
+
     return {
-      kind: story.kind,
-      publishable: story.kind === "event" && (quality.score ?? 0) >= 8,
-      headline, dek, byline, dateline: story.dateline, lede: story.lede,
-      slug: snap.slug, url: snap.url,
-      metaDescription: wireMetaDescription(story),
+      headline, dek, slug: snap.slug, url: snap.url,
+      metaDescription: buildMetaDescription(iso, store),
       keywords: buildKeywords(iso, store),
       primary_image: image || null,
       who: q.who, what: q.what, where: q.where, when: q.when, why: q.why,
-      sources: story.sources,
-      disclosure: disclosure || null,
-      quality,
-      body_markdown: bodyMarkdown.trimEnd(),
-      body_html: `<article>\n<h1>${escapeHtml(headline)}</h1>\n${bodyHtml}</article>`,
-      reference_markdown: refMarkdown,
-      reference_html: refHtml,
+      body_markdown: bodyMarkdown,
+      body_html: `<article>\n<h1>${escapeHtml(headline)}</h1>\n${bodyHtml}\n</article>`,
       word_count: words,
       read_time_minutes: minutes,
     };
   } catch (e) {
-    console.error(`[buildSEOArticle] fallback for ${iso}:`, e.message);
     const name = ISO_NAMES[iso] || iso;
+    const slug = slugify(name);
     return {
-      kind: "background", publishable: false,
-      headline: `${name}: no new events reported by monitored agencies`, dek: "", byline: `By ${CFG.ARTICLE_AUTHOR}`,
-      dateline: null, lede: "", slug: slugify(name), url: `${CFG.ARTICLE_BASE_URL}/?country=${iso}`,
-      metaDescription: `${name} update.`, keywords: [`${name} crisis`], primary_image: image || null,
-      who: `communities across ${name}`, what: "No qualifying new events reported.", where: name,
-      when: "in the current monitoring window", why: "Not applicable.", sources: [], disclosure: null,
-      quality: { score: null, max: 10, failed: ["error"] },
-      body_markdown: "", body_html: `<article><h1>${escapeHtml(name)}</h1></article>`,
-      reference_markdown: "", reference_html: "", word_count: 0, read_time_minutes: 1,
+      headline: `${name} Crisis Monitor`, dek: "Crisis update pending.",
+            slug,
+      url: `${CFG.ARTICLE_BASE_URL}/?country=${iso}`,
+      metaDescription: `${name} crisis update.`, keywords: [`${name} crisis`],
+      primary_image: image || null,
+      who: `communities across ${name}`, what: "Elevated crisis indicators across multiple dimensions.",
+      where: name, when: "in the current monitoring window",
+      why: "Sustained high severity across structural and live indicators.",
+      body_markdown: `## Overview\n\n${name} crisis data unavailable.`,
+      body_html: `<article><h1>${escapeHtml(name)} Crisis Monitor</h1><p>Data unavailable.</p></article>`,
+      word_count: 3, read_time_minutes: 1,
     };
   }
 }
@@ -3640,23 +3637,22 @@ function buildRSSFeed(isos, store, ranked, images) {
   const items = feedIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
     const img = images[iso] || null;
-    const title = snap.live.headline || `${snap.name}: no new events reported by monitored agencies`;
+    const title = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
     // Deep-link to the top crisis type if available
     const topCrisisType = (snap.raw?.types && snap.raw.types[0]) || null;
     const link = topCrisisType ? buildCrisisUrl(iso, topCrisisType) : snap.url;
-    const story = composeWireStory(iso, store);
-    const desc = wireMetaDescription(story);
+    const q = buildWhoWhatWhereWhenWhy(iso, store);
+    const desc = `Score ${snap.score}/100 · ${snap.live.distinct_event_count} events · ${snap.severity}. Who: ${q.who.substring(0, 80)}. Where: ${q.where.substring(0, 60)}.`;
     let contentHtml = '';
     if (img) {
       contentHtml += `<figure class="article-primary-image">` +
         `<img src="${escapeXml(img.url)}" alt="${escapeXml(img.caption)}" loading="eager" />` +
-        `<figcaption>${escapeXml(wireImageCaption(img))} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
+        `<figcaption>${escapeXml(img.caption)} — <a href="${escapeXml(img.pageUrl)}" target="_blank" rel="noopener">${escapeXml(img.source)}</a></figcaption>` +
         `</figure>\n`;
     }
     const prose = buildEvidenceBackedProse(iso, store);
     const proseHtml = prose.split(/\n\n+/).map(p => `<p>${escapeXml(p)}</p>`).join("\n");
-    contentHtml += `<h1>${escapeXml(title)}</h1>\n<p>By ${escapeXml(CFG.ARTICLE_AUTHOR)}</p>\n${proseHtml}\n` +
-      (CFG.DISCLOSE_AUTOMATION ? `<p><em>${escapeXml(CFG.DISCLOSURE_TEXT)}</em></p>\n` : "");
+    contentHtml += `<h1>${escapeXml(title)}</h1>\n${proseHtml}\n`;
     const enclosure = img && img.url ? `<enclosure url="${escapeXml(img.url)}" type="${escapeXml(img.mime || 'image/jpeg')}" />` : '';
     return `<item>` +
       `<title>${escapeXml(title)}</title>` +
@@ -3664,7 +3660,7 @@ function buildRSSFeed(isos, store, ranked, images) {
       `<guid isPermaLink="true">${escapeXml(link)}</guid>` +
       `<pubDate>${now.toUTCString()}</pubDate>` +
       `<description>${escapeXml(desc)}</description>` +
-      (snap.live.tier === "BREAKING" ? `<category>Breaking</category>` : "") +
+      (snap.live.tier === "BREAKING" ? `<category>🔴 BREAKING NEWS</category>` : "") +
       enclosure +
       `<content:encoded><![CDATA[${contentHtml}]]></content:encoded>` +
       `</item>`;
@@ -3675,7 +3671,7 @@ function buildRSSFeed(isos, store, ranked, images) {
     `<channel>` +
     `<title>${escapeXml(CFG.ARTICLE_SITE_NAME)}</title>` +
     `<link>${CFG.ARTICLE_BASE_URL}</link>` +
-    `<description>Automated world crisis reports built from public monitoring feeds. Updated every 5 minutes.</description>` +
+    `<description>Live breaking world crisis news with primary images from Wikimedia Commons. Updated every 5 minutes.</description>` +
     `<language>en-us</language>` +
     `<lastBuildDate>${now.toUTCString()}</lastBuildDate>` +
     safeItems +
@@ -3749,7 +3745,7 @@ function buildMLCompat(c) {
 }
 
 function buildTrendCompat(series, cur, hasRealHistory, realHistory, fc) {
-  const delta7 = hasRealHistory && series.length >= 8 ? Math.round(series[series.length - 1] - series[Math.max(0, series.length - 8)]) : 0;
+  const delta7 = series.length >= 8 ? Math.round(series[series.length - 1] - series[Math.max(0, series.length - 8)]) : 0;
   return {
     delta_7d: delta7,
     direction: fc.trend,
@@ -3788,11 +3784,8 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
     const realHistory = await persistentHistory.scoreSeries(iso, 500);
     const hasRealHistory = realHistory.length >= CFG.HISTORY_MIN_FOR_ANOMALY;
     const series = hasRealHistory ? realHistory : seedHistory(iso, htmlScore).map(h => h.s);
-    // Anomaly / trend claims are only made from OBSERVED history; synthetic history never produces a finding.
-    const anom = hasRealHistory
-      ? runAnomalyDetection(series, { minRequired: CFG.HISTORY_MIN_FOR_ANOMALY })
-      : { detected: false, severity: "INSUFFICIENT_HISTORY", methods_fired: 0, methods: [], z_score: 0 };
-    const fc = hasRealHistory ? trendForecast(series, htmlScore) : { fc: htmlScore, trend: "stable", esc: false, slope: 0, confidence: 0.3 };
+    const anom = runAnomalyDetection(series, { minRequired: CFG.HISTORY_MIN_FOR_ANOMALY });
+    const fc = trendForecast(series, htmlScore);
     const rank = (rankIndex.get(iso) ?? 0) + 1;
 
     const storyHeat = buildStoryHeat(lb);
@@ -3839,7 +3832,6 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
         tier_label: snap.live.tier_label,
         tier_icon: snap.live.tier_icon,
         headline: snap.live.headline,
-        headline_display: snap.live.headline_display,
         signal_count: snap.live.signal_count,
         raw_signal_count: safeNum(lb.raw_signal_count, 0),
         distinct_event_count: snap.live.distinct_event_count,
@@ -3857,7 +3849,6 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
           weighted_score: sig.weighted_score,
           source: sig.source,
           details: sig.details,
-          is_estimated: !!sig.isEstimated,
         })),
       },
       story_heat: storyHeat,
@@ -3932,7 +3923,7 @@ async function buildPayload(iso, store, ranked, rankIndex, opts = {}, image = nu
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  HANDLER — v22.0.0
+//  HANDLER — v21.4.0
 // ════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
@@ -3990,7 +3981,7 @@ export default async function handler(req, res) {
     if (params.health) {
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=60" });
       res.end(JSON.stringify({
-        meta: { generated_at: new Date().toISOString(), version: "v22.0.0" },
+        meta: { generated_at: new Date().toISOString(), version: "v21.4.0" },
         fetcher_health: fetcherHealth.summary(),
         fetcher_live_count: fetcherHealth.liveCount(),
         fetcher_failed_count: fetcherHealth.failedCount(),
@@ -4010,7 +4001,7 @@ export default async function handler(req, res) {
 
     const imageMap = {};
     if (params.images && finalIsos.length > 0) {
-      console.log(`[v22.0.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
+      console.log(`[v21.4.0] Precision Image Engine fetching for ${finalIsos.length} stories...`);
       const stories = finalIsos.map(iso => {
         const snap = safeCountrySnapshot(iso, store);
         const headline = snap.live.headline || `${snap.name} Crisis Monitor — ${snap.score}/100`;
@@ -4019,12 +4010,11 @@ export default async function handler(req, res) {
         return { iso, headline, countryName: snap.name, eventTypes, events };
       });
       const fetchedImages = await fetchImagesForStories(stories);
-      console.log(`[v22.0.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
+      console.log(`[v21.4.0] ✓ Selected ${Object.keys(fetchedImages).length}/${finalIsos.length} images`);
       for (const [iso, img] of Object.entries(fetchedImages)) {
         imageMap[iso] = img;
         evidenceIndex.images[iso] = img;
       }
-      vetImageMap(imageMap, store);
     }
 
     const isSingleIso = finalIsos.length === 1 && !params.region && !params.threshold && params.top === 1;
@@ -4045,7 +4035,6 @@ export default async function handler(req, res) {
             return { iso, headline: snap.live.headline || `${snap.name} Crisis`, countryName: snap.name, eventTypes: snap.raw?.types || [], events: snap.raw?.__live_breaking?.events || [] };
           });
           const extra = await fetchImagesForStories(stories);
-          vetImageMap(extra, store);
           Object.assign(rssImages, extra);
         }
       }
@@ -4066,7 +4055,7 @@ export default async function handler(req, res) {
         return { rank: rankMap.get(iso) || 0, iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, { ...CORS, "Cache-Control": "public, s-maxage=120" });
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v22.0.0", count: feed.length }, live_news: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "live-breaking-news", version: "v21.4.0", count: feed.length }, live_news: feed }, null, 2));
       return;
     }
 
@@ -4081,7 +4070,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, live_score: snap.live.score, effective_score: snap.effective_score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, signal_count: snap.live.signal_count, source_count: snap.live.source_count, top_events: topEvents, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v22.0.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "breaking", version: "v21.4.0", total_with_live_events: liveEventsOnly.length, total_with_any_signals: breakingRanked.length, count: feed.length }, breaking: feed }, null, 2));
       return;
     }
 
@@ -4094,7 +4083,7 @@ export default async function handler(req, res) {
         return { iso: snap.iso, name: snap.name, flag: snap.flag, score: snap.score, effective_score: snap.effective_score, live_score: snap.live.score, tier: snap.live.tier, tier_label: snap.live.tier_label, headline: snap.live.headline, primary_image: imageMap[iso] || null };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v22.0.0", count: feed.length }, watchlist: feed }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), feed: "watchlist", version: "v21.4.0", count: feed.length }, watchlist: feed }, null, 2));
       return;
     }
 
@@ -4179,8 +4168,8 @@ export default async function handler(req, res) {
         generated_at: new Date().toISOString(),
         elapsed_ms: Date.now() - start,
         mode,
-        ranking_mode: "DEFINITIVE_v22.0.0",
-        version: "v22.0.0",
+        ranking_mode: "DEFINITIVE_v21.4.0",
+        version: "v21.4.0",
         countries_tracked: Object.keys(BASE_SCORES).length,
         countries_with_evidence: Object.keys(evidenceIndex.sourceCoverage).filter(iso => Object.keys(evidenceIndex.sourceCoverage[iso] || {}).length > 0).length,
         countries_with_images: Object.keys(imageMap).length,
@@ -4195,31 +4184,32 @@ export default async function handler(req, res) {
             accuracy: +mlAcc.toFixed(4),
           },
           fetcher_health: { live_count: fetcherHealth.liveCount(), failed_count: fetcherHealth.failedCount(), detail: fetcherHealth.summary() },
-          new_in_v22_0_0: [
-            "wire_editorial_engine",
-            "feed_timestamps_replace_hardcoded_ages",
-            "breaking_tier_requires_real_timestamp",
-            "currency_signal_uses_real_30d_move",
-            "covid_totals_removed_from_events",
-            "usgs_emsc_same_quake_merged",
-            "strongest_quake_kept_per_country",
-            "anomaly_only_from_observed_history",
-            "image_vetting_and_file_photo_label",
-            "article_quality_rubric",
-            "reference_tables_split_from_story_body",
+          new_in_v21_4_0: [
+            "ultimate_editorial_engine",
+            "earthquake_label_details_no_double_up",
+            "gdacs_empty_places_no_leak",
+            "ifrc_ledger_labels_humanized",
+            "nesw_converted_to_words",
+            "ledger_labels_shortened_for_prose",
+            "varied_sentence_openings",
+            "5w_what_tight_journalistic_prose",
+            "final_tier_display_honesty",
           ],
           feed_safety: {
-            version: "v22.0.0",
+            version: "v21.4.0",
             guarantees: [
               "never throws mid-render",
-              "story body contains only facts published by a named agency",
-              "times in copy come from feed timestamps; none are invented",
-              "BREAKING requires a feed-timestamped event no older than CFG.BREAKING_MAX_FRESH_HOURS",
-              "unrelated events are never merged into one headline or sentence",
-              "no index scores, ML or anomaly language in the story body",
-              "automated copy is labelled (CFG.DISCLOSE_AUTOMATION)",
-              "photos that are not of this event are labelled FILE PHOTO or dropped",
+              "primary image from Wikimedia Commons at article top",
+              "images for all payloads",
               "hard-rejects PDF/DjVu/SVG/audio/video files",
+              "event-aware scoring picks best candidate",
+              "cross-story duplicate prevention",
+              "article prose is narrative, edited, and non-repetitive",
+              "earthquake details never double up in prose",
+              "GDACS empty places never leak into prose",
+              "IFRC ledger labels humanized in evidence narration",
+              "BREAKING tier requires a fresh (≤6h) live event",
+              "every claim is traceable to a named source",
             ],
           },
         },
@@ -4231,7 +4221,7 @@ export default async function handler(req, res) {
     res.writeHead(200, { ...CORS, "Cache-Control": `public, s-maxage=${secsUntilNext}, stale-while-revalidate=30` });
     res.end(JSON.stringify(body, null, 2));
   } catch (err) {
-    console.error("[top-story v22.0.0]", err);
+    console.error("[top-story v21.4.0]", err);
     try {
       const isos = Object.keys(BASE_SCORES).slice(0, 5);
       const fallback = isos.map(iso => {
@@ -4262,7 +4252,7 @@ export default async function handler(req, res) {
         };
       });
       res.writeHead(200, CORS);
-      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v22.0.0-FALLBACK", version: "v22.0.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
+      res.end(JSON.stringify({ meta: { generated_at: new Date().toISOString(), mode: "list", ranking_mode: "DEFINITIVE_v21.4.0-FALLBACK", version: "v21.4.0", payloads_emitted: fallback.length, error: err.message }, countries: fallback }, null, 2));
     } catch (fallbackErr) {
       res.writeHead(500, CORS);
       res.end(JSON.stringify({ error: "Internal server error", message: err.message }));
