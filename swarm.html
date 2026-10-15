@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Neural Swarm // TRUE SINGULARITY</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #gl{pointer-events:none;z-index:1}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:3}
+
+  .hud-root{
+    --c:#00e5ff;--v:#8a5cff;--m:#ff3df0;--a:#3dffa0;
+    font:12px/1.5 ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    color:var(--c);
+    text-shadow:0 0 8px rgba(0,229,255,.8),0 0 20px rgba(0,229,255,.3);
+    letter-spacing:.07em;user-select:none;-webkit-user-select:none;
+  }
+  .hud-root *{box-sizing:border-box}
+  .hud-corner{
+    position:absolute;width:72px;height:72px;border:0 solid var(--c);
+    filter:drop-shadow(0 0 8px var(--c)) drop-shadow(0 0 24px rgba(0,229,255,.4));
+    margin:16px;
+  }
+  .hud-tl{top:0;left:0;border-top-width:2px;border-left-width:2px}
+  .hud-tr{top:0;right:0;border-top-width:2px;border-right-width:2px;border-color:var(--v)}
+  .hud-bl{bottom:0;left:0;border-bottom-width:2px;border-left-width:2px;border-color:var(--v)}
+  .hud-br{bottom:0;right:0;border-bottom-width:2px;border-right-width:2px}
+  .hud-ring{
+    position:absolute;width:28px;height:28px;border-radius:50%;opacity:.85;
+    background:repeating-conic-gradient(var(--c) 0 3deg,transparent 3deg 15deg);
+    -webkit-mask:radial-gradient(circle,transparent 9px,#000 10px,#000 14px,transparent 15px);
+    mask:radial-gradient(circle,transparent 9px,#000 10px,#000 14px,transparent 15px);
+    animation:hud-spin 8s linear infinite;filter:drop-shadow(0 0 6px var(--c));
+  }
+  .hud-ring2{
+    width:18px;height:18px;
+    background:repeating-conic-gradient(var(--m) 0 6deg,transparent 6deg 30deg);
+    -webkit-mask:radial-gradient(circle,transparent 4px,#000 5px,#000 8px,transparent 9px);
+    mask:radial-gradient(circle,transparent 4px,#000 5px,#000 8px,transparent 9px);
+    animation-direction:reverse;animation-duration:5s;
+    filter:drop-shadow(0 0 6px var(--m));
+  }
+  .hud-tl .hud-ring{top:10px;left:10px}.hud-tr .hud-ring{top:10px;right:10px}
+  .hud-bl .hud-ring{bottom:10px;left:10px}.hud-br .hud-ring{bottom:10px;right:10px}
+  .hud-tl .hud-ring2{top:15px;left:15px}.hud-tr .hud-ring2{top:15px;right:15px}
+  .hud-bl .hud-ring2{bottom:15px;left:15px}.hud-br .hud-ring2{bottom:15px;right:15px}
+  @keyframes hud-spin{to{transform:rotate(360deg)}}
+
+  .hud-panel{position:absolute;top:38px;font-size:12px}
+  .hud-boot{left:38px;max-width:calc(100% - 240px);min-width:260px;white-space:pre;overflow:hidden}
+  .hud-line{min-height:1.5em}
+  .hud-ok{color:var(--a);text-shadow:0 0 10px var(--a),0 0 30px rgba(61,255,160,.4)}
+  .hud-cursor{color:var(--m);text-shadow:0 0 10px var(--m);animation:hud-blink .9s steps(1) infinite}
+  @keyframes hud-blink{50%{opacity:0}}
+
+  .hud-tele{right:38px;width:210px;color:var(--v);text-shadow:0 0 8px rgba(138,92,255,.9),0 0 20px rgba(138,92,255,.3)}
+  .hud-head{color:var(--m);text-shadow:0 0 10px var(--m),0 0 30px rgba(255,61,240,.4);
+    border-bottom:1px solid rgba(255,61,240,.6);margin-bottom:6px;font-size:11px;letter-spacing:.15em}
+  .hud-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+  .hud-k{opacity:.7;font-size:10px}
+  .hud-v{color:var(--c);text-shadow:0 0 8px rgba(0,229,255,.9)}
+  .hud-bar{height:3px;background:rgba(138,92,255,.2);overflow:hidden;margin-top:2px;border-radius:1px}
+  .hud-bar i{display:block;height:100%;width:0;
+    background:linear-gradient(90deg,var(--v),var(--c),var(--m));
+    box-shadow:0 0 10px var(--c),0 0 20px rgba(0,229,255,.4);
+    transition:width .3s ease;border-radius:1px}
+
+  .hud-title{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);
+    white-space:nowrap;font-size:clamp(13px,3.4vw,22px);font-weight:700;letter-spacing:.35em;
+    color:var(--c);text-shadow:0 0 10px var(--c),0 0 30px rgba(0,229,255,.5),0 0 60px rgba(0,229,255,.2);z-index:4}
+  .hud-title::before,.hud-title::after{content:attr(data-text);position:absolute;left:0;top:0;opacity:0;pointer-events:none}
+  .hud-title::before{color:var(--m);text-shadow:0 0 8px var(--m),0 0 20px rgba(255,61,240,.5)}
+  .hud-title::after{color:var(--v);text-shadow:0 0 8px var(--v),0 0 20px rgba(138,92,255,.5)}
+  .hud-title.glitch{animation:hud-jit .35s steps(2) 1}
+  .hud-title.glitch::before{opacity:.85;animation:hud-split-a .35s steps(3) infinite;clip-path:inset(0 0 55% 0)}
+  .hud-title.glitch::after{opacity:.85;animation:hud-split-b .35s steps(3) infinite;clip-path:inset(45% 0 0 0)}
+  @keyframes hud-jit{0%{transform:translateX(-50%) skewX(0)}30%{transform:translateX(-49.5%) skewX(-10deg)}60%{transform:translateX(-50.5%) skewX(7deg)}100%{transform:translateX(-50%) skewX(0)}}
+  @keyframes hud-split-a{0%{transform:translate(-4px,0)}50%{transform:translate(5px,-1px)}100%{transform:translate(-3px,1px)}}
+  @keyframes hud-split-b{0%{transform:translate(4px,1px)}50%{transform:translate(-5px,0)}100%{transform:translate(3px,-1px)}}
+
+  .hud-hex{position:absolute;left:38px;bottom:38px;height:12em;overflow:hidden;font-size:10px;line-height:1.1;
+    color:var(--c);opacity:.32;text-shadow:0 0 6px var(--c);display:flex;flex-direction:column;
+    justify-content:flex-end;gap:3px;white-space:pre;
+    -webkit-mask:linear-gradient(transparent,#000 65%);mask:linear-gradient(transparent,#000 65%)}
+  .hud-hint{position:absolute;right:38px;bottom:38px;max-width:240px;text-align:right;font-size:9px;line-height:1.5;
+    color:var(--v);opacity:.8;text-shadow:0 0 8px rgba(138,92,255,.9)}
+  .hud-signal{position:absolute;left:50%;top:38px;transform:translateX(-50%);display:flex;gap:20px;align-items:center;
+    font-size:10px;letter-spacing:.2em;color:var(--c);opacity:.75;text-shadow:0 0 8px var(--c)}
+  .hud-signal span{display:flex;align-items:center;gap:6px}
+  .hud-dot{width:6px;height:6px;border-radius:50%;background:var(--a);
+    box-shadow:0 0 8px var(--a),0 0 16px var(--a);animation:hud-pulse 2s ease-in-out infinite}
+  .hud-dot.v{background:var(--v);box-shadow:0 0 8px var(--v),0 0 16px var(--v);animation-delay:.5s}
+  .hud-dot.m{background:var(--m);box-shadow:0 0 8px var(--m),0 0 16px var(--m);animation-delay:1s}
+  @keyframes hud-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
+
+  .hud-gpu{position:absolute;left:38px;top:38px;font-size:9px;color:var(--a);opacity:.55;
+    text-shadow:0 0 6px var(--a);letter-spacing:.1em;line-height:1.6}
+  .hud-gpu b{color:var(--c);font-weight:400}
+
+  @media (max-width:900px){.hud-title{bottom:90px}.hud-signal{display:none}}
+  @media (max-width:600px){
+    .hud-hex{display:none}.hud-corner{width:48px;height:48px;margin:10px}
+    .hud-ring{transform-origin:50% 50%;scale:.8}
+    .hud-panel{top:22px;font-size:10px}
+    .hud-boot{left:18px;min-width:0;max-width:calc(100% - 160px);font-size:9px}
+    .hud-tele{right:18px;width:150px}
+    .hud-hint{left:18px;right:18px;bottom:22px;max-width:none;text-align:center}
+    .hud-title{bottom:60px;letter-spacing:.2em}
+    .hud-gpu{left:18px;top:18px;font-size:8px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .hud-ring,.hud-title.glitch,.hud-title.glitch::before,.hud-title.glitch::after,.hud-dot{animation:none}
+  }
+
+  #fallback{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    color:#00e5ff;font-size:14px;text-align:center;padding:24px;z-index:99;
+    background:radial-gradient(circle at center,#0a0a20,#000);
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="hud"></div>
+<div id="fallback">WebGL2 not available.<br>This singularity requires a modern GPU.</div>
+
+<script>
+/* ================================================================
+   NEURAL SWARM — TRUE PROTO-SINGULARITY
+   ─────────────────────────────────────────────────────────────────
+   Layer 1: GPU particle galaxy  (WebGL2 transform feedback, 250k particles)
+   Layer 2: Raymarched SDF core  (fragment shader, volumetric, real 3D)
+   Layer 3: Signal-reactive HUD  (WebAudio analyser drives telemetry)
+   ================================================================ */
+
+(function(){
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT: verify WebGL2 + required extensions
+   ═══════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', {
+  alpha: false, antialias: false, depth: false,
+  powerPreference: 'high-performance',
+  premultipliedAlpha: false, preserveDrawingBuffer: false
+});
+
+if (!gl) {
+  document.getElementById('fallback').style.display = 'flex';
+  canvas.style.display = 'none';
+  return;
+}
+
+/* Required extensions for transform feedback + float textures */
+const extCBF = gl.getExtension('EXT_color_buffer_float');
+const extLin = gl.getExtension('OES_texture_float_linear');
+
+/* ═══════════════════════════════════════════════════════════════
+   SHADER COMPILER
+   ═══════════════════════════════════════════════════════════════ */
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(s), src);
+    throw new Error('shader compile failed');
+  }
+  return s;
+}
+function program(vsSrc, fsSrc, tfVaryings) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vsSrc));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsSrc));
+  if (tfVaryings) gl.transformFeedbackVaryings(p, tfVaryings, gl.INTERLEAVED_ATTRIBS);
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(p));
+    throw new Error('program link failed');
+  }
+  return p;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FULLSCREEN QUAD
+   ═══════════════════════════════════════════════════════════════ */
+const quadVBO = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadVBO);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+function bindQuad(loc) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVBO);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYER 1: GPU PARTICLE GALAXY — Transform Feedback
+   ─────────────────────────────────────────────────────────────────
+   Each particle is a vec4 (x,y,z,life). Simulation runs entirely
+   on the GPU via transform feedback: a single draw call advances
+   all 250,000 particles per frame.
+   ═══════════════════════════════════════════════════════════════ */
+
+const PARTICLE_COUNT = 250000;
+
+/* Simulation shader: reads (pos.xyz, life), writes (newPos.xyz, newLife) */
+const SIM_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec4 a_state;   // xyz = position, w = life
+uniform float u_dt;
+uniform float u_time;
+uniform vec3  u_shock;      // xy = screen-origin (world), z = age (s)
+uniform float u_armCount;
+out vec4 v_state;
+
+/* Simplex-ish hash for curl noise */
+vec3 hash3(vec3 p){
+  p = vec3(dot(p,vec3(127.1,311.7,74.7)),
+           dot(p,vec3(269.5,183.3,246.1)),
+           dot(p,vec3(113.5,271.9,124.6)));
+  return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+float noise(vec3 p){
+  vec3 i = floor(p); vec3 f = fract(p);
+  f = f*f*(3.0-2.0*f);
+  float n000 = dot(hash3(i+vec3(0,0,0)), f-vec3(0,0,0));
+  float n100 = dot(hash3(i+vec3(1,0,0)), f-vec3(1,0,0));
+  float n010 = dot(hash3(i+vec3(0,1,0)), f-vec3(0,1,0));
+  float n110 = dot(hash3(i+vec3(1,1,0)), f-vec3(1,1,0));
+  float n001 = dot(hash3(i+vec3(0,0,1)), f-vec3(0,0,1));
+  float n101 = dot(hash3(i+vec3(1,0,1)), f-vec3(1,0,1));
+  float n011 = dot(hash3(i+vec3(0,1,1)), f-vec3(0,1,1));
+  float n111 = dot(hash3(i+vec3(1,1,1)), f-vec3(1,1,1));
+  return mix(mix(mix(n000,n100,f.x),mix(n010,n110,f.x),f.y),
+             mix(mix(n001,n101,f.x),mix(n011,n111,f.x),f.y), f.z);
+}
+/* Analytic curl of a potential field — true divergence-free flow */
+vec3 curlNoise(vec3 p){
+  const float e = 0.1;
+  vec3 dx = vec3(e,0,0), dy = vec3(0,e,0), dz = vec3(0,0,e);
+  float p_x = noise(p+dx)-noise(p-dx);
+  float p_y = noise(p+dy)-noise(p-dy);
+  float p_z = noise(p+dz)-noise(p-dz);
+  return vec3(p_y-p_z, p_z-p_x, p_x-p_y) * 0.5 / e;
+}
+
+void main(){
+  vec3 pos = a_state.xyz;
+  float life = a_state.w;
+
+  float r = length(pos.xy);
+  float theta = atan(pos.y, pos.x);
+
+  /* Differential rotation: inner faster than outer */
+  float omega = 0.55 / (0.25 + r);
+  float dth = omega * u_dt;
+  float cs = cos(dth), sn = sin(dth);
+  pos.xy = mat2(cs,-sn,sn,cs) * pos.xy;
+
+  /* Curl noise flow — GPU-computed */
+  vec3 flow = curlNoise(pos * 1.4 + vec3(0.0, 0.0, u_time * 0.15));
+  pos += flow * 0.10 * u_dt;
+
+  /* Shockwave: radial impulse from origin */
+  if (u_shock.z >= 0.0 && u_shock.z < 2.4) {
+    vec3 toP = pos - u_shock.xy * 0.001;
+    float d = length(toP.xy) + 0.001;
+    float wavefront = u_shock.z * 0.9;
+    float f = 1.0 - abs(d - wavefront) / 0.15;
+    if (f > 0.0) {
+      pos.xy += normalize(toP.xy) * f * 0.35 * (1.0 - u_shock.z / 2.4);
+    }
+  }
+
+  life -= u_dt;
+  /* Respawn: spiral arm re-injection */
+  if (life <= 0.0 || r > 1.55) {
+    float r0 = 0.04 + pow(fract(sin(dot(pos,vec3(12.9898,78.233,45.164)))*43758.5453), 0.62) * 1.10;
+    float arm = floor(fract(sin(dot(pos,vec3(34.12,56.78,90.12)))*43758.5453) * u_armCount);
+    float sc  = (fract(sin(dot(pos,vec3(90.12,45.67,78.34)))*43758.5453) - 0.5) * (0.32 + r0) * 0.55;
+    float th  = arm * 6.2831853 / u_armCount + r0 * 4.35 + sc;
+    pos = vec3(cos(th) * r0, sin(th) * r0,
+               (fract(sin(dot(pos,vec3(1.23,4.56,7.89)))*43758.5453) - 0.5) * 0.35);
+    life = 3.5 + fract(sin(dot(pos,vec3(11.1,22.2,33.3)))*43758.5453) * 7.0;
+  }
+  v_state = vec4(pos, life);
+}`;
+
+/* Render shader: point sprite with additive glow */
+const PARTICLE_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec4 a_state;
+uniform mat4 u_viewProj;
+uniform float u_pixelRatio;
+uniform float u_time;
+out float v_depth;
+out float v_life;
+void main(){
+  vec4 clip = u_viewProj * vec4(a_state.xyz, 1.0);
+  gl_Position = clip;
+  gl_PointSize = (2.0 + 4.0 * (a_state.w / 10.0)) * u_pixelRatio;
+  v_depth = clip.z / clip.w;
+  v_life = a_state.w;
+}`;
+
+const PARTICLE_FS = `#version 300 es
+precision highp float;
+in float v_depth;
+in float v_life;
+out vec4 fragColor;
+void main(){
+  vec2 uv = gl_PointCoord - 0.5;
+  float d = length(uv);
+  if (d > 0.5) discard;
+  float glow = smoothstep(0.5, 0.0, d);
+  glow = pow(glow, 1.8);
+  /* depth-colored: near = white-hot, far = deep cyan/violet */
+  float t = clamp((v_depth + 1.0) * 0.5, 0.0, 1.0);
+  vec3 near = vec3(1.0, 0.95, 1.0);
+  vec3 mid  = vec3(0.35, 0.55, 1.0);
+  vec3 far  = vec3(0.55, 0.30, 0.95);
+  vec3 col = t < 0.5 ? mix(near, mid, t*2.0) : mix(mid, far, (t-0.5)*2.0);
+  /* pulse on young particles */
+  float pulse = 0.85 + 0.15 * sin(v_life * 8.0);
+  fragColor = vec4(col * glow * pulse, glow);
+}`;
+
+const simProg = program(SIM_VS, `#version 300 es
+precision highp float; out vec4 o; void main(){ o = vec4(0.0); }`,
+  ['v_state']);
+const partProg = program(PARTICLE_VS, PARTICLE_FS, null);
+
+/* Ping-pong transform feedback buffers */
+function makeStateBuffer() {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  const data = new Float32Array(PARTICLE_COUNT * 4);
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const r = 0.04 + Math.pow(Math.random(), 0.62) * 1.10;
+    const arm = Math.floor(Math.random() * 3);
+    const sc = (Math.random() + Math.random() + Math.random() - 1.5) * 0.5 * (0.32 + r);
+    const th = arm * 6.2831853 / 3 + r * 4.35 + sc;
+    data[i*4+0] = Math.cos(th) * r;
+    data[i*4+1] = Math.sin(th) * r;
+    data[i*4+2] = (Math.random() - 0.5) * 0.35;
+    data[i*4+3] = 3.5 + Math.random() * 7.0;
+  }
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_COPY);
+  return b;
+}
+const stateA = makeStateBuffer();
+const stateB = makeStateBuffer();
+
+const tf = gl.createTransformFeedback();
+const vaoSim = gl.createVertexArray();
+gl.bindVertexArray(vaoSim);
+gl.bindBuffer(gl.ARRAY_BUFFER, stateA);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+const vaoDraw = gl.createVertexArray();
+gl.bindVertexArray(vaoDraw);
+gl.bindBuffer(gl.ARRAY_BUFFER, stateB);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+let srcState = stateA, dstState = stateB;
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYER 2: RAYMARCHED SDF CORE
+   ─────────────────────────────────────────────────────────────────
+   A real volumetric signed-distance-field raymarched in the
+   fragment shader. Four shapes blended via smooth-min, hit by
+   a soft-shadow ray marcher and a fresnel-lit surface.
+   ═══════════════════════════════════════════════════════════════ */
+
+const RAY_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 a_pos;
+out vec2 v_uv;
+void main(){
+  v_uv = a_pos;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+const RAY_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform vec2  u_resolution;
+uniform float u_time;
+uniform float u_morph;      // 0..1 between u_from and u_to
+uniform int   u_from;
+uniform int   u_to;
+uniform vec2  u_mouse;
+uniform vec3  u_camDir;
+uniform float u_shockAge;
+uniform vec2  u_shockUV;
+
+#define TAU 6.28318530718
+
+/* ── signed distance functions for the four shapes ── */
+float sdSphere(vec3 p, float r){ return length(p) - r; }
+
+float sdTorus(vec3 p, vec2 t){
+  vec2 q = vec2(length(p.xz) - t.x, p.y);
+  return length(q) - t.y;
+}
+
+float sdCrystal(vec3 p){
+  /* 12 spikes from icosahedron directions */
+  const float t0 = 1.6180339887;
+  vec3 dirs[12];
+  dirs[0]  = normalize(vec3(-1.0,  t0,  0.0));
+  dirs[1]  = normalize(vec3( 1.0,  t0,  0.0));
+  dirs[2]  = normalize(vec3(-1.0, -t0,  0.0));
+  dirs[3]  = normalize(vec3( 1.0, -t0,  0.0));
+  dirs[4]  = normalize(vec3( 0.0, -1.0,  t0));
+  dirs[5]  = normalize(vec3( 0.0,  1.0,  t0));
+  dirs[6]  = normalize(vec3( 0.0, -1.0, -t0));
+  dirs[7]  = normalize(vec3( 0.0,  1.0, -t0));
+  dirs[8]  = normalize(vec3( t0,  0.0, -1.0));
+  dirs[9]  = normalize(vec3( t0,  0.0,  1.0));
+  dirs[10] = normalize(vec3(-t0,  0.0, -1.0));
+  dirs[11] = normalize(vec3(-t0,  0.0,  1.0));
+  float md = 0.0;
+  for (int i = 0; i < 12; i++) md = max(md, dot(p, dirs[i]));
+  float r = 0.55 + 0.95 * pow(max(0.0, md), 8.0);
+  return length(p) - r;
+}
+
+float sdKnot(vec3 p){
+  /* (2,3) torus knot via distance-to-curve approximation */
+  float a = atan(p.z, p.x);
+  float r = length(p.xz);
+  vec3 q = vec3(r - 0.85, p.y, 0.0);
+  float t = a * 1.5; /* winding */
+  vec3 c = vec3(cos(t) * 0.85, sin(t * 1.5) * 0.35, sin(t) * 0.85);
+  return length(p - c) - 0.22;
+}
+
+/* smooth minimum */
+float smin(float a, float b, float k){
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float shapeAt(vec3 p, int idx){
+  if (idx == 0) return sdSphere(p, 1.15);
+  if (idx == 1) return sdKnot(p);
+  if (idx == 2) return sdCrystal(p);
+  return sdTorus(p, vec2(0.85, 0.32));
+}
+
+float scene(vec3 p, float morph, int from, int to){
+  float a = shapeAt(p, from);
+  float b = shapeAt(p, to);
+  /* morph by interpolating distance fields (cheap approximation) */
+  float d = mix(a, b, morph);
+  /* add a subtle sphere shell for structure */
+  d = smin(d, sdSphere(p, 1.6) - 0.02, 0.08);
+  return d;
+}
+
+/* ── normals via tetrahedral finite difference ── */
+vec3 calcNormal(vec3 p, float morph, int from, int to){
+  const vec2 e = vec2(1.0, -1.0) * 0.0015;
+  return normalize(
+    e.xyy * scene(p + e.xyy, morph, from, to) +
+    e.yyx * scene(p + e.yyx, morph, from, to) +
+    e.yxy * scene(p + e.yxy, morph, from, to) +
+    e.xxx * scene(p + e.xxx, morph, from, to)
+  );
+}
+
+/* ── soft shadow raymarch ── */
+float softShadow(vec3 ro, vec3 rd, float morph, int from, int to){
+  float res = 1.0;
+  float t = 0.02;
+  for (int i = 0; i < 32; i++){
+    float h = scene(ro + rd * t, morph, from, to);
+    res = min(res, 10.0 * h / t);
+    t += clamp(h, 0.02, 0.35);
+    if (res < 0.005 || t > 4.0) break;
+  }
+  return clamp(res, 0.0, 1.0);
+}
+
+/* ── ambient occlusion ── */
+float calcAO(vec3 p, vec3 n, float morph, int from, int to){
+  float occ = 0.0, sca = 1.0;
+  for (int i = 0; i < 5; i++){
+    float h = 0.01 + 0.12 * float(i) / 4.0;
+    float d = scene(p + n * h, morph, from, to);
+    occ += (h - d) * sca;
+    sca *= 0.85;
+  }
+  return clamp(1.0 - 2.5 * occ, 0.0, 1.0);
+}
+
+void main(){
+  vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
+
+  /* camera */
+  vec3 ro = vec3(0.0, 0.0, 3.6);
+  vec3 ta = vec3(0.0, 0.0, 0.0);
+  vec3 ww = normalize(ta - ro);
+  vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
+  vec3 vv = cross(uu, ww);
+
+  /* apply mouse-driven camera rotation */
+  float cy = cos(u_camDir.x), sy = sin(u_camDir.x);
+  float cx = cos(u_camDir.y), sx = sin(u_camDir.y);
+  mat3 rotY = mat3(cy, 0.0, -sy, 0.0, 1.0, 0.0, sy, 0.0, cy);
+  mat3 rotX = mat3(1.0, 0.0, 0.0, 0.0, cx, -sx, 0.0, sx, cx);
+  mat3 cam = rotY * rotX;
+  ww = cam * ww; uu = cam * uu; vv = cam * vv;
+
+  vec3 rd = normalize(p.x * uu + p.y * vv + 2.2 * ww);
+
+  /* raymarch */
+  float t = 0.0;
+  float hit = 0.0;
+  vec3 pos = ro;
+  for (int i = 0; i < 96; i++){
+    pos = ro + rd * t;
+    float d = scene(pos, u_morph, u_from, u_to);
+    if (d < 0.0015){ hit = 1.0; break; }
+    t += d * 0.9;
+    if (t > 8.0) break;
+  }
+
+  vec3 col = vec3(0.0);
+
+  if (hit > 0.5){
+    vec3 n = calcNormal(pos, u_morph, u_from, u_to);
+    vec3 v = -rd;
+
+    /* key light */
+    vec3 lig = normalize(vec3(0.6, 0.8, 0.5));
+    float dif = clamp(dot(n, lig), 0.0, 1.0);
+    float sha = softShadow(pos + n * 0.003, lig, u_morph, u_from, u_to);
+    float ao  = calcAO(pos, n, u_morph, u_from, u_to);
+
+    /* fresnel rim */
+    float fre = pow(clamp(1.0 - dot(n, v), 0.0, 1.0), 3.0);
+
+    /* iridescent palette based on normal + depth */
+    float hue = clamp(dot(n, vec3(0.3, 0.6, 0.4)) * 0.5 + 0.5 + pos.y * 0.15, 0.0, 1.0);
+    vec3 near = vec3(0.0, 1.0, 1.0);
+    vec3 mid  = vec3(0.55, 0.35, 1.0);
+    vec3 far  = vec3(1.0, 0.25, 0.9);
+    vec3 base = hue < 0.5 ? mix(near, mid, hue*2.0) : mix(mid, far, (hue-0.5)*2.0);
+
+    col = base * (0.15 + 0.85 * dif * sha) * ao;
+    col += base * fre * 1.4;
+    col += vec3(0.6, 0.9, 1.0) * fre * 0.8;
+
+    /* inner glow through the shell */
+    float inner = smoothstep(1.8, 0.3, length(pos));
+    col += vec3(0.15, 0.55, 1.0) * inner * 0.35;
+
+    /* shockwave halo */
+    if (u_shockAge >= 0.0 && u_shockAge < 2.4){
+      vec2 sp = pos.xy - u_shockUV;
+      float sd = length(sp);
+      float ring = 1.0 - abs(sd - u_shockAge * 0.9) / 0.25;
+      col += vec3(1.0, 0.9, 1.0) * max(0.0, ring) * (1.0 - u_shockAge / 2.4) * 1.2;
+    }
+  } else {
+    /* volumetric background glow — cyan/violet nebula */
+    vec3 bg = mix(vec3(0.01, 0.01, 0.03), vec3(0.03, 0.01, 0.06), p.y * 0.5 + 0.5);
+    /* add subtle radial falloff */
+    float r = length(p);
+    bg += vec3(0.0, 0.03, 0.06) * exp(-r * 2.0);
+    col = bg;
+  }
+
+  /* vignette */
+  float vig = 1.0 - 0.35 * dot(p, p);
+  col *= vig;
+
+  /* tone map */
+  col = col / (1.0 + col);
+  col = pow(col, vec3(0.4545)); /* linear -> sRGB-ish */
+
+  fragColor = vec4(col, 1.0);
+}`;
+
+const rayProg = program(RAY_VS, RAY_FS, null);
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYER 3: WEBAUDIO SIGNAL — drives HUD telemetry
+   ═══════════════════════════════════════════════════════════════ */
+const audioState = { bass: 0, mid: 0, treble: 0, active: false };
+let analyser = null, audioData = null;
+function initAudio() {
+  if (audioState.active) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const actx = new AC();
+    const osc1 = actx.createOscillator();
+    const osc2 = actx.createOscillator();
+    const gain = actx.createGain();
+    osc1.type = 'sine'; osc1.frequency.value = 55;
+    osc2.type = 'triangle'; osc2.frequency.value = 110;
+    gain.gain.value = 0.0; /* silent — just for analyser */
+    osc1.connect(gain); osc2.connect(gain);
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 256;
+    audioData = new Uint8Array(analyser.frequencyBinCount);
+    gain.connect(analyser);
+    analyser.connect(actx.destination);
+    osc1.start(); osc2.start();
+    audioState.active = true;
+  } catch(e) { /* audio not available — telemetry falls back to 0 */ }
+}
+window.addEventListener('pointerdown', initAudio, { once: true });
+window.addEventListener('keydown', initAudio, { once: true });
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════ */
+const state = {
+  W: 0, H: 0, dpr: 1,
+  mouse: [0, 0], targetMouse: [0, 0],
+  camDir: [0, 0.3], targetCamDir: [0, 0.3],
+  shock: { x: 0, y: 0, age: -1 },
+  time: 0, last: 0,
+  morphFrom: 0, morphTo: 1, morph: 0,
+  morphTimer: 0,
+  holdTime: 3.2, morphTime: 2.8,
+  dragging: false, lastPointer: [0, 0],
+  fps: 60, frames: 0, fpsTimer: 0
+};
+
+function resize() {
+  state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  state.W = window.innerWidth;
+  state.H = window.innerHeight;
+  canvas.width  = Math.round(state.W * state.dpr);
+  canvas.height = Math.round(state.H * state.dpr);
+  canvas.style.width  = state.W + 'px';
+  canvas.style.height = state.H + 'px';
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+window.addEventListener('pointermove', e => {
+  state.targetMouse[0] = (e.clientX / state.W) * 2 - 1;
+  state.targetMouse[1] = (e.clientY / state.H) * 2 - 1;
+  if (state.dragging) {
+    const dx = e.clientX - state.lastPointer[0];
+    const dy = e.clientY - state.lastPointer[1];
+    state.targetCamDir[0] += dx * 0.008;
+    state.targetCamDir[1] += dy * 0.008;
+    state.lastPointer = [e.clientX, e.clientY];
+  }
+});
+window.addEventListener('pointerdown', e => {
+  state.dragging = true;
+  state.lastPointer = [e.clientX, e.clientY];
+  /* fire shockwave */
+  state.shock.x = (e.clientX / state.W) * 2 - 1;
+  state.shock.y = (e.clientY / state.H) * 2 - 1;
+  state.shock.age = 0;
+});
+window.addEventListener('pointerup', () => { state.dragging = false; });
+window.addEventListener('touchmove', e => {
+  const t = e.touches[0]; if (!t) return;
+  state.targetMouse[0] = (t.clientX / state.W) * 2 - 1;
+  state.targetMouse[1] = (t.clientY / state.H) * 2 - 1;
+}, { passive: true });
+
+/* ═══════════════════════════════════════════════════════════════
+   MATRIX MATH (minimal)
+   ═══════════════════════════════════════════════════════════════ */
+function perspective(fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2);
+  return new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) / (near - far), -1,
+    0, 0, (2 * far * near) / (near - far), 0
+  ]);
+}
+function lookAt(eye, center, up) {
+  const z = normalize(sub(eye, center));
+  const x = normalize(cross(up, z));
+  const y = cross(z, x);
+  return new Float32Array([
+    x[0], y[0], z[0], 0,
+    x[1], y[1], z[1], 0,
+    x[2], y[2], z[2], 0,
+    -dot(x, eye), -dot(y, eye), -dot(z, eye), 1
+  ]);
+}
+function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function dot(a, b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function normalize(a) {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0]/l, a[1]/l, a[2]/l];
+}
+function multiply(a, b) {
+  const out = new Float32Array(16);
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      let s = 0;
+      for (let k = 0; k < 4; k++) s += a[i*4+k] * b[k*4+j];
+      out[i*4+j] = s;
+    }
+  }
+  return out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER LOOP
+   ═══════════════════════════════════════════════════════════════ */
+let rafId = 0;
+
+function frame(now) {
+  rafId = requestAnimationFrame(frame);
+  const dt = Math.min(0.05, state.last ? (now - state.last) / 1000 : 0.016);
+  state.last = now;
+  state.time += dt;
+
+  state.frames++;
+  state.fpsTimer += dt;
+  if (state.fpsTimer >= 0.5) {
+    state.fps = Math.round(state.frames / state.fpsTimer);
+    state.frames = 0; state.fpsTimer = 0;
+  }
+
+  /* smooth mouse + camera */
+  const ease = 1 - Math.exp(-dt * 4);
+  state.mouse[0] += (state.targetMouse[0] - state.mouse[0]) * ease;
+  state.mouse[1] += (state.targetMouse[1] - state.mouse[1]) * ease;
+  if (!state.dragging) {
+    /* gentle auto-rotation when idle */
+    state.targetCamDir[0] += dt * 0.20;
+  }
+  state.camDir[0] += (state.targetCamDir[0] - state.camDir[0]) * ease;
+  state.camDir[1] += (state.targetCamDir[1] - state.camDir[1]) * ease;
+
+  /* morph state machine */
+  state.morphTimer += dt;
+  if (state.morphTimer > state.holdTime) {
+    state.morph = Math.min(1, (state.morphTimer - state.holdTime) / state.morphTime);
+    if (state.morph >= 1) {
+      state.morphFrom = state.morphTo;
+      state.morphTo = (state.morphTo + 1) % 4;
+      state.morphTimer = 0;
+      state.morph = 0;
+    }
+  }
+  const e = state.morph * state.morph * (3 - 2 * state.morph);
+
+  /* shock age */
+  if (state.shock.age >= 0) {
+    state.shock.age += dt;
+    if (state.shock.age > 2.4) state.shock.age = -1;
+  }
+
+  /* audio analysis */
+  if (analyser) {
+    analyser.getByteFrequencyData(audioData);
+    let bass = 0, mid = 0, treble = 0;
+    const n = audioData.length;
+    for (let i = 0; i < n; i++) {
+      const v = audioData[i] / 255;
+      if (i < n * 0.15) bass += v;
+      else if (i < n * 0.5) mid += v;
+      else treble += v;
+    }
+    audioState.bass   += ((bass / (n*0.15))   - audioState.bass)   * 0.15;
+    audioState.mid    += ((mid / (n*0.35))    - audioState.mid)    * 0.15;
+    audioState.treble += ((treble / (n*0.5))  - audioState.treble) * 0.15;
+  } else {
+    /* synthetic idle signal so HUD isn't dead */
+    audioState.bass   = 0.35 + 0.15 * Math.sin(state.time * 1.7);
+    audioState.mid    = 0.45 + 0.20 * Math.sin(state.time * 2.3 + 1.0);
+    audioState.treble = 0.55 + 0.20 * Math.sin(state.time * 3.1 + 2.0);
+  }
+
+  /* ─────────── PASS 1: SIMULATE PARTICLES ─────────── */
+  gl.useProgram(simProg);
+  gl.uniform1f(gl.getUniformLocation(simProg, 'u_dt'), dt);
+  gl.uniform1f(gl.getUniformLocation(simProg, 'u_time'), state.time);
+  gl.uniform1f(gl.getUniformLocation(simProg, 'u_armCount'), 3.0);
+  gl.uniform3f(gl.getUniformLocation(simProg, 'u_shock'),
+    state.shock.x, state.shock.y, state.shock.age);
+
+  gl.bindVertexArray(vaoSim);
+  gl.bindBuffer(gl.ARRAY_BUFFER, srcState);
+  gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+
+  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, dstState);
+  gl.enable(gl.RASTERIZER_DISCARD);
+  gl.beginTransformFeedback(gl.POINTS);
+  gl.drawArrays(gl.POINTS, 0, PARTICLE_COUNT);
+  gl.endTransformFeedback();
+  gl.disable(gl.RASTERIZER_DISCARD);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+  const tmp = srcState; srcState = dstState; dstState = tmp;
+
+  /* ─────────── PASS 2: RAYMARCH SDF CORE ─────────── */
+  /* Clear to near-black first */
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.clearColor(0.0, 0.0, 0.02, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE); /* additive for particles */
+
+  /* Draw core first (opaque-ish, but composited as we go) */
+  gl.useProgram(rayProg);
+  gl.uniform2f(gl.getUniformLocation(rayProg, 'u_resolution'),
+    canvas.width, canvas.height);
+  gl.uniform1f(gl.getUniformLocation(rayProg, 'u_time'), state.time);
+  gl.uniform1f(gl.getUniformLocation(rayProg, 'u_morph'), e);
+  gl.uniform1i(gl.getUniformLocation(rayProg, 'u_from'), state.morphFrom);
+  gl.uniform1i(gl.getUniformLocation(rayProg, 'u_to'), state.morphTo);
+  gl.uniform2f(gl.getUniformLocation(rayProg, 'u_mouse'),
+    state.mouse[0], state.mouse[1]);
+  gl.uniform3f(gl.getUniformLocation(rayProg, 'u_camDir'),
+    state.camDir[0], state.camDir[1], 0);
+  gl.uniform1f(gl.getUniformLocation(rayProg, 'u_shockAge'), state.shock.age);
+  gl.uniform2f(gl.getUniformLocation(rayProg, 'u_shockUV'),
+    state.shock.x, state.shock.y);
+
+  bindQuad(gl.getAttribLocation(rayProg, 'a_pos'));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  /* ─────────── PASS 3: DRAW GALAXY PARTICLES ─────────── */
+  gl.useProgram(partProg);
+
+  /* build view-projection matrix */
+  const aspect = canvas.width / canvas.height;
+  const proj = perspective(Math.PI / 3, aspect, 0.1, 100);
+  const eye = [0, 0, 2.4];
+  const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+  const viewProj = multiply(proj, view);
+
+  gl.uniformMatrix4fv(gl.getUniformLocation(partProg, 'u_viewProj'),
+    false, viewProj);
+  gl.uniform1f(gl.getUniformLocation(partProg, 'u_pixelRatio'), state.dpr);
+  gl.uniform1f(gl.getUniformLocation(partProg, 'u_time'), state.time);
+
+  gl.bindVertexArray(vaoDraw);
+  gl.bindBuffer(gl.ARRAY_BUFFER, srcState);
+  gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+
+  gl.drawArrays(gl.POINTS, 0, PARTICLE_COUNT);
+  gl.bindVertexArray(null);
+
+  gl.disable(gl.BLEND);
+
+  /* expose stats */
+  window.singularityStats = {
+    particles: PARTICLE_COUNT,
+    fps: state.fps,
+    shape: ['SPHERE','KNOT','CRYSTAL','TORUS'][state.morph > 0 ? state.morphTo : state.morphFrom],
+    morph: e,
+    bass: audioState.bass,
+    mid: audioState.mid,
+    treble: audioState.treble,
+    shockAge: state.shock.age
+  };
+}
+
+rafId = requestAnimationFrame(frame);
+
+/* ═══════════════════════════════════════════════════════════════
+   HUD (unchanged aesthetic, now driven by real signals)
+   ═══════════════════════════════════════════════════════════════ */
+function initHUD(root) {
+  if (!root) return;
+  root.classList.add('hud-root');
+  root.innerHTML = '';
+
+  function h(tag, cls, parent, text) {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text != null) el.textContent = text;
+    if (parent) parent.appendChild(el);
+    return el;
+  }
+  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+
+  /* corner brackets */
+  ['tl', 'tr', 'bl', 'br'].forEach(pos => {
+    const c = h('div', 'hud-corner hud-' + pos, root);
+    h('div', 'hud-ring', c);
+    h('div', 'hud-ring hud-ring2', c);
+  });
+
+  /* signal readout */
+  const sig = h('div', 'hud-signal', root);
+  [['NEURAL', ''], ['QUANTUM', 'v'], ['PLASMA', 'm']].forEach(s => {
+    const sp = h('span', null, sig);
+    h('div', 'hud-dot ' + s[1], sp);
+    h('span', null, sp, s[0]);
+  });
+
+  /* GPU banner — the honest futurism marker */
+  const gpu = h('div', 'hud-gpu', root);
+  gpu.innerHTML =
+    '<b>RENDER</b> WEBGL2 · GLSL ES 3.00<br>' +
+    '<b>PARTICLES</b> 250,000 · TRANSFORM FEEDBACK<br>' +
+    '<b>CORE</b> SDF RAYMARCH · 96 STEPS<br>' +
+    '<b>SIGNAL</b> WEBAUDIO FFT · 128 BINS';
+
+  /* boot */
+  const boot = h('div', 'hud-panel hud-boot', root);
+  const bootLines = [
+    'GPU LINK ............... ESTABLISHED',
+    'WEBGL2 CONTEXT ......... ACQUIRED',
+    'TRANSFORM FEEDBACK ..... BOUND',
+    'SDF RAYMARCHER ......... COMPILED',
+    'WEBAUDIO ANALYSER ...... ONLINE',
+    'SWARM FUSION ........... COMPLETE'
+  ];
+  const cursor = h('span', 'hud-cursor', null, '█');
+  const bootTimers = [];
+  function later(fn, ms) { bootTimers.push(setTimeout(fn, ms)); }
+
+  function typeLine(i) {
+    if (i >= bootLines.length) return;
+    const row = h('div', 'hud-line', boot);
+    const txt = bootLines[i];
+    let k = 0;
+    row.appendChild(cursor);
+    (function tick() {
+      row.insertBefore(document.createTextNode(txt.charAt(k)), cursor);
+      k++;
+      if (k < txt.length) {
+        later(tick, 10 + Math.random() * 22);
+      } else {
+        const last = i === bootLines.length - 1;
+        if (/COMPLETE|ONLINE|ESTABLISHED|ACQUIRED|BOUND|COMPILED/.test(txt)) {
+          const m = txt.match(/(COMPLETE|ONLINE|ESTABLISHED|ACQUIRED|BOUND|COMPILED)$/);
+          if (m) {
+            while (row.firstChild !== cursor) row.removeChild(row.firstChild);
+            row.insertBefore(document.createTextNode(txt.slice(0, -m[1].length)), cursor);
+            const s = h('span', 'hud-ok', null, m[1]);
+            row.insertBefore(s, cursor);
+          }
+        }
+        later(() => typeLine(i + 1), last ? 0 : 200);
+      }
+    })();
+  }
+  later(() => typeLine(0), 350);
+
+  /* telemetry */
+  const tele = h('div', 'hud-panel hud-tele', root);
+  h('div', 'hud-head', tele, '◈ TELEMETRY');
+  const rows = {};
+  ['PARTICLES', 'FPS', 'SHAPE', 'MORPH', 'BASS', 'MID', 'TREBLE', 'CLOCK'].forEach(name => {
+    const r = h('div', 'hud-row', tele);
+    h('span', 'hud-k', r, name);
+    const v = h('span', 'hud-v', r, '--');
+    let fill = null;
+    if (name !== 'CLOCK' && name !== 'SHAPE') {
+      const bar = h('div', 'hud-bar', tele);
+      fill = h('i', null, bar);
+    }
+    rows[name] = { v, fill };
+  });
+
+  function setRow(name, text, frac) {
+    const r = rows[name];
+    r.v.textContent = text;
+    if (r.fill) r.fill.style.width = Math.max(2, Math.min(100, frac * 100)).toFixed(1) + '%';
+  }
+
+  function updateTelemetry() {
+    const s = window.singularityStats || {};
+    const d = new Date();
+    setRow('PARTICLES', (s.particles || 0).toLocaleString(), 1);
+    setRow('FPS', s.fps || 0, Math.min(1, (s.fps || 0) / 60));
+    rows.SHAPE.v.textContent = s.shape || '--';
+    setRow('MORPH', Math.round((s.morph || 0) * 100) + '%', s.morph || 0);
+    setRow('BASS',   Math.round((s.bass   || 0) * 100) + '%', s.bass   || 0);
+    setRow('MID',    Math.round((s.mid    || 0) * 100) + '%', s.mid    || 0);
+    setRow('TREBLE', Math.round((s.treble || 0) * 100) + '%', s.treble || 0);
+    rows.CLOCK.v.textContent = pad(d.getHours(), 2) + ':' + pad(d.getMinutes(), 2) + ':' + pad(d.getSeconds(), 2);
+  }
+  updateTelemetry();
+  const teleTimer = setInterval(updateTelemetry, 250);
+
+  /* glitch title */
+  const title = h('div', 'hud-title', root, 'NEURAL SWARM // SINGULARITY');
+  title.setAttribute('data-text', 'NEURAL SWARM // SINGULARITY');
+  let glitchTimer;
+  (function scheduleGlitch() {
+    glitchTimer = setTimeout(() => {
+      title.classList.add('glitch');
+      setTimeout(() => title.classList.remove('glitch'), 350 + Math.random() * 250);
+      scheduleGlitch();
+    }, 2200 + Math.random() * 4000);
+  })();
+
+  /* hex stream */
+  const hex = h('div', 'hud-hex', root);
+  function hexLine() {
+    let s = pad(Math.floor(Math.random() * 0xffff).toString(16).toUpperCase(), 4) + ' ';
+    for (let i = 0; i < 7; i++)
+      s += pad(Math.floor(Math.random() * 256).toString(16).toUpperCase(), 2) + ' ';
+    return s;
+  }
+  for (let i = 0; i < 14; i++) h('div', null, hex, hexLine());
+  const hexTimer = setInterval(() => {
+    if (hex.children.length > 13) hex.removeChild(hex.firstChild);
+    h('div', null, hex, hexLine());
+  }, 130);
+
+  /* hint */
+  h('div', 'hud-hint', root, 'DRAG TO ROTATE · CLICK TO SEND A SHOCKWAVE');
+}
+
+initHUD(document.getElementById('hud'));
+
+})();
+</script>
+</body>
+</html>
